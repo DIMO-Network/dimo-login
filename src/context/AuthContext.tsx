@@ -6,8 +6,10 @@
  * status, user data, and login/logout functions across the entire application.
  * 
  * Context:
- * - user: Stores the current authenticated user (null if no user is logged in).
- * - login: Function to log in the user and store the user data.
+ * - sendOtp method (to be used by OtpInput component)
+ * - verifyOtp method (to be used by OtpInput component)
+ * - authenticateUser method (to be used by OtpInput component)
+ * - loading (to be used by email and otp input)
  * 
  * Usage:
  * Wrap the application or a part of it with the AuthProvider to make the authentication 
