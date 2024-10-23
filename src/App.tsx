@@ -11,6 +11,7 @@ function App() {
   const { loading } = useAuthContext();  // Get loading state from context
   const [authStep, setAuthStep] = useState(0);  // 0 = Email Input, 1 = Loading, 2 = Success
   const [email, setEmail] = useState("");
+  const [otpId, setOtpId] = useState("");  // New state for OTP ID
 
   if (loading) {
     return (
@@ -27,8 +28,8 @@ function App() {
         <img src={logo} alt="Dimo Logo" className="mx-auto mb-6 w-32 h-auto" />
         
         {/* Render components based on authStep */}
-        {authStep === 0 && <EmailInput onSubmit={setEmail} setAuthStep={setAuthStep} />}
-        {authStep === 1 && <OtpInput setAuthStep={setAuthStep} email={email} />}
+        {authStep === 0 && <EmailInput onSubmit={setEmail} setAuthStep={setAuthStep} setOtpId={setOtpId}/>}
+        {authStep === 1 && <OtpInput setAuthStep={setAuthStep} email={email} otpId={otpId}/>}
         {authStep === 2 && <SuccessPage />}
       </div>
     </div>

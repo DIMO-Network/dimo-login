@@ -18,78 +18,115 @@
 
  */
 
-import React, { createContext, useContext, ReactNode, useState } from 'react';
-import { sendOtp, verifyOtp} from '../services/accountsService';  // Import the service functions
-import { authenticateUser } from '../utils/authUtils';
+import React, { createContext, useContext, ReactNode, useState } from "react";
+import { sendOtp, verifyOtp } from "../services/accountsService"; // Import the service functions
+import { authenticateUser } from "../utils/authUtils";
 
 interface AuthContextProps {
-    sendOtp: (email: string) => Promise<void>;
-    verifyOtp: (email: string, otp: string) => Promise<boolean>;
-    authenticateUser: (email: string, onSuccess: (token: string) => void) => void;
-    loading: boolean;  // Add loading state to context
+  sendOtp: (
+    email: string
+  ) => Promise<{ success: boolean; otpId?: string; error?: string }>;
+  verifyOtp: (
+    email: string,
+    otp: string,
+    otpId: string
+  ) => Promise<{ success: boolean; credentialBundle?: string; error?: string }>;
+  authenticateUser: (email: string, onSuccess: (token: string) => void) => void;
+  loading: boolean; // Add loading state to context
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
 // AuthProvider component to provide the context
-export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element => {
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+export const AuthProvider = ({
+  children,
+}: {
+  children: ReactNode;
+}): JSX.Element => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-    const handleSendOtp = async (email: string) => {
-        setLoading(true);
-        setError(null);
-        try {
-            await sendOtp(email);
-            console.log(`OTP sent to ${email}`);
-        } catch (err) {
-            setError('Failed to send OTP');
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    };
+  const handleSendOtp = async (
+    email: string
+  ): Promise<{ success: boolean; otpId?: string; error?: string }> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await sendOtp(email); // Call the updated sendOtp service
+      if (result.success && result.otpId) {
+        console.log(`OTP sent to ${email}, OTP ID: ${result.otpId}`);
+        return { success: true, otpId: result.otpId };
+      }
 
-    const handleVerifyOtp = async (email: string, otp: string): Promise<boolean> => {
-        setLoading(true);
-        setError(null);
-        try {
-            const isValid = await verifyOtp(email, otp);
-            if (isValid) {
-                console.log(`OTP verified for ${email}`);
-                return true;
-            } else {
-                throw new Error('Invalid OTP');
-            }
-        } catch (err) {
-            setError('Failed to verify OTP');
-            console.error(err);
-            return false;
-        } finally {
-            setLoading(false);
-        }
-    };
+      console.log(`OTP sent to ${email}`);
+      return { success: false };
+    } catch (err) {
+      setError("Failed to send OTP");
+      console.error(err);
+      return { success: false };
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const handleAuthenticateUser = (email: string, onSuccess: (token: string) => void) => {
-        setLoading(true);
-        authenticateUser(email, (token) => {
-            onSuccess(token);
-            setLoading(false);  // Only handle loading in the provider
-        });
-    };    
+  const handleVerifyOtp = async (
+    email: string,
+    otp: string,
+    otpId: string
+  ): Promise<{
+    success: boolean;
+    credentialBundle?: string;
+    error?: string;
+  }> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await verifyOtp(email, otp, otpId);
+      if (result.success && result.credentialBundle) {
+        console.log(`OTP verified for ${email}`);
+        return { success: true, credentialBundle: result.credentialBundle };
+      } else {
+        throw new Error("Invalid OTP");
+      }
+    } catch (err) {
+      setError("Failed to verify OTP");
+      console.error(err);
+      return { success: false };
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    return (
-        <AuthContext.Provider value={{ sendOtp: handleSendOtp, verifyOtp: handleVerifyOtp, authenticateUser: handleAuthenticateUser, loading }}>
-            {children}
-        </AuthContext.Provider>
-    );
+  const handleAuthenticateUser = (
+    email: string,
+    onSuccess: (token: string) => void
+  ) => {
+    setLoading(true);
+    authenticateUser(email, (token) => {
+      onSuccess(token);
+      setLoading(false); // Only handle loading in the provider
+    });
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{
+        sendOtp: handleSendOtp,
+        verifyOtp: handleVerifyOtp,
+        authenticateUser: handleAuthenticateUser,
+        loading,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 // Hook to use the AuthContext
 export const useAuthContext = () => {
-    const context = useContext(AuthContext);
-    if (!context) {
-        throw new Error('useAuthContext must be used within an AuthProvider');
-    }
-    return context;
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuthContext must be used within an AuthProvider");
+  }
+  return context;
 };
