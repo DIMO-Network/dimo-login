@@ -19,7 +19,7 @@
  */
 
 import React, { createContext, useContext, ReactNode, useState } from 'react';
-import { sendOtp, verifyOtp} from '../services/turnkeyService';  // Import the service functions
+import { sendOtp, verifyOtp} from '../services/accountsService';  // Import the service functions
 import { authenticateUser } from '../utils/authUtils';
 
 interface AuthContextProps {
