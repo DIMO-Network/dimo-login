@@ -1,16 +1,24 @@
 // components/Auth/EmailInput.tsx
 import React, { useState } from "react";
+import { useAuthContext } from '../../context/AuthContext';  // Use the auth context
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;
+  setAuthStep: (step: number) => void;
 }
 
-const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
+const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setAuthStep }) => {
+  const { sendOtp } = useAuthContext();  // Get sendOtp from the context
   const [email, setEmail] = useState("");
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (email) {
       onSubmit(email);
+
+      await sendOtp(email);
+
+      setAuthStep(1);
+
     }
   };
 
