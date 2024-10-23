@@ -19,8 +19,13 @@
  */
 
 import React, { createContext, useContext, ReactNode, useState } from "react";
-import { sendOtp, verifyOtp } from "../services/accountsService"; // Import the service functions
+import {
+  fetchUserDetails,
+  sendOtp,
+  verifyOtp,
+} from "../services/accountsService"; // Import the service functions
 import { authenticateUser } from "../utils/authUtils";
+import { UserObject } from "../models/user";
 
 interface AuthContextProps {
   sendOtp: (
@@ -31,7 +36,11 @@ interface AuthContextProps {
     otp: string,
     otpId: string
   ) => Promise<{ success: boolean; credentialBundle?: string; error?: string }>;
-  authenticateUser: (email: string, onSuccess: (token: string) => void) => void;
+  authenticateUser: (
+    email: string,
+    credentialBundle: string,
+    onSuccess: (token: string) => void
+  ) => void;
   loading: boolean; // Add loading state to context
 }
 
@@ -44,6 +53,7 @@ export const AuthProvider = ({
   children: ReactNode;
 }): JSX.Element => {
   const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState<UserObject | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleSendOtp = async (
@@ -97,15 +107,30 @@ export const AuthProvider = ({
     }
   };
 
-  const handleAuthenticateUser = (
+  const handleAuthenticateUser = async (
     email: string,
+    credentialBundle: string,
     onSuccess: (token: string) => void
   ) => {
     setLoading(true);
-    authenticateUser(email, (token) => {
-      onSuccess(token);
-      setLoading(false); // Only handle loading in the provider
-    });
+    setError(null);
+
+    try {
+      const userDetailsResponse = await fetchUserDetails(email);
+      if (!userDetailsResponse.success || !userDetailsResponse.user) {
+        throw new Error("Failed to fetch user details");
+      }
+      const user = userDetailsResponse.user;
+      console.log(user);
+      setUser(user); // Store the user object in the context
+      authenticateUser(email, (token) => {
+        onSuccess(token);
+      });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
