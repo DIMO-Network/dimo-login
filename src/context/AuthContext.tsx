@@ -41,6 +41,7 @@ interface AuthContextProps {
     credentialBundle: string,
     onSuccess: (token: string) => void
   ) => void;
+  user: UserObject | null;
   loading: boolean; // Add loading state to context
 }
 
@@ -140,6 +141,7 @@ export const AuthProvider = ({
         verifyOtp: handleVerifyOtp,
         authenticateUser: handleAuthenticateUser,
         loading,
+        user,
       }}
     >
       {children}
