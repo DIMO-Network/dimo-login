@@ -6,6 +6,7 @@
  *
  */
 
+import { UserObject } from "../models/user";
 import { generateTargetPublicKey } from "../utils/authUtils";
 
 const DIMO_ACCOUNTS_BASE_URL = process.env.REACT_APP_DIMO_ACCOUNTS_URL || 'https://accounts.dev.dimo.org';
@@ -118,16 +119,25 @@ export const deployAccount = async (email: string): Promise<{ success: boolean }
     return { success: true };
 };
 
-// Check if an account exists
-export const checkAccountExists = async (email: string) => {
-  const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account/${email}`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-  if (!response.ok) {
-    throw new Error("Account lookup failed");
+// src/services/authService.ts
+export const fetchUserDetails = async (email: string): Promise<{ success: boolean; error?: string; user?: UserObject }> => {
+  try {
+    const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account/${email}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      return { success: false, error: errorData.message || 'Failed to fetch user details' };
+    }
+
+    const user = await response.json();
+    return { success: true, user: {...user, email} };
+  } catch (error) {
+    console.error('Error fetching user details:', error);
+    return { success: false, error: 'An error occurred while fetching user details' };
   }
-  return await response.json();
 };
