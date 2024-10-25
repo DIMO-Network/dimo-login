@@ -22,7 +22,7 @@ export const sendOtp = async (email: string, apiKey: string): Promise<{ success:
     },
     body: JSON.stringify({
       email,
-      key: apiKey, //TODO: Fetch from dev props
+      key: apiKey,
     }),
   });
 
@@ -63,7 +63,7 @@ export const verifyOtp = async (
       email,
       otpId,
       otpCode: otp,
-      key: await generateTargetPublicKey(), //TODO: Fetch from dev props
+      key: await generateTargetPublicKey(),
     }),
   });
 
@@ -125,7 +125,7 @@ export const createAccount = async (
     },
     body: JSON.stringify({
       email,
-      key: apiKey, //TODO: Fetch from dev props
+      key: apiKey,
       attestation,
       encodedChallenge: challenge,
       deployAccount: deployAccount,
