@@ -11,7 +11,7 @@
  * This service should be imported and called from components or hooks that handle authentication logic.
  */
 
-const DIMO_AUTH_BASE_URL = 'https://auth.dimo.zone';
+const DIMO_AUTH_BASE_URL = 'https://auth.dev.dimo.zone'; //TODO: Pull from env and be able to toggle
 
 export const generateChallenge = async (clientId: string, domain: string, scope: string, address: string): Promise<{ success: boolean; error?: string; data?: any }> => {
   try {
