@@ -12,7 +12,7 @@ import { generateTargetPublicKey } from "../utils/authUtils";
 const DIMO_ACCOUNTS_BASE_URL = process.env.REACT_APP_DIMO_ACCOUNTS_URL || 'https://accounts.dev.dimo.org';
 
 // Example: Send OTP using Accounts API
-export const sendOtp = async (email: string): Promise<{ success: boolean, otpId?: string; error?: string }> => {
+export const sendOtp = async (email: string, apiKey: string): Promise<{ success: boolean, otpId?: string; error?: string }> => {
   // Call Turnkey's OTP generation API/SDK
   //Endpoint: POST /api/auth/otp
   const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/auth/otp`, {
@@ -22,7 +22,7 @@ export const sendOtp = async (email: string): Promise<{ success: boolean, otpId?
     },
     body: JSON.stringify({
       email,
-      key: process.env.REACT_APP_DIMO_API_KEY, //TODO: Fetch from dev props
+      key: apiKey, //TODO: Fetch from dev props
     }),
   });
 
@@ -113,6 +113,7 @@ export const verifyEmail = async (
 // Function to create an account
 export const createAccount = async (
   email: string,
+  apiKey: string,
   attestation?: object,
   challenge?: string,
   deployAccount?: boolean,
@@ -124,10 +125,10 @@ export const createAccount = async (
     },
     body: JSON.stringify({
       email,
-      key: "d794016835909c49dd94d65ea06c12b428761550f187ecc765732cd6e823286b", //TODO: Fetch from dev props
+      key: apiKey, //TODO: Fetch from dev props
       attestation,
       encodedChallenge: challenge,
-      deployAccount: true,
+      deployAccount: deployAccount,
     }),
   });
 

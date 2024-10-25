@@ -28,6 +28,7 @@ import {
 import { authenticateUser } from "../utils/authUtils";
 import { UserObject } from "../models/user";
 import { createPasskey } from "../services/turnkeyService";
+import { useDevCredentials } from "./DevCredentialsContext";
 
 interface AuthContextProps {
   sendOtp: (
@@ -58,6 +59,8 @@ export const AuthProvider = ({
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<UserObject | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { clientId, apiKey, redirectUri } = useDevCredentials();
+
 
   const handleSendOtp = async (
     email: string
@@ -65,7 +68,7 @@ export const AuthProvider = ({
     setLoading(true);
     setError(null);
     try {
-      const result = await sendOtp(email); // Call the updated sendOtp service
+      const result = await sendOtp(email, apiKey!); // Call the updated sendOtp service
       if (result.success && result.otpId) {
         console.log(`OTP sent to ${email}, OTP ID: ${result.otpId}`);
         return { success: true, otpId: result.otpId };
@@ -79,10 +82,10 @@ export const AuthProvider = ({
         const challenge = resp[1];
 
         //Trigger account creation request
-        const account = await createAccount(email, attestation as object, challenge as string, true);
+        const account = await createAccount(email, apiKey!, attestation as object, challenge as string, true);
 
         //Send OTP Again
-        const newOtp = await sendOtp(email); // Call the updated sendOtp service
+        const newOtp = await sendOtp(email, apiKey!); // Call the updated sendOtp service
         if ( newOtp.success && newOtp.otpId) {
             console.log("YES");
             return { success: true, otpId: newOtp.otpId };
@@ -140,9 +143,8 @@ export const AuthProvider = ({
         throw new Error("Failed to fetch user details");
       }
       const user = userDetailsResponse.user;
-      console.log(user);
       setUser(user); // Store the user object in the context
-      await authenticateUser(email, user.subOrganizationId, user.walletAddress, user!.smartContractAddress!, (token) => {
+      await authenticateUser(email, clientId!, redirectUri!, user.subOrganizationId, user.walletAddress, user!.smartContractAddress!, (token) => {
         onSuccess(token);
       });
     } catch (error) {

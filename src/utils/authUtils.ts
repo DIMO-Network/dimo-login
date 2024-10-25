@@ -30,6 +30,7 @@ function sendTokenToParent(token: string, onSuccess: (token: string) => void) {
   // Trigger success callback
   onSuccess(token);
 }
+
 export async function generateTargetPublicKey(): Promise<string> {
   const keyPair = await window.crypto.subtle.generateKey(
     {
@@ -83,6 +84,8 @@ export function bufferToBase64(buffer: Uint8Array): string {
 
 export async function authenticateUser(
   email: string,
+  clientId: string,
+  redirectUri: string,
   subOrganizationId: string | null,
   walletAddress: string | null,
   smartContractAddress: string,
@@ -94,8 +97,8 @@ export async function authenticateUser(
     await initializePasskey(subOrganizationId, walletAddress);
 
     const resp = await generateChallenge(
-      "login-with-dimo", //This is a dev licence, use this with the dev.dimo.zone endpoint if using dev RPC's
-      "http://127.0.0.1:3000", //Redirect uri for this dev licensce
+      clientId, //This is a dev licence, use this with the dev.dimo.zone endpoint if using dev RPC's
+      redirectUri, //Redirect uri for this dev licensce
       "openid email",
       smartContractAddress //We want this address to be recovered after signing
     );    
@@ -111,9 +114,9 @@ export async function authenticateUser(
 
       if (signature) {
         const jwt = await submitWeb3Challenge(
-          "login-with-dimo",
+          clientId,
           state,
-          "http://127.0.0.1:3000",
+          redirectUri,
           signature
         );
 
