@@ -194,8 +194,8 @@ export async function authenticateUser(
     //   "0xeAa35540a94e3ebdf80448Ae7c9dE5F42CaB3481"
     // );
     const resp = await generateChallenge(
-      "0xeAa35540a94e3ebdf80448Ae7c9dE5F42CaB3481",
-      "http://127.0.0.1:3000/",
+      "login-with-dimo",
+      "http://127.0.0.1:3000",
       "openid email",
       smartContractAddress //could be smart contract
     );    
@@ -232,9 +232,9 @@ export async function authenticateUser(
 
       if (signature) {
         const jwt = await submitWeb3Challenge(
-          "0xeAa35540a94e3ebdf80448Ae7c9dE5F42CaB3481",
+          "login-with-dimo",
           state,
-          "http://127.0.0.1:3000/",
+          "http://127.0.0.1:3000",
           signature
         );
       }

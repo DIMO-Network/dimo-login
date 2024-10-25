@@ -7,11 +7,11 @@
  * Specific Responsibilities include: Signing Messages, Triggering OTP's etc
  */
 
-import {
-  KernelSigner,
-  newKernelConfig,
-  sacdPermissionValue,
-} from "@dimo-network/transactions";
+// import {
+//   KernelSigner,
+//   newKernelConfig,
+//   sacdPermissionValue,
+// } from "@dimo-network/transactions";
 import {
   TurnkeyClient,
   getWebAuthnAttestation,
@@ -28,7 +28,10 @@ import {
   toHexSignature,
 } from "../utils/authUtils";
 import { verifyEmail } from "./accountsService";
-import { keccak256 } from "ethers";
+// import { keccak256 } from "ethers";
+import { getKernelClient } from "./kernelClientService";
+import { KernelAccountClient, KernelSmartAccount } from "@zerodev/sdk";
+import { Transport, HttpTransport } from "viem";
 // import { hashMessage } from "viem";
 // import { verifyEIP6492Signature } from "@zerodev/sdk";
 
@@ -36,17 +39,18 @@ const stamper = new WebauthnStamper({
   rpId: "ab1a735dff55.ngrok.app",
 });
 
-const kernelSignerConfig = newKernelConfig({
-  rpcUrl:
-    "https://polygon-amoy.g.alchemy.com/v2/-0PsUljNtSdA31-XWj-kL_L1Mx2ArYfS",
-  bundlerUrl:
-    "https://rpc.zerodev.app/api/v2/bundler/f4d1596a-edfd-4063-8f99-2d8835e07739",
-  paymasterUrl:
-    "https://rpc.zerodev.app/api/v2/paymaster/f4d1596a-edfd-4063-8f99-2d8835e07739",
-  environment: "dev", // omit this to default to prod
-});
+// const kernelSignerConfig = newKernelConfig({
+//   rpcUrl:
+//     "https://polygon-amoy.g.alchemy.com/v2/-0PsUljNtSdA31-XWj-kL_L1Mx2ArYfS",
+//   bundlerUrl:
+//     "https://rpc.zerodev.app/api/v2/bundler/f4d1596a-edfd-4063-8f99-2d8835e07739",
+//   paymasterUrl:
+//     "https://rpc.zerodev.app/api/v2/paymaster/f4d1596a-edfd-4063-8f99-2d8835e07739",
+//   environment: "dev", // omit this to default to prod
+// });
 
-let kernelSigner: KernelSigner;
+// let kernelSigner: KernelSigner;
+let kernelClient: any;
 
 export const createPasskey = async (email: string) => {
   const challenge = generateRandomBuffer();
@@ -87,12 +91,19 @@ export const initializePasskey = async (
   subOrganizationId: string,
   walletAddress: string
 ) => {
-  kernelSigner = new KernelSigner(kernelSignerConfig);
-  await kernelSigner.passkeyInit(
+  // kernelSigner = new KernelSigner(kernelSignerConfig);
+  walletAddress = walletAddress as `0x${string}`;
+
+  kernelClient = await getKernelClient({
     subOrganizationId,
-    walletAddress as `0x${string}`,
-    stamper
-  );
+    //@ts-ignore
+    walletAddress,
+  });
+  //   await kernelSigner.passkeyInit(
+  //     subOrganizationId,
+  //     walletAddress as `0x${string}`,
+  //     stamper
+  //   );
 };
 
 export const signChallenge = async (
@@ -100,33 +111,32 @@ export const signChallenge = async (
   organizationId: string,
   walletAddress: string
 ) => {
-  const signature = await kernelSigner.kernelClient.signMessage({
+  const signature = await kernelClient.signMessage({
     message: challenge,
   });
 
-//   kernelSigner.turnkeyClient?.signRawPayload({
-//         type: "ACTIVITY_TYPE_SIGN_RAW_PAYLOAD_V2" as const, // Force literal string type
-//         timestampMs: Date.now().toString(), // Ensure this is a string, since the backend expects it.
-//         organizationId, // Example organizationId
-//         parameters: {
-//           signWith: walletAddress, // Replace with actual address or identifier
-//           payload: challenge, // The message you want to sign
-//           encoding: "PAYLOAD_ENCODING_TEXT_UTF8" as const, // Use appropriate encoding (UTF-8 or hexadecimal)
-//           hashFunction: "HASH_FUNCTION_NO_OP" as const, // Choose the right hash function (e.g., SHA-256 for most general purposes)
-//         },
-//       })
-
+  //   kernelSigner.turnkeyClient?.signRawPayload({
+  //         type: "ACTIVITY_TYPE_SIGN_RAW_PAYLOAD_V2" as const, // Force literal string type
+  //         timestampMs: Date.now().toString(), // Ensure this is a string, since the backend expects it.
+  //         organizationId, // Example organizationId
+  //         parameters: {
+  //           signWith: walletAddress, // Replace with actual address or identifier
+  //           payload: challenge, // The message you want to sign
+  //           encoding: "PAYLOAD_ENCODING_TEXT_UTF8" as const, // Use appropriate encoding (UTF-8 or hexadecimal)
+  //           hashFunction: "HASH_FUNCTION_NO_OP" as const, // Choose the right hash function (e.g., SHA-256 for most general purposes)
+  //         },
+  //       })
 
   return signature;
-//   const isValid = await verifyEIP6492Signature({
-//     signer: kernelSigner.kernelAddress!,
-//     hash: hashMessage(challenge)!,
-//     signature: signature,
-//     //@ts-ignore
-//     client: kernelSigner.publicClient,
-//   });
+  //   const isValid = await verifyEIP6492Signature({
+  //     signer: kernelSigner.kernelAddress!,
+  //     hash: hashMessage(challenge)!,
+  //     signature: signature,
+  //     //@ts-ignore
+  //     client: kernelSigner.publicClient,
+  //   });
 
-//   console.log(isValid);
+  //   console.log(isValid);
   // const resp = await stamper.stamp(challenge);
   // console.log(resp);
   // return resp;

@@ -2,8 +2,12 @@
   "name": "dimo-login",
   "version": "0.1.0",
   "private": true,
+  "overrides": {
+    "@typescript-eslint/typescript-estree": "^5.57.1",
+    "fork-ts-checker-webpack-plugin": "^6.5.3",
+    "typescript": "^5.0.3"
+  },
   "dependencies": {
-    "@dimo-network/transactions": "^0.1.42",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
@@ -16,7 +20,10 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-scripts": "5.0.1",
-    "typescript": "^4.9.5",
+    "@turnkey/viem": "0.6.2",
+    "@zerodev/sdk": "^5.3.19",
+    "permissionless": "^0.1.45",
+    "@zerodev/ecdsa-validator": "^5.3.3",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
