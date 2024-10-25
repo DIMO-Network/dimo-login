@@ -82,9 +82,40 @@ export const verifyOtp = async (
   return { success: true, credentialBundle: data.credentialBundle };
 };
 
+export const verifyEmail = async (
+  email: string,
+  encodedChallenge: string,
+  attestation: object,
+): Promise<{success: boolean, credentialBundle?: string; error?: string}> => {
+  // Call Turnkey's OTP verification API/SDK
+  //Endpoint: PUT /api/auth/otp
+  const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account/verify-email`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email,
+      encodedChallenge,
+      attestation,
+    }),
+  });
+
+  // Handle response failure cases first
+  if (!response.ok) {
+    throw new Error("Failed to send OTP");
+  }
+
+//   // Return success with OTP ID
+  return { success: true };
+};
+
 // Function to create an account
 export const createAccount = async (
-  email: string
+  email: string,
+  attestation?: object,
+  challenge?: string,
+  deployAccount?: boolean,
 ): Promise<{ success: boolean }> => {
   const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account`, {
     method: "POST",
@@ -93,7 +124,10 @@ export const createAccount = async (
     },
     body: JSON.stringify({
       email,
-      key: process.env.DIMO_API_KEY, //TODO: Fetch from dev props
+      key: "d794016835909c49dd94d65ea06c12b428761550f187ecc765732cd6e823286b", //TODO: Fetch from dev props
+      attestation,
+      encodedChallenge: challenge,
+      deployAccount: true,
     }),
   });
 

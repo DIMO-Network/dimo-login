@@ -22,6 +22,7 @@ const EmailInput: React.FC<EmailInputProps> = ({
 
       const result = await sendOtp(email);
 
+      console.log(result);
       if (result.success && result.otpId) {
         setOtpId(result.otpId); // Store the otpId
         setAuthStep(1); // Move to OTP input step
