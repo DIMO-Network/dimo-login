@@ -5,6 +5,7 @@ import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 import { AuthProvider } from "./context/AuthContext";
 import { DevCredentialsProvider } from "./context/DevCredentialsContext";
+import { sendMessageToReferrer } from "./utils/messageHandler";
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
@@ -24,16 +25,8 @@ root.render(
 // or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
 reportWebVitals();
 
-
+//Send a READY event to the developer's app, ready to receive credentials
 window.onload = () => {
-  if (window.opener) {
-    const parentOrigin = new URL(document.referrer).origin;
-    window.opener.postMessage(
-      { eventType: "READY" },
-      parentOrigin
-    );
-    console.log("READY message sent to Developers App.");
-  } else {
-    console.error("No opener window found; cannot send READY message.");
-  }
+  sendMessageToReferrer({ eventType: "READY" });
+  console.log("READY message sent to Developers App.");
 };
