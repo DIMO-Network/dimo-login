@@ -12,7 +12,7 @@ import {
 } from "../services/turnkeyService";
 
 function sendTokenToParent(token: string, redirectUri: string, onSuccess: (token: string) => void) {
-  if ( !document.referrer ) {
+  if ( window == window.top ) {
     //Do a redirect here
     window.location.href = `${redirectUri}?token=${token}`;
     onSuccess(token);

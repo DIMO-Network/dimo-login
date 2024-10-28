@@ -1,5 +1,5 @@
 export function sendMessageToReferrer(data: object) {
-  if (!document.referrer) {
+  if (window == window.top) {
     console.warn("Not opened in popup or iframe, use url based creds");
     return;
   }
