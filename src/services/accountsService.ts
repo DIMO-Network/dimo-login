@@ -1,39 +1,133 @@
 /**
  * accountsService.ts
- * 
- * This service handles all requests related to the Dimo Accounts API, including 
+ *
+ * This service handles all requests related to the Dimo Accounts API, including
  * checking account existence and creating/linking accounts.
- * 
+ *
  */
+
+import { generateTargetPublicKey } from "../utils/authUtils";
 
 const DIMO_ACCOUNTS_BASE_URL = process.env.REACT_APP_DIMO_ACCOUNTS_URL || 'https://accounts.dev.dimo.org';
 
 // Example: Send OTP using Accounts API
-export const sendOtp = async (email: string) => {
-    // Call Turnkey's OTP generation API/SDK
-    //Endpoint: POST /api/auth/otp
-    console.log("Sending OTP");
+export const sendOtp = async (email: string): Promise<{ success: boolean, otpId?: string; error?: string }> => {
+  // Call Turnkey's OTP generation API/SDK
+  //Endpoint: POST /api/auth/otp
+  const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/auth/otp`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email,
+      key: process.env.REACT_APP_DIMO_API_KEY, //TODO: Fetch from dev props
+    }),
+  });
+
+  // Handle response failure cases first
+  if (!response.ok) {
+    const errorData = await response.json();
+    if (errorData.error === "User not found") {
+      return { success: false, error: "User not found" };
+    }
+    throw new Error("Failed to send OTP");
+  }
+
+  // Parse successful response
+  const data = await response.json();
+  if (!data.otpId) {
+    throw new Error("OTP ID not found in response");
+  }
+
+  // Return success with OTP ID
+  return { success: true, otpId: data.otpId };
 };
 
 // Example: Verify OTP using Accounts API
-export const verifyOtp = async (email: string, otp: string): Promise<boolean> => {
-    // Call Turnkey's OTP verification API/SDK
-    //Endpoint: PUT /api/auth/otp
-    console.log("Verifying OTP");
-    return true;
+export const verifyOtp = async (
+  email: string,
+  otp: string,
+  otpId: string
+): Promise<{success: boolean, credentialBundle?: string; error?: string}> => {
+  // Call Turnkey's OTP verification API/SDK
+  //Endpoint: PUT /api/auth/otp
+  console.log(`Verifying OTP, Email:${email}, OTP: ${otp}, OtpID: ${otpId}`);
+  const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/auth/otp`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email,
+      otpId,
+      otpCode: otp,
+      key: await generateTargetPublicKey(), //TODO: Fetch from dev props
+    }),
+  });
+
+  // Handle response failure cases first
+  if (!response.ok) {
+    throw new Error("Failed to send OTP");
+  }
+
+//   // Parse successful response
+  const data = await response.json();
+  if (!data.credentialBundle) {
+    throw new Error("Could not retrieve credential bundle");
+  }
+
+//   // Return success with OTP ID
+  return { success: true, credentialBundle: data.credentialBundle };
 };
 
+// Function to create an account
+export const createAccount = async (
+  email: string
+): Promise<{ success: boolean }> => {
+  const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email,
+      key: process.env.DIMO_API_KEY, //TODO: Fetch from dev props
+    }),
+  });
 
-// Check if an account exists
-export const checkAccountExists = async (email: string) => {
-    const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account/${email}`, {
-        method: 'GET',
+  if (!response.ok) {
+    throw new Error("Failed to create account");
+  }
+  return { success: true };
+};
+
+// Function to deploy an account
+export const deployAccount = async (email: string): Promise<{ success: boolean }> => {
+    const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account/deploy`, {
+        method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ email }),
     });
+
     if (!response.ok) {
-        throw new Error('Account lookup failed');
+        throw new Error('Failed to deploy account');
     }
-    return await response.json();
+    return { success: true };
+};
+
+// Check if an account exists
+export const checkAccountExists = async (email: string) => {
+  const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account/${email}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+  if (!response.ok) {
+    throw new Error("Account lookup failed");
+  }
+  return await response.json();
 };
