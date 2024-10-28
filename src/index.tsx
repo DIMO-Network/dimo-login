@@ -28,5 +28,4 @@ reportWebVitals();
 //Send a READY event to the developer's app, ready to receive credentials
 window.onload = () => {
   sendMessageToReferrer({ eventType: "READY" });
-  console.log("READY message sent to Developers App.");
 };

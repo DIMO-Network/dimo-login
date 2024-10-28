@@ -24,7 +24,7 @@ import {
 import { verifyEmail } from "./accountsService";
 
 const stamper = new WebauthnStamper({
-  rpId: "ab1a735dff55.ngrok.app", //TODO: Should not be hardcoded
+  rpId: window.location.hostname,
 });
 
 const kernelSignerConfig = newKernelConfig({
@@ -48,7 +48,7 @@ export const createPasskey = async (email: string) => {
   const attestation = await getWebAuthnAttestation({
     publicKey: {
       rp: {
-        id: "ab1a735dff55.ngrok.app",
+        id: window.location.hostname,
         name: "Dimo Passkey Wallet",
       },
       challenge,

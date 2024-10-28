@@ -11,24 +11,23 @@ import {
   signChallenge,
 } from "../services/turnkeyService";
 
-
-function sendTokenToParent(token: string, onSuccess: (token: string) => void) {
+function sendTokenToParent(token: string, redirectUri: string, onSuccess: (token: string) => void) {
+  if ( window == window.top ) {
+    //Do a redirect here
+    window.location.href = `${redirectUri}?token=${token}`;
+    onSuccess(token);
+    return;
+  }
   const parentOrigin = new URL(document.referrer).origin;
   if (window.opener) {
-    window.opener.postMessage(
-      { token, authType: "popup" },
-      parentOrigin
-    );
+    window.opener.postMessage({ token, authType: "popup" }, parentOrigin);
     window.close();
   } else if (window.parent) {
-    window.parent.postMessage(
-      { token, authType: "embed" },
-      parentOrigin
-    );
+    window.parent.postMessage({ token, authType: "embed" }, parentOrigin);
   }
+  onSuccess(token);
 
   // Trigger success callback
-  onSuccess(token);
 }
 
 export async function generateTargetPublicKey(): Promise<string> {
@@ -101,7 +100,7 @@ export async function authenticateUser(
       redirectUri, //Redirect uri for this dev licensce
       "openid email",
       smartContractAddress //We want this address to be recovered after signing
-    );    
+    );
     if (resp.success) {
       const challenge = resp.data.challenge;
       const state = resp.data.state;
@@ -120,10 +119,8 @@ export async function authenticateUser(
           signature
         );
 
-        sendTokenToParent(jwt.data.access_token, onSuccess);
+        sendTokenToParent(jwt.data.access_token, redirectUri, onSuccess);
       }
     }
   }
 }
-
-
