@@ -20,12 +20,14 @@
 
 import React, { createContext, useContext, ReactNode, useState } from "react";
 import {
+    createAccount,
   fetchUserDetails,
   sendOtp,
   verifyOtp,
 } from "../services/accountsService"; // Import the service functions
 import { authenticateUser } from "../utils/authUtils";
 import { UserObject } from "../models/user";
+import { createPasskey } from "../services/turnkeyService";
 
 interface AuthContextProps {
   sendOtp: (
@@ -67,10 +69,26 @@ export const AuthProvider = ({
       if (result.success && result.otpId) {
         console.log(`OTP sent to ${email}, OTP ID: ${result.otpId}`);
         return { success: true, otpId: result.otpId };
-      }
+      } else {
+        //Need to trigger account creation
 
-      console.log(`OTP sent to ${email}`);
-      return { success: false };
+        //Create passkey and get attestation
+        const resp = await createPasskey(email);
+
+        const attestation = resp[0];
+        const challenge = resp[1];
+
+        //Trigger account creation request
+        const account = await createAccount(email, attestation as object, challenge as string, true);
+
+        //Send OTP Again
+        const newOtp = await sendOtp(email); // Call the updated sendOtp service
+        if ( newOtp.success && newOtp.otpId) {
+            console.log("YES");
+            return { success: true, otpId: newOtp.otpId };
+        }
+        return { success: false };
+      }
     } catch (err) {
       setError("Failed to send OTP");
       console.error(err);
@@ -124,7 +142,7 @@ export const AuthProvider = ({
       const user = userDetailsResponse.user;
       console.log(user);
       setUser(user); // Store the user object in the context
-      authenticateUser(email, (token) => {
+      await authenticateUser(email, user.subOrganizationId, user.walletAddress, user!.smartContractAddress!, (token) => {
         onSuccess(token);
       });
     } catch (error) {
