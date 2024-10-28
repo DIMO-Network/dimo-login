@@ -9,7 +9,7 @@
 import { UserObject } from "../models/user";
 import { generateTargetPublicKey } from "../utils/authUtils";
 
-const DIMO_ACCOUNTS_BASE_URL = process.env.REACT_APP_DIMO_ACCOUNTS_URL || 'https://accounts.dev.dimo.org';
+const DIMO_ACCOUNTS_BASE_URL = process.env.REACT_APP_DIMO_ACCOUNTS_URL || 'https://accounts.dev.dimo.org/api';
 
 // Example: Send OTP using Accounts API
 export const sendOtp = async (email: string, apiKey: string): Promise<{ success: boolean, otpId?: string; error?: string }> => {
