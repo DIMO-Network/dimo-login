@@ -16,8 +16,8 @@ const OtpInput: React.FC<OtpInputProps> = ({ setAuthStep, email, otpId }) => {
       // Verify OTP using the auth context
       const result = await verifyOtp(email, otp, otpId);
 
-      if ( result.success ) {
-        authenticateUser(email, () => {
+      if ( result.success && result.credentialBundle ) {
+        authenticateUser(email, result.credentialBundle,  () => {
             setAuthStep(2); // Move to success page after authentication
         });
       }
