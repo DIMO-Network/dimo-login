@@ -10,9 +10,10 @@ import {
   initializePasskey,
   signChallenge,
 } from "../services/turnkeyService";
+import { isStandalone } from "./isStandalone";
 
 function sendTokenToParent(token: string, redirectUri: string, onSuccess: (token: string) => void) {
-  if ( window == window.top ) {
+  if ( isStandalone() ) {
     //Do a redirect here
     window.location.href = `${redirectUri}?token=${token}`;
     onSuccess(token);

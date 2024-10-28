@@ -1,5 +1,7 @@
+import { isStandalone } from "./isStandalone";
+
 export function sendMessageToReferrer(data: object) {
-  if (window == window.top) {
+  if (isStandalone()) {
     console.warn("Not opened in popup or iframe, use url based creds");
     return;
   }
