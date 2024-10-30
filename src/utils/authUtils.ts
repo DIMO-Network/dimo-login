@@ -8,12 +8,20 @@ import {
 import {
   createPasskey,
   initializePasskey,
+  openSessionWithPasskey,
+  setVehiclePermissions,
   signChallenge,
 } from "../services/turnkeyService";
 import { isStandalone } from "./isStandalone";
+import { sacdPermissionValue } from "@dimo-network/transactions";
+import { fetchVehiclesWithTransformation } from "../services/identityService";
 
-function sendTokenToParent(token: string, redirectUri: string, onSuccess: (token: string) => void) {
-  if ( isStandalone() ) {
+export function sendTokenToParent(
+  token: string,
+  redirectUri: string,
+  onSuccess: (token: string) => void
+) {
+  if (isStandalone()) {
     //Do a redirect here
     window.location.href = `${redirectUri}?token=${token}`;
     onSuccess(token);
@@ -89,12 +97,17 @@ export async function authenticateUser(
   subOrganizationId: string | null,
   walletAddress: string | null,
   smartContractAddress: string,
-  onSuccess: (token: string) => void
+  setJwt: (jwt: string) => void,
+  setAuthStep: (step: number) => void,
+  permissionTemplateId?: string
 ) {
   console.log(`Authenticating user with email: ${email}`);
 
+
   if (subOrganizationId && walletAddress) {
     await initializePasskey(subOrganizationId, walletAddress);
+
+    const session = await openSessionWithPasskey();
 
     const resp = await generateChallenge(
       clientId, //This is a dev licence, use this with the dev.dimo.zone endpoint if using dev RPC's
@@ -120,7 +133,18 @@ export async function authenticateUser(
           signature
         );
 
-        sendTokenToParent(jwt.data.access_token, redirectUri, onSuccess);
+        setJwt(jwt.data.access_token)
+
+
+        if (!permissionTemplateId) {
+          // No permissions required, send JWT to parent and move to success page
+          sendTokenToParent(jwt.data.access_token, redirectUri, () => {
+            setAuthStep(3); // Move to success page
+          });
+        } else {
+          // Permissions required, move to permissions screen
+          setAuthStep(2);
+        }        
       }
     }
   }
