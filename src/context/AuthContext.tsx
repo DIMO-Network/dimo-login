@@ -42,10 +42,15 @@ interface AuthContextProps {
   authenticateUser: (
     email: string,
     credentialBundle: string,
-    onSuccess: (token: string) => void
+    setJwt: (jwt: string) => void,
+    setAuthStep: (step: number) => void
   ) => void;
   user: UserObject | null;
   loading: boolean; // Add loading state to context
+  jwt: string | null;
+  setJwt: React.Dispatch<React.SetStateAction<string | null>>;
+  authStep: number;
+  setAuthStep: React.Dispatch<React.SetStateAction<number>>;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -58,8 +63,10 @@ export const AuthProvider = ({
 }): JSX.Element => {
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<UserObject | null>(null);
+  const [jwt, setJwt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { clientId, apiKey, redirectUri } = useDevCredentials();
+  const [authStep, setAuthStep] = useState<number>(0);  // 0 = Email Input, 1 = Loading, 2 = Success
+  const { clientId, apiKey, redirectUri, permissionTemplateId } = useDevCredentials();
 
 
   const handleSendOtp = async (
@@ -68,7 +75,7 @@ export const AuthProvider = ({
     setLoading(true);
     setError(null);
     try {
-      const result = await sendOtp(email, apiKey!); // Call the updated sendOtp service
+      const result = await sendOtp(email, apiKey!); // Call the updated sendOtp service, TODO: Better handling of null
       if (result.success && result.otpId) {
         console.log(`OTP sent to ${email}, OTP ID: ${result.otpId}`);
         return { success: true, otpId: result.otpId };
@@ -82,10 +89,10 @@ export const AuthProvider = ({
         const challenge = resp[1];
 
         //Trigger account creation request
-        const account = await createAccount(email, apiKey!, attestation as object, challenge as string, true);
+        const account = await createAccount(email, apiKey!, attestation as object, challenge as string, true); //TODO: Better handling of null
 
         //Send OTP Again
-        const newOtp = await sendOtp(email, apiKey!); // Call the updated sendOtp service
+        const newOtp = await sendOtp(email, apiKey!); // Call the updated sendOtp service, //TODO: Better handling of null
         if ( newOtp.success && newOtp.otpId) {
             console.log("YES");
             return { success: true, otpId: newOtp.otpId };
@@ -132,7 +139,8 @@ export const AuthProvider = ({
   const handleAuthenticateUser = async (
     email: string,
     credentialBundle: string,
-    onSuccess: (token: string) => void
+    setJwt: (jwt: string) => void,
+    setAuthStep: (step: number) => void,
   ) => {
     setLoading(true);
     setError(null);
@@ -144,9 +152,7 @@ export const AuthProvider = ({
       }
       const user = userDetailsResponse.user;
       setUser(user); // Store the user object in the context
-      await authenticateUser(email, clientId!, redirectUri!, user.subOrganizationId, user.walletAddress, user!.smartContractAddress!, (token) => {
-        onSuccess(token);
-      });
+      await authenticateUser(email, clientId!, redirectUri!, user.subOrganizationId, user.walletAddress, user!.smartContractAddress!, setJwt, setAuthStep, permissionTemplateId); //TODO: Better handling of null
     } catch (error) {
       console.error(error);
     } finally {
@@ -162,6 +168,10 @@ export const AuthProvider = ({
         authenticateUser: handleAuthenticateUser,
         loading,
         user,
+        jwt,
+        setJwt,
+        authStep,
+        setAuthStep
       }}
     >
       {children}
