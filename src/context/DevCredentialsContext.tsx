@@ -7,6 +7,7 @@
  *
  */
 
+import { UUID } from "crypto";
 import React, {
   createContext,
   useContext,
@@ -19,6 +20,7 @@ interface DevCredentialsContextProps {
   clientId?: string;
   apiKey?: string;
   redirectUri?: string;
+  permissionTemplateId? : string,
   setCredentials: (credentials: {
     clientId: string;
     apiKey: string;
@@ -40,6 +42,7 @@ export const DevCredentialsProvider = ({
   const [clientId, setClientId] = useState<string | undefined>();
   const [apiKey, setApiKey] = useState<string | undefined>();
   const [redirectUri, setRedirectUri] = useState<string | undefined>();
+  const [permissionTemplateId, setPermissionTemplateId] = useState<string | undefined>();
   const [credentialsLoading, setCredentialsLoading] = useState<boolean>(true); // Renamed loading state
 
   // Example of using postMessage to receive credentials (as described previously)
@@ -49,19 +52,26 @@ export const DevCredentialsProvider = ({
 
     const clientIdFromUrl = urlParams.get("clientId");
     const redirectUriFromUrl = urlParams.get("redirectUri");
+    const permissionTemplateIdFromUrl = urlParams.get("permissionTemplateId");
 
     if (clientIdFromUrl && redirectUriFromUrl) {
       setClientId(clientIdFromUrl);
       setRedirectUri(redirectUriFromUrl);
       setApiKey("api key"); //not needed for redirect url
+
+      if (permissionTemplateIdFromUrl != null) {  // Checks for both null and undefined
+        setPermissionTemplateId(permissionTemplateIdFromUrl);
+      }
+
       setCredentialsLoading(false); // Credentials loaded
     } else {
       const handleMessage = (event: MessageEvent) => {
-        const { eventType, clientId, apiKey, redirectUri } = event.data;
+        const { eventType, clientId, apiKey, permissionTemplateId, redirectUri } = event.data;
         if (eventType === "AUTH_INIT") {
           setClientId(clientId);
           setApiKey(apiKey);
           setRedirectUri(redirectUri);
+          setPermissionTemplateId(permissionTemplateId);
           setCredentialsLoading(false); // Credentials loaded
         }
       };
@@ -94,6 +104,7 @@ export const DevCredentialsProvider = ({
         clientId,
         apiKey,
         redirectUri,
+        permissionTemplateId,
         setCredentials,
         credentialsLoading,
       }}

@@ -9,8 +9,10 @@
 
 import {
   KernelSigner,
+  MintVehicleWithDeviceDefinition,
   newKernelConfig,
   sacdPermissionValue,
+  SetVehiclePermissions,
 } from "@dimo-network/transactions";
 import {
   getWebAuthnAttestation,
@@ -37,7 +39,7 @@ const kernelSignerConfig = newKernelConfig({
   environment: "dev", // omit this to default to prod
 });
 
-let kernelSigner: KernelSigner;
+let kernelSigner = new KernelSigner(kernelSignerConfig);
 
 export const createPasskey = async (email: string) => {
   const challenge = generateRandomBuffer();
@@ -78,13 +80,16 @@ export const initializePasskey = async (
   subOrganizationId: string,
   walletAddress: string
 ) => {
-  kernelSigner = new KernelSigner(kernelSignerConfig);
   await kernelSigner.passkeyInit(
     subOrganizationId,
     walletAddress as `0x${string}`,
     stamper
   );
 };
+
+export const openSessionWithPasskey = async () => {
+  return await kernelSigner.openSessionWithPasskey();
+}
 
 export const signChallenge = async (
   challenge: string,
@@ -100,3 +105,30 @@ export const signChallenge = async (
 
   return signature;
 };
+
+// Define the bridge function in your Turnkey Service
+export async function setVehiclePermissions(
+  tokenId: BigInt,
+  grantee: `0x${string}`,
+  permissions: BigInt,
+  expiration: BigInt,
+  source: string
+): Promise<void> {
+  // Construct the payload in the format required by the SDK function
+  const payload: SetVehiclePermissions = {
+    tokenId,
+    grantee,
+    permissions,
+    expiration,
+    source
+  };
+
+  try {
+    // Call the kernelClient's setVehiclePermissions with the prepared payload
+    await kernelSigner.setVehiclePermissions(payload);
+    console.log("Vehicle permissions set successfully");
+  } catch (error) {
+    console.error("Error setting vehicle permissions:", error);
+    throw error;
+  }
+}

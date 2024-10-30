@@ -2,13 +2,12 @@ import React, { useState } from "react";
 import { useAuthContext } from "../../context/AuthContext"; // Use the auth context
 
 interface OtpInputProps {
-  setAuthStep: (step: number) => void;
   email: string;
   otpId: string;
 }
 
-const OtpInput: React.FC<OtpInputProps> = ({ setAuthStep, email, otpId }) => {
-  const { verifyOtp, authenticateUser } = useAuthContext(); // Get verifyOtp from the context
+const OtpInput: React.FC<OtpInputProps> = ({ email, otpId }) => {
+  const { verifyOtp, authenticateUser, setJwt, setAuthStep } = useAuthContext(); // Get verifyOtp from the context
   const [otp, setOtp] = useState("");
 
   const handleSubmit = async () => {
@@ -17,9 +16,7 @@ const OtpInput: React.FC<OtpInputProps> = ({ setAuthStep, email, otpId }) => {
       const result = await verifyOtp(email, otp, otpId);
 
       if ( result.success && result.credentialBundle ) {
-        authenticateUser(email, result.credentialBundle,  () => {
-            setAuthStep(2); // Move to success page after authentication
-        });
+        authenticateUser(email, result.credentialBundle, setJwt, setAuthStep);
       }
     }
   };

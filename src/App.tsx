@@ -7,11 +7,11 @@ import "./App.css";
 import { useAuthContext } from "./context/AuthContext";
 import { useDevCredentials } from "./context/DevCredentialsContext"; // Import DevCredentialsContext
 import OtpInput from "./components/Auth/OtpInput";
+import VehicleManager from "./components/Vehicles/VehicleManager";
 
 function App() {
-  const { loading: authLoading } = useAuthContext();  // Get loading state from AuthContext
+  const { loading: authLoading, authStep } = useAuthContext();  // Get loading state from AuthContext
   const { credentialsLoading, clientId, apiKey, redirectUri } = useDevCredentials();  // Get loading state and credentials from DevCredentialsContext
-  const [authStep, setAuthStep] = useState(0);  // 0 = Email Input, 1 = Loading, 2 = Success
   const [email, setEmail] = useState("");
   const [otpId, setOtpId] = useState("");  // New state for OTP ID
 
@@ -43,9 +43,10 @@ function App() {
         <img src={logo} alt="Dimo Logo" className="mx-auto mb-6 w-32 h-auto" />
         
         {/* Render components based on authStep */}
-        {authStep === 0 && <EmailInput onSubmit={setEmail} setAuthStep={setAuthStep} setOtpId={setOtpId}/>}
-        {authStep === 1 && <OtpInput setAuthStep={setAuthStep} email={email} otpId={otpId}/>}
-        {authStep === 2 && <SuccessPage />}
+        {authStep === 0 && <EmailInput onSubmit={setEmail} setOtpId={setOtpId}/>}
+        {authStep === 1 && <OtpInput email={email} otpId={otpId}/>}
+        {authStep === 2 && <VehicleManager />}
+        {authStep === 3 && <SuccessPage />}
       </div>
     </div>
   );
