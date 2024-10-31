@@ -8,7 +8,7 @@
 
 // identityService.ts
 
-const GRAPHQL_ENDPOINT = "https://identity-api.dev.dimo.zone/query";
+const GRAPHQL_ENDPOINT = process.env.REACT_APP_DIMO_IDENTITY_URL;
 
 // Function to fetch vehicles and transform data
 export async function fetchVehiclesWithTransformation(ownerAddress: string, targetGrantee: string) {
@@ -33,7 +33,7 @@ export async function fetchVehiclesWithTransformation(ownerAddress: string, targ
     }
   `;
 
-  const response = await fetch(GRAPHQL_ENDPOINT, {
+  const response = await fetch(GRAPHQL_ENDPOINT!, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
