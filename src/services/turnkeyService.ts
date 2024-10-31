@@ -31,12 +31,12 @@ const stamper = new WebauthnStamper({
 
 const kernelSignerConfig = newKernelConfig({
   rpcUrl:
-    "https://polygon-amoy.g.alchemy.com/v2/-0PsUljNtSdA31-XWj-kL_L1Mx2ArYfS", //TODO: Store in ENV
+    process.env.REACT_APP_POLYGON_RPC_URL!,
   bundlerUrl:
-    "https://rpc.zerodev.app/api/v2/bundler/f4d1596a-edfd-4063-8f99-2d8835e07739", //TODO: Store in ENV
+    process.env.REACT_APP_ZERODEV_BUNDLER_URL!,
   paymasterUrl:
-    "https://rpc.zerodev.app/api/v2/paymaster/f4d1596a-edfd-4063-8f99-2d8835e07739", //TODO: Store in ENV
-  environment: "dev", // omit this to default to prod
+    process.env.REACT_APP_ZERODEV_PAYMASTER_URL!,
+  environment: process.env.REACT_APP_ENVIRONMENT,
 });
 
 let kernelSigner = new KernelSigner(kernelSignerConfig);
