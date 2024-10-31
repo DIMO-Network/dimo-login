@@ -26,7 +26,7 @@ import {
 import { verifyEmail } from "./accountsService";
 
 const stamper = new WebauthnStamper({
-  rpId: "dimo.org", //TODO: Pull from ENV based on prod or dev
+  rpId: process.env.REACT_APP_ENVIRONMENT == "prod" ? "dimo.org" : window.location.hostname, //TODO: Pull from ENV based on prod or dev
 });
 
 const kernelSignerConfig = newKernelConfig({
@@ -50,7 +50,7 @@ export const createPasskey = async (email: string) => {
   const attestation = await getWebAuthnAttestation({
     publicKey: {
       rp: {
-        id: "dimo.org", //TODO: Pull from ENV based on prod or dev
+        id: process.env.REACT_APP_ENVIRONMENT == "prod" ? "dimo.org" : window.location.hostname, //TODO: Pull from ENV based on prod or dev
         name: "Dimo Passkey Wallet",
       },
       challenge,
