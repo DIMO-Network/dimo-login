@@ -33,7 +33,7 @@ import { useDevCredentials } from "./DevCredentialsContext";
 interface AuthContextProps {
   createAccountWithPasskey: (
     email: string
-  ) => Promise<{ success: boolean; user?: UserObject; error?: string }>;  
+  ) => Promise<{ success: boolean; user?: UserObject; error?: string }>;
   sendOtp: (
     email: string
   ) => Promise<{ success: boolean; otpId?: string; error?: string }>;
@@ -74,6 +74,13 @@ export const AuthProvider = ({
     useDevCredentials();
 
   const createAccountWithPasskey = async (email: string) => {
+    if (!apiKey) {
+      return {
+        success: false,
+        error: "API key is required for account creation",
+      };
+    }
+
     try {
       // Create passkey and get attestation
       const [attestation, challenge] = await createPasskey(email);
@@ -81,7 +88,7 @@ export const AuthProvider = ({
       // Trigger account creation request
       const account = await createAccount(
         email,
-        apiKey!,
+        apiKey,
         attestation as object,
         challenge as string,
         true
@@ -103,9 +110,17 @@ export const AuthProvider = ({
   ): Promise<{ success: boolean; otpId?: string; error?: string }> => {
     setLoading(true);
     setError(null);
+
+    if (!apiKey) {
+      return {
+        success: false,
+        error: "API key is to send an OTP",
+      };
+    }
+
     try {
       // Try sending OTP first
-      let otpResult = await sendOtp(email, apiKey!);
+      let otpResult = await sendOtp(email, apiKey);
       if (!otpResult.success) {
         // If sending OTP fails, attempt account creation and retry OTP
         const accountCreation = await createAccountWithPasskey(email);
@@ -113,7 +128,7 @@ export const AuthProvider = ({
           throw new Error("Account creation failed during OTP setup.");
 
         // Retry sending OTP after successful account creation
-        otpResult = await sendOtp(email, apiKey!);
+        otpResult = await sendOtp(email, apiKey);
         if (!otpResult.success)
           throw new Error("Failed to send OTP after account creation.");
       }
@@ -171,13 +186,17 @@ export const AuthProvider = ({
         throw new Error("No user found");
       }
 
+      if ( !clientId || !redirectUri ) {
+        throw new Error("Developer credentials not found");
+      }
+
       await authenticateUser(
         email,
-        clientId!,
-        redirectUri!,
+        clientId,
+        redirectUri,
         user.subOrganizationId,
         user.walletAddress,
-        user!.smartContractAddress!,
+        user.smartContractAddress,
         setJwt,
         setAuthStep,
         permissionTemplateId
