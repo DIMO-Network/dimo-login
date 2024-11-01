@@ -48,11 +48,11 @@ interface AuthContextProps {
     setJwt: (jwt: string) => void,
     setAuthStep: (step: number) => void
   ) => void;
-  user: UserObject | null;
-  setUser: React.Dispatch<React.SetStateAction<UserObject | null>>;
+  user: UserObject | undefined;
+  setUser: React.Dispatch<React.SetStateAction<UserObject | undefined>>;
   loading: boolean; // Add loading state to context
-  jwt: string | null;
-  setJwt: React.Dispatch<React.SetStateAction<string | null>>;
+  jwt: string | undefined;
+  setJwt: React.Dispatch<React.SetStateAction<string | undefined>>;
   authStep: number;
   setAuthStep: React.Dispatch<React.SetStateAction<number>>;
 }
@@ -66,8 +66,8 @@ export const AuthProvider = ({
   children: ReactNode;
 }): JSX.Element => {
   const [loading, setLoading] = useState(false);
-  const [user, setUser] = useState<UserObject | null>(null);
-  const [jwt, setJwt] = useState<string | null>(null);
+  const [user, setUser] = useState<UserObject | undefined>(undefined);
+  const [jwt, setJwt] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [authStep, setAuthStep] = useState<number>(0); // 0 = Email Input, 1 = Loading, 2 = Success
   const { clientId, apiKey, redirectUri, permissionTemplateId } =
