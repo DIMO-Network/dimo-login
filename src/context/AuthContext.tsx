@@ -51,7 +51,7 @@ interface AuthContextProps {
   ) => void;
   user: UserObject | undefined;
   setUser: React.Dispatch<React.SetStateAction<UserObject | undefined>>;
-  loading: boolean; // Add loading state to context
+  loading: boolean | string; // Add loading state to context
   jwt: string | undefined;
   setJwt: React.Dispatch<React.SetStateAction<string | undefined>>;
   authStep: number;
@@ -66,7 +66,7 @@ export const AuthProvider = ({
 }: {
   children: ReactNode;
 }): JSX.Element => {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean | string>(false);
   const [user, setUser] = useState<UserObject | undefined>(undefined);
   const [jwt, setJwt] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
@@ -77,7 +77,7 @@ export const AuthProvider = ({
   const createAccountWithPasskey = async (
     email: string
   ): Promise<UserResult> => {
-    setLoading(true);
+    setLoading("Creating account");
     setError(null);    
     if (!apiKey) {
       return {
@@ -107,13 +107,15 @@ export const AuthProvider = ({
     } catch (error) {
       console.error("Account creation failed:", error);
       return { success: false, error: error as string };
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleSendOtp = async (
     email: string
   ): Promise<OtpResult> => {
-    setLoading(true);
+    setLoading("Sending OTP");
     setError(null);
 
     if (!apiKey) {
@@ -154,7 +156,7 @@ export const AuthProvider = ({
     otp: string,
     otpId: string
   ): Promise<CredentialResult> => {
-    setLoading(true);
+    setLoading("Verifying OTP");
     setError(null);
     try {
       const result = await verifyOtp(email, otp, otpId);
@@ -182,7 +184,7 @@ export const AuthProvider = ({
     setJwt: (jwt: string) => void,
     setAuthStep: (step: number) => void
   ) => {
-    setLoading(true);
+    setLoading("Authenticating User");
     setError(null);
 
     try {
