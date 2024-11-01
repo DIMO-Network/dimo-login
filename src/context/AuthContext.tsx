@@ -20,7 +20,7 @@
 
 import React, { createContext, useContext, ReactNode, useState } from "react";
 import {
-    createAccount,
+  createAccount,
   fetchUserDetails,
   sendOtp,
   verifyOtp,
@@ -31,6 +31,9 @@ import { createPasskey } from "../services/turnkeyService";
 import { useDevCredentials } from "./DevCredentialsContext";
 
 interface AuthContextProps {
+  createAccountWithPasskey: (
+    email: string
+  ) => Promise<{ success: boolean; user?: UserObject; error?: string }>;  
   sendOtp: (
     email: string
   ) => Promise<{ success: boolean; otpId?: string; error?: string }>;
@@ -66,9 +69,34 @@ export const AuthProvider = ({
   const [user, setUser] = useState<UserObject | null>(null);
   const [jwt, setJwt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [authStep, setAuthStep] = useState<number>(0);  // 0 = Email Input, 1 = Loading, 2 = Success
-  const { clientId, apiKey, redirectUri, permissionTemplateId } = useDevCredentials();
+  const [authStep, setAuthStep] = useState<number>(0); // 0 = Email Input, 1 = Loading, 2 = Success
+  const { clientId, apiKey, redirectUri, permissionTemplateId } =
+    useDevCredentials();
 
+  const createAccountWithPasskey = async (email: string) => {
+    try {
+      // Create passkey and get attestation
+      const [attestation, challenge] = await createPasskey(email);
+
+      // Trigger account creation request
+      const account = await createAccount(
+        email,
+        apiKey!,
+        attestation as object,
+        challenge as string,
+        true
+      ); //TODO: Better handling of types
+      if (account.success && account.user) {
+        setUser(account.user); // Store the user object in the context
+        return { success: true, user: account.user };
+      } else {
+        throw new Error("Failed to create account");
+      }
+    } catch (error) {
+      console.error("Account creation failed:", error);
+      return { success: false };
+    }
+  };
 
   const handleSendOtp = async (
     email: string
@@ -76,37 +104,22 @@ export const AuthProvider = ({
     setLoading(true);
     setError(null);
     try {
-      const result = await sendOtp(email, apiKey!); // Call the updated sendOtp service, TODO: Better handling of null
-      if (result.success && result.otpId) {
-        console.log(`OTP sent to ${email}, OTP ID: ${result.otpId}`);
-        return { success: true, otpId: result.otpId };
-      } else {
-        //Need to trigger account creation
+      // Try sending OTP first
+      let otpResult = await sendOtp(email, apiKey!);
+      if (!otpResult.success) {
+        // If sending OTP fails, attempt account creation and retry OTP
+        const accountCreation = await createAccountWithPasskey(email);
+        if (!accountCreation.success)
+          throw new Error("Account creation failed during OTP setup.");
 
-        //Create passkey and get attestation
-        const resp = await createPasskey(email);
-
-        const attestation = resp[0];
-        const challenge = resp[1];
-
-        //Trigger account creation request
-        const account = await createAccount(email, apiKey!, attestation as object, challenge as string, true); //TODO: Better handling of null
-
-        if (!account.success || !account.user) {
-          throw new Error("Failed to create account");
-        }
-        
-        setUser(account.user); // Store the user object in the context        
-
-
-        //Send OTP Again
-        const newOtp = await sendOtp(email, apiKey!); // Call the updated sendOtp service, //TODO: Better handling of null
-        if ( newOtp.success && newOtp.otpId) {
-            console.log("YES");
-            return { success: true, otpId: newOtp.otpId };
-        }
-        return { success: false };
+        // Retry sending OTP after successful account creation
+        otpResult = await sendOtp(email, apiKey!);
+        if (!otpResult.success)
+          throw new Error("Failed to send OTP after account creation.");
       }
+
+      console.log(`OTP sent to ${email}, OTP ID: ${otpResult.otpId}`);
+      return { success: true, otpId: otpResult.otpId };
     } catch (err) {
       setError("Failed to send OTP");
       console.error(err);
@@ -148,17 +161,27 @@ export const AuthProvider = ({
     email: string,
     credentialBundle: string,
     setJwt: (jwt: string) => void,
-    setAuthStep: (step: number) => void,
+    setAuthStep: (step: number) => void
   ) => {
     setLoading(true);
     setError(null);
 
     try {
-      if ( ! user ) {
+      if (!user) {
         throw new Error("No user found");
       }
 
-      await authenticateUser(email, clientId!, redirectUri!, user.subOrganizationId, user.walletAddress, user!.smartContractAddress!, setJwt, setAuthStep, permissionTemplateId); //TODO: Better handling of null
+      await authenticateUser(
+        email,
+        clientId!,
+        redirectUri!,
+        user.subOrganizationId,
+        user.walletAddress,
+        user!.smartContractAddress!,
+        setJwt,
+        setAuthStep,
+        permissionTemplateId
+      ); //TODO: Better handling of null
     } catch (error) {
       console.error(error);
     } finally {
@@ -169,6 +192,7 @@ export const AuthProvider = ({
   return (
     <AuthContext.Provider
       value={{
+        createAccountWithPasskey,
         sendOtp: handleSendOtp,
         verifyOtp: handleVerifyOtp,
         authenticateUser: handleAuthenticateUser,
@@ -178,7 +202,7 @@ export const AuthProvider = ({
         jwt,
         setJwt,
         authStep,
-        setAuthStep
+        setAuthStep,
       }}
     >
       {children}

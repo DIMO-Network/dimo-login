@@ -9,33 +9,43 @@ interface EmailInputProps {
 }
 
 const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
-  const { sendOtp, setAuthStep, authenticateUser, setJwt, setUser, user } =
-    useAuthContext(); // Get sendOtp from the context
+  const {
+    sendOtp,
+    setAuthStep,
+    authenticateUser,
+    setJwt,
+    setUser,
+    createAccountWithPasskey,
+  } = useAuthContext(); // Get sendOtp from the context
   const [email, setEmail] = useState("");
   const [triggerAuth, setTriggerAuth] = useState(false);
 
   const handleSubmit = async () => {
-    if (email) {
-      onSubmit(email);
+    if (!email) return;
 
-      //Check if email exists, and trigger authenticate user
-      const userExistsResult = await fetchUserDetails(email);
+    onSubmit(email); // Trigger any on-submit actions
 
-      if (userExistsResult.success && userExistsResult.user) {
-        setUser(userExistsResult.user);
-        setTriggerAuth(true);
+    // Check if the user exists and authenticate if they do
+    const userExistsResult = await fetchUserDetails(email);
+    if (userExistsResult.success && userExistsResult.user) {
+      setUser(userExistsResult.user);
+      setTriggerAuth(true); // Trigger authentication for existing users
+      return; // Early return to prevent additional logic from running
+    }
+
+    // If user doesn't exist, create an account and send OTP
+    const account = await createAccountWithPasskey(email);
+    if (account.success && account.user) {
+      const otpResult = await sendOtp(email); // Send OTP for new account
+
+      if (otpResult.success && otpResult.otpId) {
+        setOtpId(otpResult.otpId); // Store the OTP ID
+        setAuthStep(1); // Move to OTP input step
       } else {
-        //Todo: This send OTP is called twice unnecessarily
-        const result = await sendOtp(email);
-
-        console.log(result);
-        if (result.success && result.otpId) {
-          setOtpId(result.otpId); // Store the otpId
-          setAuthStep(1); // Move to OTP input step
-        } else {
-          console.error(result.error); // Handle failure, e.g., show error message
-        }
+        console.error(otpResult.error); // Handle OTP sending failure
       }
+    } else {
+      console.error("Account creation failed"); // Handle account creation failure
     }
   };
 
