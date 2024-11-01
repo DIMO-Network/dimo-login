@@ -46,6 +46,7 @@ interface AuthContextProps {
     setAuthStep: (step: number) => void
   ) => void;
   user: UserObject | null;
+  setUser: React.Dispatch<React.SetStateAction<UserObject | null>>;
   loading: boolean; // Add loading state to context
   jwt: string | null;
   setJwt: React.Dispatch<React.SetStateAction<string | null>>;
@@ -90,6 +91,13 @@ export const AuthProvider = ({
 
         //Trigger account creation request
         const account = await createAccount(email, apiKey!, attestation as object, challenge as string, true); //TODO: Better handling of null
+
+        if (!account.success || !account.user) {
+          throw new Error("Failed to create account");
+        }
+        
+        setUser(account.user); // Store the user object in the context        
+
 
         //Send OTP Again
         const newOtp = await sendOtp(email, apiKey!); // Call the updated sendOtp service, //TODO: Better handling of null
@@ -146,12 +154,10 @@ export const AuthProvider = ({
     setError(null);
 
     try {
-      const userDetailsResponse = await fetchUserDetails(email);
-      if (!userDetailsResponse.success || !userDetailsResponse.user) {
-        throw new Error("Failed to fetch user details");
+      if ( ! user ) {
+        throw new Error("No user found");
       }
-      const user = userDetailsResponse.user;
-      setUser(user); // Store the user object in the context
+
       await authenticateUser(email, clientId!, redirectUri!, user.subOrganizationId, user.walletAddress, user!.smartContractAddress!, setJwt, setAuthStep, permissionTemplateId); //TODO: Better handling of null
     } catch (error) {
       console.error(error);
@@ -168,6 +174,7 @@ export const AuthProvider = ({
         authenticateUser: handleAuthenticateUser,
         loading,
         user,
+        setUser,
         jwt,
         setJwt,
         authStep,

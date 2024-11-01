@@ -1,5 +1,5 @@
 // components/Auth/EmailInput.tsx
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useAuthContext } from "../../context/AuthContext"; // Use the auth context
 import { fetchUserDetails } from "../../services/accountsService";
 
@@ -9,8 +9,10 @@ interface EmailInputProps {
 }
 
 const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
-  const { sendOtp, setAuthStep, authenticateUser, setJwt } = useAuthContext(); // Get sendOtp from the context
+  const { sendOtp, setAuthStep, authenticateUser, setJwt, setUser, user } =
+    useAuthContext(); // Get sendOtp from the context
   const [email, setEmail] = useState("");
+  const [triggerAuth, setTriggerAuth] = useState(false);
 
   const handleSubmit = async () => {
     if (email) {
@@ -20,7 +22,8 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
       const userExistsResult = await fetchUserDetails(email);
 
       if (userExistsResult.success && userExistsResult.user) {
-        authenticateUser(email, "some credential bundle", setJwt, setAuthStep); //Todo, credential bundle shouldn't be hardcoded, and this duplicates fetch user details call
+        setUser(userExistsResult.user);
+        setTriggerAuth(true);
       } else {
         //Todo: This send OTP is called twice unnecessarily
         const result = await sendOtp(email);
@@ -35,6 +38,13 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
       }
     }
   };
+
+  useEffect(() => {
+    // Only authenticate if `user` is set and authentication hasn't been triggered
+    if (triggerAuth) {
+      authenticateUser(email, "credentialBundle", setJwt, setAuthStep);
+    }
+  }, [triggerAuth]);
 
   return (
     <div className="flex flex-col space-y-4">

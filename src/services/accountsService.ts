@@ -117,7 +117,7 @@ export const createAccount = async (
   attestation?: object,
   challenge?: string,
   deployAccount?: boolean,
-): Promise<{ success: boolean }> => {
+): Promise<{ success: boolean, user?: UserObject }> => {
   const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account`, {
     method: "POST",
     headers: {
@@ -135,7 +135,10 @@ export const createAccount = async (
   if (!response.ok) {
     throw new Error("Failed to create account");
   }
-  return { success: true };
+
+  const user = await response.json();
+
+  return { success: true, user: {...user, email} };
 };
 
 // Function to deploy an account
