@@ -20,6 +20,17 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
   const [email, setEmail] = useState("");
   const [triggerAuth, setTriggerAuth] = useState(false);
 
+  const handleOtpSend = async (email: string) => {
+    const otpResult = await sendOtp(email); // Send OTP for new account
+
+    if (otpResult.success && otpResult.data.otpId) {
+      setOtpId(otpResult.data.otpId); // Store the OTP ID
+      setAuthStep(1); // Move to OTP input step
+    } else if (!otpResult.success) {
+      console.error(otpResult.error); // Handle OTP sending failure
+    }
+  };
+
   const handleSubmit = async () => {
     if (!email) return;
 
@@ -27,23 +38,16 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
 
     // Check if the user exists and authenticate if they do
     const userExistsResult = await fetchUserDetails(email);
-    if (userExistsResult.success && userExistsResult.user) {
-      setUser(userExistsResult.user);
+    if (userExistsResult.success && userExistsResult.data.user) {
+      setUser(userExistsResult.data.user);
       setTriggerAuth(true); // Trigger authentication for existing users
       return; // Early return to prevent additional logic from running
     }
 
     // If user doesn't exist, create an account and send OTP
     const account = await createAccountWithPasskey(email);
-    if (account.success && account.user) {
-      const otpResult = await sendOtp(email); // Send OTP for new account
-
-      if (otpResult.success && otpResult.otpId) {
-        setOtpId(otpResult.otpId); // Store the OTP ID
-        setAuthStep(1); // Move to OTP input step
-      } else {
-        console.error(otpResult.error); // Handle OTP sending failure
-      }
+    if (account.success && account.data.user) {
+      await handleOtpSend(email);
     } else {
       console.error("Account creation failed"); // Handle account creation failure
     }

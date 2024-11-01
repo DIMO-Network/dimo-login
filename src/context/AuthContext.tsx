@@ -29,19 +29,20 @@ import { authenticateUser } from "../utils/authUtils";
 import { UserObject } from "../models/user";
 import { createPasskey } from "../services/turnkeyService";
 import { useDevCredentials } from "./DevCredentialsContext";
+import { CredentialResult, OtpResult, UserResult } from "../models/resultTypes";
 
 interface AuthContextProps {
   createAccountWithPasskey: (
     email: string
-  ) => Promise<{ success: boolean; user?: UserObject; error?: string }>;
+  ) => Promise<UserResult>;
   sendOtp: (
     email: string
-  ) => Promise<{ success: boolean; otpId?: string; error?: string }>;
+  ) => Promise<OtpResult>;
   verifyOtp: (
     email: string,
     otp: string,
     otpId: string
-  ) => Promise<{ success: boolean; credentialBundle?: string; error?: string }>;
+  ) => Promise<CredentialResult>;
   authenticateUser: (
     email: string,
     credentialBundle: string,
@@ -73,7 +74,11 @@ export const AuthProvider = ({
   const { clientId, apiKey, redirectUri, permissionTemplateId } =
     useDevCredentials();
 
-  const createAccountWithPasskey = async (email: string) => {
+  const createAccountWithPasskey = async (
+    email: string
+  ): Promise<UserResult> => {
+    setLoading(true);
+    setError(null);    
     if (!apiKey) {
       return {
         success: false,
@@ -93,21 +98,21 @@ export const AuthProvider = ({
         challenge as string,
         true
       ); //TODO: Better handling of types
-      if (account.success && account.user) {
-        setUser(account.user); // Store the user object in the context
-        return { success: true, user: account.user };
+      if (account.success && account.data.user) {
+        setUser(account.data.user); // Store the user object in the context
+        return { success: true, data: { user: account.data.user } };
       } else {
         throw new Error("Failed to create account");
       }
     } catch (error) {
       console.error("Account creation failed:", error);
-      return { success: false };
+      return { success: false, error: error as string };
     }
   };
 
   const handleSendOtp = async (
     email: string
-  ): Promise<{ success: boolean; otpId?: string; error?: string }> => {
+  ): Promise<OtpResult> => {
     setLoading(true);
     setError(null);
 
@@ -133,12 +138,12 @@ export const AuthProvider = ({
           throw new Error("Failed to send OTP after account creation.");
       }
 
-      console.log(`OTP sent to ${email}, OTP ID: ${otpResult.otpId}`);
-      return { success: true, otpId: otpResult.otpId };
+      console.log(`OTP sent to ${email}, OTP ID: ${otpResult.data.otpId}`);
+      return { success: true, data: {otpId: otpResult.data.otpId} };
     } catch (err) {
       setError("Failed to send OTP");
       console.error(err);
-      return { success: false };
+      return { success: false, error: error as string };
     } finally {
       setLoading(false);
     }
@@ -148,25 +153,24 @@ export const AuthProvider = ({
     email: string,
     otp: string,
     otpId: string
-  ): Promise<{
-    success: boolean;
-    credentialBundle?: string;
-    error?: string;
-  }> => {
+  ): Promise<CredentialResult> => {
     setLoading(true);
     setError(null);
     try {
       const result = await verifyOtp(email, otp, otpId);
-      if (result.success && result.credentialBundle) {
+      if (result.success && result.data.credentialBundle) {
         console.log(`OTP verified for ${email}`);
-        return { success: true, credentialBundle: result.credentialBundle };
+        return {
+          success: true,
+          data: {credentialBundle: result.data.credentialBundle},
+        };
       } else {
         throw new Error("Invalid OTP");
       }
     } catch (err) {
       setError("Failed to verify OTP");
       console.error(err);
-      return { success: false };
+      return { success: false, error: error as string };
     } finally {
       setLoading(false);
     }
@@ -186,7 +190,7 @@ export const AuthProvider = ({
         throw new Error("No user found");
       }
 
-      if ( !clientId || !redirectUri ) {
+      if (!clientId || !redirectUri) {
         throw new Error("Developer credentials not found");
       }
 
