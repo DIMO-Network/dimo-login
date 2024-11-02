@@ -6,13 +6,26 @@
  *
  */
 
+import {
+  CredentialResult,
+  OtpResult,
+  SimpleResult,
+  UserResult,
+} from "../models/resultTypes";
 import { UserObject } from "../models/user";
 import { generateTargetPublicKey } from "../utils/authUtils";
 
-const DIMO_ACCOUNTS_BASE_URL = process.env.REACT_APP_DIMO_ACCOUNTS_URL || 'https://accounts.dev.dimo.org/api';
+const DIMO_ACCOUNTS_BASE_URL =
+  process.env.REACT_APP_DIMO_ACCOUNTS_URL ||
+  "https://accounts.dev.dimo.org/api";
+
+type Result<T> = { success: true; data: T } | { success: false; error: string };
 
 // Example: Send OTP using Accounts API
-export const sendOtp = async (email: string, apiKey: string): Promise<{ success: boolean, otpId?: string; error?: string }> => {
+export const sendOtp = async (
+  email: string,
+  apiKey: string
+): Promise<OtpResult> => {
   // Call Turnkey's OTP generation API/SDK
   //Endpoint: POST /api/auth/otp
   const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/auth/otp`, {
@@ -36,13 +49,13 @@ export const sendOtp = async (email: string, apiKey: string): Promise<{ success:
   }
 
   // Parse successful response
-  const data = await response.json();
-  if (!data.otpId) {
+  const responseData = await response.json();
+  if (!responseData.otpId) {
     throw new Error("OTP ID not found in response");
   }
 
   // Return success with OTP ID
-  return { success: true, otpId: data.otpId };
+  return { success: true, data: { otpId: responseData.otpId } };
 };
 
 // Example: Verify OTP using Accounts API
@@ -50,7 +63,7 @@ export const verifyOtp = async (
   email: string,
   otp: string,
   otpId: string
-): Promise<{success: boolean, credentialBundle?: string; error?: string}> => {
+): Promise<CredentialResult> => {
   // Call Turnkey's OTP verification API/SDK
   //Endpoint: PUT /api/auth/otp
   console.log(`Verifying OTP, Email:${email}, OTP: ${otp}, OtpID: ${otpId}`);
@@ -72,42 +85,48 @@ export const verifyOtp = async (
     throw new Error("Failed to send OTP");
   }
 
-//   // Parse successful response
-  const data = await response.json();
-  if (!data.credentialBundle) {
+  //   // Parse successful response
+  const responseData = await response.json();
+  if (!responseData.credentialBundle) {
     throw new Error("Could not retrieve credential bundle");
   }
 
-//   // Return success with OTP ID
-  return { success: true, credentialBundle: data.credentialBundle };
+  //   // Return success with OTP ID
+  return {
+    success: true,
+    data: { credentialBundle: responseData.credentialBundle },
+  };
 };
 
 export const verifyEmail = async (
   email: string,
   encodedChallenge: string,
-  attestation: object,
-): Promise<{success: boolean, credentialBundle?: string; error?: string}> => {
+  attestation: object
+): Promise<SimpleResult> => {
   // Call Turnkey's OTP verification API/SDK
   //Endpoint: PUT /api/auth/otp
-  const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account/verify-email`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      email,
-      encodedChallenge,
-      attestation,
-    }),
-  });
+  const response = await fetch(
+    `${DIMO_ACCOUNTS_BASE_URL}/account/verify-email`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        encodedChallenge,
+        attestation,
+      }),
+    }
+  );
 
   // Handle response failure cases first
   if (!response.ok) {
     throw new Error("Failed to send OTP");
   }
 
-//   // Return success with OTP ID
-  return { success: true };
+  //   // Return success with OTP ID
+  return { success: true, data: null };
 };
 
 // Function to create an account
@@ -116,8 +135,8 @@ export const createAccount = async (
   apiKey: string,
   attestation?: object,
   challenge?: string,
-  deployAccount?: boolean,
-): Promise<{ success: boolean }> => {
+  deployAccount?: boolean
+): Promise<UserResult> => {
   const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account`, {
     method: "POST",
     headers: {
@@ -135,27 +154,30 @@ export const createAccount = async (
   if (!response.ok) {
     throw new Error("Failed to create account");
   }
-  return { success: true };
+
+  const user = await response.json();
+
+  return { success: true, data: { user: { ...user, email } } };
 };
 
 // Function to deploy an account
-export const deployAccount = async (email: string): Promise<{ success: boolean }> => {
-    const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account/deploy`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-    });
+export const deployAccount = async (email: string): Promise<SimpleResult> => {
+  const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account/deploy`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email }),
+  });
 
-    if (!response.ok) {
-        throw new Error('Failed to deploy account');
-    }
-    return { success: true };
+  if (!response.ok) {
+    throw new Error("Failed to deploy account");
+  }
+  return { success: true, data: null };
 };
 
 // src/services/authService.ts
-export const fetchUserDetails = async (email: string): Promise<{ success: boolean; error?: string; user?: UserObject }> => {
+export const fetchUserDetails = async (email: string): Promise<UserResult> => {
   try {
     const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account/${email}`, {
       method: "GET",
@@ -166,13 +188,19 @@ export const fetchUserDetails = async (email: string): Promise<{ success: boolea
 
     if (!response.ok) {
       const errorData = await response.json();
-      return { success: false, error: errorData.message || 'Failed to fetch user details' };
+      return {
+        success: false,
+        error: errorData.message || "Failed to fetch user details",
+      };
     }
 
     const user = await response.json();
-    return { success: true, user: {...user, email} };
+    return { success: true, data: { user: { ...user, email } } };
   } catch (error) {
-    console.error('Error fetching user details:', error);
-    return { success: false, error: 'An error occurred while fetching user details' };
+    console.error("Error fetching user details:", error);
+    return {
+      success: false,
+      error: "An error occurred while fetching user details",
+    };
   }
 };
