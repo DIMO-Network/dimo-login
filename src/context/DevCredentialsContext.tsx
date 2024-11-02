@@ -15,6 +15,7 @@ import React, {
   useState,
   useEffect,
 } from "react";
+import { isValidClientId } from "../services/identityService";
 
 interface DevCredentialsContextProps {
   clientId?: string;
@@ -27,6 +28,7 @@ interface DevCredentialsContextProps {
     redirectUri: string;
   }) => void;
   credentialsLoading: boolean; // Renamed to avoid conflict with AuthContext
+  invalidCredentials: boolean;
 }
 
 const DevCredentialsContext = createContext<
@@ -44,6 +46,7 @@ export const DevCredentialsProvider = ({
   const [redirectUri, setRedirectUri] = useState<string | undefined>();
   const [permissionTemplateId, setPermissionTemplateId] = useState<string | undefined>();
   const [credentialsLoading, setCredentialsLoading] = useState<boolean>(true); // Renamed loading state
+  const [invalidCredentials, setInvalidCredentials] = useState<boolean>(false);
 
   // Example of using postMessage to receive credentials (as described previously)
   useEffect(() => {
@@ -83,6 +86,23 @@ export const DevCredentialsProvider = ({
     }
   }, []);
 
+  useEffect(() => {
+    const validateCredentials = async () => {
+      if (clientId && redirectUri) {
+        const isValid = await isValidClientId(clientId, redirectUri);
+        if (isValid) {
+          setCredentialsLoading(false); // Credentials loaded
+        } else {
+          setInvalidCredentials(true);
+          console.error("Invalid client ID or redirect URI.");
+          // Handle invalid case (e.g., show an error message, redirect, etc.)
+        }
+      }
+    };
+
+    validateCredentials();
+  }, [clientId, redirectUri]);  
+
   const setCredentials = ({
     clientId,
     apiKey,
@@ -107,6 +127,7 @@ export const DevCredentialsProvider = ({
         permissionTemplateId,
         setCredentials,
         credentialsLoading,
+        invalidCredentials
       }}
     >
       {children}
