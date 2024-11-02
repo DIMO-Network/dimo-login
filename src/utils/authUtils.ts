@@ -96,12 +96,16 @@ export async function authenticateUser(
   redirectUri: string,
   subOrganizationId: string | null,
   walletAddress: string | null,
-  smartContractAddress: string,
+  smartContractAddress: string | null,
   setJwt: (jwt: string) => void,
   setAuthStep: (step: number) => void,
   permissionTemplateId?: string
 ) {
   console.log(`Authenticating user with email: ${email}`);
+
+  if ( !smartContractAddress ) {
+    throw new Error("Could not authenticate user, account not deployed");
+  }
 
 
   if (subOrganizationId && walletAddress) {
@@ -120,9 +124,7 @@ export async function authenticateUser(
       const state = resp.data.state;
 
       const signature = await signChallenge(
-        challenge,
-        subOrganizationId,
-        walletAddress
+        challenge
       );
 
       if (signature) {

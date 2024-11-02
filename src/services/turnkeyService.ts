@@ -93,8 +93,6 @@ export const openSessionWithPasskey = async () => {
 
 export const signChallenge = async (
   challenge: string,
-  organizationId: string,
-  walletAddress: string
 ) => {
 
   //This is triggering a turnkey API request to sign a raw payload 

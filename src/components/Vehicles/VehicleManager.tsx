@@ -65,6 +65,10 @@ const VehicleManager: React.FC = () => {
   };
 
   const handleShare = async () => {
+    if ( !jwt || !redirectUri ) {
+        alert("Could not share vehicles, authentication failed");
+        return;
+    }
     const permissionsObject: SACD_PERMISSIONS = permissionTemplate?.data.scope
       .permissions
       ? permissionTemplate.data.scope.permissions.reduce(
@@ -94,7 +98,7 @@ const VehicleManager: React.FC = () => {
           }
         }
 
-        sendTokenToParent(jwt!, redirectUri!, () => {
+        sendTokenToParent(jwt, redirectUri, () => {
           //TODO: Better handling of null
           setSelectedVehicles([]); // Clear selection after sharing
           setAuthStep(3); // Move to success page

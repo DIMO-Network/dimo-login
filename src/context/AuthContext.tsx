@@ -20,7 +20,7 @@
 
 import React, { createContext, useContext, ReactNode, useState } from "react";
 import {
-    createAccount,
+  createAccount,
   fetchUserDetails,
   sendOtp,
   verifyOtp,
@@ -29,26 +29,31 @@ import { authenticateUser } from "../utils/authUtils";
 import { UserObject } from "../models/user";
 import { createPasskey } from "../services/turnkeyService";
 import { useDevCredentials } from "./DevCredentialsContext";
+import { CredentialResult, OtpResult, UserResult } from "../models/resultTypes";
 
 interface AuthContextProps {
+  createAccountWithPasskey: (
+    email: string
+  ) => Promise<UserResult>;
   sendOtp: (
     email: string
-  ) => Promise<{ success: boolean; otpId?: string; error?: string }>;
+  ) => Promise<OtpResult>;
   verifyOtp: (
     email: string,
     otp: string,
     otpId: string
-  ) => Promise<{ success: boolean; credentialBundle?: string; error?: string }>;
+  ) => Promise<CredentialResult>;
   authenticateUser: (
     email: string,
     credentialBundle: string,
     setJwt: (jwt: string) => void,
     setAuthStep: (step: number) => void
   ) => void;
-  user: UserObject | null;
-  loading: boolean; // Add loading state to context
-  jwt: string | null;
-  setJwt: React.Dispatch<React.SetStateAction<string | null>>;
+  user: UserObject | undefined;
+  setUser: React.Dispatch<React.SetStateAction<UserObject | undefined>>;
+  loading: boolean | string; // Add loading state to context
+  jwt: string | undefined;
+  setJwt: React.Dispatch<React.SetStateAction<string | undefined>>;
   authStep: number;
   setAuthStep: React.Dispatch<React.SetStateAction<number>>;
 }
@@ -61,48 +66,86 @@ export const AuthProvider = ({
 }: {
   children: ReactNode;
 }): JSX.Element => {
-  const [loading, setLoading] = useState(false);
-  const [user, setUser] = useState<UserObject | null>(null);
-  const [jwt, setJwt] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean | string>(false);
+  const [user, setUser] = useState<UserObject | undefined>(undefined);
+  const [jwt, setJwt] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
-  const [authStep, setAuthStep] = useState<number>(0);  // 0 = Email Input, 1 = Loading, 2 = Success
-  const { clientId, apiKey, redirectUri, permissionTemplateId } = useDevCredentials();
+  const [authStep, setAuthStep] = useState<number>(0); // 0 = Email Input, 1 = Loading, 2 = Success
+  const { clientId, apiKey, redirectUri, permissionTemplateId } =
+    useDevCredentials();
 
+  const createAccountWithPasskey = async (
+    email: string
+  ): Promise<UserResult> => {
+    setLoading("Creating account");
+    setError(null);    
+    if (!apiKey) {
+      return {
+        success: false,
+        error: "API key is required for account creation",
+      };
+    }
+
+    try {
+      // Create passkey and get attestation
+      const [attestation, challenge] = await createPasskey(email);
+
+      // Trigger account creation request
+      const account = await createAccount(
+        email,
+        apiKey,
+        attestation as object,
+        challenge as string,
+        true
+      ); //TODO: Better handling of types
+      if (account.success && account.data.user) {
+        setUser(account.data.user); // Store the user object in the context
+        return { success: true, data: { user: account.data.user } };
+      } else {
+        throw new Error("Failed to create account");
+      }
+    } catch (error) {
+      console.error("Account creation failed:", error);
+      return { success: false, error: error as string };
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSendOtp = async (
     email: string
-  ): Promise<{ success: boolean; otpId?: string; error?: string }> => {
-    setLoading(true);
+  ): Promise<OtpResult> => {
+    setLoading("Sending OTP");
     setError(null);
+
+    if (!apiKey) {
+      return {
+        success: false,
+        error: "API key is to send an OTP",
+      };
+    }
+
     try {
-      const result = await sendOtp(email, apiKey!); // Call the updated sendOtp service, TODO: Better handling of null
-      if (result.success && result.otpId) {
-        console.log(`OTP sent to ${email}, OTP ID: ${result.otpId}`);
-        return { success: true, otpId: result.otpId };
-      } else {
-        //Need to trigger account creation
+      // Try sending OTP first
+      let otpResult = await sendOtp(email, apiKey);
+      if (!otpResult.success) {
+        // If sending OTP fails, attempt account creation and retry OTP
+        const accountCreation = await createAccountWithPasskey(email);
+        if (!accountCreation.success)
+          throw new Error("Account creation failed during OTP setup.");
 
-        //Create passkey and get attestation
-        const resp = await createPasskey(email);
-
-        const attestation = resp[0];
-        const challenge = resp[1];
-
-        //Trigger account creation request
-        const account = await createAccount(email, apiKey!, attestation as object, challenge as string, true); //TODO: Better handling of null
-
-        //Send OTP Again
-        const newOtp = await sendOtp(email, apiKey!); // Call the updated sendOtp service, //TODO: Better handling of null
-        if ( newOtp.success && newOtp.otpId) {
-            console.log("YES");
-            return { success: true, otpId: newOtp.otpId };
-        }
-        return { success: false };
+        // Retry sending OTP after successful account creation
+        otpResult = await sendOtp(email, apiKey);
+        if (!otpResult.success)
+          throw new Error("Failed to send OTP after account creation.");
       }
+
+      console.log(`OTP sent to ${email}, OTP ID: ${otpResult.data.otpId}`);
+      return { success: true, data: {otpId: otpResult.data.otpId} };
     } catch (err) {
       setError("Failed to send OTP");
       console.error(err);
-      return { success: false };
+      return { success: false, error: error as string };
     } finally {
       setLoading(false);
     }
@@ -112,25 +155,24 @@ export const AuthProvider = ({
     email: string,
     otp: string,
     otpId: string
-  ): Promise<{
-    success: boolean;
-    credentialBundle?: string;
-    error?: string;
-  }> => {
-    setLoading(true);
+  ): Promise<CredentialResult> => {
+    setLoading("Verifying OTP");
     setError(null);
     try {
       const result = await verifyOtp(email, otp, otpId);
-      if (result.success && result.credentialBundle) {
+      if (result.success && result.data.credentialBundle) {
         console.log(`OTP verified for ${email}`);
-        return { success: true, credentialBundle: result.credentialBundle };
+        return {
+          success: true,
+          data: {credentialBundle: result.data.credentialBundle},
+        };
       } else {
         throw new Error("Invalid OTP");
       }
     } catch (err) {
       setError("Failed to verify OTP");
       console.error(err);
-      return { success: false };
+      return { success: false, error: error as string };
     } finally {
       setLoading(false);
     }
@@ -140,19 +182,31 @@ export const AuthProvider = ({
     email: string,
     credentialBundle: string,
     setJwt: (jwt: string) => void,
-    setAuthStep: (step: number) => void,
+    setAuthStep: (step: number) => void
   ) => {
-    setLoading(true);
+    setLoading("Authenticating User");
     setError(null);
 
     try {
-      const userDetailsResponse = await fetchUserDetails(email);
-      if (!userDetailsResponse.success || !userDetailsResponse.user) {
-        throw new Error("Failed to fetch user details");
+      if (!user) {
+        throw new Error("No user found");
       }
-      const user = userDetailsResponse.user;
-      setUser(user); // Store the user object in the context
-      await authenticateUser(email, clientId!, redirectUri!, user.subOrganizationId, user.walletAddress, user!.smartContractAddress!, setJwt, setAuthStep, permissionTemplateId); //TODO: Better handling of null
+
+      if (!clientId || !redirectUri) {
+        throw new Error("Developer credentials not found");
+      }
+
+      await authenticateUser(
+        email,
+        clientId,
+        redirectUri,
+        user.subOrganizationId,
+        user.walletAddress,
+        user.smartContractAddress,
+        setJwt,
+        setAuthStep,
+        permissionTemplateId
+      ); //TODO: Better handling of null
     } catch (error) {
       console.error(error);
     } finally {
@@ -163,15 +217,17 @@ export const AuthProvider = ({
   return (
     <AuthContext.Provider
       value={{
+        createAccountWithPasskey,
         sendOtp: handleSendOtp,
         verifyOtp: handleVerifyOtp,
         authenticateUser: handleAuthenticateUser,
         loading,
         user,
+        setUser,
         jwt,
         setJwt,
         authStep,
-        setAuthStep
+        setAuthStep,
       }}
     >
       {children}
