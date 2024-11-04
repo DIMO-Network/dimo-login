@@ -14,28 +14,24 @@ import {
   sacdPermissionValue,
   SetVehiclePermissions,
 } from "@dimo-network/transactions";
-import {
-  getWebAuthnAttestation,
-} from "@turnkey/http";
+import { getWebAuthnAttestation } from "@turnkey/http";
 import { IframeStamper } from "@turnkey/iframe-stamper";
 import { WebauthnStamper } from "@turnkey/webauthn-stamper";
-import {
-  base64UrlEncode,
-  generateRandomBuffer,
-} from "../utils/authUtils";
+import { base64UrlEncode, generateRandomBuffer } from "../utils/authUtils";
 import { verifyEmail } from "./accountsService";
+import { SetVehiclePermissionsBulk } from "@dimo-network/transactions/dist/core/types/args";
 
 const stamper = new WebauthnStamper({
-  rpId: process.env.REACT_APP_ENVIRONMENT == "prod" ? "dimo.org" : window.location.hostname, //TODO: Pull from ENV based on prod or dev
+  rpId:
+    process.env.REACT_APP_ENVIRONMENT == "prod"
+      ? "dimo.org"
+      : window.location.hostname, //TODO: Pull from ENV based on prod or dev
 });
 
 const kernelSignerConfig = newKernelConfig({
-  rpcUrl:
-    process.env.REACT_APP_POLYGON_RPC_URL!,
-  bundlerUrl:
-    process.env.REACT_APP_ZERODEV_BUNDLER_URL!,
-  paymasterUrl:
-    process.env.REACT_APP_ZERODEV_PAYMASTER_URL!,
+  rpcUrl: process.env.REACT_APP_POLYGON_RPC_URL!,
+  bundlerUrl: process.env.REACT_APP_ZERODEV_BUNDLER_URL!,
+  paymasterUrl: process.env.REACT_APP_ZERODEV_PAYMASTER_URL!,
   environment: process.env.REACT_APP_ENVIRONMENT,
 });
 
@@ -50,7 +46,10 @@ export const createPasskey = async (email: string) => {
   const attestation = await getWebAuthnAttestation({
     publicKey: {
       rp: {
-        id: process.env.REACT_APP_ENVIRONMENT == "prod" ? "dimo.org" : window.location.hostname, //TODO: Pull from ENV based on prod or dev
+        id:
+          process.env.REACT_APP_ENVIRONMENT == "prod"
+            ? "dimo.org"
+            : window.location.hostname, //TODO: Pull from ENV based on prod or dev
         name: "Dimo Passkey Wallet",
       },
       challenge,
@@ -89,13 +88,10 @@ export const initializePasskey = async (
 
 export const openSessionWithPasskey = async () => {
   return await kernelSigner.openSessionWithPasskey();
-}
+};
 
-export const signChallenge = async (
-  challenge: string,
-) => {
-
-  //This is triggering a turnkey API request to sign a raw payload 
+export const signChallenge = async (challenge: string) => {
+  //This is triggering a turnkey API request to sign a raw payload
   //Notes on signature, turnkey api returns an ecdsa signature, which the kernel client is handling
   const signature = await kernelSigner.kernelClient.signMessage({
     message: challenge,
@@ -118,12 +114,38 @@ export async function setVehiclePermissions(
     grantee,
     permissions,
     expiration,
-    source
+    source,
   };
 
   try {
     // Call the kernelClient's setVehiclePermissions with the prepared payload
     await kernelSigner.setVehiclePermissions(payload);
+    console.log("Vehicle permissions set successfully");
+  } catch (error) {
+    console.error("Error setting vehicle permissions:", error);
+    throw error;
+  }
+}
+
+export async function setVehiclePermissionsBulk(
+  tokenIds: BigInt[],
+  grantee: `0x${string}`,
+  permissions: BigInt,
+  expiration: BigInt,
+  source: string
+): Promise<void> {
+  // Construct the payload in the format required by the SDK function
+  const payload: SetVehiclePermissionsBulk = {
+    tokenIds,
+    grantee,
+    permissions,
+    expiration,
+    source,
+  };
+
+  try {
+    // Call the kernelClient's setVehiclePermissions with the prepared payload
+    await kernelSigner.setVehiclePermissionsBulk(payload);
     console.log("Vehicle permissions set successfully");
   } catch (error) {
     console.error("Error setting vehicle permissions:", error);

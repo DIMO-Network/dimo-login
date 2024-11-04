@@ -3,7 +3,10 @@ import { fetchVehiclesWithTransformation } from "../../services/identityService"
 import VehicleCard from "./VehicleCard";
 import { useAuthContext } from "../../context/AuthContext";
 import { Vehicle } from "../../models/vehicle";
-import { setVehiclePermissions } from "../../services/turnkeyService";
+import {
+  setVehiclePermissions,
+  setVehiclePermissionsBulk,
+} from "../../services/turnkeyService";
 import { sacdPermissionValue } from "@dimo-network/transactions";
 import { sendTokenToParent } from "../../utils/authUtils";
 import { useDevCredentials } from "../../context/DevCredentialsContext";
@@ -14,9 +17,10 @@ import {
 import { SACD_PERMISSIONS } from "@dimo-network/transactions/dist/core/types/args";
 
 const VehicleManager: React.FC = () => {
-  const targetGrantee = "0xeAa35540a94e3ebdf80448Ae7c9dE5F42CaB3481"; // TODO: Replace with client ID
+  // const targetGrantee = "0xeAa35540a94e3ebdf80448Ae7c9dE5F42CaB3481"; // TODO: Replace with client ID
   const { user, jwt, setAuthStep } = useAuthContext();
-  const { redirectUri, permissionTemplateId } = useDevCredentials();
+  const { clientId, redirectUri, permissionTemplateId, vehicleTokenIds } =
+    useDevCredentials();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [permissionTemplate, setPermissionTemplate] =
     useState<PermissionTemplate | null>(null);
@@ -24,11 +28,12 @@ const VehicleManager: React.FC = () => {
 
   useEffect(() => {
     const fetchVehicles = async () => {
-      if (user?.smartContractAddress && targetGrantee) {
+      if (user?.smartContractAddress && clientId) {
         try {
           const transformedVehicles = await fetchVehiclesWithTransformation(
             user.smartContractAddress,
-            targetGrantee
+            clientId,
+            vehicleTokenIds
           );
           setVehicles(transformedVehicles);
         } catch (error) {
@@ -53,7 +58,7 @@ const VehicleManager: React.FC = () => {
 
     // Run both fetches in parallel if they can be independent
     Promise.all([fetchVehicles(), fetchPermissions()]);
-  }, [user?.smartContractAddress, targetGrantee, permissionTemplateId]); // Added permissionTemplateId as a dependency
+  }, [user?.smartContractAddress, clientId, permissionTemplateId]); // Added permissionTemplateId as a dependency
 
   const handleVehicleSelect = (vehicle: Vehicle) => {
     setSelectedVehicles(
@@ -65,10 +70,11 @@ const VehicleManager: React.FC = () => {
   };
 
   const handleShare = async () => {
-    if ( !jwt || !redirectUri ) {
-        alert("Could not share vehicles, authentication failed");
-        return;
+    if (!jwt || !redirectUri) {
+      alert("Could not share vehicles, authentication failed");
+      return;
     }
+
     const permissionsObject: SACD_PERMISSIONS = permissionTemplate?.data.scope
       .permissions
       ? permissionTemplate.data.scope.permissions.reduce(
@@ -81,25 +87,38 @@ const VehicleManager: React.FC = () => {
       : {};
 
     console.log(permissionsObject);
-
     const perms = sacdPermissionValue(permissionsObject);
 
-    if (selectedVehicles.length > 0 && targetGrantee) {
+    if (selectedVehicles.length > 0 && clientId) {
+      const unsharedTokenIds = selectedVehicles
+        .filter((vehicle) => !vehicle.shared)
+        .map((vehicle) => vehicle.tokenId);
+
+      if (unsharedTokenIds.length === 0) {
+        alert("Please select at least one non-shared vehicle to share.");
+        return;
+      }
+
       try {
-        for (const vehicle of selectedVehicles) {
-          if (!vehicle.shared) {
-            await setVehiclePermissions(
-              vehicle.tokenId,
-              targetGrantee,
-              perms,
-              BigInt(1793310371),
-              "ipfs://QmRAuxeMnsjPsbwW8LkKtk6Nh6MoqTvyKwP3zwuwJnB2yP"
-            );
-          }
+        if (unsharedTokenIds.length === 1) {
+          await setVehiclePermissions(
+            unsharedTokenIds[0],
+            clientId as `0x${string}`,
+            perms,
+            BigInt(1793310371),
+            "ipfs://QmRAuxeMnsjPsbwW8LkKtk6Nh6MoqTvyKwP3zwuwJnB2yP"
+          );
+        } else {
+          await setVehiclePermissionsBulk(
+            unsharedTokenIds,
+            clientId as `0x${string}`,
+            perms,
+            BigInt(1793310371),
+            "ipfs://QmRAuxeMnsjPsbwW8LkKtk6Nh6MoqTvyKwP3zwuwJnB2yP"
+          );
         }
 
         sendTokenToParent(jwt, redirectUri, () => {
-          //TODO: Better handling of null
           setSelectedVehicles([]); // Clear selection after sharing
           setAuthStep(3); // Move to success page
         });
@@ -145,7 +164,10 @@ const VehicleManager: React.FC = () => {
       <h1 className="text-2xl font-semibold mb-2">
         Select Vehicles to Share with [App Name]
       </h1>
-      <p style={{height:"40vh"}} className="text-sm text-gray-600 mb-6 overflow-scroll">
+      <p
+        style={{ height: "40vh" }}
+        className="text-sm text-gray-600 mb-6 overflow-scroll"
+      >
         {permissionTemplate?.data.description
           ? renderDescription(permissionTemplate?.data.description)
           : "The developer is requesting access to view your vehicle data. Select the vehicles you’d like to share access to."}

@@ -11,7 +11,11 @@
 const GRAPHQL_ENDPOINT = process.env.REACT_APP_DIMO_IDENTITY_URL;
 
 // Function to fetch vehicles and transform data
-export async function fetchVehiclesWithTransformation(ownerAddress: string, targetGrantee: string) {
+export async function fetchVehiclesWithTransformation(
+  ownerAddress: string,
+  targetGrantee: string,
+  vehicleTokenIds?: string[] // Array of tokenIds to filter by
+) {
   const query = `
     {
       vehicles(filterBy: { owner: "${ownerAddress}" }, first: 100) {
@@ -36,19 +40,78 @@ export async function fetchVehiclesWithTransformation(ownerAddress: string, targ
   const response = await fetch(GRAPHQL_ENDPOINT!, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
     },
-    body: JSON.stringify({ query })
+    body: JSON.stringify({ query }),
   });
 
   const data = await response.json();
 
-  // Transforming the data
-  return data.data.vehicles.nodes.map((vehicle: any) => ({
+  // Check if vehicleTokenIds is empty
+
+  const filteredVehicles = vehicleTokenIds && vehicleTokenIds.length > 0
+    ? data.data.vehicles.nodes.filter((vehicle: any) =>
+        vehicleTokenIds.includes(vehicle.tokenId.toString())
+      )
+    : data.data.vehicles.nodes;
+
+  // Transform the data
+  return filteredVehicles.map((vehicle: any) => ({
     tokenId: vehicle.tokenId,
-    shared: vehicle.sacds.nodes.some((sacd: any) => sacd.grantee === targetGrantee),
+    shared: vehicle.sacds.nodes.some(
+      (sacd: any) => sacd.grantee === targetGrantee
+    ),
     make: vehicle.definition.make,
     model: vehicle.definition.model,
-    year: vehicle.definition.year
+    year: vehicle.definition.year,
   }));
+}
+
+
+export async function isValidClientId(clientId: string, redirectUri: string) {
+  const query = `{
+    developerLicense(by: { clientId: "${clientId}" }) {
+      owner
+      alias
+      redirectURIs(first: 100) {
+        totalCount
+        nodes {
+          uri
+        }
+      }      
+    }
+  }`;
+
+  const apiResponse = await fetch(GRAPHQL_ENDPOINT!, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ query }),
+  });
+
+  const response = await apiResponse.json();
+
+  // Check if data is not null
+  if (!response || !response.data || !response.data.developerLicense) {
+    console.error("No data found in the response.");
+    return false; // or handle as needed
+  }
+
+  // Access the redirectURIs from the response
+  const { redirectURIs } = response.data.developerLicense;
+
+  // Check if redirectURIs exist and contains nodes
+  if (redirectURIs && redirectURIs.nodes) {
+    // Extract the URIs from the nodes
+    const uris = redirectURIs.nodes.map((node: { uri: any; }) => node.uri);
+
+    // Verify if the redirectUri exists in the list
+    const exists = uris.includes(redirectUri);
+
+    return exists; // Return true if exists, false otherwise
+  } else {
+    console.error("No redirect URIs found.");
+    return false; // or handle as needed
+  }
 }
