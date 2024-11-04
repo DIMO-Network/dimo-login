@@ -11,7 +11,7 @@ import VehicleManager from "./components/Vehicles/VehicleManager";
 
 function App() {
   const { loading: authLoading, authStep } = useAuthContext();  // Get loading state from AuthContext
-  const { credentialsLoading, clientId, apiKey, redirectUri } = useDevCredentials();  // Get loading state and credentials from DevCredentialsContext
+  const { credentialsLoading, clientId, apiKey, redirectUri, invalidCredentials } = useDevCredentials();  // Get loading state and credentials from DevCredentialsContext
   const [email, setEmail] = useState("");
   const [otpId, setOtpId] = useState("");  // New state for OTP ID
 
@@ -22,6 +22,17 @@ function App() {
         <Loader />
       </div>
     );
+  }
+
+  if ( invalidCredentials ) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-100">
+        <div className="bg-white p-8 rounded-lg shadow-lg text-center">
+          <h1 className="text-xl font-bold mb-4">Invalid App Credentials</h1>
+          <p>Please try again.</p>
+        </div>
+      </div>
+    )
   }
 
   // If credentials are missing after loading, show an error
