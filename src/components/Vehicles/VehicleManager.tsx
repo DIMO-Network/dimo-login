@@ -14,9 +14,10 @@ import {
 import { SACD_PERMISSIONS } from "@dimo-network/transactions/dist/core/types/args";
 
 const VehicleManager: React.FC = () => {
-  const targetGrantee = "0xeAa35540a94e3ebdf80448Ae7c9dE5F42CaB3481"; // TODO: Replace with client ID
+
+  // const targetGrantee = "0xeAa35540a94e3ebdf80448Ae7c9dE5F42CaB3481"; // TODO: Replace with client ID
   const { user, jwt, setAuthStep } = useAuthContext();
-  const { redirectUri, permissionTemplateId } = useDevCredentials();
+  const { clientId, redirectUri, permissionTemplateId, vehicleTokenIds } = useDevCredentials();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [permissionTemplate, setPermissionTemplate] =
     useState<PermissionTemplate | null>(null);
@@ -24,11 +25,12 @@ const VehicleManager: React.FC = () => {
 
   useEffect(() => {
     const fetchVehicles = async () => {
-      if (user?.smartContractAddress && targetGrantee) {
+      if (user?.smartContractAddress && clientId) {
         try {
           const transformedVehicles = await fetchVehiclesWithTransformation(
             user.smartContractAddress,
-            targetGrantee
+            clientId,
+            vehicleTokenIds
           );
           setVehicles(transformedVehicles);
         } catch (error) {
@@ -53,7 +55,7 @@ const VehicleManager: React.FC = () => {
 
     // Run both fetches in parallel if they can be independent
     Promise.all([fetchVehicles(), fetchPermissions()]);
-  }, [user?.smartContractAddress, targetGrantee, permissionTemplateId]); // Added permissionTemplateId as a dependency
+  }, [user?.smartContractAddress, clientId, permissionTemplateId]); // Added permissionTemplateId as a dependency
 
   const handleVehicleSelect = (vehicle: Vehicle) => {
     setSelectedVehicles(
@@ -84,13 +86,13 @@ const VehicleManager: React.FC = () => {
 
     const perms = sacdPermissionValue(permissionsObject);
 
-    if (selectedVehicles.length > 0 && targetGrantee) {
+    if (selectedVehicles.length > 0 && clientId) {
       try {
         for (const vehicle of selectedVehicles) {
           if (!vehicle.shared) {
             await setVehiclePermissions(
               vehicle.tokenId,
-              targetGrantee,
+              clientId as `0x${string}`,
               perms,
               BigInt(1793310371),
               "ipfs://QmRAuxeMnsjPsbwW8LkKtk6Nh6MoqTvyKwP3zwuwJnB2yP"

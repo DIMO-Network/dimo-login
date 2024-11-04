@@ -29,6 +29,7 @@ interface DevCredentialsContextProps {
   }) => void;
   credentialsLoading: boolean; // Renamed to avoid conflict with AuthContext
   invalidCredentials: boolean;
+  vehicleTokenIds?: string[];
 }
 
 const DevCredentialsContext = createContext<
@@ -45,6 +46,7 @@ export const DevCredentialsProvider = ({
   const [apiKey, setApiKey] = useState<string | undefined>();
   const [redirectUri, setRedirectUri] = useState<string | undefined>();
   const [permissionTemplateId, setPermissionTemplateId] = useState<string | undefined>();
+  const [vehicleTokenIds, setVehicleTokenIds] = useState<string[] | undefined>(); 
   const [credentialsLoading, setCredentialsLoading] = useState<boolean>(true); // Renamed loading state
   const [invalidCredentials, setInvalidCredentials] = useState<boolean>(false);
 
@@ -56,25 +58,32 @@ export const DevCredentialsProvider = ({
     const clientIdFromUrl = urlParams.get("clientId");
     const redirectUriFromUrl = urlParams.get("redirectUri");
     const permissionTemplateIdFromUrl = urlParams.get("permissionTemplateId");
+    const vehiclesArrayFromUrl = urlParams.getAll("vehicles");
 
     if (clientIdFromUrl && redirectUriFromUrl) {
       setClientId(clientIdFromUrl);
       setRedirectUri(redirectUriFromUrl);
       setApiKey("api key"); //not needed for redirect url
 
+      //Optional Param Checks
       if (permissionTemplateIdFromUrl != null) {  // Checks for both null and undefined
         setPermissionTemplateId(permissionTemplateIdFromUrl);
+      }
+
+      if ( vehiclesArrayFromUrl != null) {
+        setVehicleTokenIds(vehiclesArrayFromUrl)
       }
 
       setCredentialsLoading(false); // Credentials loaded
     } else {
       const handleMessage = (event: MessageEvent) => {
-        const { eventType, clientId, apiKey, permissionTemplateId, redirectUri } = event.data;
+        const { eventType, clientId, apiKey, permissionTemplateId, redirectUri, vehicles } = event.data;
         if (eventType === "AUTH_INIT") {
           setClientId(clientId);
           setApiKey(apiKey);
           setRedirectUri(redirectUri);
           setPermissionTemplateId(permissionTemplateId);
+          setVehicleTokenIds(vehicles);
           setCredentialsLoading(false); // Credentials loaded
         }
       };
@@ -127,7 +136,8 @@ export const DevCredentialsProvider = ({
         permissionTemplateId,
         setCredentials,
         credentialsLoading,
-        invalidCredentials
+        invalidCredentials,
+        vehicleTokenIds
       }}
     >
       {children}

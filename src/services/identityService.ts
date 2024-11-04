@@ -13,7 +13,8 @@ const GRAPHQL_ENDPOINT = process.env.REACT_APP_DIMO_IDENTITY_URL;
 // Function to fetch vehicles and transform data
 export async function fetchVehiclesWithTransformation(
   ownerAddress: string,
-  targetGrantee: string
+  targetGrantee: string,
+  vehicleTokenIds?: string[] // Array of tokenIds to filter by
 ) {
   const query = `
     {
@@ -46,8 +47,16 @@ export async function fetchVehiclesWithTransformation(
 
   const data = await response.json();
 
-  // Transforming the data
-  return data.data.vehicles.nodes.map((vehicle: any) => ({
+  // Check if vehicleTokenIds is empty
+
+  const filteredVehicles = vehicleTokenIds && vehicleTokenIds.length > 0
+    ? data.data.vehicles.nodes.filter((vehicle: any) =>
+        vehicleTokenIds.includes(vehicle.tokenId.toString())
+      )
+    : data.data.vehicles.nodes;
+
+  // Transform the data
+  return filteredVehicles.map((vehicle: any) => ({
     tokenId: vehicle.tokenId,
     shared: vehicle.sacds.nodes.some(
       (sacd: any) => sacd.grantee === targetGrantee
@@ -57,6 +66,7 @@ export async function fetchVehiclesWithTransformation(
     year: vehicle.definition.year,
   }));
 }
+
 
 export async function isValidClientId(clientId: string, redirectUri: string) {
   const query = `{
