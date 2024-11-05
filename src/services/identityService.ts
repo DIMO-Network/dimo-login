@@ -21,6 +21,7 @@ export async function fetchVehiclesWithTransformation(
       vehicles(filterBy: { owner: "${ownerAddress}" }, first: 100) {
         nodes {
           tokenId
+          imageURI
           definition {
             make
             model
@@ -58,13 +59,15 @@ export async function fetchVehiclesWithTransformation(
   // Transform the data
   return filteredVehicles.map((vehicle: any) => ({
     tokenId: vehicle.tokenId,
+    imageURI: vehicle.imageURI,
     shared: vehicle.sacds.nodes.some(
       (sacd: any) => sacd.grantee === targetGrantee
     ),
     make: vehicle.definition.make,
     model: vehicle.definition.model,
     year: vehicle.definition.year,
-  }));
+  })).sort((a: any, b: any) => Number(a.shared) - Number(b.shared)); // Sort non-shared first
+  ;
 }
 
 

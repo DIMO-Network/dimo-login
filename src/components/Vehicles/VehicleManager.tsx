@@ -160,35 +160,40 @@ const VehicleManager: React.FC = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto p-6 bg-white shadow-lg rounded-lg text-center">
-      <h1 className="text-2xl font-semibold mb-2">
-        Select Vehicles to Share with [App Name]
-      </h1>
-      <p
-        style={{ height: "40vh" }}
-        className="text-sm text-gray-600 mb-6 overflow-scroll"
+    <div>
+      <div
+        style={{ maxHeight: "700px" }}
+        className="max-w-md mx-auto p-6 bg-white shadow-lg rounded-lg text-center overflow-scroll"
       >
-        {permissionTemplate?.data.description
-          ? renderDescription(permissionTemplate?.data.description)
-          : "The developer is requesting access to view your vehicle data. Select the vehicles you’d like to share access to."}
-      </p>
-      <div className="space-y-4">
-        {vehicles.map((vehicle) => (
-          <VehicleCard
-            key={vehicle.tokenId.toString()}
-            vehicle={vehicle}
-            isSelected={selectedVehicles.includes(vehicle)}
-            onSelect={() => handleVehicleSelect(vehicle)}
-            disabled={vehicle.shared}
-          />
-        ))}
+        <h1 className="text-2xl font-semibold mb-2">
+          Share Permissions
+        </h1>
+        <p
+          style={{ height: "40vh" }}
+          className="text-sm text-gray-600 mb-6 overflow-scroll"
+        >
+          {permissionTemplate?.data.description
+            ? renderDescription(permissionTemplate?.data.description)
+            : "The developer is requesting access to view your vehicle data. Select the vehicles you’d like to share access to."}
+        </p>
+        <div className="space-y-4">
+          {vehicles.map((vehicle) => (
+            <VehicleCard
+              key={vehicle.tokenId.toString()}
+              vehicle={vehicle}
+              isSelected={selectedVehicles.includes(vehicle)}
+              onSelect={() => handleVehicleSelect(vehicle)}
+              disabled={vehicle.shared}
+            />
+          ))}
+        </div>
       </div>
       <button
         onClick={handleShare}
         disabled={selectedVehicles.length === 0}
-        className="mt-6 px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-400"
+        className="mt-6 px-4 py-2 bg-black text-white font-semibold rounded-3xl shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-400"
       >
-        Share Selected
+        Share
       </button>
     </div>
   );
