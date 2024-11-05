@@ -80,7 +80,7 @@ export const DevCredentialsProvider = ({
         const { eventType, clientId, apiKey, permissionTemplateId, redirectUri, vehicles } = event.data;
         if (eventType === "AUTH_INIT") {
           setClientId(clientId);
-          setApiKey(apiKey);
+          setApiKey(apiKey || "api key"); //todo, bring back when api key is needed
           setRedirectUri(redirectUri);
           setPermissionTemplateId(permissionTemplateId);
           setVehicleTokenIds(vehicles);

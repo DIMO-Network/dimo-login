@@ -69,12 +69,16 @@ const VehicleManager: React.FC = () => {
     );
   };
 
-  const handleShare = async () => {
-    if (!jwt || !redirectUri) {
-      alert("Could not share vehicles, authentication failed");
-      return;
+  const sendJwtAfterPermissions = () => {
+    if ( jwt && redirectUri ) {
+      sendTokenToParent(jwt, redirectUri, () => {
+        setSelectedVehicles([]); // Clear selection after sharing
+        setAuthStep(3); // Move to success page
+      });
     }
-
+  }
+ 
+  const handleShare = async () => {
     const permissionsObject: SACD_PERMISSIONS = permissionTemplate?.data.scope
       .permissions
       ? permissionTemplate.data.scope.permissions.reduce(
@@ -118,10 +122,7 @@ const VehicleManager: React.FC = () => {
           );
         }
 
-        sendTokenToParent(jwt, redirectUri, () => {
-          setSelectedVehicles([]); // Clear selection after sharing
-          setAuthStep(3); // Move to success page
-        });
+        sendJwtAfterPermissions();
       } catch (error) {
         console.error("Error sharing vehicles:", error);
       }
@@ -177,7 +178,7 @@ const VehicleManager: React.FC = () => {
             : "The developer is requesting access to view your vehicle data. Select the vehicles you’d like to share access to."}
         </p>
         <div className="space-y-4">
-          {vehicles.map((vehicle) => (
+          {vehicles ? vehicles.map((vehicle) => (
             <VehicleCard
               key={vehicle.tokenId.toString()}
               vehicle={vehicle}
@@ -185,7 +186,7 @@ const VehicleManager: React.FC = () => {
               onSelect={() => handleVehicleSelect(vehicle)}
               disabled={vehicle.shared}
             />
-          ))}
+          )) : <p>You have not added any vehicles</p>}
         </div>
       </div>
       <button
@@ -195,6 +196,13 @@ const VehicleManager: React.FC = () => {
       >
         Share
       </button>
+
+      <button
+        onClick={sendJwtAfterPermissions}
+        className="mt-6 px-4 py-2 bg-black text-white font-semibold rounded-3xl shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-400"
+      >
+        Continue
+      </button>      
     </div>
   );
 };
