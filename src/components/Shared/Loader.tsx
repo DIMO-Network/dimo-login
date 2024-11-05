@@ -14,7 +14,11 @@ const Loader: React.FC = () => {
       <div className="text-lg mb-4">
         {credentialsLoading ? "Waiting for credentials..." : loadingString}
       </div>
-      <div className="loader border-t-4 border-blue-500 rounded-full w-12 h-12 animate-spin"></div>
+      <div className="flex space-x-2">
+        <div className="dot w-3 h-3 rounded-full animate-wave delay-100"></div>
+        <div className="dot w-3 h-3 rounded-full animate-wave delay-200"></div>
+        <div className="dot w-3 h-3 rounded-full animate-wave delay-300"></div>
+      </div>
     </div>
   );
 };

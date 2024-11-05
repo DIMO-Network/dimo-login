@@ -55,3 +55,33 @@
     transform: rotate(360deg);
   }
 }
+
+@keyframes bounce {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 1;
+  }
+}
+
+@keyframes wave {
+  0%, 100% {
+    transform: scale(0.8); /* Smallest size */
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.5); /* Largest size */
+    opacity: 1;
+  }
+}
+
+
+
+.dot {
+  /* animation: bounce 1s infinite; */
+  animation: wave 1.2s infinite;
+  background-color: #818181;
+}

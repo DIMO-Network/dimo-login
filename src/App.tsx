@@ -2,48 +2,49 @@ import React, { useState, useEffect } from "react";
 import EmailInput from "./components/Auth/EmailInput";
 import Loader from "./components/Shared/Loader";
 import SuccessPage from "./components/Auth/SuccessPage";
-import logo from './assets/images/dimo-logo.png';
 import "./App.css";
 import { useAuthContext } from "./context/AuthContext";
 import { useDevCredentials } from "./context/DevCredentialsContext"; // Import DevCredentialsContext
 import OtpInput from "./components/Auth/OtpInput";
 import VehicleManager from "./components/Vehicles/VehicleManager";
+import LoadingScreen from "./components/Shared/LoadingScreen";
+import ErrorScreen from "./components/Shared/ErrorScreen";
+import Logo from "./components/Shared/Logo";
 
 function App() {
-  const { loading: authLoading, authStep } = useAuthContext();  // Get loading state from AuthContext
-  const { credentialsLoading, clientId, apiKey, redirectUri, invalidCredentials } = useDevCredentials();  // Get loading state and credentials from DevCredentialsContext
+  const { loading: authLoading, authStep } = useAuthContext(); // Get loading state from AuthContext
+  const {
+    credentialsLoading,
+    clientId,
+    apiKey,
+    redirectUri,
+    invalidCredentials,
+  } = useDevCredentials(); // Get loading state and credentials from DevCredentialsContext
   const [email, setEmail] = useState("");
-  const [otpId, setOtpId] = useState("");  // New state for OTP ID
+  const [otpId, setOtpId] = useState(""); // New state for OTP ID
 
   // If either credentials or auth is loading, show the loader
+  // Loading state
   if (authLoading || credentialsLoading) {
+    return <LoadingScreen />;
+  }
+
+  // Error screens
+  if (invalidCredentials) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-100">
-        <Loader />
-      </div>
+      <ErrorScreen
+        title="Invalid App Credentials"
+        message="We're sorry, but it looks like there’s an issue with the app's credentials. This may be due to an invalid setup or unregistered access. Please reach out to the app's support team for assistance."
+      />
     );
   }
 
-  if ( invalidCredentials ) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-gray-100">
-        <div className="bg-white p-8 rounded-lg shadow-lg text-center">
-          <h1 className="text-xl font-bold mb-4">Invalid App Credentials</h1>
-          <p>Please try again.</p>
-        </div>
-      </div>
-    )
-  }
-
-  // If credentials are missing after loading, show an error
   if (!clientId || !apiKey || !redirectUri) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-100">
-        <div className="bg-white p-8 rounded-lg shadow-lg text-center">
-          <h1 className="text-xl font-bold mb-4">Missing Credentials</h1>
-          <p>Please check the configuration and reload the page.</p>
-        </div>
-      </div>
+      <ErrorScreen
+        title="Missing Credentials"
+        message="Please check the configuration and reload the page."
+      />
     );
   }
 
@@ -51,11 +52,15 @@ function App() {
   return (
     <div className="flex h-screen items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-lg text-center">
-        <img src={logo} alt="Dimo Logo" className="mx-auto mb-6 w-32 h-auto" />
-        
+        <div className="flex justify-center mb-4">
+          <Logo />
+        </div>
+
         {/* Render components based on authStep */}
-        {authStep === 0 && <EmailInput onSubmit={setEmail} setOtpId={setOtpId}/>}
-        {authStep === 1 && <OtpInput email={email} otpId={otpId}/>}
+        {authStep === 0 && (
+          <EmailInput onSubmit={setEmail} setOtpId={setOtpId} />
+        )}
+        {authStep === 1 && <OtpInput email={email} otpId={otpId} />}
         {authStep === 2 && <VehicleManager />}
         {authStep === 3 && <SuccessPage />}
       </div>

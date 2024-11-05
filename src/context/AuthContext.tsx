@@ -56,6 +56,7 @@ interface AuthContextProps {
   setJwt: React.Dispatch<React.SetStateAction<string | undefined>>;
   authStep: number;
   setAuthStep: React.Dispatch<React.SetStateAction<number>>;
+  error: string | null;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -105,7 +106,7 @@ export const AuthProvider = ({
         throw new Error("Failed to create account");
       }
     } catch (error) {
-      console.error("Account creation failed:", error);
+      setError("Failed to create account, please try again or contact support.")
       return { success: false, error: error as string };
     } finally {
       setLoading(false);
@@ -170,9 +171,9 @@ export const AuthProvider = ({
         throw new Error("Invalid OTP");
       }
     } catch (err) {
-      setError("Failed to verify OTP");
+      setError("Invalid code. Try again.");
       console.error(err);
-      return { success: false, error: error as string };
+      return { success: false, error: err as string };
     } finally {
       setLoading(false);
     }
@@ -208,6 +209,7 @@ export const AuthProvider = ({
         permissionTemplateId
       ); //TODO: Better handling of null
     } catch (error) {
+      setError("Could not authenticate user, please verify your passkey and try again.")
       console.error(error);
     } finally {
       setLoading(false);
@@ -228,6 +230,7 @@ export const AuthProvider = ({
         setJwt,
         authStep,
         setAuthStep,
+        error
       }}
     >
       {children}
