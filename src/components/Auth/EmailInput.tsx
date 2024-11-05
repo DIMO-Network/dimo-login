@@ -2,6 +2,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useAuthContext } from "../../context/AuthContext"; // Use the auth context
 import { fetchUserDetails } from "../../services/accountsService";
+import ErrorMessage from "../Shared/ErrorMessage";
+import PrimaryButton from "../Shared/PrimaryButton";
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;
@@ -18,6 +20,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
     createAccountWithPasskey,
   } = useAuthContext(); // Get sendOtp from the context
   const [email, setEmail] = useState("");
+  const { error } = useAuthContext();
   const [triggerAuth, setTriggerAuth] = useState(false);
 
   const handleOtpSend = async (email: string) => {
@@ -62,6 +65,17 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
 
   return (
     <div className="flex flex-col space-y-4">
+      <div>
+        <p className="text-xl font-medium">
+          Enter an email to sign in with DIMO on
+        </p>
+        <p className="text-sm font-medium underline mb-4">
+          {document.referrer ? new URL(document.referrer).hostname : ""}
+        </p>
+      </div>
+
+      {error && <ErrorMessage message={error} />}
+
       <input
         type="email"
         value={email}
@@ -69,12 +83,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
         placeholder="Enter your email"
         className="p-2 border border-gray-300 rounded-md"
       />
-      <button
-        onClick={handleSubmit}
-        className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
-      >
-        Authenticate
-      </button>
+      <PrimaryButton onClick={handleSubmit}>Authenticate</PrimaryButton>
     </div>
   );
 };
