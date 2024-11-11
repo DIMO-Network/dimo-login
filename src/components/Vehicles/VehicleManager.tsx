@@ -15,16 +15,23 @@ import {
   PermissionTemplate,
 } from "../../services/permissionsService";
 import { SACD_PERMISSIONS } from "@dimo-network/transactions/dist/core/types/args";
+import Card from "../Shared/Card";
+import Header from "../Shared/Header";
+import PrimaryButton from "../Shared/PrimaryButton";
+import VehicleThumbnail from "../../assets/images/vehicle-thumbnail.png";
+import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/solid";
+import ErrorMessage from "../Shared/ErrorMessage";
 
 const VehicleManager: React.FC = () => {
   // const targetGrantee = "0xeAa35540a94e3ebdf80448Ae7c9dE5F42CaB3481"; // TODO: Replace with client ID
-  const { user, jwt, setAuthStep } = useAuthContext();
+  const { user, jwt, setAuthStep, error, setError, setLoading } = useAuthContext();
   const { clientId, redirectUri, permissionTemplateId, vehicleTokenIds } =
     useDevCredentials();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [permissionTemplate, setPermissionTemplate] =
     useState<PermissionTemplate | null>(null);
   const [selectedVehicles, setSelectedVehicles] = useState<Vehicle[]>([]); // Array for multiple selected vehicles
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
     const fetchVehicles = async () => {
@@ -60,6 +67,15 @@ const VehicleManager: React.FC = () => {
     Promise.all([fetchVehicles(), fetchPermissions()]);
   }, [user?.smartContractAddress, clientId, permissionTemplateId]); // Added permissionTemplateId as a dependency
 
+  useEffect(()=>{
+    if (vehicles.length == 0 ) {
+      //If there's no vehicles, show expanded by default
+      setIsExpanded(true);
+    } else {
+      setIsExpanded(false);
+    }
+  },[vehicles]);
+
   const handleVehicleSelect = (vehicle: Vehicle) => {
     setSelectedVehicles(
       (prevSelected) =>
@@ -70,15 +86,16 @@ const VehicleManager: React.FC = () => {
   };
 
   const sendJwtAfterPermissions = () => {
-    if ( jwt && redirectUri ) {
+    if (jwt && redirectUri) {
       sendTokenToParent(jwt, redirectUri, () => {
         setSelectedVehicles([]); // Clear selection after sharing
         setAuthStep(3); // Move to success page
       });
     }
-  }
- 
+  };
+
   const handleShare = async () => {
+    setLoading("Sharing vehicles");
     const permissionsObject: SACD_PERMISSIONS = permissionTemplate?.data.scope
       .permissions
       ? permissionTemplate.data.scope.permissions.reduce(
@@ -99,7 +116,6 @@ const VehicleManager: React.FC = () => {
         .map((vehicle) => vehicle.tokenId);
 
       if (unsharedTokenIds.length === 0) {
-        alert("Please select at least one non-shared vehicle to share.");
         return;
       }
 
@@ -123,87 +139,128 @@ const VehicleManager: React.FC = () => {
         }
 
         sendJwtAfterPermissions();
+        setLoading(false);
       } catch (error) {
+        setError("Could not share vehicles");
+        setLoading(false);
         console.error("Error sharing vehicles:", error);
       }
     } else {
-      alert("Please select at least one non-shared vehicle to share.");
+      setError("No vehicles selected");
+      setLoading(false);
     }
   };
 
   const renderDescription = (description: string) => {
+    const paragraphs = description.split("\n\n");
+
+    // Show only the first paragraph by default, and the rest will be shown when expanded
+    const firstParagraph = paragraphs[0];
+    const restOfDescription = paragraphs.slice(1).join("\n\n");
+
     return (
       <div>
-        {description.split("\n\n").map((paragraph, index) => (
-          <React.Fragment key={index}>
-            {/* Check if the paragraph contains bullet points */}
-            {paragraph.includes("- ") ? (
-              <ul className="list-disc list-inside mb-4">
-                {paragraph.split("\n-").map((line, i) =>
-                  i === 0 ? (
-                    <p key={i} className="font-semibold mb-2">
-                      {line.trim()}
-                    </p>
-                  ) : (
-                    <li key={i} className="ml-4">
-                      {line.trim()}
-                    </li>
-                  )
-                )}
-              </ul>
-            ) : (
-              <p className="mb-4">{paragraph}</p>
-            )}
-          </React.Fragment>
-        ))}
+        {/* Render the first paragraph or the entire description based on the `isExpanded` state */}
+        {isExpanded ? (
+          description.split("\n\n").map((paragraph, index) => (
+            <React.Fragment key={index}>
+              {/* Check if the paragraph contains bullet points */}
+              {paragraph.includes("- ") ? (
+                <ul className="list-disc list-inside mb-4">
+                  {paragraph.split("\n-").map((line, i) =>
+                    i === 0 ? (
+                      <p key={i} className="font-semibold mb-2">
+                        {line.trim()}
+                      </p>
+                    ) : (
+                      <li key={i} className="ml-4">
+                        {line.trim()}
+                      </li>
+                    )
+                  )}
+                </ul>
+              ) : (
+                <p className="mb-4">{paragraph}</p>
+              )}
+            </React.Fragment>
+          ))
+        ) : (
+          <p className="mb-4">{firstParagraph}</p> // Show only the first paragraph
+        )}
       </div>
     );
   };
 
   return (
-    <div>
-      <div
-        style={{ maxHeight: "700px" }}
-        className="max-w-md mx-auto p-6 bg-white shadow-lg rounded-lg text-center overflow-scroll"
-      >
-        <h1 className="text-2xl font-semibold mb-2">
-          Share Permissions
-        </h1>
-        <p
-          style={{ height: "40vh" }}
-          className="text-sm text-gray-600 mb-6 overflow-scroll"
-        >
+    <Card width="w-[600px]" height="h-[770px]">
+      <Header title="Share Permissions" subtitle={""} />
+      <div className="flex flex-col items-center justify-center max-h-[584px] box-border overflow-y-auto">
+        {error && <ErrorMessage message={error} />}
+        <div className="description w-[440px] text-sm mb-4 overflow-y-auto max-h-[356px]">
           {permissionTemplate?.data.description
             ? renderDescription(permissionTemplate?.data.description)
             : "The developer is requesting access to view your vehicle data. Select the vehicles you’d like to share access to."}
-        </p>
-        <div className="space-y-4">
-          {vehicles ? vehicles.map((vehicle) => (
-            <VehicleCard
-              key={vehicle.tokenId.toString()}
-              vehicle={vehicle}
-              isSelected={selectedVehicles.includes(vehicle)}
-              onSelect={() => handleVehicleSelect(vehicle)}
-              disabled={vehicle.shared}
-            />
-          )) : <p>You have not added any vehicles</p>}
+        </div>
+        <div className="w-[440px]">
+          <button
+            className="bg-white w-[145px] text-[#09090B] border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500 flex items-center justify-between"
+            onClick={() => setIsExpanded(!isExpanded)}
+          >
+            <span>{isExpanded ? "Show less" : "Show more"}</span>
+            {isExpanded ? (
+              <ChevronUpIcon className="h-4 w-4 ml-2" />
+            ) : (
+              <ChevronDownIcon className="h-4 w-4 ml-2" />
+            )}
+          </button>
+        </div>
+        <div className="space-y-4 pt-4 max-h-[400px] overflow-scroll w-[440px]">
+          {vehicles && vehicles.length > 0 ? (
+            vehicles.map((vehicle) => (
+              <VehicleCard
+                key={vehicle.tokenId.toString()}
+                vehicle={vehicle}
+                isSelected={selectedVehicles.includes(vehicle)}
+                onSelect={() => handleVehicleSelect(vehicle)}
+                disabled={vehicle.shared}
+              />
+            ))
+          ) : (
+            <div className="flex flex-col items-center">
+              <img
+                style={{ height: "40px", width: "40px" }}
+                className="rounded-full object-cover mr-4"
+                src={VehicleThumbnail}
+              />
+
+              <h2 className="text-gray-500 text-xl font-medium pt-2">
+                No cars connected yet
+              </h2>
+              <p className="text-sm">
+                Connect your car in the DIMO app to share permissions.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-between w-[440px] pt-4">
+          <button
+            onClick={sendJwtAfterPermissions}
+            className="bg-white w-[214px] text-[#09090B] border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500"
+          >
+            Cancel
+          </button>
+
+          <PrimaryButton
+            onClick={handleShare}
+            width={"w-[214px]"}
+            disabled={selectedVehicles.length === 0}
+          >
+            Share Vehicles
+          </PrimaryButton>
         </div>
       </div>
-      <button
-        onClick={handleShare}
-        disabled={selectedVehicles.length === 0}
-        className="mt-6 px-4 py-2 bg-black text-white font-semibold rounded-3xl shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-400"
-      >
-        Share
-      </button>
-
-      <button
-        onClick={sendJwtAfterPermissions}
-        className="mt-6 px-4 py-2 bg-black text-white font-semibold rounded-3xl shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-400"
-      >
-        Continue
-      </button>      
-    </div>
+    </Card>
   );
 };
 

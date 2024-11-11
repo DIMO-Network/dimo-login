@@ -57,6 +57,8 @@ interface AuthContextProps {
   authStep: number;
   setAuthStep: React.Dispatch<React.SetStateAction<number>>;
   error: string | null;
+  setError: React.Dispatch<React.SetStateAction<string | null>>;
+  setLoading: React.Dispatch<React.SetStateAction<boolean | string>>;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -230,7 +232,9 @@ export const AuthProvider = ({
         setJwt,
         authStep,
         setAuthStep,
-        error
+        error,
+        setError,
+        setLoading
       }}
     >
       {children}
