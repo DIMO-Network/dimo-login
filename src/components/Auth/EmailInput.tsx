@@ -4,6 +4,8 @@ import { useAuthContext } from "../../context/AuthContext"; // Use the auth cont
 import { fetchUserDetails } from "../../services/accountsService";
 import ErrorMessage from "../Shared/ErrorMessage";
 import PrimaryButton from "../Shared/PrimaryButton";
+import Card from "../Shared/Card";
+import Header from "../Shared/Header";
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;
@@ -64,27 +66,31 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
   }, [triggerAuth]);
 
   return (
-    <div className="flex flex-col space-y-4">
-      <div>
-        <p className="text-xl font-medium">
-          Enter an email to sign in with DIMO on
-        </p>
-        <p className="text-sm font-medium underline mb-4">
-          {document.referrer ? new URL(document.referrer).hostname : ""}
-        </p>
-      </div>
-
-      {error && <ErrorMessage message={error} />}
-
-      <input
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="Enter your email"
-        className="p-2 border border-gray-300 rounded-md"
+    <Card width="w-[600px]" height="h-[308px]">
+      <Header
+        title="Enter an email to sign in with DIMO on"
+        subtitle={
+          document.referrer
+            ? new URL(document.referrer).hostname
+            : "https://dimo.org"
+        }
       />
-      <PrimaryButton onClick={handleSubmit}>Authenticate</PrimaryButton>
-    </div>
+      <div
+        className="frame9 flex flex-col items-center"
+        style={{ gap: "20px" }}
+      >
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Enter your email"
+          className="p-2 border border-gray-300 rounded-md w-[440px]"
+        />
+        <PrimaryButton onClick={handleSubmit} width="w-[440px]">
+          Authenticate
+        </PrimaryButton>
+      </div>
+    </Card>
   );
 };
 
