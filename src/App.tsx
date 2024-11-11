@@ -50,20 +50,12 @@ function App() {
 
   // If not loading and credentials are available, render the app
   return (
-    <div className="flex h-screen items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-lg text-center">
-        <div className="flex justify-center mb-4">
-          <Logo />
-        </div>
-
-        {/* Render components based on authStep */}
-        {authStep === 0 && (
-          <EmailInput onSubmit={setEmail} setOtpId={setOtpId} />
-        )}
-        {authStep === 1 && <OtpInput email={email} otpId={otpId} />}
-        {authStep === 2 && <VehicleManager />}
-        {authStep === 3 && <SuccessPage />}
-      </div>
+    <div className="flex h-screen items-center justify-center bg-[#F7F7F7]">
+      {/* Render components based on authStep */}
+      {authStep === 0 && <EmailInput onSubmit={setEmail} setOtpId={setOtpId} />}
+      {authStep === 1 && <OtpInput email={email} otpId={otpId} />}
+      {authStep === 2 && <VehicleManager />}
+      {authStep === 3 && <SuccessPage />}
     </div>
   );
 }

@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useAuthContext } from "../../context/AuthContext"; // Use the auth context
 import ErrorMessage from "../Shared/ErrorMessage";
 import PrimaryButton from "../Shared/PrimaryButton";
+import Card from "../Shared/Card";
+import Header from "../Shared/Header";
 
 interface OtpInputProps {
   email: string;
@@ -60,33 +62,38 @@ const OtpInput: React.FC<OtpInputProps> = ({ email, otpId }) => {
   };
 
   return (
-    <div className="flex flex-col space-y-4">
-      <div>
-        <p className="text-xl font-medium">Please enter your OTP Code</p>
-        <p className="text-sm text-zinc-500 font-medium mb-4">{email}</p>
-      </div>
+    <Card width="w-[600px]" height="h-[308px]">
+      <Header
+        title="Please enter your OTP Code"
+        subtitle={email || "moiz@gmail.com"}
+      />
 
       {error && <ErrorMessage message={error} />}
 
-      {/* OTP Input Fields */}
-      <div className="grid grid-cols-6 gap-3 mb-4">
-        {otpArray.map((digit, index) => (
-          <input
-            key={index}
-            id={`otp-input-${index}`}
-            type="text"
-            value={digit}
-            onChange={(e) => handleChange(e, index)}
-            maxLength={6}
-            className={`w-12 h-12 border rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-              error ? "border-[#E80303]" : "border-gray-300"
-            }`}
-          />
-        ))}
+      <div
+        className="frame9 flex flex-col items-center"
+        style={{ gap: "20px" }}
+      >
+        <div className="grid grid-cols-6 gap-3 mb-4 w-[440px]">
+          {otpArray.map((digit, index) => (
+            <input
+              key={index}
+              id={`otp-input-${index}`}
+              type="text"
+              value={digit}
+              onChange={(e) => handleChange(e, index)}
+              maxLength={6}
+              className={`w-12 h-12 border rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                error ? "border-[#E80303]" : "border-gray-300"
+              }`}
+            />
+          ))}
+        </div>
+        <PrimaryButton onClick={handleSubmit} width="w-[440px]">
+          Continue
+        </PrimaryButton>
       </div>
-
-      <PrimaryButton onClick={handleSubmit}>Continue</PrimaryButton>
-    </div>
+    </Card>
   );
 };
 
