@@ -68,7 +68,7 @@ const VehicleManager: React.FC = () => {
   }, [user?.smartContractAddress, clientId, permissionTemplateId]); // Added permissionTemplateId as a dependency
 
   useEffect(()=>{
-    if (vehicles.length == 0 ) {
+    if (vehicles.length == 0 && window.innerHeight >= 770) {
       //If there's no vehicles, show expanded by default
       setIsExpanded(true);
     } else {
