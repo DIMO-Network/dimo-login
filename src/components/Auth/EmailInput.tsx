@@ -75,6 +75,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
             : "https://dimo.org"
         }
       />
+      {error && <ErrorMessage message={error} />}
       <div
         className="frame9 flex flex-col items-center gap-[15px] lg:gap-[20px]"
       >
