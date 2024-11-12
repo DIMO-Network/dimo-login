@@ -66,7 +66,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
   }, [triggerAuth]);
 
   return (
-    <Card width="w-[600px]" height="h-[308px]">
+    <Card width="w-full max-w-[600px]" height="h-full max-h-[308px]">
       <Header
         title="Enter an email to sign in with DIMO on"
         subtitle={
@@ -76,17 +76,16 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
         }
       />
       <div
-        className="frame9 flex flex-col items-center"
-        style={{ gap: "20px" }}
+        className="frame9 flex flex-col items-center gap-[15px] lg:gap-[20px]"
       >
         <input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Enter your email"
-          className="p-2 border border-gray-300 rounded-md w-[440px]"
+          className="p-2 border border-gray-300 rounded-md w-full lg:w-[440px]"
         />
-        <PrimaryButton onClick={handleSubmit} width="w-[440px]">
+        <PrimaryButton onClick={handleSubmit} width="w-full lg:w-[440px]">
           Authenticate
         </PrimaryButton>
       </div>
