@@ -42,7 +42,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
     onSubmit(email); // Trigger any on-submit actions
 
     // Check if the user exists and authenticate if they do
-    const userExistsResult = await fetchUserDetails(email);
+    const userExistsResult = await fetchUserDetails(email); //TODO: This should be in Auth Context, so that user is set by auth context
     if (userExistsResult.success && userExistsResult.data.user) {
       setUser(userExistsResult.data.user);
       setTriggerAuth(true); // Trigger authentication for existing users

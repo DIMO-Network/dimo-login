@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import EmailInput from "./components/Auth/EmailInput";
-import Loader from "./components/Shared/Loader";
 import SuccessPage from "./components/Auth/SuccessPage";
 import "./App.css";
 import { useAuthContext } from "./context/AuthContext";
@@ -9,10 +8,16 @@ import OtpInput from "./components/Auth/OtpInput";
 import VehicleManager from "./components/Vehicles/VehicleManager";
 import LoadingScreen from "./components/Shared/LoadingScreen";
 import ErrorScreen from "./components/Shared/ErrorScreen";
-import Logo from "./components/Shared/Logo";
+import { initializeSession } from "./services/sessionService";
 
 function App() {
-  const { loading: authLoading, authStep } = useAuthContext(); // Get loading state from AuthContext
+  const {
+    loading: authLoading,
+    authStep,
+    setJwt,
+    setUser,
+    setAuthStep,
+  } = useAuthContext(); // Get loading state from AuthContext
   const {
     credentialsLoading,
     clientId,
@@ -22,6 +27,12 @@ function App() {
   } = useDevCredentials(); // Get loading state and credentials from DevCredentialsContext
   const [email, setEmail] = useState("");
   const [otpId, setOtpId] = useState(""); // New state for OTP ID
+
+  useEffect(() => {
+    if (clientId) {
+      initializeSession({ clientId, setJwt, setUser, setAuthStep });
+    }
+  }, [clientId]);
 
   // If either credentials or auth is loading, show the loader
   // Loading state

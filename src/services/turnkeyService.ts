@@ -18,7 +18,6 @@ import { getWebAuthnAttestation } from "@turnkey/http";
 import { IframeStamper } from "@turnkey/iframe-stamper";
 import { WebauthnStamper } from "@turnkey/webauthn-stamper";
 import { base64UrlEncode, generateRandomBuffer } from "../utils/authUtils";
-import { verifyEmail } from "./accountsService";
 import { SetVehiclePermissionsBulk } from "@dimo-network/transactions/dist/core/types/args";
 
 const stamper = new WebauthnStamper({
