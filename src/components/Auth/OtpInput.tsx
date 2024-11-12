@@ -62,7 +62,7 @@ const OtpInput: React.FC<OtpInputProps> = ({ email, otpId }) => {
   };
 
   return (
-    <Card width="w-[600px]" height="h-[308px]">
+    <Card width="w-full max-w-[600px]" height="h-full max-h-[308px]">
       <Header
         title="Please enter your OTP Code"
         subtitle={email || "moiz@gmail.com"}
@@ -71,10 +71,9 @@ const OtpInput: React.FC<OtpInputProps> = ({ email, otpId }) => {
       {error && <ErrorMessage message={error} />}
 
       <div
-        className="frame9 flex flex-col items-center"
-        style={{ gap: "20px" }}
+        className="frame9 flex flex-col items-center gap-[15px] lg:gap-[20px]"
       >
-        <div className="grid grid-cols-6 gap-3 mb-4 w-[440px]">
+        <div className="grid grid-cols-6 gap-3 mb-4 w-full max-w-[440px]">
           {otpArray.map((digit, index) => (
             <input
               key={index}
@@ -83,13 +82,13 @@ const OtpInput: React.FC<OtpInputProps> = ({ email, otpId }) => {
               value={digit}
               onChange={(e) => handleChange(e, index)}
               maxLength={6}
-              className={`w-12 h-12 border rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+              className={`w-10 h-10 lg:w-12 lg:h-12 border rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                 error ? "border-[#E80303]" : "border-gray-300"
               }`}
             />
           ))}
         </div>
-        <PrimaryButton onClick={handleSubmit} width="w-[440px]">
+        <PrimaryButton onClick={handleSubmit} width="w-full lg:w-[440px]">
           Continue
         </PrimaryButton>
       </div>
