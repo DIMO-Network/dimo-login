@@ -3,6 +3,7 @@
  *
  * This service handles all requests related to the Dimo Accounts API, including
  * checking account existence and creating/linking accounts.
+ * This service should only be called by AuthContext, or other Contexts
  *
  */
 
