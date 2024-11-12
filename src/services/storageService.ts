@@ -5,7 +5,7 @@ import { UserObject } from "../models/user";
   
   // Utility function to store JWT in cookies for a given clientId
   export const storeJWTInCookies = (clientId: string, jwt: string): void => {
-    document.cookie = `auth_token_${clientId}=${jwt}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=3600`; // 1 hour expiry
+    document.cookie = `auth_token_${clientId}=${jwt}; expires=Fri, 31 Dec 2024 23:59:59 GMT; path=/`
   };
   
   // Utility function to store user properties in localStorage for a given clientId
