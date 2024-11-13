@@ -1,6 +1,7 @@
 // sessionService.ts
 
 import { getJWTFromCookies, getUserFromLocalStorage } from "./storageService";
+import { isTokenExpired } from "./tokenService";
 
 // Define types for the function parameters
 type InitializeSessionParams = {
@@ -21,7 +22,7 @@ export function initializeSession({
   const jwt = getJWTFromCookies(clientId);
   const user = getUserFromLocalStorage(clientId);
 
-  if (jwt && user) {
+  if (jwt && !isTokenExpired(jwt) && user) {
     setJwt(jwt);
     setUser(user);
     setAuthStep(3); // Set the step to 3 if a valid user session is detected

@@ -8,7 +8,7 @@ import { UserObject } from "../models/user";
     const expirationDate = new Date();
     expirationDate.setFullYear(expirationDate.getFullYear() + 10); // Set expiration to 10 years in the future
     
-    document.cookie = `auth_token_${clientId}=${jwt}; expires=${expirationDate.toUTCString()}; path=/`;    
+    document.cookie = `auth_token_${clientId}=${jwt}; expires=${expirationDate.toUTCString()}; path=/; SameSite=None; Secure`;
   };
   
   // Utility function to store user properties in localStorage for a given clientId
