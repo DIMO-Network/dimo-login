@@ -13,7 +13,6 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, isSelected, onSelect
     className={`flex items-center p-4 border rounded-2xl cursor-pointer transition ${
       disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'hover:bg-gray-50 border-gray-300'
     }`}
-    onClick={!disabled ? onSelect : undefined}
   >
     {/* Custom Checkbox */}
     <input
