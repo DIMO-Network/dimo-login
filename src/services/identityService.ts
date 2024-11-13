@@ -1,12 +1,10 @@
 /**
- * turnkeyService.ts
+ * identityService.ts
  *
  * This service handles all actions using the Identity API
  *
  * Specific Responsibilities include: Getting vehicles and their SACD permissions
  */
-
-// identityService.ts
 
 const GRAPHQL_ENDPOINT = process.env.REACT_APP_DIMO_IDENTITY_URL;
 

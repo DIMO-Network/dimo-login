@@ -1,5 +1,3 @@
-import { verifyEmail } from "../services/accountsService";
-// import { ethers } from 'ethers';
 import { Buffer } from "buffer";
 import {
   generateChallenge,
@@ -13,8 +11,8 @@ import {
   signChallenge,
 } from "../services/turnkeyService";
 import { isStandalone } from "./isStandalone";
-import { sacdPermissionValue } from "@dimo-network/transactions";
-import { fetchVehiclesWithTransformation } from "../services/identityService";
+import { storeJWTInCookies, storeUserInLocalStorage } from "../services/storageService";
+import { UserObject } from "../models/user";
 
 export function sendTokenToParent(
   token: string,
@@ -135,7 +133,19 @@ export async function authenticateUser(
           signature
         );
 
-        setJwt(jwt.data.access_token)
+        setJwt(jwt.data.access_token); //Store in global state, to allow being used in VehicleManager component
+
+        const userProperties: UserObject = {
+          email,
+          subOrganizationId,
+          walletAddress,
+          smartContractAddress,
+          hasPasskey: true, //TODO: These should not be hardcoded
+          emailVerified: true, //TODO: These should not be hardcoded
+        };        
+
+        storeJWTInCookies(clientId, jwt.data.access_token); // Store JWT in cookies
+        storeUserInLocalStorage(clientId, userProperties); // Store user properties in localStorage        
 
 
         if (!permissionTemplateId) {
