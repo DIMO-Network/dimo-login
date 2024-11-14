@@ -88,6 +88,8 @@ export function bufferToBase64(buffer: Uint8Array): string {
   return btoa(binaryString);
 }
 
+
+//TODO: Clean this up, and potentially move elsewhere
 export async function authenticateUser(
   email: string,
   clientId: string,

@@ -48,6 +48,7 @@ export async function fetchVehiclesWithTransformation(
 
   // Check if vehicleTokenIds is empty
 
+  //TODO: Add strict types
   const filteredVehicles = vehicleTokenIds && vehicleTokenIds.length > 0
     ? data.data.vehicles.nodes.filter((vehicle: any) =>
         vehicleTokenIds.includes(vehicle.tokenId.toString())
@@ -55,6 +56,7 @@ export async function fetchVehiclesWithTransformation(
     : data.data.vehicles.nodes;
 
   // Transform the data
+  //TODO: Add strict types
   return filteredVehicles.map((vehicle: any) => ({
     tokenId: vehicle.tokenId,
     imageURI: vehicle.imageURI,
