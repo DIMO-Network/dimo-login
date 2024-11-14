@@ -4,6 +4,7 @@ import VehicleCard from "./VehicleCard";
 import { useAuthContext } from "../../context/AuthContext";
 import { Vehicle } from "../../models/vehicle";
 import {
+  generateIpfsSources,
   setVehiclePermissions,
   setVehiclePermissionsBulk,
 } from "../../services/turnkeyService";
@@ -24,14 +25,16 @@ import ErrorMessage from "../Shared/ErrorMessage";
 
 const VehicleManager: React.FC = () => {
   // const targetGrantee = "0xeAa35540a94e3ebdf80448Ae7c9dE5F42CaB3481"; // TODO: Replace with client ID
-  const { user, jwt, setAuthStep, error, setError, setLoading } = useAuthContext();
+  const { user, jwt, setAuthStep, error, setError, setLoading } =
+    useAuthContext();
   const { clientId, redirectUri, permissionTemplateId, vehicleTokenIds } =
     useDevCredentials();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [permissionTemplate, setPermissionTemplate] =
     useState<PermissionTemplate | null>(null);
   const [selectedVehicles, setSelectedVehicles] = useState<Vehicle[]>([]); // Array for multiple selected vehicles
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState<boolean | undefined>(undefined);
+
 
   useEffect(() => {
     const fetchVehicles = async () => {
@@ -43,7 +46,12 @@ const VehicleManager: React.FC = () => {
             vehicleTokenIds
           );
           setVehicles(transformedVehicles);
+          // Set isExpanded based on vehicles length
+          setIsExpanded(
+            transformedVehicles.length === 0 && window.innerHeight >= 770
+          );
         } catch (error) {
+          setError("Could not fetch vehicles");
           console.error("Error fetching vehicles:", error);
         }
       }
@@ -51,30 +59,22 @@ const VehicleManager: React.FC = () => {
 
     const fetchPermissions = async () => {
       if (permissionTemplateId) {
-        // Ensure permissionTemplateId is defined
         try {
           const permissionTemplate = await fetchPermissionsFromId(
             permissionTemplateId
           );
           setPermissionTemplate(permissionTemplate);
         } catch (error) {
+          setError("Could not fetch permissions");
           console.error("Error fetching permissions:", error);
         }
       }
     };
 
-    // Run both fetches in parallel if they can be independent
+    // Run both fetches in parallel
     Promise.all([fetchVehicles(), fetchPermissions()]);
-  }, [user?.smartContractAddress, clientId, permissionTemplateId]); // Added permissionTemplateId as a dependency
+  }, [user?.smartContractAddress, clientId, permissionTemplateId]);
 
-  useEffect(()=>{
-    if (vehicles.length == 0 && window.innerHeight >= 770) {
-      //If there's no vehicles, show expanded by default
-      setIsExpanded(true);
-    } else {
-      setIsExpanded(false);
-    }
-  },[vehicles]);
 
   const handleVehicleSelect = (vehicle: Vehicle) => {
     setSelectedVehicles(
@@ -107,8 +107,8 @@ const VehicleManager: React.FC = () => {
         )
       : {};
 
-    console.log(permissionsObject);
     const perms = sacdPermissionValue(permissionsObject);
+    const expiration = BigInt(2933125200); //TODO: Make this a constant
 
     if (selectedVehicles.length > 0 && clientId) {
       const unsharedTokenIds = selectedVehicles
@@ -120,21 +120,28 @@ const VehicleManager: React.FC = () => {
       }
 
       try {
+        const sources = await generateIpfsSources(
+          unsharedTokenIds as bigint[],
+          perms,
+          clientId,
+          expiration
+        );
+
         if (unsharedTokenIds.length === 1) {
           await setVehiclePermissions(
             unsharedTokenIds[0],
             clientId as `0x${string}`,
             perms,
-            BigInt(1793310371),
-            "ipfs://QmRAuxeMnsjPsbwW8LkKtk6Nh6MoqTvyKwP3zwuwJnB2yP"
+            expiration,
+            sources[0]
           );
         } else {
           await setVehiclePermissionsBulk(
             unsharedTokenIds,
             clientId as `0x${string}`,
             perms,
-            BigInt(1793310371),
-            "ipfs://QmRAuxeMnsjPsbwW8LkKtk6Nh6MoqTvyKwP3zwuwJnB2yP"
+            expiration,
+            sources
           );
         }
 

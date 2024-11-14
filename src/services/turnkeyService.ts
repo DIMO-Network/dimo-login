@@ -13,12 +13,12 @@ import {
   newKernelConfig,
   sacdPermissionValue,
   SetVehiclePermissions,
+  SetVehiclePermissionsBulk,
 } from "@dimo-network/transactions";
 import { getWebAuthnAttestation } from "@turnkey/http";
 import { IframeStamper } from "@turnkey/iframe-stamper";
 import { WebauthnStamper } from "@turnkey/webauthn-stamper";
 import { base64UrlEncode, generateRandomBuffer } from "../utils/authUtils";
-import { SetVehiclePermissionsBulk } from "@dimo-network/transactions/dist/core/types/args";
 
 const stamper = new WebauthnStamper({
   rpId:
@@ -32,6 +32,7 @@ const kernelSignerConfig = newKernelConfig({
   bundlerUrl: process.env.REACT_APP_ZERODEV_BUNDLER_URL!,
   paymasterUrl: process.env.REACT_APP_ZERODEV_PAYMASTER_URL!,
   environment: process.env.REACT_APP_ENVIRONMENT,
+  useWalletSession: true
 });
 
 let kernelSigner = new KernelSigner(kernelSignerConfig);
@@ -92,11 +93,41 @@ export const openSessionWithPasskey = async () => {
 export const signChallenge = async (challenge: string) => {
   //This is triggering a turnkey API request to sign a raw payload
   //Notes on signature, turnkey api returns an ecdsa signature, which the kernel client is handling
-  const signature = await kernelSigner.kernelClient.signMessage({
-    message: challenge,
-  });
+  const signature = await kernelSigner.signChallenge(challenge);
 
   return signature;
+};
+
+// Helper function to generate IPFS sources for one or more vehicles
+export const generateIpfsSources = async (
+  tokenIds: bigint[],
+  permissions: any,
+  clientId: string,
+  expiration: BigInt,
+) => {
+  const sources: string[] = [];
+
+  // Bulk vehicles
+  for (const tokenId of tokenIds) {
+    const ipfsRes = await kernelSigner.signAndUploadSACDAgreement({
+      driverID: clientId,
+      appID: clientId,
+      appName: "dimo-login", //TODO: Should be a constant, if we're assuming the same appName (however feels like this should be provided by the developer)
+      expiration: expiration,
+      permissions: permissions,
+      tokenId: tokenId,
+      grantee: clientId as `0x${string}`,
+      attachments: [],
+      grantor: kernelSigner.smartContractAddress!,
+    });
+
+    if (!ipfsRes.success) {
+      throw new Error(`Failed to upload SACD agreement for token: ${tokenId}`);
+    }
+    sources.push(`ipfs://${ipfsRes.cid}`);
+  }
+
+  return sources;
 };
 
 // Define the bridge function in your Turnkey Service
@@ -131,7 +162,7 @@ export async function setVehiclePermissionsBulk(
   grantee: `0x${string}`,
   permissions: BigInt,
   expiration: BigInt,
-  source: string
+  sources: string[]
 ): Promise<void> {
   // Construct the payload in the format required by the SDK function
   const payload: SetVehiclePermissionsBulk = {
@@ -139,7 +170,7 @@ export async function setVehiclePermissionsBulk(
     grantee,
     permissions,
     expiration,
-    source,
+    sources,
   };
 
   try {
