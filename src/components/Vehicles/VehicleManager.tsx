@@ -4,6 +4,7 @@ import VehicleCard from "./VehicleCard";
 import { useAuthContext } from "../../context/AuthContext";
 import { Vehicle } from "../../models/vehicle";
 import {
+  generateIpfsSources,
   setVehiclePermissions,
   setVehiclePermissionsBulk,
 } from "../../services/turnkeyService";
@@ -107,8 +108,8 @@ const VehicleManager: React.FC = () => {
         )
       : {};
 
-    console.log(permissionsObject);
     const perms = sacdPermissionValue(permissionsObject);
+    const expiration = BigInt(2933125200); //TODO: Make this a constant
 
     if (selectedVehicles.length > 0 && clientId) {
       const unsharedTokenIds = selectedVehicles
@@ -119,32 +120,35 @@ const VehicleManager: React.FC = () => {
         return;
       }
 
-      try {
-        if (unsharedTokenIds.length === 1) {
-          await setVehiclePermissions(
-            unsharedTokenIds[0],
-            clientId as `0x${string}`,
-            perms,
-            BigInt(1793310371),
-            "ipfs://QmRAuxeMnsjPsbwW8LkKtk6Nh6MoqTvyKwP3zwuwJnB2yP"
-          );
-        } else {
-          await setVehiclePermissionsBulk(
-            unsharedTokenIds,
-            clientId as `0x${string}`,
-            perms,
-            BigInt(1793310371),
-            "ipfs://QmRAuxeMnsjPsbwW8LkKtk6Nh6MoqTvyKwP3zwuwJnB2yP"
-          );
-        }
+      const sources = generateIpfsSources(unsharedTokenIds as bigint[], perms, clientId, expiration);
+      console.log(sources);
 
-        sendJwtAfterPermissions();
-        setLoading(false);
-      } catch (error) {
-        setError("Could not share vehicles");
-        setLoading(false);
-        console.error("Error sharing vehicles:", error);
-      }
+      // try {
+      //   if (unsharedTokenIds.length === 1) {
+      //     await setVehiclePermissions(
+      //       unsharedTokenIds[0],
+      //       clientId as `0x${string}`,
+      //       perms,
+      //       expiration,
+      //       "ipfs://QmRAuxeMnsjPsbwW8LkKtk6Nh6MoqTvyKwP3zwuwJnB2yP"
+      //     );
+      //   } else {
+      //     await setVehiclePermissionsBulk(
+      //       unsharedTokenIds,
+      //       clientId as `0x${string}`,
+      //       perms,
+      //       expiration,
+      //       ["ipfs://QmRAuxeMnsjPsbwW8LkKtk6Nh6MoqTvyKwP3zwuwJnB2yP"]
+      //     );
+      //   }
+
+      //   sendJwtAfterPermissions();
+      //   setLoading(false);
+      // } catch (error) {
+      //   setError("Could not share vehicles");
+      //   setLoading(false);
+      //   console.error("Error sharing vehicles:", error);
+      // }
     } else {
       setError("No vehicles selected");
       setLoading(false);
