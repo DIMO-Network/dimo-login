@@ -47,15 +47,13 @@ interface AuthContextProps {
     email: string,
     credentialBundle: string,
     setJwt: (jwt: string) => void,
-    setAuthStep: (step: number) => void
+    setUiState: (step: string) => void
   ) => void;
   user: UserObject | undefined;
   setUser: React.Dispatch<React.SetStateAction<UserObject | undefined>>;
   loading: boolean | string; // Add loading state to context
   jwt: string | undefined;
   setJwt: React.Dispatch<React.SetStateAction<string | undefined>>;
-  authStep: number;
-  setAuthStep: React.Dispatch<React.SetStateAction<number>>;
   error: string | null;
   setError: React.Dispatch<React.SetStateAction<string | null>>;
   setLoading: React.Dispatch<React.SetStateAction<boolean | string>>;
@@ -73,8 +71,7 @@ export const AuthProvider = ({
   const [user, setUser] = useState<UserObject | undefined>(undefined);
   const [jwt, setJwt] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
-  const [authStep, setAuthStep] = useState<number>(0); // 0 = Email Input, 1 = Loading, 2 = Success
-  const { clientId, apiKey, redirectUri, permissionTemplateId } =
+  const { clientId, apiKey, redirectUri, permissionTemplateId, uiState, setUiState } =
     useDevCredentials();
 
   const createAccountWithPasskey = async (
@@ -185,7 +182,7 @@ export const AuthProvider = ({
     email: string,
     credentialBundle: string,
     setJwt: (jwt: string) => void,
-    setAuthStep: (step: number) => void
+    setUiState: (step: string) => void
   ) => {
     setLoading("Authenticating User");
     setError(null);
@@ -207,7 +204,7 @@ export const AuthProvider = ({
         user.walletAddress,
         user.smartContractAddress,
         setJwt,
-        setAuthStep,
+        setUiState,
         permissionTemplateId
       ); //TODO: Better handling of null
     } catch (error) {
@@ -230,8 +227,6 @@ export const AuthProvider = ({
         setUser,
         jwt,
         setJwt,
-        authStep,
-        setAuthStep,
         error,
         setError,
         setLoading
