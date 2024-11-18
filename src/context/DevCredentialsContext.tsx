@@ -30,6 +30,8 @@ interface DevCredentialsContextProps {
   credentialsLoading: boolean; // Renamed to avoid conflict with AuthContext
   invalidCredentials: boolean;
   vehicleTokenIds?: string[];
+  uiState: string,
+  setUiState: React.Dispatch<React.SetStateAction<string>>;
 }
 
 const DevCredentialsContext = createContext<
@@ -43,6 +45,7 @@ export const DevCredentialsProvider = ({
   children: ReactNode;
 }): JSX.Element => {
   const [clientId, setClientId] = useState<string | undefined>();
+  const [uiState, setUiState] = useState("EMAIL_INPUT"); //TODO: should be enum
   const [apiKey, setApiKey] = useState<string | undefined>();
   const [redirectUri, setRedirectUri] = useState<string | undefined>();
   const [permissionTemplateId, setPermissionTemplateId] = useState<string | undefined>();
@@ -59,6 +62,7 @@ export const DevCredentialsProvider = ({
     const redirectUriFromUrl = urlParams.get("redirectUri");
     const permissionTemplateIdFromUrl = urlParams.get("permissionTemplateId");
     const vehiclesArrayFromUrl = urlParams.getAll("vehicles");
+    const entryStateFromUrl = urlParams.get("entryState");
 
     if (clientIdFromUrl && redirectUriFromUrl) {
       setClientId(clientIdFromUrl);
@@ -74,16 +78,19 @@ export const DevCredentialsProvider = ({
         setVehicleTokenIds(vehiclesArrayFromUrl)
       }
 
+      setUiState(entryStateFromUrl || "EMAIL_INPUT");
+
       setCredentialsLoading(false); // Credentials loaded
     } else {
       const handleMessage = (event: MessageEvent) => {
-        const { eventType, clientId, apiKey, permissionTemplateId, redirectUri, vehicles } = event.data;
+        const { eventType, clientId, apiKey, permissionTemplateId, redirectUri, vehicles, entryState } = event.data;
         if (eventType === "AUTH_INIT") {
           setClientId(clientId);
           setApiKey(apiKey || "api key"); //todo, bring back when api key is needed
           setRedirectUri(redirectUri);
           setPermissionTemplateId(permissionTemplateId);
           setVehicleTokenIds(vehicles);
+          setUiState(entryState || "EMAIL_INPUT");
           setCredentialsLoading(false); // Credentials loaded
         }
       };
@@ -137,7 +144,9 @@ export const DevCredentialsProvider = ({
         setCredentials,
         credentialsLoading,
         invalidCredentials,
-        vehicleTokenIds
+        vehicleTokenIds,
+        uiState,
+        setUiState,
       }}
     >
       {children}

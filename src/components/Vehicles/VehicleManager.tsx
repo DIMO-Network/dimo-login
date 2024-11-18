@@ -25,16 +25,19 @@ import ErrorMessage from "../Shared/ErrorMessage";
 
 const VehicleManager: React.FC = () => {
   // const targetGrantee = "0xeAa35540a94e3ebdf80448Ae7c9dE5F42CaB3481"; // TODO: Replace with client ID
-  const { user, jwt, setAuthStep, error, setError, setLoading } =
-    useAuthContext();
-  const { clientId, redirectUri, permissionTemplateId, vehicleTokenIds } =
-    useDevCredentials();
+  const { user, jwt, error, setError, setLoading } = useAuthContext();
+  const {
+    clientId,
+    redirectUri,
+    permissionTemplateId,
+    vehicleTokenIds,
+    setUiState,
+  } = useDevCredentials();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [permissionTemplate, setPermissionTemplate] =
     useState<PermissionTemplate | null>(null);
   const [selectedVehicles, setSelectedVehicles] = useState<Vehicle[]>([]); // Array for multiple selected vehicles
   const [isExpanded, setIsExpanded] = useState<boolean | undefined>(undefined);
-
 
   useEffect(() => {
     const fetchVehicles = async () => {
@@ -75,7 +78,6 @@ const VehicleManager: React.FC = () => {
     Promise.all([fetchVehicles(), fetchPermissions()]);
   }, [user?.smartContractAddress, clientId, permissionTemplateId]);
 
-
   const handleVehicleSelect = (vehicle: Vehicle) => {
     setSelectedVehicles(
       (prevSelected) =>
@@ -89,9 +91,13 @@ const VehicleManager: React.FC = () => {
     if (jwt && redirectUri) {
       sendTokenToParent(jwt, redirectUri, () => {
         setSelectedVehicles([]); // Clear selection after sharing
-        setAuthStep(3); // Move to success page
+        setUiState("SUCCESS");
       });
     }
+  };
+
+  const handleContinue = () => {
+    sendJwtAfterPermissions();
   };
 
   const handleShare = async () => {
@@ -198,31 +204,69 @@ const VehicleManager: React.FC = () => {
     );
   };
 
+  const noVehicles = vehicles.length === 0;
+  const allShared = vehicles.length > 0 && vehicles.every((v) => v.shared);
+  const canShare = vehicles.some((v) => !v.shared);
+
   return (
     <Card width="w-full max-w-[600px]" height="h-full max-h-[770px]">
       <Header title="Share Permissions" subtitle={""} />
       <div className="flex flex-col items-center justify-center max-h-[584px] box-border overflow-y-auto">
         {error && <ErrorMessage message={error} />}
-        <div className="description w-[440px] text-sm mb-4 overflow-y-auto max-h-[356px]">
-          {permissionTemplate?.data.description
-            ? renderDescription(permissionTemplate?.data.description)
-            : "The developer is requesting access to view your vehicle data. Select the vehicles you’d like to share access to."}
-        </div>
-        <div className="w-[440px]">
-          <button
-            className="bg-white w-[145px] text-[#09090B] border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500 flex items-center justify-between"
-            onClick={() => setIsExpanded(!isExpanded)}
-          >
-            <span>{isExpanded ? "Show less" : "Show more"}</span>
-            {isExpanded ? (
-              <ChevronUpIcon className="h-4 w-4 ml-2" />
-            ) : (
-              <ChevronDownIcon className="h-4 w-4 ml-2" />
-            )}
-          </button>
-        </div>
+
+        {noVehicles && (
+          <div className="flex flex-col items-center">
+            <img
+              style={{ height: "40px", width: "40px" }}
+              className="rounded-full object-cover mr-4"
+              src={VehicleThumbnail}
+            />
+            <h2 className="text-gray-500 text-xl font-medium pt-2">
+              No cars connected yet
+            </h2>
+            <p className="text-sm">
+              Connect your car in the DIMO app to share permissions.
+            </p>
+          </div>
+        )}
+
+        {allShared && (
+          <div className="flex flex-col items-center">
+            <h2 className="text-gray-500 text-xl font-medium pt-2">
+              All vehicles have been shared
+            </h2>
+            <p className="text-sm">
+              You have already shared all your vehicles.
+            </p>
+          </div>
+        )}
+
+        {canShare && (
+          <>
+            <div className="description w-[440px] text-sm mb-4 overflow-y-auto max-h-[356px]">
+              {permissionTemplate?.data.description
+                ? renderDescription(permissionTemplate?.data.description)
+                : "The developer is requesting access to view your vehicle data. Select the vehicles you’d like to share access to."}
+            </div>
+            <div className="w-[440px]">
+              <button
+                className="bg-white w-[145px] text-[#09090B] border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500 flex items-center justify-between"
+                onClick={() => setIsExpanded(!isExpanded)}
+              >
+                <span>{isExpanded ? "Show less" : "Show more"}</span>
+                {isExpanded ? (
+                  <ChevronUpIcon className="h-4 w-4 ml-2" />
+                ) : (
+                  <ChevronDownIcon className="h-4 w-4 ml-2" />
+                )}
+              </button>
+            </div>
+          </>
+        )}
+
         <div className="space-y-4 pt-4 max-h-[400px] overflow-scroll w-[440px]">
-          {vehicles && vehicles.length > 0 ? (
+          {vehicles &&
+            vehicles.length > 0 &&
             vehicles.map((vehicle) => (
               <VehicleCard
                 key={vehicle.tokenId.toString()}
@@ -231,40 +275,33 @@ const VehicleManager: React.FC = () => {
                 onSelect={() => handleVehicleSelect(vehicle)}
                 disabled={vehicle.shared}
               />
-            ))
-          ) : (
-            <div className="flex flex-col items-center">
-              <img
-                style={{ height: "40px", width: "40px" }}
-                className="rounded-full object-cover mr-4"
-                src={VehicleThumbnail}
-              />
-
-              <h2 className="text-gray-500 text-xl font-medium pt-2">
-                No cars connected yet
-              </h2>
-              <p className="text-sm">
-                Connect your car in the DIMO app to share permissions.
-              </p>
-            </div>
-          )}
+            ))}
         </div>
 
-        <div className="flex justify-between w-[440px] pt-4">
-          <button
-            onClick={sendJwtAfterPermissions}
-            className="bg-white w-[214px] text-[#09090B] border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500"
-          >
-            Cancel
-          </button>
-
-          <PrimaryButton
-            onClick={handleShare}
-            width={"w-[214px]"}
-            disabled={selectedVehicles.length === 0}
-          >
-            Share Vehicles
-          </PrimaryButton>
+        {/* Render buttons */}
+        <div className={`flex ${canShare ? "justify-between" : "justify-center"} w-[440px] pt-4`}>
+          {(noVehicles || allShared) && (
+            <PrimaryButton onClick={handleContinue} width="w-[214px]">
+              Continue
+            </PrimaryButton>
+          )}
+          {canShare && (
+            <>
+              <button
+                onClick={handleContinue}
+                className="bg-white w-[214px] text-[#09090B] border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500"
+              >
+                Cancel
+              </button>
+              <PrimaryButton
+                onClick={handleShare}
+                width="w-[214px]"
+                disabled={selectedVehicles.length === 0}
+              >
+                Share Vehicles
+              </PrimaryButton>
+            </>
+          )}
         </div>
       </div>
     </Card>

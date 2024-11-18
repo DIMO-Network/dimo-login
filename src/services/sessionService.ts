@@ -8,14 +8,16 @@ type InitializeSessionParams = {
   clientId: string | null;
   setJwt: (jwt: string) => void;
   setUser: (user: any) => void; // Replace `any` with a specific user type if you have one
-  setAuthStep: (step: number) => void;
+  uiState: string;
+  setUiState: (step: string) => void;
 };
 
 export function initializeSession({
   clientId,
   setJwt,
   setUser,
-  setAuthStep,
+  uiState,
+  setUiState,
 }: InitializeSessionParams): void {
   if (!clientId) return;
 
@@ -25,7 +27,12 @@ export function initializeSession({
   if (jwt && !isTokenExpired(jwt) && user) {
     setJwt(jwt);
     setUser(user);
-    setAuthStep(3); // Set the step to 3 if a valid user session is detected
+    //
+    if ( uiState == "EMAIL_INPUT" ) {
+      setUiState("SUCCESS");
+    }
+  } else {
+    setUiState("EMAIL_INPUT");
   }
 
 }
