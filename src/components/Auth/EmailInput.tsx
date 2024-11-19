@@ -6,6 +6,7 @@ import ErrorMessage from "../Shared/ErrorMessage";
 import PrimaryButton from "../Shared/PrimaryButton";
 import Card from "../Shared/Card";
 import Header from "../Shared/Header";
+import { useDevCredentials } from "../../context/DevCredentialsContext";
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;
@@ -15,14 +16,16 @@ interface EmailInputProps {
 const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
   const {
     sendOtp,
-    setAuthStep,
     authenticateUser,
     setJwt,
     setUser,
     createAccountWithPasskey,
+    error
   } = useAuthContext(); // Get sendOtp from the context
+
+  const { setUiState } = useDevCredentials();
+
   const [email, setEmail] = useState("");
-  const { error } = useAuthContext();
   const [triggerAuth, setTriggerAuth] = useState(false);
 
   const handleOtpSend = async (email: string) => {
@@ -30,7 +33,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
 
     if (otpResult.success && otpResult.data.otpId) {
       setOtpId(otpResult.data.otpId); // Store the OTP ID
-      setAuthStep(1); // Move to OTP input step
+      setUiState("OTP_INPUT"); // Move to OTP input step
     } else if (!otpResult.success) {
       console.error(otpResult.error); // Handle OTP sending failure
     }
@@ -61,7 +64,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
   useEffect(() => {
     // Only authenticate if `user` is set and authentication hasn't been triggered
     if (triggerAuth) {
-      authenticateUser(email, "credentialBundle", setJwt, setAuthStep);
+      authenticateUser(email, "credentialBundle", setJwt, setUiState);
     }
   }, [triggerAuth]);
 

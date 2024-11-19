@@ -13,10 +13,8 @@ import { initializeSession } from "./services/sessionService";
 function App() {
   const {
     loading: authLoading,
-    authStep,
     setJwt,
     setUser,
-    setAuthStep,
   } = useAuthContext(); // Get loading state from AuthContext
   const {
     credentialsLoading,
@@ -24,13 +22,15 @@ function App() {
     apiKey,
     redirectUri,
     invalidCredentials,
+    uiState,
+    setUiState,
   } = useDevCredentials(); // Get loading state and credentials from DevCredentialsContext
   const [email, setEmail] = useState("");
   const [otpId, setOtpId] = useState(""); // New state for OTP ID
 
   useEffect(() => {
     if (clientId) {
-      initializeSession({ clientId, setJwt, setUser, setAuthStep });
+      initializeSession({ clientId, setJwt, setUser, uiState, setUiState });
     }
   }, [clientId]);
 
@@ -59,14 +59,14 @@ function App() {
     );
   }
 
-  // If not loading and credentials are available, render the app
   return (
     <div className="flex h-screen items-center justify-center bg-[#F7F7F7]">
-      {/* Render components based on authStep */}
-      {authStep === 0 && <EmailInput onSubmit={setEmail} setOtpId={setOtpId} />}
-      {authStep === 1 && <OtpInput email={email} otpId={otpId} />}
-      {authStep === 2 && <VehicleManager />}
-      {authStep === 3 && <SuccessPage />}
+      {uiState === "EMAIL_INPUT" && (
+        <EmailInput onSubmit={setEmail} setOtpId={setOtpId} />
+      )}
+      {uiState === "OTP_INPUT" && <OtpInput email={email} otpId={otpId} />}
+      {uiState === "VEHICLE_MANAGER" && <VehicleManager />}
+      {uiState === "SUCCESS" && <SuccessPage />}
     </div>
   );
 }

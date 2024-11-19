@@ -98,7 +98,7 @@ export async function authenticateUser(
   walletAddress: string | null,
   smartContractAddress: string | null,
   setJwt: (jwt: string) => void,
-  setAuthStep: (step: number) => void,
+  setUiState: (step: string) => void,
   permissionTemplateId?: string
 ) {
   console.log(`Authenticating user with email: ${email}`);
@@ -153,11 +153,11 @@ export async function authenticateUser(
         if (!permissionTemplateId) {
           // No permissions required, send JWT to parent and move to success page
           sendTokenToParent(jwt.data.access_token, redirectUri, () => {
-            setAuthStep(3); // Move to success page
+            setUiState("SUCCESS"); // Move to success page
           });
         } else {
           // Permissions required, move to permissions screen
-          setAuthStep(2);
+          setUiState("VEHICLE_MANAGER");
         }        
       }
     }
