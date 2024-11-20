@@ -11,17 +11,17 @@ interface VehicleCardProps {
 const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, isSelected, onSelect, disabled }) => (
   <div
     className={`flex items-center p-4 border rounded-2xl cursor-pointer transition ${
-      disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'hover:bg-gray-50 border-gray-300'
-    }`}
+      vehicle.shared ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'hover:bg-gray-50 border-gray-300'
+    } ${isSelected && "border-black"}`}
   >
     {/* Custom Checkbox */}
     <input
       type="checkbox"
-      checked={isSelected}
+      checked={isSelected || vehicle.shared}
       onChange={onSelect}
       id={`vehicle-${vehicle.tokenId.toString()}`}
-      disabled={disabled}
-      className="mr-4 w-5 h-5 text-black border-gray-300 rounded focus:ring-0 focus:ring-offset-0"
+      disabled={vehicle.shared}
+      className="mr-4 w-5 h-5 text-black border-gray-300 rounded focus:ring-0 focus:ring-offset-0 accent-black"
     />
 
     {/* Vehicle Image */}
@@ -44,7 +44,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, isSelected, onSelect
 
     {/* Shared Badge */}
     {vehicle.shared && (
-      <span className="ml-2 px-2 py-1 text-xs font-medium text-gray-600 bg-gray-200 rounded">
+      <span className="ml-2 px-2 py-1 text-xs font-medium text-gray-700 bg-gray-200 rounded-xl">
         Shared
       </span>
     )}
