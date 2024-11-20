@@ -3,16 +3,48 @@
 @tailwind utilities;
 
 
+
+@font-face {
+  font-family: 'Universal Sans Display';
+  src: url('../public/fonts/Universal-Sans-Display-525.woff2') format('woff2');
+  font-weight: 525; 
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Universal Sans Display';
+  src: url('../public/fonts/Universal-Sans-Display-525Italic.woff2') format('woff2');
+  font-weight: 525; 
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Universal Sans Display';
+  src: url('../public/fonts/Universal-Sans-Display-900.woff2') format('woff2');
+  font-weight: 900;  
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Universal Sans Display';
+  src: url('../public/fonts/Universal-Sans-Display-900Italic.woff2') format('woff2');
+  font-weight: 900; 
+  font-style: italic;
+}
+/* // */
+
+
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Universal Sans Display', 'Segoe UI', 'Roboto', 'Oxygen',
+  font-family: 'Universal Sans Display', -apple-system, BlinkMacSystemFont, 'Universal Sans Display', 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-code {
+/* code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
-}
+} */

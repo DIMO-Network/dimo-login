@@ -34,7 +34,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, isSelected, onSelect
 
     {/* Vehicle Information */}
     <label htmlFor={`vehicle-${vehicle.tokenId.toString()}`} className="flex-grow text-left">
-      <div className="font-semibold text-black">
+      <div className="text-black">
         {vehicle.make} {vehicle.model} ({vehicle.year})
       </div>
       <div className="text-sm text-gray-500">
