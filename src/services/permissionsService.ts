@@ -28,7 +28,7 @@ export interface PermissionTemplate {
   }
   
 
-export async function fetchPermissionsFromId(permissionTemplateId: string) {
+export async function fetchPermissionsFromId(permissionTemplateId: string, clientId: string) {
     return {
         "specversion": "1.0",
         "id": "$uuid",
@@ -41,7 +41,7 @@ export async function fetchPermissionsFromId(permissionTemplateId: string) {
           "templateId": "$uuid",
           "version": "1.0",
           "grantor": "0x8Db0bE570F1Fdbb89b11F2629d284a952e2c6C39",
-          "grantee": "0xCfB5ea41788c1d539b6Fd760CF26d688aE0331fF",
+          "grantee": clientId,
           "scope": {
             "permissions": [
               "ALLTIME_NONLOCATION",
