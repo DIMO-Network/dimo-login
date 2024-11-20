@@ -189,7 +189,7 @@ const VehicleManager: React.FC = () => {
                 <ul className="list-disc list-inside mb-4">
                   {paragraph.split("\n-").map((line, i) =>
                     i === 0 ? (
-                      <p key={i} className="font-semibold mb-2">
+                      <p key={i} className="mb-2">
                         {line.trim()}
                       </p>
                     ) : (
