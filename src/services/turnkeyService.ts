@@ -32,7 +32,7 @@ const kernelSignerConfig = newKernelConfig({
   bundlerUrl: process.env.REACT_APP_ZERODEV_BUNDLER_URL!,
   paymasterUrl: process.env.REACT_APP_ZERODEV_PAYMASTER_URL!,
   environment: process.env.REACT_APP_ENVIRONMENT,
-  useWalletSession: true
+  useWalletSession: true,
 });
 
 let kernelSigner = new KernelSigner(kernelSignerConfig);
@@ -90,6 +90,17 @@ export const openSessionWithPasskey = async () => {
   return await kernelSigner.openSessionWithPasskey();
 };
 
+export const initializeIfNeeded = async (
+  subOrganizationId: string,
+  walletAddress: string
+) => {
+  try {
+    await kernelSigner.getActiveClient();
+  } catch (e) {
+    await initializePasskey(subOrganizationId, walletAddress);
+  }
+};
+
 export const signChallenge = async (challenge: string) => {
   //This is triggering a turnkey API request to sign a raw payload
   //Notes on signature, turnkey api returns an ecdsa signature, which the kernel client is handling
@@ -103,7 +114,7 @@ export const generateIpfsSources = async (
   tokenIds: bigint[],
   permissions: any,
   clientId: string,
-  expiration: BigInt,
+  expiration: BigInt
 ) => {
   const sources: string[] = [];
 
