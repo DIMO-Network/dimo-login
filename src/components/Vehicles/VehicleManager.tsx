@@ -5,6 +5,7 @@ import { useAuthContext } from "../../context/AuthContext";
 import { Vehicle } from "../../models/vehicle";
 import {
   generateIpfsSources,
+  initializeIfNeeded,
   setVehiclePermissions,
   setVehiclePermissionsBulk,
 } from "../../services/turnkeyService";
@@ -102,6 +103,10 @@ const VehicleManager: React.FC = () => {
 
   const handleShare = async () => {
     setLoading("Sharing vehicles");
+
+    if (user && user.subOrganizationId && user.walletAddress) {
+      await initializeIfNeeded(user.subOrganizationId, user.walletAddress);
+    }
     const permissionsObject: SACD_PERMISSIONS = permissionTemplate?.data.scope
       .permissions
       ? permissionTemplate.data.scope.permissions.reduce(
@@ -248,7 +253,7 @@ const VehicleManager: React.FC = () => {
                 ? renderDescription(permissionTemplate?.data.description)
                 : "The developer is requesting access to view your vehicle data. Select the vehicles you’d like to share access to."}
             </div>
-            <div className="w-[440px]">
+            <div className="w-full max-w-[440px]">
               <button
                 className="bg-white w-[145px] text-[#09090B] border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500 flex items-center justify-between"
                 onClick={() => setIsExpanded(!isExpanded)}
@@ -264,7 +269,7 @@ const VehicleManager: React.FC = () => {
           </>
         )}
 
-        <div className="space-y-4 pt-4 max-h-[400px] overflow-scroll w-[440px]">
+        <div className="space-y-4 pt-4 max-h-[400px] overflow-scroll w-full max-w-[440px]">
           {vehicles &&
             vehicles.length > 0 &&
             vehicles.map((vehicle) => (
@@ -279,7 +284,11 @@ const VehicleManager: React.FC = () => {
         </div>
 
         {/* Render buttons */}
-        <div className={`flex ${canShare ? "justify-between" : "justify-center"} w-[440px] pt-4`}>
+        <div
+          className={`flex ${
+            canShare ? "justify-between" : "justify-center"
+          } w-full max-w-[440px] pt-4`}
+        >
           {(noVehicles || allShared) && (
             <PrimaryButton onClick={handleContinue} width="w-[214px]">
               Continue
