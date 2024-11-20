@@ -65,7 +65,9 @@ const VehicleManager: React.FC = () => {
       if (permissionTemplateId) {
         try {
           const permissionTemplate = await fetchPermissionsFromId(
-            permissionTemplateId
+            permissionTemplateId,
+            clientId as string,
+            user?.walletAddress as string
           );
           setPermissionTemplate(permissionTemplate);
         } catch (error) {
