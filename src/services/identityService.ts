@@ -12,7 +12,8 @@ const GRAPHQL_ENDPOINT = process.env.REACT_APP_DIMO_IDENTITY_URL;
 export async function fetchVehiclesWithTransformation(
   ownerAddress: string,
   targetGrantee: string,
-  vehicleTokenIds?: string[] // Array of tokenIds to filter by
+  vehicleTokenIds?: string[], // Array of tokenIds to filter by
+  vehicleMakes?: string[]
 ) {
   const query = `
     {
@@ -46,30 +47,40 @@ export async function fetchVehiclesWithTransformation(
 
   const data = await response.json();
 
-  // Check if vehicleTokenIds is empty
+  const filteredVehicles = data.data.vehicles.nodes.filter((vehicle: any) => {
+    // Filter on tokenIds if provided
+    const tokenIdMatch =
+      !vehicleTokenIds ||
+      vehicleTokenIds.length === 0 ||
+      vehicleTokenIds.includes(vehicle.tokenId.toString());
 
-  //TODO: Add strict types
-  const filteredVehicles = vehicleTokenIds && vehicleTokenIds.length > 0
-    ? data.data.vehicles.nodes.filter((vehicle: any) =>
-        vehicleTokenIds.includes(vehicle.tokenId.toString())
-      )
-    : data.data.vehicles.nodes;
+    // Filter on vehicleMakes if provided
+    const makeMatch =
+      !vehicleMakes ||
+      vehicleMakes.length === 0 ||
+      vehicleMakes.some(
+        (make) => make.toUpperCase() === vehicle.definition.make.toUpperCase()
+      );
+
+    // Include the vehicle only if both conditions match
+    return tokenIdMatch && makeMatch;
+  });
 
   // Transform the data
   //TODO: Add strict types
-  return filteredVehicles.map((vehicle: any) => ({
-    tokenId: vehicle.tokenId,
-    imageURI: vehicle.imageURI,
-    shared: vehicle.sacds.nodes.some(
-      (sacd: any) => sacd.grantee === targetGrantee
-    ),
-    make: vehicle.definition.make,
-    model: vehicle.definition.model,
-    year: vehicle.definition.year,
-  })).sort((a: any, b: any) => Number(a.shared) - Number(b.shared)); // Sort non-shared first
-  ;
+  return filteredVehicles
+    .map((vehicle: any) => ({
+      tokenId: vehicle.tokenId,
+      imageURI: vehicle.imageURI,
+      shared: vehicle.sacds.nodes.some(
+        (sacd: any) => sacd.grantee === targetGrantee
+      ),
+      make: vehicle.definition.make,
+      model: vehicle.definition.model,
+      year: vehicle.definition.year,
+    }))
+    .sort((a: any, b: any) => Number(a.shared) - Number(b.shared)); // Sort non-shared first
 }
-
 
 export async function isValidClientId(clientId: string, redirectUri: string) {
   const query = `{
@@ -107,7 +118,7 @@ export async function isValidClientId(clientId: string, redirectUri: string) {
   // Check if redirectURIs exist and contains nodes
   if (redirectURIs && redirectURIs.nodes) {
     // Extract the URIs from the nodes
-    const uris = redirectURIs.nodes.map((node: { uri: any; }) => node.uri);
+    const uris = redirectURIs.nodes.map((node: { uri: any }) => node.uri);
 
     // Verify if the redirectUri exists in the list
     const exists = uris.includes(redirectUri);
