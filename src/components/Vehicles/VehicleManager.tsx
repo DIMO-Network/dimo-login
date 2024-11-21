@@ -250,7 +250,7 @@ const VehicleManager: React.FC = () => {
 
         {canShare && (
           <>
-            <div className="description w-[440px] text-sm mb-4 overflow-y-auto max-h-[356px]">
+            <div className="description w-fit max-w-[440px] text-sm mb-4 overflow-y-auto max-h-[356px]">
               {permissionTemplate?.data.description
                 ? renderDescription(permissionTemplate?.data.description)
                 : "The developer is requesting access to view your vehicle data. Select the vehicles you’d like to share access to."}
