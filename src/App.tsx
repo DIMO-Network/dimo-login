@@ -60,7 +60,7 @@ function App() {
   }
 
   return (
-    <div className="flex h-screen items-center justify-center bg-[#F7F7F7]">
+    <div className="flex h-screen items-center justify-center bg-white lg:bg-[#F7F7F7]">
       {uiState === "EMAIL_INPUT" && (
         <EmailInput onSubmit={setEmail} setOtpId={setOtpId} />
       )}
