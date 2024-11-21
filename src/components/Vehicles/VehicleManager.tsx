@@ -218,7 +218,7 @@ const VehicleManager: React.FC = () => {
   return (
     <Card width="w-full max-w-[600px]" height="h-fit max-h-[770px]">
       <Header title="Share Permissions" subtitle={""} />
-      <div className="flex flex-col items-center justify-center max-h-[584px] box-border overflow-y-auto">
+      <div className="flex flex-col items-center justify-center max-h-[400px] lg:max-h-[584px] box-border overflow-y-auto">
         {error && <ErrorMessage message={error} />}
 
         {noVehicles && (
