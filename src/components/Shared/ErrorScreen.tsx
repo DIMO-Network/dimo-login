@@ -8,8 +8,8 @@ interface ErrorScreenProps {
   }
 
 const ErrorScreen: React.FC<ErrorScreenProps> = ({ title, message }) => (
-    <div className="flex h-screen items-center justify-center bg-gray-100">
-    <div className="bg-white p-8 rounded-lg shadow-lg text-center max-w-[600px] w-full">
+    <div className="flex h-screen items-center justify-center bg-white lg:bg-[#F7F7F7]">
+    <div className="bg-white p-8 rounded-lg text-center max-w-[600px] w-full">
       <div className="flex justify-center mb-4">
         <Logo />
       </div>

@@ -189,7 +189,7 @@ const VehicleManager: React.FC = () => {
                 <ul className="list-disc list-inside mb-4">
                   {paragraph.split("\n-").map((line, i) =>
                     i === 0 ? (
-                      <p key={i} className="font-semibold mb-2">
+                      <p key={i} className="mb-2">
                         {line.trim()}
                       </p>
                     ) : (
@@ -216,9 +216,9 @@ const VehicleManager: React.FC = () => {
   const canShare = vehicles.some((v) => !v.shared);
 
   return (
-    <Card width="w-full max-w-[600px]" height="h-full max-h-[770px]">
+    <Card width="w-full max-w-[600px]" height="h-fit max-h-[770px]">
       <Header title="Share Permissions" subtitle={""} />
-      <div className="flex flex-col items-center justify-center max-h-[584px] box-border overflow-y-auto">
+      <div className="flex flex-col items-center justify-center max-h-[400px] lg:max-h-[584px] box-border overflow-y-auto">
         {error && <ErrorMessage message={error} />}
 
         {noVehicles && (
@@ -250,7 +250,7 @@ const VehicleManager: React.FC = () => {
 
         {canShare && (
           <>
-            <div className="description w-[440px] text-sm mb-4 overflow-y-auto max-h-[356px]">
+            <div className="description w-fit max-w-[440px] text-sm mb-4 overflow-y-auto max-h-[356px]">
               {permissionTemplate?.data.description
                 ? renderDescription(permissionTemplate?.data.description)
                 : "The developer is requesting access to view your vehicle data. Select the vehicles you’d like to share access to."}
