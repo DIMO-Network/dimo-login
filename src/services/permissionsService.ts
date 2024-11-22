@@ -29,13 +29,28 @@ export interface PermissionTemplate {
   
 
 export async function fetchPermissionsFromId(permissionTemplateId: string, clientId: string, walletAddress: string) {
+  const now = new Date(Date.now());
+  const isoString = now.toISOString();
+
+  // Format the date
+  const formattedDate = new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  }).format(now);
+  
+  // Combine formatted date with UTC
+  const result = `${formattedDate.replace(/(\d{1,2}:\d{2})/, '$1 UTC')}`;  
     return {
         "specversion": "1.0",
         "id": "$uuid",
         "source": "ipfs://templateCID",
         "type": "com.dimo.permission.grant.v1",
         "datacontenttype": "application/json",
-        "time": "2024-05-17T18:51:27Z",
+        "time": isoString,
         "com.dimo.grantor.signature": "0x8Db0bE570F1Fdbb89b11F2629d284a952e2c6C39",
         "data": {
           "templateId": "$uuid",
@@ -52,16 +67,16 @@ export async function fetchPermissionsFromId(permissionTemplateId: string, clien
               "STREAMS"
             ]
           },
-          "effectiveAt": "2024-05-17T18:51:27Z",
-          "expiresAt": "2024-05-19T18:51:27Z",
+          "effectiveAt": isoString,
+          "expiresAt": "2062-12-12T18:51:27Z",
           "attachments": {},
           "metadata": {
             "description": "Permission grant event for vehicle data access",
             "createdBy": "dimo-platform",
-            "createdAt": "2024-05-17T18:51:27Z",
+            "createdAt": isoString,
             "schemaVersion": "1.0"
           },
-          "description": `This contract gives permission for specific data access and control functions on the DIMO platform. Here’s what you’re agreeing to:\n\nContract Summary:\n\n- Grantor: Wallet address ${walletAddress} (the entity giving permission).\n- Grantee: ${clientId}  (the entity receiving permission).\n\nPermissions Granted:\n- ALLTIME_NONLOCATION: Access to non-location-based data at any time.\n- COMMANDS: Ability to send commands to the vehicle.\n- CURRENT_LOCATION: Access to the vehicle’s current location.\n- ALLTIME_LOCATION: Access to location history.\n- VERIFIABLE_CREDENTIALS: Access to data that can be used as verifiable credentials.\n- STREAMS: Access to real-time data streams.\n\nEffective Date: May 17, 2024, at 18:51 UTC.\nExpiration Date: May 19, 2024, at 18:51 UTC.\n\nDetails:\n- This grant provides the grantee with access to specific vehicle data and control functions as specified above.\n- Created by DIMO Platform, version 1.0 of this contract template.\n\nBy signing, both parties agree to these terms and the specified access scope.`
+          "description": `This contract gives permission for specific data access and control functions on the DIMO platform. Here’s what you’re agreeing to:\n\nContract Summary:\n\n- Grantor: Wallet address ${walletAddress} (the entity giving permission).\n- Grantee: ${clientId}  (the entity receiving permission).\n\nPermissions Granted:\n- ALLTIME_NONLOCATION: Access to non-location-based data at any time.\n- COMMANDS: Ability to send commands to the vehicle.\n- CURRENT_LOCATION: Access to the vehicle’s current location.\n- ALLTIME_LOCATION: Access to location history.\n- VERIFIABLE_CREDENTIALS: Access to data that can be used as verifiable credentials.\n- STREAMS: Access to real-time data streams.\n\nEffective Date: ${result} \nExpiration Date: December 12, 2062, at 18:51 UTC.\n\nDetails:\n- This grant provides the grantee with access to specific vehicle data and control functions as specified above.\n- Created by DIMO Platform, version 1.0 of this contract template.\n\nBy signing, both parties agree to these terms and the specified access scope.`
         }
     }
 }
