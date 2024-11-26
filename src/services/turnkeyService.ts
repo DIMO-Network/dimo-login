@@ -207,8 +207,17 @@ export async function executeAdvancedTransaction(
   }
 
   const response = await kernelSigner.executeTransaction({
-    data: payload
-  })
+    requireSignature: false,
+    data: [
+      {
+        address: kernelSigner.contractMapping[ContractType.DIMO_TOKEN].address,
+        value,
+        abi,
+        functionName,
+        args,
+      },
+    ],
+  });  
 
   return response.receipt.transactionHash;
 }

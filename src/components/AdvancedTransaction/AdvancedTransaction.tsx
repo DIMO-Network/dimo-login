@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Card from "../Shared/Card";
 import PrimaryButton from "../Shared/PrimaryButton";
 import Header from "../Shared/Header";
@@ -17,10 +17,9 @@ const AdvancedTransaction: React.FC = () => {
   //TODO
   //Loading and Error Handling should not be determined by AuthContext
   //Transaction Params should not be handled by dev credentials
-  const { clientId, redirectUri, setUiState, transactionData } =
+  const { clientId, redirectUri, setUiState, transactionData, setComponentData } =
     useDevCredentials();
   const { user, setLoading, setError, error } = useAuthContext();
-  const [txnHash, setTxnHash] = useState("");
 
   if (!transactionData) {
     return (
@@ -50,15 +49,17 @@ const AdvancedTransaction: React.FC = () => {
       );
 
       sendTxnResponseToParent(receipt, redirectUri!, (transactionHash) => {
-        //TBD
-        setTxnHash(transactionHash);
+        setComponentData({transactionHash});
+        setUiState("TRANSACTION_SUCCESS");
         setLoading(false);
       });
-
     } catch (e) {
       console.log(e);
 
-      sendErrorToParent(`Could not execute transaction ${JSON.stringify(e)}`,redirectUri!);
+      sendErrorToParent(
+        `Could not execute transaction ${JSON.stringify(e)}`,
+        redirectUri!
+      );
       setError("Could not execute transaction, please try again");
       setLoading(false);
     }
@@ -72,7 +73,6 @@ const AdvancedTransaction: React.FC = () => {
     <Card width="w-full max-w-[600px]" height="h-fit">
       <Header title="Advanced Transaction" subtitle="" />
       {error && <ErrorMessage message={error} />}
-      {txnHash && <a href={txnHash}>View Transaction</a>}
       <div className="flex justify-center">
         <div className="flex flex-col items-start max-w-[440px] gap-[15px] lg:gap-[40px]">
           <div className="flex flex-col gap-[12px] text-sm">

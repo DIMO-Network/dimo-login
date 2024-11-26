@@ -18,7 +18,6 @@ export function sendTxnResponseToParent(
   };
   if (window.opener) {
     window.opener.postMessage(message, parentOrigin);
-    window.close();
   } else if (window.parent) {
     window.parent.postMessage(message, parentOrigin);
   }

@@ -36,6 +36,8 @@ interface DevCredentialsContextProps {
   transactionData?: TransactionData;
   uiState: string;
   setUiState: React.Dispatch<React.SetStateAction<string>>;
+  componentData: any;
+  setComponentData: React.Dispatch<React.SetStateAction<any>>;
 }
 
 const DevCredentialsContext = createContext<
@@ -64,6 +66,8 @@ export const DevCredentialsProvider = ({
   >();
   const [credentialsLoading, setCredentialsLoading] = useState<boolean>(true); // Renamed loading state
   const [invalidCredentials, setInvalidCredentials] = useState<boolean>(false);
+
+  const [componentData, setComponentData] = useState<any | null>(null);
 
   // Example of using postMessage to receive credentials (as described previously)
   useEffect(() => {
@@ -193,6 +197,8 @@ export const DevCredentialsProvider = ({
         transactionData,
         uiState,
         setUiState,
+        componentData,
+        setComponentData
       }}
     >
       {children}
