@@ -17,12 +17,13 @@ import React, {
 } from "react";
 import { isValidClientId } from "../services/identityService";
 import { createKernelSigner } from "../services/turnkeyService";
+import { TransactionData } from "@dimo-network/transactions";
 
 interface DevCredentialsContextProps {
   clientId?: string;
   apiKey?: string;
   redirectUri?: string;
-  permissionTemplateId? : string,
+  permissionTemplateId?: string;
   setCredentials: (credentials: {
     clientId: string;
     apiKey: string;
@@ -32,7 +33,8 @@ interface DevCredentialsContextProps {
   invalidCredentials: boolean;
   vehicleTokenIds?: string[];
   vehicleMakes?: string[];
-  uiState: string,
+  transactionData?: TransactionData;
+  uiState: string;
   setUiState: React.Dispatch<React.SetStateAction<string>>;
 }
 
@@ -50,9 +52,16 @@ export const DevCredentialsProvider = ({
   const [uiState, setUiState] = useState("EMAIL_INPUT"); //TODO: should be enum
   const [apiKey, setApiKey] = useState<string | undefined>();
   const [redirectUri, setRedirectUri] = useState<string | undefined>();
-  const [permissionTemplateId, setPermissionTemplateId] = useState<string | undefined>();
-  const [vehicleTokenIds, setVehicleTokenIds] = useState<string[] | undefined>(); 
-  const [vehicleMakes, setVehicleMakes] = useState<string[] | undefined>(); 
+  const [permissionTemplateId, setPermissionTemplateId] = useState<
+    string | undefined
+  >();
+  const [vehicleTokenIds, setVehicleTokenIds] = useState<
+    string[] | undefined
+  >();
+  const [vehicleMakes, setVehicleMakes] = useState<string[] | undefined>();
+  const [transactionData, setTransactionData] = useState<
+    TransactionData | undefined
+  >();
   const [credentialsLoading, setCredentialsLoading] = useState<boolean>(true); // Renamed loading state
   const [invalidCredentials, setInvalidCredentials] = useState<boolean>(false);
 
@@ -66,6 +75,7 @@ export const DevCredentialsProvider = ({
     const permissionTemplateIdFromUrl = urlParams.get("permissionTemplateId");
     const vehiclesArrayFromUrl = urlParams.getAll("vehicles");
     const vehiclesMakesArrayFromUrl = urlParams.getAll("vehicleMakes");
+    const transactionDataFromUrl = urlParams.get("transactionData");
     const entryStateFromUrl = urlParams.get("entryState");
 
     if (clientIdFromUrl && redirectUriFromUrl) {
@@ -74,24 +84,47 @@ export const DevCredentialsProvider = ({
       setApiKey("api key"); //not needed for redirect url
 
       //Optional Param Checks
-      if (permissionTemplateIdFromUrl != null) {  // Checks for both null and undefined
+      if (permissionTemplateIdFromUrl != null) {
+        // Checks for both null and undefined
         setPermissionTemplateId(permissionTemplateIdFromUrl);
       }
 
-      if ( vehiclesArrayFromUrl != null) {
-        setVehicleTokenIds(vehiclesArrayFromUrl)
+      if (vehiclesArrayFromUrl != null) {
+        setVehicleTokenIds(vehiclesArrayFromUrl);
       }
 
-      if ( vehiclesMakesArrayFromUrl != null) {
-        setVehicleTokenIds(vehiclesMakesArrayFromUrl)
-      }      
+      if (vehiclesMakesArrayFromUrl != null) {
+        setVehicleTokenIds(vehiclesMakesArrayFromUrl);
+      }
+
+      if (transactionDataFromUrl != null) {
+        try {
+          const parsedTransactionData = JSON.parse(
+            decodeURIComponent(transactionDataFromUrl)
+          );
+
+          setTransactionData(parsedTransactionData);
+        } catch (error) {
+          console.error("Failed to parse transactionData:", error);
+        }
+      }
 
       setUiState(entryStateFromUrl || "EMAIL_INPUT");
 
       setCredentialsLoading(false); // Credentials loaded
     } else {
       const handleMessage = (event: MessageEvent) => {
-        const { eventType, clientId, apiKey, permissionTemplateId, redirectUri, vehicles, entryState, vehicleMakes } = event.data;
+        const {
+          eventType,
+          clientId,
+          apiKey,
+          permissionTemplateId,
+          redirectUri,
+          vehicles,
+          entryState,
+          vehicleMakes,
+          transactionData,
+        } = event.data;
         if (eventType === "AUTH_INIT") {
           setClientId(clientId);
           setApiKey(apiKey || "api key"); //todo, bring back when api key is needed
@@ -99,6 +132,7 @@ export const DevCredentialsProvider = ({
           setPermissionTemplateId(permissionTemplateId);
           setVehicleTokenIds(vehicles);
           setVehicleMakes(vehicleMakes);
+          setTransactionData(transactionData);
           setUiState(entryState || "EMAIL_INPUT");
           setCredentialsLoading(false); // Credentials loaded
         }
@@ -127,7 +161,7 @@ export const DevCredentialsProvider = ({
     };
 
     validateCredentials();
-  }, [clientId, redirectUri]);  
+  }, [clientId, redirectUri]);
 
   const setCredentials = ({
     clientId,
@@ -156,6 +190,7 @@ export const DevCredentialsProvider = ({
         invalidCredentials,
         vehicleTokenIds,
         vehicleMakes,
+        transactionData,
         uiState,
         setUiState,
       }}

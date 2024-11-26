@@ -8,17 +8,20 @@
  */
 
 import {
+  ContractType,
   KernelSigner,
   MintVehicleWithDeviceDefinition,
   newKernelConfig,
   sacdPermissionValue,
   SetVehiclePermissions,
   SetVehiclePermissionsBulk,
+  TransactionData,
 } from "@dimo-network/transactions";
 import { getWebAuthnAttestation } from "@turnkey/http";
 import { IframeStamper } from "@turnkey/iframe-stamper";
 import { WebauthnStamper } from "@turnkey/webauthn-stamper";
 import { base64UrlEncode, generateRandomBuffer } from "../utils/authUtils";
+import { Abi } from "viem";
 
 const stamper = new WebauthnStamper({
   rpId:
@@ -184,4 +187,28 @@ export async function setVehiclePermissionsBulk(
     console.error("Error setting vehicle permissions:", error);
     throw error;
   }
+}
+
+export async function executeAdvancedTransaction(
+  address: `0x${string}`,
+  value: BigInt,
+  abi: Abi,
+  functionName: string,
+  args: any[]
+
+): Promise<`0x${string}`> {
+
+  const payload: TransactionData = {
+    address,
+    value,
+    abi,
+    functionName,
+    args
+  }
+
+  const response = await kernelSigner.executeTransaction({
+    data: payload
+  })
+
+  return response.receipt.transactionHash;
 }
