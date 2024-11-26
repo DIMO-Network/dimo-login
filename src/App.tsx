@@ -9,13 +9,11 @@ import VehicleManager from "./components/Vehicles/VehicleManager";
 import LoadingScreen from "./components/Shared/LoadingScreen";
 import ErrorScreen from "./components/Shared/ErrorScreen";
 import { initializeSession } from "./services/sessionService";
+import AdvancedTransaction from "./components/AdvancedTransaction/AdvancedTransaction";
+import SuccessfulTransaction from "./components/AdvancedTransaction/SuccessfulTransaction";
 
 function App() {
-  const {
-    loading: authLoading,
-    setJwt,
-    setUser,
-  } = useAuthContext(); // Get loading state from AuthContext
+  const { loading: authLoading, setJwt, setUser } = useAuthContext(); // Get loading state from AuthContext
   const {
     credentialsLoading,
     clientId,
@@ -66,6 +64,8 @@ function App() {
       )}
       {uiState === "OTP_INPUT" && <OtpInput email={email} otpId={otpId} />}
       {uiState === "VEHICLE_MANAGER" && <VehicleManager />}
+      {uiState === "ADVANCED_TRANSACTION" && <AdvancedTransaction />}
+      {uiState === "TRANSACTION_SUCCESS" && <SuccessfulTransaction />}
       {uiState === "SUCCESS" && <SuccessPage />}
     </div>
   );
