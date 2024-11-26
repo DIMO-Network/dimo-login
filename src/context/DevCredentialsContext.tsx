@@ -16,6 +16,7 @@ import React, {
   useEffect,
 } from "react";
 import { isValidClientId } from "../services/identityService";
+import { createKernelSigner } from "../services/turnkeyService";
 
 interface DevCredentialsContextProps {
   clientId?: string;
@@ -115,6 +116,7 @@ export const DevCredentialsProvider = ({
       if (clientId && redirectUri) {
         const isValid = await isValidClientId(clientId, redirectUri);
         if (isValid) {
+          createKernelSigner(clientId, clientId, redirectUri);
           setCredentialsLoading(false); // Credentials loaded
         } else {
           setInvalidCredentials(true);
