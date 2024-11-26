@@ -21,7 +21,6 @@ import { getWebAuthnAttestation } from "@turnkey/http";
 import { IframeStamper } from "@turnkey/iframe-stamper";
 import { WebauthnStamper } from "@turnkey/webauthn-stamper";
 import { base64UrlEncode, generateRandomBuffer } from "../utils/authUtils";
-import { Abi } from "viem";
 
 const stamper = new WebauthnStamper({
   rpId:
@@ -192,7 +191,7 @@ export async function setVehiclePermissionsBulk(
 export async function executeAdvancedTransaction(
   address: `0x${string}`,
   value: BigInt,
-  abi: Abi,
+  abi: any,
   functionName: string,
   args: any[]
 
