@@ -23,23 +23,66 @@ import PrimaryButton from "../Shared/PrimaryButton";
 import VehicleThumbnail from "../../assets/images/vehicle-thumbnail.png";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/solid";
 import ErrorMessage from "../Shared/ErrorMessage";
+import { sendMessageToReferrer } from "../../utils/messageHandler";
 
 const VehicleManager: React.FC = () => {
   // const targetGrantee = "0xeAa35540a94e3ebdf80448Ae7c9dE5F42CaB3481"; // TODO: Replace with client ID
   const { user, jwt, error, setError, setLoading } = useAuthContext();
-  const {
-    clientId,
-    redirectUri,
-    permissionTemplateId,
-    vehicleTokenIds,
-    vehicleMakes,
-    setUiState,
-  } = useDevCredentials();
+  const { clientId, redirectUri, setUiState } = useDevCredentials();
+
+  //Data from SDK
+  const [permissionTemplateId, setPermissionTemplateId] = useState<
+    string | undefined
+  >();
+  const [vehicleTokenIds, setVehicleTokenIds] = useState<
+    string[] | undefined
+  >();
+  const [vehicleMakes, setVehicleMakes] = useState<string[] | undefined>();
+
+  //Data from API's
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [permissionTemplate, setPermissionTemplate] =
     useState<PermissionTemplate | null>(null);
+
+  //Data from User
   const [selectedVehicles, setSelectedVehicles] = useState<Vehicle[]>([]); // Array for multiple selected vehicles
   const [isExpanded, setIsExpanded] = useState<boolean | undefined>(undefined);
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const permissionTemplateIdFromUrl = urlParams.get("permissionTemplateId");
+    const vehiclesArrayFromUrl = urlParams.getAll("vehicles");
+    const vehiclesMakesArrayFromUrl = urlParams.getAll("vehicleMakes");
+
+    if (permissionTemplateIdFromUrl != null) {
+      //Some property received
+      if (permissionTemplateIdFromUrl != null) {
+        // Checks for both null and undefined
+        setPermissionTemplateId(permissionTemplateIdFromUrl);
+      }
+
+      if (vehiclesArrayFromUrl != null) {
+        setVehicleTokenIds(vehiclesArrayFromUrl);
+      }
+
+      if (vehiclesMakesArrayFromUrl != null) {
+        setVehicleTokenIds(vehiclesMakesArrayFromUrl);
+      }
+    } else {
+      sendMessageToReferrer({ eventType: "SHARE_VEHICLES_DATA" });
+
+      const handleMessage = (event: MessageEvent) => {
+        const { eventType, permissionTemplateId, vehicles, vehicleMakes } =
+          event.data;
+        if (eventType === "SHARE_VEHICLES_DATA") {
+          setPermissionTemplateId(permissionTemplateId);
+          setVehicleTokenIds(vehicles);
+          setVehicleMakes(vehicleMakes);
+        }
+      };
+      window.addEventListener("message", handleMessage);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchVehicles = async () => {
