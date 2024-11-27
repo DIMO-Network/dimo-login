@@ -74,7 +74,7 @@ const AdvancedTransaction: React.FC = () => {
       <Header title="Advanced Transaction" subtitle="" />
       {error && <ErrorMessage message={error} />}
       <div className="flex justify-center">
-        <div className="flex flex-col items-start max-w-[440px] gap-[15px] lg:gap-[40px]">
+        <div className="flex flex-col items-start max-w-[440px] gap-[15px] lg:gap-[32px]">
           <div className="flex flex-col gap-[12px] text-sm">
             <p>Warning:</p>
             <p>
@@ -84,7 +84,7 @@ const AdvancedTransaction: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex flex-col w-full gap-[12px] rounded-md text-sm">
+          <div className="flex flex-col w-full gap-[8px] rounded-md text-sm">
             <p className="text-gray-600">
               FUNCTION TYPE: {transactionData?.functionName}
             </p>
@@ -96,7 +96,7 @@ const AdvancedTransaction: React.FC = () => {
             </ul>
           </div>
 
-          <div className="flex flex-col w-full gap-[12px] rounded-md text-sm">
+          <div className="flex flex-col w-full gap-[8px] rounded-md text-sm">
             <p className="text-gray-600">ADDRESS:</p>
             <p className="text-gray-600">{transactionData?.address}</p>
             <p className="text-gray-600">VALUE:</p>
