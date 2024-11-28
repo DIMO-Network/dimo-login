@@ -156,7 +156,8 @@ export const createAccount = async (
     throw new Error("Failed to create account");
   }
 
-  const user = await response.json();
+  const { walletAddress, smartContractAddress, ...user } =
+    await response.json(); //This is to mock the wallet address and smart contract address not being returned
 
   return { success: true, data: { user: { ...user, email } } };
 };
@@ -195,7 +196,9 @@ export const fetchUserDetails = async (email: string): Promise<UserResult> => {
       };
     }
 
-    const user = await response.json();
+    const { walletAddress, smartContractAddress, ...user } =
+      await response.json(); //This is to mock the wallet address and smart contract address not being returned
+
     return { success: true, data: { user: { ...user, email } } };
   } catch (error) {
     console.error("Error fetching user details:", error);
