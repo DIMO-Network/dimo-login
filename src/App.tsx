@@ -9,13 +9,11 @@ import VehicleManager from "./components/Vehicles/VehicleManager";
 import LoadingScreen from "./components/Shared/LoadingScreen";
 import ErrorScreen from "./components/Shared/ErrorScreen";
 import { initializeSession } from "./services/sessionService";
+import AdvancedTransaction from "./components/AdvancedTransaction/AdvancedTransaction";
+import SuccessfulTransaction from "./components/AdvancedTransaction/SuccessfulTransaction";
 
 function App() {
-  const {
-    loading: authLoading,
-    setJwt,
-    setUser,
-  } = useAuthContext(); // Get loading state from AuthContext
+  const { loading: authLoading, setJwt, setUser } = useAuthContext(); // Get loading state from AuthContext
   const {
     credentialsLoading,
     clientId,
@@ -60,12 +58,14 @@ function App() {
   }
 
   return (
-    <div className="flex h-screen items-center justify-center bg-white lg:bg-[#F7F7F7]">
+    <div className="flex h-screen pt-10 lg:pt-40 justify-center bg-white lg:bg-[#F7F7F7]">
       {uiState === "EMAIL_INPUT" && (
         <EmailInput onSubmit={setEmail} setOtpId={setOtpId} />
       )}
       {uiState === "OTP_INPUT" && <OtpInput email={email} otpId={otpId} />}
       {uiState === "VEHICLE_MANAGER" && <VehicleManager />}
+      {uiState === "ADVANCED_TRANSACTION" && <AdvancedTransaction />}
+      {uiState === "TRANSACTION_SUCCESS" && <SuccessfulTransaction />}
       {uiState === "SUCCESS" && <SuccessPage />}
     </div>
   );

@@ -108,10 +108,8 @@ export async function authenticateUser(
   }
 
 
-  if (subOrganizationId && walletAddress) {
-    await initializePasskey(subOrganizationId, walletAddress);
-
-    const session = await openSessionWithPasskey();
+  if (subOrganizationId) {
+    await initializePasskey(subOrganizationId);
 
     const resp = await generateChallenge(
       clientId, //This is a dev licence, use this with the dev.dimo.zone endpoint if using dev RPC's

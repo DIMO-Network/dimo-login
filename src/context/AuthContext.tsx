@@ -201,8 +201,8 @@ export const AuthProvider = ({
         clientId,
         redirectUri,
         user.subOrganizationId,
-        user.walletAddress,
-        user.smartContractAddress,
+        user.walletAddress, //TODO: Switch to Kernel Signer
+        user.smartContractAddress, //TODO: Switch to Kernel Signer
         setJwt,
         setUiState,
         permissionTemplateId

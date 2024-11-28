@@ -43,10 +43,11 @@ const VehicleManager: React.FC = () => {
 
   useEffect(() => {
     const fetchVehicles = async () => {
+      //TODO: Switch to Kernel Signer
       if (user?.smartContractAddress && clientId) {
         try {
           const transformedVehicles = await fetchVehiclesWithTransformation(
-            user.smartContractAddress,
+            user.smartContractAddress, //TODO: Switch to Kernel Signer
             clientId,
             vehicleTokenIds,
             vehicleMakes
@@ -69,7 +70,7 @@ const VehicleManager: React.FC = () => {
           const permissionTemplate = await fetchPermissionsFromId(
             permissionTemplateId,
             clientId as string,
-            user?.smartContractAddress as string
+            user?.smartContractAddress as string //TODO: Switch to Kernel Signer
           );
           setPermissionTemplate(permissionTemplate);
         } catch (error) {
@@ -81,7 +82,7 @@ const VehicleManager: React.FC = () => {
 
     // Run both fetches in parallel
     Promise.all([fetchVehicles(), fetchPermissions()]);
-  }, [user?.smartContractAddress, clientId, permissionTemplateId]);
+  }, [user?.smartContractAddress, clientId, permissionTemplateId]); //TODO: Switch to Kernel Signer
 
   const handleVehicleSelect = (vehicle: Vehicle) => {
     setSelectedVehicles(
@@ -108,8 +109,9 @@ const VehicleManager: React.FC = () => {
   const handleShare = async () => {
     setLoading("Sharing vehicles");
 
+    //TODO: Switch to Kernel Signer
     if (user && user.subOrganizationId && user.walletAddress) {
-      await initializeIfNeeded(user.subOrganizationId, user.walletAddress);
+      await initializeIfNeeded(user.subOrganizationId);
     }
     const permissionsObject: SACD_PERMISSIONS = permissionTemplate?.data.scope
       .permissions
@@ -148,7 +150,7 @@ const VehicleManager: React.FC = () => {
             clientId as `0x${string}`,
             perms,
             expiration,
-            sources[0]
+            sources
           );
         } else {
           await setVehiclePermissionsBulk(

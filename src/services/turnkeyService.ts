@@ -8,12 +8,14 @@
  */
 
 import {
+  ContractType,
   KernelSigner,
   MintVehicleWithDeviceDefinition,
   newKernelConfig,
   sacdPermissionValue,
   SetVehiclePermissions,
   SetVehiclePermissionsBulk,
+  TransactionData,
 } from "@dimo-network/transactions";
 import { getWebAuthnAttestation } from "@turnkey/http";
 import { IframeStamper } from "@turnkey/iframe-stamper";
@@ -27,15 +29,27 @@ const stamper = new WebauthnStamper({
       : window.location.hostname, //TODO: Pull from ENV based on prod or dev
 });
 
-const kernelSignerConfig = newKernelConfig({
-  rpcUrl: process.env.REACT_APP_POLYGON_RPC_URL!,
-  bundlerUrl: process.env.REACT_APP_ZERODEV_BUNDLER_URL!,
-  paymasterUrl: process.env.REACT_APP_ZERODEV_PAYMASTER_URL!,
-  environment: process.env.REACT_APP_ENVIRONMENT,
-  useWalletSession: true,
-});
+let kernelSigner: KernelSigner;
 
-let kernelSigner = new KernelSigner(kernelSignerConfig);
+export const createKernelSigner = (
+  clientId: string,
+  domain: string,
+  redirectUri: string
+) => {
+  const kernelSignerConfig = newKernelConfig({
+    rpcUrl: process.env.REACT_APP_POLYGON_RPC_URL!,
+    bundlerUrl: process.env.REACT_APP_ZERODEV_BUNDLER_URL!,
+    paymasterUrl: process.env.REACT_APP_ZERODEV_PAYMASTER_URL!,
+    environment: process.env.REACT_APP_ENVIRONMENT,
+    useWalletSession: true,
+    clientId,
+    domain,
+    redirectUri,
+  });
+
+  kernelSigner = new KernelSigner(kernelSignerConfig);
+  return kernelSigner;
+};
 
 export const createPasskey = async (email: string) => {
   const challenge = generateRandomBuffer();
@@ -75,29 +89,19 @@ export const createPasskey = async (email: string) => {
   return [attestation, base64UrlEncode(challenge)];
 };
 
-export const initializePasskey = async (
-  subOrganizationId: string,
-  walletAddress: string
-) => {
-  await kernelSigner.passkeyInit(
-    subOrganizationId,
-    walletAddress as `0x${string}`,
-    stamper
-  );
+export const initializePasskey = async (subOrganizationId: string) => {
+  await kernelSigner.passkeyToSession(subOrganizationId, stamper);
 };
 
 export const openSessionWithPasskey = async () => {
   return await kernelSigner.openSessionWithPasskey();
 };
 
-export const initializeIfNeeded = async (
-  subOrganizationId: string,
-  walletAddress: string
-) => {
+export const initializeIfNeeded = async (subOrganizationId: string) => {
   try {
     await kernelSigner.getActiveClient();
   } catch (e) {
-    await initializePasskey(subOrganizationId, walletAddress);
+    await initializePasskey(subOrganizationId);
   }
 };
 
@@ -116,29 +120,19 @@ export const generateIpfsSources = async (
   clientId: string,
   expiration: BigInt
 ) => {
-  const sources: string[] = [];
-
   // Bulk vehicles
-  for (const tokenId of tokenIds) {
-    const ipfsRes = await kernelSigner.signAndUploadSACDAgreement({
-      driverID: clientId,
-      appID: clientId,
-      appName: "dimo-login", //TODO: Should be a constant, if we're assuming the same appName (however feels like this should be provided by the developer)
-      expiration: expiration,
-      permissions: permissions,
-      tokenId: tokenId,
-      grantee: clientId as `0x${string}`,
-      attachments: [],
-      grantor: kernelSigner.smartContractAddress!,
-    });
+  const ipfsRes = await kernelSigner.signAndUploadSACDAgreement({
+    driverID: clientId,
+    appID: clientId,
+    appName: "dimo-login", //TODO: Should be a constant, if we're assuming the same appName (however feels like this should be provided by the developer)
+    expiration: expiration,
+    permissions: permissions,
+    grantee: clientId as `0x${string}`,
+    attachments: [],
+    grantor: kernelSigner.smartContractAddress!,
+  });
 
-    if (!ipfsRes.success) {
-      throw new Error(`Failed to upload SACD agreement for token: ${tokenId}`);
-    }
-    sources.push(`ipfs://${ipfsRes.cid}`);
-  }
-
-  return sources;
+  return `ipfs://${ipfsRes.cid}`;
 };
 
 // Define the bridge function in your Turnkey Service
@@ -173,7 +167,7 @@ export async function setVehiclePermissionsBulk(
   grantee: `0x${string}`,
   permissions: BigInt,
   expiration: BigInt,
-  sources: string[]
+  source: string
 ): Promise<void> {
   // Construct the payload in the format required by the SDK function
   const payload: SetVehiclePermissionsBulk = {
@@ -181,7 +175,7 @@ export async function setVehiclePermissionsBulk(
     grantee,
     permissions,
     expiration,
-    sources,
+    source,
   };
 
   try {
@@ -192,4 +186,37 @@ export async function setVehiclePermissionsBulk(
     console.error("Error setting vehicle permissions:", error);
     throw error;
   }
+}
+
+export async function executeAdvancedTransaction(
+  address: `0x${string}`,
+  value: BigInt,
+  abi: any,
+  functionName: string,
+  args: any[]
+
+): Promise<`0x${string}`> {
+
+  const payload: TransactionData = {
+    address,
+    value,
+    abi,
+    functionName,
+    args
+  }
+
+  const response = await kernelSigner.executeTransaction({
+    requireSignature: false,
+    data: [
+      {
+        address: kernelSigner.contractMapping[ContractType.DIMO_TOKEN].address,
+        value,
+        abi,
+        functionName,
+        args,
+      },
+    ],
+  });  
+
+  return response.receipt.transactionHash;
 }
