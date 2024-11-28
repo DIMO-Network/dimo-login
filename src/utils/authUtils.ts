@@ -5,6 +5,8 @@ import {
 } from "../services/authService";
 import {
   createPasskey,
+  getSmartContractAddress,
+  getWalletAddress,
   initializePasskey,
   openSessionWithPasskey,
   setVehiclePermissions,
@@ -90,26 +92,33 @@ export function bufferToBase64(buffer: Uint8Array): string {
 
 
 //TODO: Clean this up, and potentially move elsewhere
+//This Function is basically just getting the JWT, Setting it in state, dealing with storage/cookies, and also navigating the UI
 export async function authenticateUser(
   email: string,
   clientId: string,
   redirectUri: string,
   subOrganizationId: string | null,
-  walletAddress: string | null,
-  smartContractAddress: string | null,
   setJwt: (jwt: string) => void,
   setUiState: (step: string) => void,
+  setUser: (user: UserObject) => void,
   permissionTemplateId?: string
 ) {
   console.log(`Authenticating user with email: ${email}`);
 
-  if ( !smartContractAddress ) {
+  if ( !subOrganizationId ) {
     throw new Error("Could not authenticate user, account not deployed");
   }
 
 
   if (subOrganizationId) {
     await initializePasskey(subOrganizationId);
+
+    const smartContractAddress = getSmartContractAddress();
+    const walletAddress = getWalletAddress();
+
+    if ( !smartContractAddress || !walletAddress ) {
+      throw new Error("Could not authenticate user, wallet address does not exist");
+    }
 
     const resp = await generateChallenge(
       clientId, //This is a dev licence, use this with the dev.dimo.zone endpoint if using dev RPC's
@@ -147,6 +156,7 @@ export async function authenticateUser(
         storeJWTInCookies(clientId, jwt.data.access_token); // Store JWT in cookies
         storeUserInLocalStorage(clientId, userProperties); // Store user properties in localStorage        
 
+        setUser(userProperties);
 
         if (!permissionTemplateId) {
           // No permissions required, send JWT to parent and move to success page
