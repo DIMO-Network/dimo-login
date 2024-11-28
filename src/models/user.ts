@@ -7,5 +7,5 @@ export interface UserObject {
     smartContractAddress: string | null;
     walletAddress: string | null;
     emailVerified: boolean;
-  }
+}
   

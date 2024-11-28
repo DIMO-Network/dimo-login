@@ -188,8 +188,8 @@ export const AuthProvider = ({
     setError(null);
 
     try {
-      if (!user) {
-        throw new Error("No user found");
+      if ( !user || !user.subOrganizationId ) {
+        throw new Error("User does not exist");
       }
 
       if (!clientId || !redirectUri) {
@@ -200,11 +200,10 @@ export const AuthProvider = ({
         email,
         clientId,
         redirectUri,
-        user.subOrganizationId,
-        user.walletAddress, //TODO: Switch to Kernel Signer
-        user.smartContractAddress, //TODO: Switch to Kernel Signer
+        user?.subOrganizationId,
         setJwt,
         setUiState,
+        setUser,
         permissionTemplateId
       ); //TODO: Better handling of null
     } catch (error) {

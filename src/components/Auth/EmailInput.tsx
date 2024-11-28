@@ -20,7 +20,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
     setJwt,
     setUser,
     createAccountWithPasskey,
-    error
+    error,
   } = useAuthContext(); // Get sendOtp from the context
 
   const { setUiState } = useDevCredentials();
@@ -47,7 +47,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
     // Check if the user exists and authenticate if they do
     const userExistsResult = await fetchUserDetails(email); //TODO: This should be in Auth Context, so that user is set by auth context
     if (userExistsResult.success && userExistsResult.data.user) {
-      setUser(userExistsResult.data.user);
+      setUser(userExistsResult.data.user); //Sets initial user from API Response
       setTriggerAuth(true); // Trigger authentication for existing users
       return; // Early return to prevent additional logic from running
     }
@@ -79,9 +79,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
         }
       />
       {error && <ErrorMessage message={error} />}
-      <div
-        className="frame9 flex flex-col items-center gap-[15px] lg:gap-[20px]"
-      >
+      <div className="frame9 flex flex-col items-center gap-[15px] lg:gap-[20px]">
         <input
           type="email"
           value={email}
