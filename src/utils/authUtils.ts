@@ -19,13 +19,17 @@ import {
   storeUserInLocalStorage,
 } from "../services/storageService";
 import { UserObject } from "../models/user";
+import { sendMessageToReferrer } from "./messageHandler";
 
-export function buildAuthPayload(clientId: string, jwt?: string, userObj?: UserObject): {
+export function buildAuthPayload(
+  clientId: string,
+  jwt?: string,
+  userObj?: UserObject
+): {
   token: string;
   email?: string;
   walletAddress: string;
 } {
-
   //Won't send to SDK until these are set in cookies/storage (may not work in incognito though?)
   const token = getJWTFromCookies(clientId) || jwt;
   const user = getUserFromLocalStorage(clientId) || userObj;
@@ -64,37 +68,18 @@ export function sendAuthPayloadToParent(
     onSuccess(payload);
     return;
   }
-  const parentOrigin = new URL(document.referrer).origin;
+
+  sendMessageToReferrer({
+    eventType: "authResponse",
+    ...payload,
+    authType: window.opener ? "popup" : "embed",
+  }); //TODO: authType to be deprecated soon, only kept for backwards compatibility
+
   if (window.opener) {
-    window.opener.postMessage({ ...payload, authType: "popup" }, parentOrigin);
+    //Close popup window after auth
     window.close();
-  } else if (window.parent) {
-    window.parent.postMessage({ ...payload, authType: "embed" }, parentOrigin);
   }
   onSuccess(payload);
-}
-
-export function sendTokenToParent(
-  token: string,
-  redirectUri: string,
-  onSuccess: (token: string) => void
-) {
-  if (isStandalone()) {
-    //Do a redirect here
-    window.location.href = `${redirectUri}?token=${token}`;
-    onSuccess(token);
-    return;
-  }
-  const parentOrigin = new URL(document.referrer).origin;
-  if (window.opener) {
-    window.opener.postMessage({ token, authType: "popup" }, parentOrigin);
-    window.close();
-  } else if (window.parent) {
-    window.parent.postMessage({ token, authType: "embed" }, parentOrigin);
-  }
-  onSuccess(token);
-
-  // Trigger success callback
 }
 
 export async function generateTargetPublicKey(): Promise<string> {
@@ -157,8 +142,7 @@ export async function authenticateUser(
   walletAddress: string | null,
   smartContractAddress: string | null,
   setJwt: (jwt: string) => void,
-  setUiState: (step: string) => void,
-  permissionTemplateId?: string
+  setUiState: (step: string) => void
 ) {
   console.log(`Authenticating user with email: ${email}`);
 
@@ -203,16 +187,7 @@ export async function authenticateUser(
         storeJWTInCookies(clientId, jwt.data.access_token); // Store JWT in cookies
         storeUserInLocalStorage(clientId, userProperties); // Store user properties in localStorage
 
-        if (!permissionTemplateId) {
-          // No permissions required, send JWT to parent and move to success page
-          const authPayload = buildAuthPayload(clientId, jwt.data.access_token, userProperties);
-          sendAuthPayloadToParent(authPayload, redirectUri, () => {
-            setUiState("SUCCESS"); // Move to success page
-          });
-        } else {
-          // Permissions required, move to permissions screen
-          setUiState("VEHICLE_MANAGER");
-        }
+        setUiState("VEHICLE_MANAGER"); //Move to vehicle manager, and vehicle manager is what will determine if we go to success
       }
     }
   }
