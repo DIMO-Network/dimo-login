@@ -7,6 +7,7 @@ import PrimaryButton from "../Shared/PrimaryButton";
 import Card from "../Shared/Card";
 import Header from "../Shared/Header";
 import { useDevCredentials } from "../../context/DevCredentialsContext";
+import { setEmailGranted } from "../../services/storageService";
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;
@@ -23,10 +24,11 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
     error,
   } = useAuthContext(); // Get sendOtp from the context
 
-  const { setUiState } = useDevCredentials();
+  const { setUiState, clientId } = useDevCredentials();
 
   const [email, setEmail] = useState("");
   const [triggerAuth, setTriggerAuth] = useState(false);
+  const [emailPermissionGranted, setEmailPermissionGranted] = useState(false);
 
   const handleOtpSend = async (email: string) => {
     const otpResult = await sendOtp(email); // Send OTP for new account
@@ -40,9 +42,11 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
   };
 
   const handleSubmit = async () => {
-    if (!email) return;
+    if (!email || !clientId) return;
 
     onSubmit(email); // Trigger any on-submit actions
+
+    setEmailGranted(clientId, emailPermissionGranted);
 
     // Check if the user exists and authenticate if they do
     const userExistsResult = await fetchUserDetails(email); //TODO: This should be in Auth Context, so that user is set by auth context
@@ -79,6 +83,16 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
         }
       />
       {error && <ErrorMessage message={error} />}
+      <div className="flex justify-center text-sm">
+        <input
+          type="checkbox"
+          onChange={() => {
+            setEmailPermissionGranted(!emailPermissionGranted);
+          }}
+          className="mb-2 mr-2 w-5 h-5 text-black border-gray-300 rounded focus:ring-0 focus:ring-offset-0 accent-black"
+        />
+        I agree to share my email with {window.location.hostname}
+      </div>
       <div className="frame9 flex flex-col items-center gap-[15px] lg:gap-[20px]">
         <input
           type="email"

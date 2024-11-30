@@ -5,17 +5,18 @@ import Card from "../Shared/Card";
 import Header from "../Shared/Header";
 import PrimaryButton from "../Shared/PrimaryButton";
 import { useDevCredentials } from "../../context/DevCredentialsContext";
-import { sendTokenToParent } from "../../utils/authUtils";
+import { buildAuthPayload, sendAuthPayloadToParent } from "../../utils/authUtils";
 
 const SuccessPage: React.FC = () => {
   const { user, jwt } = useAuthContext(); // Should be set on session init
-  const { redirectUri, setUiState } = useDevCredentials();
+  const { redirectUri, setUiState, clientId } = useDevCredentials();
 
   const sendJwtAfterPermissions = () => {
-    if (jwt && redirectUri) {
-      sendTokenToParent(jwt, redirectUri, () => {
+    if (jwt && redirectUri && clientId) {
+      const authPayload = buildAuthPayload(clientId, jwt, user);
+      sendAuthPayloadToParent(authPayload, redirectUri, () => {
         setUiState("SUCCESS");
-      });
+      })
     }
   };
 

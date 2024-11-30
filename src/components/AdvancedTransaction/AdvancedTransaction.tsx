@@ -12,14 +12,46 @@ import {
 import ErrorScreen from "../Shared/ErrorScreen";
 import { sendTxnResponseToParent } from "../../utils/txnUtils";
 import { sendErrorToParent } from "../../utils/errorUtils";
+import { TransactionData } from "@dimo-network/transactions";
+import { sendMessageToReferrer } from "../../utils/messageHandler";
 
 const AdvancedTransaction: React.FC = () => {
   //TODO
   //Loading and Error Handling should not be determined by AuthContext
-  //Transaction Params should not be handled by dev credentials
-  const { clientId, redirectUri, setUiState, transactionData, setComponentData } =
+  const { redirectUri, setUiState, setComponentData } =
     useDevCredentials();
   const { user, setLoading, setError, error } = useAuthContext();
+
+  const [transactionData, setTransactionData] = useState<
+    TransactionData | undefined
+  >();
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const transactionDataFromUrl = urlParams.get("transactionData");
+
+    if (transactionDataFromUrl != null) {
+      try {
+        const parsedTransactionData = JSON.parse(
+          decodeURIComponent(transactionDataFromUrl)
+        );
+
+        setTransactionData(parsedTransactionData);
+      } catch (error) {
+        console.error("Failed to parse transactionData:", error);
+      }
+    } else {
+      sendMessageToReferrer({ eventType: "EXECUTE_ADVANCED_TRANSACTION" }); //Requests Data from SDK
+
+      const handleMessage = (event: MessageEvent) => {
+        const { eventType, transactionData } = event.data;
+        if (eventType === "EXECUTE_ADVANCED_TRANSACTION") {
+          setTransactionData(transactionData);
+        }
+      };
+      window.addEventListener("message", handleMessage);
+    }
+  }, []);
 
   if (!transactionData) {
     return (
@@ -49,7 +81,7 @@ const AdvancedTransaction: React.FC = () => {
       );
 
       sendTxnResponseToParent(receipt, redirectUri!, (transactionHash) => {
-        setComponentData({transactionHash});
+        setComponentData({ transactionHash });
         setUiState("TRANSACTION_SUCCESS");
         setLoading(false);
       });
