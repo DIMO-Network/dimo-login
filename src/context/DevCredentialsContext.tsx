@@ -51,7 +51,6 @@ export const DevCredentialsProvider = ({
 
   // Example of using postMessage to receive credentials (as described previously)
   useEffect(() => {
-    console.log(window.location.search);
     const urlParams = new URLSearchParams(window.location.search);
 
     const clientIdFromUrl = urlParams.get("clientId");
