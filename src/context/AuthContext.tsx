@@ -183,7 +183,6 @@ export const AuthProvider = ({
     credentialBundle: string,
     setJwt: (jwt: string) => void,
     setUiState: (step: string) => void,
-    permissionTemplateId?: string
   ) => {
     setLoading("Authenticating User");
     setError(null);
@@ -206,7 +205,6 @@ export const AuthProvider = ({
         user.smartContractAddress, //TODO: Switch to Kernel Signer
         setJwt,
         setUiState,
-        permissionTemplateId
       ); //TODO: Better handling of null
     } catch (error) {
       setError("Could not authenticate user, please verify your passkey and try again.")

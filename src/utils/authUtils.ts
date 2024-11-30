@@ -20,12 +20,15 @@ import {
 } from "../services/storageService";
 import { UserObject } from "../models/user";
 
-export function buildAuthPayload(clientId: string, jwt?: string, userObj?: UserObject): {
+export function buildAuthPayload(
+  clientId: string,
+  jwt?: string,
+  userObj?: UserObject
+): {
   token: string;
   email?: string;
   walletAddress: string;
 } {
-
   //Won't send to SDK until these are set in cookies/storage (may not work in incognito though?)
   const token = getJWTFromCookies(clientId) || jwt;
   const user = getUserFromLocalStorage(clientId) || userObj;
@@ -158,7 +161,6 @@ export async function authenticateUser(
   smartContractAddress: string | null,
   setJwt: (jwt: string) => void,
   setUiState: (step: string) => void,
-  permissionTemplateId?: string
 ) {
   console.log(`Authenticating user with email: ${email}`);
 
@@ -203,16 +205,7 @@ export async function authenticateUser(
         storeJWTInCookies(clientId, jwt.data.access_token); // Store JWT in cookies
         storeUserInLocalStorage(clientId, userProperties); // Store user properties in localStorage
 
-        if (!permissionTemplateId) {
-          // No permissions required, send JWT to parent and move to success page
-          const authPayload = buildAuthPayload(clientId, jwt.data.access_token, userProperties);
-          sendAuthPayloadToParent(authPayload, redirectUri, () => {
-            setUiState("SUCCESS"); // Move to success page
-          });
-        } else {
-          // Permissions required, move to permissions screen
-          setUiState("VEHICLE_MANAGER");
-        }
+        setUiState("VEHICLE_MANAGER"); //Move to vehicle manager, and vehicle manager is what will determine if we go to success
       }
     }
   }
