@@ -77,29 +77,6 @@ export function sendAuthPayloadToParent(
   onSuccess(payload);
 }
 
-export function sendTokenToParent(
-  token: string,
-  redirectUri: string,
-  onSuccess: (token: string) => void
-) {
-  if (isStandalone()) {
-    //Do a redirect here
-    window.location.href = `${redirectUri}?token=${token}`;
-    onSuccess(token);
-    return;
-  }
-  const parentOrigin = new URL(document.referrer).origin;
-  if (window.opener) {
-    window.opener.postMessage({ token, authType: "popup" }, parentOrigin);
-    window.close();
-  } else if (window.parent) {
-    window.parent.postMessage({ token, authType: "embed" }, parentOrigin);
-  }
-  onSuccess(token);
-
-  // Trigger success callback
-}
-
 export async function generateTargetPublicKey(): Promise<string> {
   const keyPair = await window.crypto.subtle.generateKey(
     {
