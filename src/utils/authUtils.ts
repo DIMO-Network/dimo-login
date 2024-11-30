@@ -19,6 +19,7 @@ import {
   storeUserInLocalStorage,
 } from "../services/storageService";
 import { UserObject } from "../models/user";
+import { sendMessageToReferrer } from "./messageHandler";
 
 export function buildAuthPayload(
   clientId: string,
@@ -67,12 +68,16 @@ export function sendAuthPayloadToParent(
     onSuccess(payload);
     return;
   }
-  const parentOrigin = new URL(document.referrer).origin;
+
+  sendMessageToReferrer({
+    eventType: "authResponse",
+    ...payload,
+    authType: window.opener ? "popup" : "embed",
+  }); //TODO: authType to be deprecated soon, only kept for backwards compatibility
+
   if (window.opener) {
-    window.opener.postMessage({ ...payload, authType: "popup" }, parentOrigin);
+    //Close popup window after auth
     window.close();
-  } else if (window.parent) {
-    window.parent.postMessage({ ...payload, authType: "embed" }, parentOrigin);
   }
   onSuccess(payload);
 }
@@ -137,7 +142,7 @@ export async function authenticateUser(
   walletAddress: string | null,
   smartContractAddress: string | null,
   setJwt: (jwt: string) => void,
-  setUiState: (step: string) => void,
+  setUiState: (step: string) => void
 ) {
   console.log(`Authenticating user with email: ${email}`);
 
