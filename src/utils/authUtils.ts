@@ -11,8 +11,68 @@ import {
   signChallenge,
 } from "../services/turnkeyService";
 import { isStandalone } from "./isStandalone";
-import { storeJWTInCookies, storeUserInLocalStorage } from "../services/storageService";
+import {
+  getEmailGranted,
+  getJWTFromCookies,
+  getUserFromLocalStorage,
+  storeJWTInCookies,
+  storeUserInLocalStorage,
+} from "../services/storageService";
 import { UserObject } from "../models/user";
+
+export function buildAuthPayload(clientId: string, jwt?: string, userObj?: UserObject): {
+  token: string;
+  email?: string;
+  walletAddress: string;
+} {
+
+  //Won't send to SDK until these are set in cookies/storage (may not work in incognito though?)
+  const token = getJWTFromCookies(clientId) || jwt;
+  const user = getUserFromLocalStorage(clientId) || userObj;
+  const emailGranted = getEmailGranted(clientId);
+
+  if (!token) {
+    throw new Error("JWT is missing. Ensure the user is authenticated.");
+  }
+
+  if (!user || !user.smartContractAddress) {
+    throw new Error(
+      "User object or walletAddress is missing in local storage."
+    );
+  }
+
+  return {
+    token,
+    walletAddress: user.smartContractAddress,
+    email: emailGranted ? user.email : undefined,
+  };
+}
+
+export function sendAuthPayloadToParent(
+  payload: { token: string; email?: string; walletAddress: string },
+  redirectUri: string,
+  onSuccess: (payload: {
+    token: string;
+    email?: string;
+    walletAddress: string;
+  }) => void
+) {
+  if (isStandalone()) {
+    // Redirect with token in query params
+    const queryParams = new URLSearchParams(payload).toString();
+    window.location.href = `${redirectUri}?${queryParams}`;
+    onSuccess(payload);
+    return;
+  }
+  const parentOrigin = new URL(document.referrer).origin;
+  if (window.opener) {
+    window.opener.postMessage({ ...payload, authType: "popup" }, parentOrigin);
+    window.close();
+  } else if (window.parent) {
+    window.parent.postMessage({ ...payload, authType: "embed" }, parentOrigin);
+  }
+  onSuccess(payload);
+}
 
 export function sendTokenToParent(
   token: string,
@@ -88,7 +148,6 @@ export function bufferToBase64(buffer: Uint8Array): string {
   return btoa(binaryString);
 }
 
-
 //TODO: Clean this up, and potentially move elsewhere
 export async function authenticateUser(
   email: string,
@@ -103,10 +162,9 @@ export async function authenticateUser(
 ) {
   console.log(`Authenticating user with email: ${email}`);
 
-  if ( !smartContractAddress ) {
+  if (!smartContractAddress) {
     throw new Error("Could not authenticate user, account not deployed");
   }
-
 
   if (subOrganizationId) {
     await initializePasskey(subOrganizationId);
@@ -121,9 +179,7 @@ export async function authenticateUser(
       const challenge = resp.data.challenge;
       const state = resp.data.state;
 
-      const signature = await signChallenge(
-        challenge
-      );
+      const signature = await signChallenge(challenge);
 
       if (signature) {
         const jwt = await submitWeb3Challenge(
@@ -142,21 +198,21 @@ export async function authenticateUser(
           smartContractAddress,
           hasPasskey: true, //TODO: These should not be hardcoded
           emailVerified: true, //TODO: These should not be hardcoded
-        };        
+        };
 
         storeJWTInCookies(clientId, jwt.data.access_token); // Store JWT in cookies
-        storeUserInLocalStorage(clientId, userProperties); // Store user properties in localStorage        
-
+        storeUserInLocalStorage(clientId, userProperties); // Store user properties in localStorage
 
         if (!permissionTemplateId) {
           // No permissions required, send JWT to parent and move to success page
-          sendTokenToParent(jwt.data.access_token, redirectUri, () => {
+          const authPayload = buildAuthPayload(clientId, jwt.data.access_token, userProperties);
+          sendAuthPayloadToParent(authPayload, redirectUri, () => {
             setUiState("SUCCESS"); // Move to success page
           });
         } else {
           // Permissions required, move to permissions screen
           setUiState("VEHICLE_MANAGER");
-        }        
+        }
       }
     }
   }
