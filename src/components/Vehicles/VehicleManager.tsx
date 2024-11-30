@@ -10,7 +10,7 @@ import {
   setVehiclePermissionsBulk,
 } from "../../services/turnkeyService";
 import { sacdPermissionValue } from "@dimo-network/transactions";
-import { sendTokenToParent } from "../../utils/authUtils";
+import { buildAuthPayload, sendAuthPayloadToParent } from "../../utils/authUtils";
 import { useDevCredentials } from "../../context/DevCredentialsContext";
 import {
   fetchPermissionsFromId,
@@ -137,11 +137,12 @@ const VehicleManager: React.FC = () => {
   };
 
   const sendJwtAfterPermissions = () => {
-    if (jwt && redirectUri) {
-      sendTokenToParent(jwt, redirectUri, () => {
+    if (jwt && redirectUri && clientId) {
+      const authPayload = buildAuthPayload(clientId, jwt, user);
+      sendAuthPayloadToParent(authPayload, redirectUri, () => {
         setSelectedVehicles([]); // Clear selection after sharing
         setUiState("SUCCESS");
-      });
+      })      
     }
   };
 
