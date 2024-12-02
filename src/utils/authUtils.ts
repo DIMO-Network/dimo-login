@@ -13,30 +13,75 @@ import {
   signChallenge,
 } from "../services/turnkeyService";
 import { isStandalone } from "./isStandalone";
-import { storeJWTInCookies, storeUserInLocalStorage } from "../services/storageService";
+import {
+  getEmailGranted,
+  getJWTFromCookies,
+  getUserFromLocalStorage,
+  storeJWTInCookies,
+  storeUserInLocalStorage,
+} from "../services/storageService";
 import { UserObject } from "../models/user";
+import { sendMessageToReferrer } from "./messageHandler";
 
-export function sendTokenToParent(
-  token: string,
+export function buildAuthPayload(
+  clientId: string,
+  jwt?: string,
+  userObj?: UserObject
+): {
+  token: string;
+  email?: string;
+  walletAddress: string;
+} {
+  //Won't send to SDK until these are set in cookies/storage (may not work in incognito though?)
+  const token = getJWTFromCookies(clientId) || jwt;
+  const user = getUserFromLocalStorage(clientId) || userObj;
+  const emailGranted = getEmailGranted(clientId);
+
+  if (!token) {
+    throw new Error("JWT is missing. Ensure the user is authenticated.");
+  }
+
+  if (!user || !user.smartContractAddress) {
+    throw new Error(
+      "User object or walletAddress is missing in local storage."
+    );
+  }
+
+  return {
+    token,
+    walletAddress: user.smartContractAddress,
+    email: emailGranted ? user.email : undefined,
+  };
+}
+
+export function sendAuthPayloadToParent(
+  payload: { token: string; email?: string; walletAddress: string },
   redirectUri: string,
-  onSuccess: (token: string) => void
+  onSuccess: (payload: {
+    token: string;
+    email?: string;
+    walletAddress: string;
+  }) => void
 ) {
   if (isStandalone()) {
-    //Do a redirect here
-    window.location.href = `${redirectUri}?token=${token}`;
-    onSuccess(token);
+    // Redirect with token in query params
+    const queryParams = new URLSearchParams(payload).toString();
+    window.location.href = `${redirectUri}?${queryParams}`;
+    onSuccess(payload);
     return;
   }
-  const parentOrigin = new URL(document.referrer).origin;
-  if (window.opener) {
-    window.opener.postMessage({ token, authType: "popup" }, parentOrigin);
-    window.close();
-  } else if (window.parent) {
-    window.parent.postMessage({ token, authType: "embed" }, parentOrigin);
-  }
-  onSuccess(token);
 
-  // Trigger success callback
+  sendMessageToReferrer({
+    eventType: "authResponse",
+    ...payload,
+    authType: window.opener ? "popup" : "embed",
+  }); //TODO: authType to be deprecated soon, only kept for backwards compatibility
+
+  if (window.opener) {
+    //Close popup window after auth
+    window.close();
+  }
+  onSuccess(payload);
 }
 
 export async function generateTargetPublicKey(): Promise<string> {
@@ -90,7 +135,6 @@ export function bufferToBase64(buffer: Uint8Array): string {
   return btoa(binaryString);
 }
 
-
 //TODO: Clean this up, and potentially move elsewhere
 //This Function is basically just getting the JWT, Setting it in state, dealing with storage/cookies, and also navigating the UI
 export async function authenticateUser(
@@ -101,14 +145,12 @@ export async function authenticateUser(
   setJwt: (jwt: string) => void,
   setUiState: (step: string) => void,
   setUser: (user: UserObject) => void,
-  permissionTemplateId?: string
 ) {
   console.log(`Authenticating user with email: ${email}`);
 
   if ( !subOrganizationId ) {
     throw new Error("Could not authenticate user, account not deployed");
   }
-
 
   if (subOrganizationId) {
     await initializePasskey(subOrganizationId);
@@ -130,9 +172,7 @@ export async function authenticateUser(
       const challenge = resp.data.challenge;
       const state = resp.data.state;
 
-      const signature = await signChallenge(
-        challenge
-      );
+      const signature = await signChallenge(challenge);
 
       if (signature) {
         const jwt = await submitWeb3Challenge(
@@ -151,22 +191,14 @@ export async function authenticateUser(
           smartContractAddress,
           hasPasskey: true, //TODO: These should not be hardcoded
           emailVerified: true, //TODO: These should not be hardcoded
-        };        
+        };
 
         storeJWTInCookies(clientId, jwt.data.access_token); // Store JWT in cookies
-        storeUserInLocalStorage(clientId, userProperties); // Store user properties in localStorage        
+        storeUserInLocalStorage(clientId, userProperties); // Store user properties in localStorage
+
 
         setUser(userProperties);
-
-        if (!permissionTemplateId) {
-          // No permissions required, send JWT to parent and move to success page
-          sendTokenToParent(jwt.data.access_token, redirectUri, () => {
-            setUiState("SUCCESS"); // Move to success page
-          });
-        } else {
-          // Permissions required, move to permissions screen
-          setUiState("VEHICLE_MANAGER");
-        }        
+        setUiState("VEHICLE_MANAGER"); //Move to vehicle manager, and vehicle manager is what will determine if we go to success
       }
     }
   }

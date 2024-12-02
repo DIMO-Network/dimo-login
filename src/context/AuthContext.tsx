@@ -71,7 +71,7 @@ export const AuthProvider = ({
   const [user, setUser] = useState<UserObject | undefined>(undefined);
   const [jwt, setJwt] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
-  const { clientId, apiKey, redirectUri, permissionTemplateId, uiState, setUiState } =
+  const { clientId, apiKey, redirectUri, uiState, setUiState } =
     useDevCredentials();
 
   const createAccountWithPasskey = async (
@@ -182,7 +182,7 @@ export const AuthProvider = ({
     email: string,
     credentialBundle: string,
     setJwt: (jwt: string) => void,
-    setUiState: (step: string) => void
+    setUiState: (step: string) => void,
   ) => {
     setLoading("Authenticating User");
     setError(null);
@@ -204,7 +204,6 @@ export const AuthProvider = ({
         setJwt,
         setUiState,
         setUser,
-        permissionTemplateId
       ); //TODO: Better handling of null
     } catch (error) {
       setError("Could not authenticate user, please verify your passkey and try again.")

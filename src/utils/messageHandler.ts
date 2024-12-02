@@ -9,7 +9,7 @@ export function sendMessageToReferrer(data: object) {
   const referrer = window.opener || window.parent;
 
   if (referrer) {
-    referrer.postMessage(data, parentOrigin);
+    referrer.postMessage({...data, mode: window.opener ? "popup" : "embed" }, parentOrigin);
     console.log("Message sent to developer app");
   } else {
     console.warn("No referrer found");

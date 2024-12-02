@@ -10,7 +10,10 @@ import {
   setVehiclePermissionsBulk,
 } from "../../services/turnkeyService";
 import { sacdPermissionValue } from "@dimo-network/transactions";
-import { sendTokenToParent } from "../../utils/authUtils";
+import {
+  buildAuthPayload,
+  sendAuthPayloadToParent,
+} from "../../utils/authUtils";
 import { useDevCredentials } from "../../context/DevCredentialsContext";
 import {
   fetchPermissionsFromId,
@@ -23,63 +26,123 @@ import PrimaryButton from "../Shared/PrimaryButton";
 import VehicleThumbnail from "../../assets/images/vehicle-thumbnail.png";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/solid";
 import ErrorMessage from "../Shared/ErrorMessage";
+import { sendMessageToReferrer } from "../../utils/messageHandler";
+import { isStandalone } from "../../utils/isStandalone";
 
 const VehicleManager: React.FC = () => {
   // const targetGrantee = "0xeAa35540a94e3ebdf80448Ae7c9dE5F42CaB3481"; // TODO: Replace with client ID
   const { user, jwt, error, setError, setLoading } = useAuthContext();
-  const {
-    clientId,
-    redirectUri,
-    permissionTemplateId,
-    vehicleTokenIds,
-    vehicleMakes,
-    setUiState,
-  } = useDevCredentials();
+  const { clientId, redirectUri, setUiState } = useDevCredentials();
+
+  //Data from SDK
+  const [permissionTemplateId, setPermissionTemplateId] = useState<
+    string | undefined
+  >();
+  const [vehicleTokenIds, setVehicleTokenIds] = useState<
+    string[] | undefined
+  >();
+  const [vehicleMakes, setVehicleMakes] = useState<string[] | undefined>();
+
+  //Data from API's
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [permissionTemplate, setPermissionTemplate] =
     useState<PermissionTemplate | null>(null);
+
+  //Data from User
   const [selectedVehicles, setSelectedVehicles] = useState<Vehicle[]>([]); // Array for multiple selected vehicles
   const [isExpanded, setIsExpanded] = useState<boolean | undefined>(undefined);
 
+  const handleStandaloneMode = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const permissionTemplateIdFromUrl = urlParams.get("permissionTemplateId");
+    const vehiclesFromUrl = urlParams.getAll("vehicles");
+    const vehicleMakesFromUrl = urlParams.getAll("vehicleMakes");
+
+    if (permissionTemplateIdFromUrl) {
+      setPermissionTemplateId(permissionTemplateIdFromUrl);
+      if (vehiclesFromUrl.length) setVehicleTokenIds(vehiclesFromUrl);
+      if (vehicleMakesFromUrl.length) setVehicleMakes(vehicleMakesFromUrl);
+    } else {
+      sendJwtAfterPermissions(); // Developer has not toggled permissions
+    }
+  };
+
+  const handleEmbedPopupMode = () => {
+    sendMessageToReferrer({ eventType: "SHARE_VEHICLES_DATA" });
+
+    const handleMessage = (event: MessageEvent) => {
+      const {
+        eventType,
+        permissionTemplateId,
+        vehicles: vehiclesFromMessage,
+        vehicleMakes: vehicleMakesFromMessage,
+      } = event.data;
+
+      if (eventType === "SHARE_VEHICLES_DATA") {
+        if (!permissionTemplateId) {
+          sendJwtAfterPermissions();
+        } else {
+          setPermissionTemplateId(permissionTemplateId);
+          if (vehiclesFromMessage) setVehicleTokenIds(vehiclesFromMessage);
+          if (vehicleMakesFromMessage) setVehicleMakes(vehicleMakesFromMessage);
+        }
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+
+    return () => {
+      window.removeEventListener("message", handleMessage);
+    };
+  };
+
+  const fetchVehicles = async () => {
+    //TODO: Switch to Kernel Signer
+    if (user?.smartContractAddress && clientId) {
+      try {
+        const transformedVehicles = await fetchVehiclesWithTransformation(
+          user.smartContractAddress, //TODO: Switch to Kernel Signer
+          clientId,
+          vehicleTokenIds,
+          vehicleMakes
+        );
+        setVehicles(transformedVehicles);
+        // Set isExpanded based on vehicles length
+        setIsExpanded(
+          transformedVehicles.length === 0 && window.innerHeight >= 770
+        );
+      } catch (error) {
+        setError("Could not fetch vehicles");
+        console.error("Error fetching vehicles:", error);
+      }
+    }
+  };
+
+  const fetchPermissions = async () => {
+    if (permissionTemplateId) {
+      try {
+        const permissionTemplate = await fetchPermissionsFromId(
+          permissionTemplateId,
+          clientId as string,
+          user?.smartContractAddress as string //TODO: Switch to Kernel Signer
+        );
+        setPermissionTemplate(permissionTemplate);
+      } catch (error) {
+        setError("Could not fetch permissions");
+        console.error("Error fetching permissions:", error);
+      }
+    }
+  };
+
   useEffect(() => {
-    const fetchVehicles = async () => {
-      //TODO: Switch to Kernel Signer
-      if (user?.smartContractAddress && clientId) {
-        try {
-          const transformedVehicles = await fetchVehiclesWithTransformation(
-            user.smartContractAddress, //TODO: Switch to Kernel Signer
-            clientId,
-            vehicleTokenIds,
-            vehicleMakes
-          );
-          setVehicles(transformedVehicles);
-          // Set isExpanded based on vehicles length
-          setIsExpanded(
-            transformedVehicles.length === 0 && window.innerHeight >= 770
-          );
-        } catch (error) {
-          setError("Could not fetch vehicles");
-          console.error("Error fetching vehicles:", error);
-        }
-      }
-    };
+    if (isStandalone()) {
+      handleStandaloneMode();
+    } else {
+      handleEmbedPopupMode();
+    }
+  }, []);
 
-    const fetchPermissions = async () => {
-      if (permissionTemplateId) {
-        try {
-          const permissionTemplate = await fetchPermissionsFromId(
-            permissionTemplateId,
-            clientId as string,
-            user?.smartContractAddress as string //TODO: Switch to Kernel Signer
-          );
-          setPermissionTemplate(permissionTemplate);
-        } catch (error) {
-          setError("Could not fetch permissions");
-          console.error("Error fetching permissions:", error);
-        }
-      }
-    };
-
+  useEffect(() => {
     // Run both fetches in parallel
     Promise.all([fetchVehicles(), fetchPermissions()]);
   }, [user?.smartContractAddress, clientId, permissionTemplateId]); //TODO: Switch to Kernel Signer
@@ -94,8 +157,9 @@ const VehicleManager: React.FC = () => {
   };
 
   const sendJwtAfterPermissions = () => {
-    if (jwt && redirectUri) {
-      sendTokenToParent(jwt, redirectUri, () => {
+    if (jwt && redirectUri && clientId) {
+      const authPayload = buildAuthPayload(clientId, jwt, user);
+      sendAuthPayloadToParent(authPayload, redirectUri, () => {
         setSelectedVehicles([]); // Clear selection after sharing
         setUiState("SUCCESS");
       });

@@ -1,4 +1,5 @@
 import { isStandalone } from "./isStandalone";
+import { sendMessageToReferrer } from "./messageHandler";
 
 export function sendTxnResponseToParent(
   transactionHash: string,
@@ -11,16 +12,11 @@ export function sendTxnResponseToParent(
     onSuccess(transactionHash);
     return;
   }
-  const parentOrigin = new URL(document.referrer).origin;
-  const message = {
+
+  sendMessageToReferrer({
     eventType: "transactionResponse",
     transactionHash,
-  };
-  if (window.opener) {
-    window.opener.postMessage(message, parentOrigin);
-  } else if (window.parent) {
-    window.parent.postMessage(message, parentOrigin);
-  }
+  });
 
   onSuccess(transactionHash);
 
