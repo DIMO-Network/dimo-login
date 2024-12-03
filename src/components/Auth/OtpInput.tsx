@@ -12,8 +12,7 @@ interface OtpInputProps {
 }
 
 const OtpInput: React.FC<OtpInputProps> = ({ email, otpId }) => {
-  const { verifyOtp, authenticateUser, setJwt, error } =
-    useAuthContext(); // Get verifyOtp from the context
+  const { verifyOtp, authenticateUser, setJwt, error } = useAuthContext(); // Get verifyOtp from the context
 
   const { setUiState } = useDevCredentials();
   const [otpArray, setOtpArray] = useState(Array(6).fill("")); // Array of 6 empty strings
@@ -64,6 +63,12 @@ const OtpInput: React.FC<OtpInputProps> = ({ email, otpId }) => {
     }
   };
 
+  const handleKeyDown = (e: { key: string }) => {
+    if (e.key === "Enter") {
+      handleSubmit();
+    }
+  };
+
   return (
     <Card width="w-full max-w-[600px]" height="h-full max-h-[308px]">
       <Header
@@ -73,10 +78,11 @@ const OtpInput: React.FC<OtpInputProps> = ({ email, otpId }) => {
 
       {error && <ErrorMessage message={error} />}
 
-      <div
-        className="frame9 flex flex-col items-center gap-[15px] lg:gap-[20px]"
-      >
-        <div className="grid grid-cols-6 gap-3 mb-4 w-full max-w-[440px]">
+      <div className="frame9 flex flex-col items-center gap-[15px] lg:gap-[20px]">
+        <div
+          onKeyDown={handleKeyDown}
+          className="grid grid-cols-6 gap-3 mb-4 w-full max-w-[440px]"
+        >
           {otpArray.map((digit, index) => (
             <input
               key={index}

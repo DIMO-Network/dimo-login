@@ -26,8 +26,9 @@ interface DevCredentialsContextProps {
   credentialsLoading: boolean; // Renamed to avoid conflict with AuthContext
   invalidCredentials: boolean;
   uiState: string;
-  setUiState: React.Dispatch<React.SetStateAction<string>>;
   componentData: any;
+  devLicenseAlias: string | null | undefined;
+  setUiState: React.Dispatch<React.SetStateAction<string>>;
   setComponentData: React.Dispatch<React.SetStateAction<any>>;
 }
 
@@ -48,6 +49,7 @@ export const DevCredentialsProvider = ({
   const [invalidCredentials, setInvalidCredentials] = useState<boolean>(false);
   const [uiState, setUiState] = useState("EMAIL_INPUT"); //TODO: should be enum
   const [componentData, setComponentData] = useState<any | null>(null);
+  const [devLicenseAlias, setDevLicenseAlias] = useState<string | null>(); // Alias will only be set if credentials are valid, defaults to client ID if not alias
 
   // Example of using postMessage to receive credentials (as described previously)
   useEffect(() => {
@@ -58,28 +60,15 @@ export const DevCredentialsProvider = ({
     const entryStateFromUrl = urlParams.get("entryState");
 
     if (clientIdFromUrl && redirectUriFromUrl) {
-      setClientId(clientIdFromUrl);
-      setRedirectUri(redirectUriFromUrl);
-      setApiKey("api key"); //not needed for redirect url
-
+      setCredentials({ clientId: clientIdFromUrl, apiKey:"api key", redirectUri: redirectUriFromUrl });
       setUiState(entryStateFromUrl || "EMAIL_INPUT");
-
-      setCredentialsLoading(false); // Credentials loaded
     } else {
       const handleMessage = (event: MessageEvent) => {
-        const {
-          eventType,
-          clientId,
-          apiKey,
-          redirectUri,
-          entryState,
-        } = event.data;
+        const { eventType, clientId, apiKey, redirectUri, entryState } =
+          event.data;
         if (eventType === "AUTH_INIT") {
-          setClientId(clientId);
-          setApiKey(apiKey || "api key"); //todo, bring back when api key is needed
-          setRedirectUri(redirectUri);
+          setCredentials({ clientId, apiKey, redirectUri });
           setUiState(entryState || "EMAIL_INPUT");
-          setCredentialsLoading(false); // Credentials loaded
         }
       };
       window.addEventListener("message", handleMessage);
@@ -93,8 +82,9 @@ export const DevCredentialsProvider = ({
   useEffect(() => {
     const validateCredentials = async () => {
       if (clientId && redirectUri) {
-        const isValid = await isValidClientId(clientId, redirectUri);
+        const { isValid, alias } = await isValidClientId(clientId, redirectUri);
         if (isValid) {
+          setDevLicenseAlias(alias); // Set the alias in global state
           createKernelSigner(clientId, clientId, redirectUri);
           setCredentialsLoading(false); // Credentials loaded
         } else {
@@ -132,9 +122,10 @@ export const DevCredentialsProvider = ({
         credentialsLoading,
         invalidCredentials,
         uiState,
-        setUiState,
         componentData,
-        setComponentData
+        devLicenseAlias,
+        setComponentData,
+        setUiState,
       }}
     >
       {children}
