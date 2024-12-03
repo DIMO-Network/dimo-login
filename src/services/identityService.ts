@@ -82,7 +82,8 @@ export async function fetchVehiclesWithTransformation(
     .sort((a: any, b: any) => Number(a.shared) - Number(b.shared)); // Sort non-shared first
 }
 
-export async function isValidClientId(clientId: string, redirectUri: string) {
+export async function isValidClientId(clientId: string, redirectUri: string): Promise<{isValid: boolean, alias: string | null}> {
+
   const query = `{
     developerLicense(by: { clientId: "${clientId}" }) {
       owner
@@ -109,11 +110,11 @@ export async function isValidClientId(clientId: string, redirectUri: string) {
   // Check if data is not null
   if (!response || !response.data || !response.data.developerLicense) {
     console.error("No data found in the response.");
-    return false; // or handle as needed
+    return { isValid: false, alias: null };
   }
 
   // Access the redirectURIs from the response
-  const { redirectURIs } = response.data.developerLicense;
+  const { redirectURIs, alias } = response.data.developerLicense;
 
   // Check if redirectURIs exist and contains nodes
   if (redirectURIs && redirectURIs.nodes) {
@@ -123,9 +124,9 @@ export async function isValidClientId(clientId: string, redirectUri: string) {
     // Verify if the redirectUri exists in the list
     const exists = uris.includes(redirectUri);
 
-    return exists; // Return true if exists, false otherwise
+    return { isValid: exists, alias: alias || clientId };
   } else {
     console.error("No redirect URIs found.");
-    return false; // or handle as needed
+    return { isValid: false, alias: null };
   }
 }
