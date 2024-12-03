@@ -30,6 +30,10 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
   const [triggerAuth, setTriggerAuth] = useState(false);
   const [emailPermissionGranted, setEmailPermissionGranted] = useState(false);
 
+  const appUrl = document.referrer
+    ? new URL(document.referrer).hostname
+    : "https://dimo.org";
+
   const handleOtpSend = async (email: string) => {
     const otpResult = await sendOtp(email); // Send OTP for new account
 
@@ -82,11 +86,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
     <Card width="w-full max-w-[600px]" height="h-full max-h-[308px]">
       <Header
         title="Enter an email to sign in with DIMO on"
-        subtitle={
-          document.referrer
-            ? new URL(document.referrer).hostname
-            : "https://dimo.org"
-        }
+        subtitle={appUrl}
       />
       {error && <ErrorMessage message={error} />}
       <div className="flex justify-center text-sm">
@@ -97,7 +97,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
           }}
           className="mb-2 mr-2 w-5 h-5 text-black border-gray-300 rounded focus:ring-0 focus:ring-offset-0 accent-black"
         />
-        I agree to share my email with {window.location.hostname}
+        I agree to share my email with {appUrl}
       </div>
       <div
         onKeyDown={handleKeyDown} // Listen for key presses
