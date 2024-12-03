@@ -11,7 +11,7 @@ interface VehicleCardProps {
 const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, isSelected, onSelect, disabled }) => (
   <div
     className={`flex items-center p-4 border rounded-2xl cursor-pointer transition ${
-      vehicle.shared ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'hover:bg-gray-50 border-gray-300'
+      vehicle.shared ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'hover:bg-gray-50 border-gray-300 cursor-pointer'
     } ${isSelected && "border-black"}`}
   >
     {/* Custom Checkbox */}
@@ -21,7 +21,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, isSelected, onSelect
       onChange={onSelect}
       id={`vehicle-${vehicle.tokenId.toString()}`}
       disabled={vehicle.shared}
-      className="mr-4 w-5 h-5 text-black border-gray-300 rounded focus:ring-0 focus:ring-offset-0 accent-black"
+      className="mr-4 w-5 h-5 text-black border-gray-300 rounded focus:ring-0 focus:ring-offset-0 accent-black cursor-pointer"
     />
 
     {/* Vehicle Image */}
@@ -33,7 +33,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, isSelected, onSelect
     />
 
     {/* Vehicle Information */}
-    <label htmlFor={`vehicle-${vehicle.tokenId.toString()}`} className="flex-grow text-left">
+    <label htmlFor={`vehicle-${vehicle.tokenId.toString()}`} className="flex-grow text-left hover:cursor-pointer">
       <div className="text-black">
         {vehicle.make} {vehicle.model} ({vehicle.year})
       </div>

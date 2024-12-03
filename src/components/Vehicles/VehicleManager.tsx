@@ -32,7 +32,7 @@ import { isStandalone } from "../../utils/isStandalone";
 const VehicleManager: React.FC = () => {
   // const targetGrantee = "0xeAa35540a94e3ebdf80448Ae7c9dE5F42CaB3481"; // TODO: Replace with client ID
   const { user, jwt, error, setError, setLoading } = useAuthContext();
-  const { clientId, redirectUri, setUiState } = useDevCredentials();
+  const { clientId, redirectUri, devLicenseAlias, setUiState } = useDevCredentials();
 
   //Data from SDK
   const [permissionTemplateId, setPermissionTemplateId] = useState<
@@ -124,7 +124,10 @@ const VehicleManager: React.FC = () => {
         const permissionTemplate = await fetchPermissionsFromId(
           permissionTemplateId,
           clientId as string,
-          user?.smartContractAddress as string //TODO: Switch to Kernel Signer
+          user?.smartContractAddress as string,
+          user?.email as string,
+          devLicenseAlias as string,
+
         );
         setPermissionTemplate(permissionTemplate);
       } catch (error) {
