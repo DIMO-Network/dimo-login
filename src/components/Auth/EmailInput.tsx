@@ -24,7 +24,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
     error,
   } = useAuthContext(); // Get sendOtp from the context
 
-  const { setUiState, clientId } = useDevCredentials();
+  const { setUiState, clientId, devLicenseAlias } = useDevCredentials();
 
   const [email, setEmail] = useState("");
   const [triggerAuth, setTriggerAuth] = useState(false);
@@ -97,7 +97,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
           }}
           className="mb-2 mr-2 w-5 h-5 text-black border-gray-300 rounded focus:ring-0 focus:ring-offset-0 accent-black"
         />
-        I agree to share my email with {appUrl}
+        I agree to share my email with {devLicenseAlias}
       </div>
       <div
         onKeyDown={handleKeyDown} // Listen for key presses
