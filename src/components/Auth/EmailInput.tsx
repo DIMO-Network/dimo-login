@@ -65,6 +65,12 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
     }
   };
 
+  const handleKeyDown = (e: { key: string }) => {
+    if (e.key === "Enter") {
+      handleSubmit();
+    }
+  };
+
   useEffect(() => {
     // Only authenticate if `user` is set and authentication hasn't been triggered
     if (triggerAuth) {
@@ -93,7 +99,10 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
         />
         I agree to share my email with {window.location.hostname}
       </div>
-      <div className="frame9 flex flex-col items-center gap-[15px] lg:gap-[20px]">
+      <div
+        onKeyDown={handleKeyDown} // Listen for key presses
+        className="frame9 flex flex-col items-center gap-[15px] lg:gap-[20px]"
+      >
         <input
           type="email"
           value={email}
