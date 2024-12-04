@@ -18,6 +18,11 @@ export function sendTxnResponseToParent(
     transactionHash,
   });
 
+  if (window.opener) {
+    //Close popup window after auth
+    window.close();
+  }  
+
   onSuccess(transactionHash);
 
   // Trigger success callback

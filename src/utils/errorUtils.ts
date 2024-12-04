@@ -14,5 +14,10 @@ export function sendErrorToParent(error: Error | string, redirectUri: string) {
   // Send error details to parent via postMessage
   sendMessageToReferrer({eventType:"DIMO_ERROR", message: errorMessage});
 
+  if (window.opener) {
+    //Close popup window after auth
+    window.close();
+  }  
+
   // Trigger error callback
 }
