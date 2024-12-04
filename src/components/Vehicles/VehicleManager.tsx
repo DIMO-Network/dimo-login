@@ -314,7 +314,7 @@ const VehicleManager: React.FC = () => {
               All vehicles have been shared
             </h2>
             <p className="text-sm">
-              You have already shared all your vehicles.
+              You have already shared all your vehicles with {devLicenseAlias}.
             </p>
           </div>
         )}
