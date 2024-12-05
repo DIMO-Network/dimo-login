@@ -14,7 +14,7 @@ import {
   UserResult,
 } from "../models/resultTypes";
 import { UserObject } from "../models/user";
-import { generateTargetPublicKey } from "../utils/authUtils";
+import { generateTargetPublicKey } from "../utils/cryptoUtils";
 
 const DIMO_ACCOUNTS_BASE_URL =
   process.env.REACT_APP_DIMO_ACCOUNTS_URL ||
