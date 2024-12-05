@@ -6,17 +6,20 @@ import reportWebVitals from "./reportWebVitals";
 import { AuthProvider } from "./context/AuthContext";
 import { DevCredentialsProvider } from "./context/DevCredentialsContext";
 import { sendMessageToReferrer } from "./utils/messageHandler";
+import { UIManagerProvider } from "./context/UIManagerContext";
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
 root.render(
   <React.StrictMode>
-    <DevCredentialsProvider>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
-    </DevCredentialsProvider>
+    <UIManagerProvider>
+      <DevCredentialsProvider>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </DevCredentialsProvider>
+    </UIManagerProvider>
   </React.StrictMode>
 );
 

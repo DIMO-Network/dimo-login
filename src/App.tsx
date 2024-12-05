@@ -11,6 +11,8 @@ import ErrorScreen from "./components/Shared/ErrorScreen";
 import { initializeSession } from "./services/sessionService";
 import AdvancedTransaction from "./components/AdvancedTransaction/AdvancedTransaction";
 import SuccessfulTransaction from "./components/AdvancedTransaction/SuccessfulTransaction";
+import { useUIManager } from "./context/UIManagerContext";
+import CancelledTransaction from "./components/AdvancedTransaction/CancelledTransaction";
 
 function App() {
   const { loading: authLoading, setJwt, setUser } = useAuthContext(); // Get loading state from AuthContext
@@ -20,9 +22,8 @@ function App() {
     apiKey,
     redirectUri,
     invalidCredentials,
-    uiState,
-    setUiState,
   } = useDevCredentials(); // Get loading state and credentials from DevCredentialsContext
+  const { uiState, setUiState } = useUIManager();
   const [email, setEmail] = useState("");
   const [otpId, setOtpId] = useState(""); // New state for OTP ID
 
@@ -66,6 +67,7 @@ function App() {
       {uiState === "VEHICLE_MANAGER" && <VehicleManager />}
       {uiState === "ADVANCED_TRANSACTION" && <AdvancedTransaction />}
       {uiState === "TRANSACTION_SUCCESS" && <SuccessfulTransaction />}
+      {uiState === "TRANSACTION_CANCELLED" && <CancelledTransaction />}
       {uiState === "SUCCESS" && <SuccessPage />}
     </div>
   );

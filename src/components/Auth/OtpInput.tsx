@@ -4,7 +4,7 @@ import ErrorMessage from "../Shared/ErrorMessage";
 import PrimaryButton from "../Shared/PrimaryButton";
 import Card from "../Shared/Card";
 import Header from "../Shared/Header";
-import { useDevCredentials } from "../../context/DevCredentialsContext";
+import { useUIManager } from "../../context/UIManagerContext";
 
 interface OtpInputProps {
   email: string;
@@ -13,8 +13,7 @@ interface OtpInputProps {
 
 const OtpInput: React.FC<OtpInputProps> = ({ email, otpId }) => {
   const { verifyOtp, authenticateUser, setJwt, error } = useAuthContext(); // Get verifyOtp from the context
-
-  const { setUiState } = useDevCredentials();
+  const { setUiState } = useUIManager();
   const [otpArray, setOtpArray] = useState(Array(6).fill("")); // Array of 6 empty strings
 
   // Function to handle change for each input
@@ -81,7 +80,7 @@ const OtpInput: React.FC<OtpInputProps> = ({ email, otpId }) => {
       <div className="frame9 flex flex-col items-center gap-[15px] lg:gap-[20px]">
         <div
           onKeyDown={handleKeyDown}
-          className="grid grid-cols-6 gap-3 mb-4 w-full max-w-[440px]"
+          className="grid grid-cols-6 gap-3 mb-4"
         >
           {otpArray.map((digit, index) => (
             <input

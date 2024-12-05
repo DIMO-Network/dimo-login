@@ -20,7 +20,7 @@ import {
 import { getWebAuthnAttestation } from "@turnkey/http";
 import { IframeStamper } from "@turnkey/iframe-stamper";
 import { WebauthnStamper } from "@turnkey/webauthn-stamper";
-import { base64UrlEncode, generateRandomBuffer } from "../utils/authUtils";
+import { base64UrlEncode, generateRandomBuffer } from "../utils/cryptoUtils";
 
 const stamper = new WebauthnStamper({
   rpId:

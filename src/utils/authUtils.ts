@@ -1,19 +1,16 @@
-import { Buffer } from "buffer";
 import {
   generateChallenge,
   submitWeb3Challenge,
 } from "../services/authService";
 import {
-  createPasskey,
   getSmartContractAddress,
   getWalletAddress,
   initializePasskey,
-  openSessionWithPasskey,
-  setVehiclePermissions,
   signChallenge,
 } from "../services/turnkeyService";
 import { isStandalone } from "./isStandalone";
 import {
+  clearSessionData,
   getEmailGranted,
   getJWTFromCookies,
   getUserFromLocalStorage,
@@ -22,6 +19,7 @@ import {
 } from "../services/storageService";
 import { UserObject } from "../models/user";
 import { sendMessageToReferrer } from "./messageHandler";
+import { isEmbed } from "./isEmbed";
 
 export function buildAuthPayload(
   clientId: string,
@@ -84,55 +82,19 @@ export function sendAuthPayloadToParent(
   onSuccess(payload);
 }
 
-export async function generateTargetPublicKey(): Promise<string> {
-  const keyPair = await window.crypto.subtle.generateKey(
-    {
-      name: "ECDSA",
-      namedCurve: "P-256",
-    },
-    true,
-    ["sign", "verify"]
-  );
+export function logout(clientId: string, redirectUri: string, setUiState: (step: string) => void) {
+  clearSessionData(clientId);
+  sendMessageToReferrer({eventType:"logout"});
 
-  const publicKey = await window.crypto.subtle.exportKey(
-    "raw",
-    keyPair.publicKey
-  );
-
-  const publicKeyHex = Array.from(new Uint8Array(publicKey))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-
-  return publicKeyHex;
-}
-
-export function generateRandomBuffer(): ArrayBuffer {
-  const arr = new Uint8Array(32);
-  crypto.getRandomValues(arr);
-  return arr.buffer;
-}
-
-export function base64UrlEncode(challenge: ArrayBuffer): string {
-  return Buffer.from(challenge)
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=/g, "");
-}
-
-export function bufferToHex(arrayBuffer: ArrayBuffer): string {
-  const uint8Array = new Uint8Array(arrayBuffer);
-  return Array.from(uint8Array)
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-export function bufferToBase64(buffer: Uint8Array): string {
-  // Convert the Uint8Array to a string using Array.from()
-  const binaryString = Array.from(buffer)
-    .map((byte) => String.fromCharCode(byte))
-    .join("");
-  return btoa(binaryString);
+  //Deal with post-logout
+  if ( isStandalone() ) {
+    window.location.href = redirectUri;
+  } else if (window.opener) {
+    //Close popup window after auth
+    window.close();
+  } else if (isEmbed()) {
+    setUiState("EMAIL_INPUT");
+  }
 }
 
 //TODO: Clean this up, and potentially move elsewhere
@@ -144,11 +106,11 @@ export async function authenticateUser(
   subOrganizationId: string | null,
   setJwt: (jwt: string) => void,
   setUiState: (step: string) => void,
-  setUser: (user: UserObject) => void,
+  setUser: (user: UserObject) => void
 ) {
   console.log(`Authenticating user with email: ${email}`);
 
-  if ( !subOrganizationId ) {
+  if (!subOrganizationId) {
     throw new Error("Could not authenticate user, account not deployed");
   }
 
@@ -158,8 +120,10 @@ export async function authenticateUser(
     const smartContractAddress = getSmartContractAddress();
     const walletAddress = getWalletAddress();
 
-    if ( !smartContractAddress || !walletAddress ) {
-      throw new Error("Could not authenticate user, wallet address does not exist");
+    if (!smartContractAddress || !walletAddress) {
+      throw new Error(
+        "Could not authenticate user, wallet address does not exist"
+      );
     }
 
     const resp = await generateChallenge(
@@ -182,8 +146,7 @@ export async function authenticateUser(
           signature
         );
 
-        setJwt(jwt.data.access_token); //Store in global state, to allow being used in VehicleManager component
-
+        
         const userProperties: UserObject = {
           email,
           subOrganizationId,
@@ -192,12 +155,13 @@ export async function authenticateUser(
           hasPasskey: true, //TODO: These should not be hardcoded
           emailVerified: true, //TODO: These should not be hardcoded
         };
-
+        
+        //TODO, this can potentially be moved to a diff function
+        setJwt(jwt.data.access_token); //Store in global state, to allow being used in VehicleManager component
+        setUser(userProperties);
         storeJWTInCookies(clientId, jwt.data.access_token); // Store JWT in cookies
         storeUserInLocalStorage(clientId, userProperties); // Store user properties in localStorage
 
-
-        setUser(userProperties);
         setUiState("VEHICLE_MANAGER"); //Move to vehicle manager, and vehicle manager is what will determine if we go to success
       }
     }

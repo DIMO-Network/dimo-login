@@ -18,6 +18,7 @@ import React, {
 import { isValidClientId } from "../services/identityService";
 import { createKernelSigner } from "../services/turnkeyService";
 import { TransactionData } from "@dimo-network/transactions";
+import { useUIManager } from "./UIManagerContext";
 
 interface DevCredentialsContextProps {
   clientId?: string;
@@ -25,11 +26,7 @@ interface DevCredentialsContextProps {
   redirectUri?: string;
   credentialsLoading: boolean; // Renamed to avoid conflict with AuthContext
   invalidCredentials: boolean;
-  uiState: string;
-  componentData: any;
   devLicenseAlias: string | null | undefined;
-  setUiState: React.Dispatch<React.SetStateAction<string>>;
-  setComponentData: React.Dispatch<React.SetStateAction<any>>;
 }
 
 const DevCredentialsContext = createContext<
@@ -47,9 +44,8 @@ export const DevCredentialsProvider = ({
   const [redirectUri, setRedirectUri] = useState<string | undefined>();
   const [credentialsLoading, setCredentialsLoading] = useState<boolean>(true); // Renamed loading state
   const [invalidCredentials, setInvalidCredentials] = useState<boolean>(false);
-  const [uiState, setUiState] = useState("EMAIL_INPUT"); //TODO: should be enum
-  const [componentData, setComponentData] = useState<any | null>(null);
   const [devLicenseAlias, setDevLicenseAlias] = useState<string | null>(); // Alias will only be set if credentials are valid, defaults to client ID if not alias
+  const { setUiState } = useUIManager();
 
   // Example of using postMessage to receive credentials (as described previously)
   useEffect(() => {
@@ -121,11 +117,7 @@ export const DevCredentialsProvider = ({
         redirectUri,
         credentialsLoading,
         invalidCredentials,
-        uiState,
-        componentData,
         devLicenseAlias,
-        setComponentData,
-        setUiState,
       }}
     >
       {children}
