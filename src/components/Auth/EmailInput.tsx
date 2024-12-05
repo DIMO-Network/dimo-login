@@ -91,7 +91,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
         subtitle={appUrl}
       />
       {error && <ErrorMessage message={error} />}
-      <div className="flex justify-center text-sm">
+      <div className="flex justify-center text-sm mb-2">
         <input
           type="checkbox"
           onChange={() => {

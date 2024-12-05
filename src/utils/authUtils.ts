@@ -19,6 +19,7 @@ import {
 } from "../services/storageService";
 import { UserObject } from "../models/user";
 import { sendMessageToReferrer } from "./messageHandler";
+import { isEmbed } from "./isEmbed";
 
 export function buildAuthPayload(
   clientId: string,
@@ -81,7 +82,7 @@ export function sendAuthPayloadToParent(
   onSuccess(payload);
 }
 
-export function logout(clientId: string, redirectUri: string) {
+export function logout(clientId: string, redirectUri: string, setUiState: (step: string) => void) {
   clearSessionData(clientId);
   sendMessageToReferrer({eventType:"logout"});
 
@@ -91,9 +92,8 @@ export function logout(clientId: string, redirectUri: string) {
   } else if (window.opener) {
     //Close popup window after auth
     window.close();
-  } else {
-
-    //Embed TBD
+  } else if (isEmbed()) {
+    setUiState("EMAIL_INPUT");
   }
 }
 

@@ -80,7 +80,7 @@ const OtpInput: React.FC<OtpInputProps> = ({ email, otpId }) => {
       <div className="frame9 flex flex-col items-center gap-[15px] lg:gap-[20px]">
         <div
           onKeyDown={handleKeyDown}
-          className="grid grid-cols-6 gap-3 mb-4 w-full max-w-[440px]"
+          className="grid grid-cols-6 gap-3 mb-4"
         >
           {otpArray.map((digit, index) => (
             <input
