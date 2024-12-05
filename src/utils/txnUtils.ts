@@ -3,27 +3,15 @@ import { sendMessageToReferrer } from "./messageHandler";
 
 export function sendTxnResponseToParent(
   transactionHash: string,
-  redirectUri: string,
   onSuccess: (transactionHash: string) => void
 ) {
-  if (isStandalone()) {
-    //Do a redirect here
-    window.location.href = `${redirectUri}?transactionHash=${transactionHash}`;
-    onSuccess(transactionHash);
-    return;
-  }
-
+  //This simply sends the transaction response to the developer
+  //We don't deal with closing the popup or redirecting, as that's handled by the SuccessfulTransaction screen
   sendMessageToReferrer({
     eventType: "transactionResponse",
     transactionHash,
-  });
-
-  if (window.opener) {
-    //Close popup window after auth
-    window.close();
-  }  
+  });  
 
   onSuccess(transactionHash);
 
-  // Trigger success callback
 }

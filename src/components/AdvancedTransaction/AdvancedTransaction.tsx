@@ -81,18 +81,14 @@ const AdvancedTransaction: React.FC = () => {
         transactionData.args
       );
 
-      sendTxnResponseToParent(receipt, redirectUri!, (transactionHash) => {
+      //Send transaction hash to developer, and show user successful txn
+      sendTxnResponseToParent(receipt, (transactionHash) => {
         setComponentData({ transactionHash });
         setUiState("TRANSACTION_SUCCESS");
         setLoading(false);
       });
     } catch (e) {
       console.log(e);
-
-      sendErrorToParent(
-        `Could not execute transaction ${JSON.stringify(e)}`,
-        redirectUri!
-      );
       setError("Could not execute transaction, please try again");
       setLoading(false);
     }
@@ -101,7 +97,7 @@ const AdvancedTransaction: React.FC = () => {
   const onReject = async () => {
     //This will send the message, and close the winodw
     //Doesn't currently handle redirecting
-    sendErrorToParent(`User Rejected the Transaction`, redirectUri!);
+    sendErrorToParent(`User Rejected the Transaction`, redirectUri!, setUiState);
   };
 
   return (
