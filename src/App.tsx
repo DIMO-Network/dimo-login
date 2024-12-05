@@ -11,6 +11,7 @@ import ErrorScreen from "./components/Shared/ErrorScreen";
 import { initializeSession } from "./services/sessionService";
 import AdvancedTransaction from "./components/AdvancedTransaction/AdvancedTransaction";
 import SuccessfulTransaction from "./components/AdvancedTransaction/SuccessfulTransaction";
+import { useUIManager } from "./context/UIManagerContext";
 
 function App() {
   const { loading: authLoading, setJwt, setUser } = useAuthContext(); // Get loading state from AuthContext
@@ -20,9 +21,8 @@ function App() {
     apiKey,
     redirectUri,
     invalidCredentials,
-    uiState,
-    setUiState,
   } = useDevCredentials(); // Get loading state and credentials from DevCredentialsContext
+  const { uiState, setUiState } = useUIManager();
   const [email, setEmail] = useState("");
   const [otpId, setOtpId] = useState(""); // New state for OTP ID
 

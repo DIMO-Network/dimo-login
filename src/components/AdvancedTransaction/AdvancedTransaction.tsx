@@ -14,11 +14,13 @@ import { sendTxnResponseToParent } from "../../utils/txnUtils";
 import { sendErrorToParent } from "../../utils/errorUtils";
 import { TransactionData } from "@dimo-network/transactions";
 import { sendMessageToReferrer } from "../../utils/messageHandler";
+import { useUIManager } from "../../context/UIManagerContext";
 
 const AdvancedTransaction: React.FC = () => {
   //TODO
   //Loading and Error Handling should not be determined by AuthContext
-  const { redirectUri, setUiState, setComponentData } = useDevCredentials();
+  const { redirectUri } = useDevCredentials();
+  const { setUiState, setComponentData } = useUIManager();
   const { user, setLoading, setError, error } = useAuthContext();
 
   const [transactionData, setTransactionData] = useState<

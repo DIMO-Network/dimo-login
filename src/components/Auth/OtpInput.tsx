@@ -4,7 +4,7 @@ import ErrorMessage from "../Shared/ErrorMessage";
 import PrimaryButton from "../Shared/PrimaryButton";
 import Card from "../Shared/Card";
 import Header from "../Shared/Header";
-import { useDevCredentials } from "../../context/DevCredentialsContext";
+import { useUIManager } from "../../context/UIManagerContext";
 
 interface OtpInputProps {
   email: string;
@@ -13,8 +13,7 @@ interface OtpInputProps {
 
 const OtpInput: React.FC<OtpInputProps> = ({ email, otpId }) => {
   const { verifyOtp, authenticateUser, setJwt, error } = useAuthContext(); // Get verifyOtp from the context
-
-  const { setUiState } = useDevCredentials();
+  const { setUiState } = useUIManager();
   const [otpArray, setOtpArray] = useState(Array(6).fill("")); // Array of 6 empty strings
 
   // Function to handle change for each input
