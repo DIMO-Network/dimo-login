@@ -1,3 +1,4 @@
+import { Buffer } from "buffer";
 export async function generateTargetPublicKey(): Promise<string> {
     const keyPair = await window.crypto.subtle.generateKey(
       {

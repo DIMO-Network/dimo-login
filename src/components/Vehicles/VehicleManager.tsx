@@ -28,11 +28,13 @@ import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/solid";
 import ErrorMessage from "../Shared/ErrorMessage";
 import { sendMessageToReferrer } from "../../utils/messageHandler";
 import { isStandalone } from "../../utils/isStandalone";
+import { useUIManager } from "../../context/UIManagerContext";
 
 const VehicleManager: React.FC = () => {
   // const targetGrantee = "0xeAa35540a94e3ebdf80448Ae7c9dE5F42CaB3481"; // TODO: Replace with client ID
   const { user, jwt, error, setError, setLoading } = useAuthContext();
-  const { clientId, redirectUri, devLicenseAlias, setUiState } = useDevCredentials();
+  const { clientId, redirectUri, devLicenseAlias } = useDevCredentials();
+  const { setUiState } = useUIManager();
 
   //Data from SDK
   const [permissionTemplateId, setPermissionTemplateId] = useState<

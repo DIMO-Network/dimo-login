@@ -1,4 +1,3 @@
-import { Buffer } from "buffer";
 import {
   generateChallenge,
   submitWeb3Challenge,

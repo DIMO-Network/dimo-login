@@ -8,6 +8,7 @@ import Card from "../Shared/Card";
 import Header from "../Shared/Header";
 import { useDevCredentials } from "../../context/DevCredentialsContext";
 import { setEmailGranted } from "../../services/storageService";
+import { useUIManager } from "../../context/UIManagerContext";
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;
@@ -24,7 +25,8 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
     error,
   } = useAuthContext(); // Get sendOtp from the context
 
-  const { setUiState, clientId, devLicenseAlias } = useDevCredentials();
+  const { clientId, devLicenseAlias } = useDevCredentials();
+  const { setUiState } = useUIManager();
 
   const [email, setEmail] = useState("");
   const [triggerAuth, setTriggerAuth] = useState(false);

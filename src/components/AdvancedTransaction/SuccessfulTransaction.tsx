@@ -6,9 +6,11 @@ import PrimaryButton from "../Shared/PrimaryButton";
 import { useDevCredentials } from "../../context/DevCredentialsContext";
 import ErrorScreen from "../Shared/ErrorScreen";
 import { isStandalone } from "../../utils/isStandalone";
+import { useUIManager } from "../../context/UIManagerContext";
 
 const SuccessfulTransaction: React.FC = () => {
-  const { componentData, redirectUri, devLicenseAlias } = useDevCredentials();
+  const { redirectUri, devLicenseAlias } = useDevCredentials();
+  const { componentData } = useUIManager();
 
   if (!componentData.transactionHash) {
     return (
@@ -31,14 +33,14 @@ const SuccessfulTransaction: React.FC = () => {
   };
 
   const handleBackToThirdParty = () => {
-    if ( window.opener ) {
+    if (window.opener) {
       //Popup Mode
       window.close();
     } else if (isStandalone()) {
       //Redirect Mode
-      window.location.href = `${redirectUri}`
+      window.location.href = `${redirectUri}`;
     }
-  };  
+  };
 
   return (
     <Card width="w-full max-w-[600px]" height="h-full max-h-[308px]">
@@ -46,7 +48,7 @@ const SuccessfulTransaction: React.FC = () => {
       <div className="flex justify-center">
         <PrimaryButton onClick={handleBackToThirdParty} width="max-w-[440px]">
           Back to {devLicenseAlias}
-        </PrimaryButton>        
+        </PrimaryButton>
         <PrimaryButton onClick={handleView} width="w-[214px]">
           View Transaction
         </PrimaryButton>

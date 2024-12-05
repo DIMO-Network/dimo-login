@@ -10,11 +10,12 @@ import {
   logout,
   sendAuthPayloadToParent,
 } from "../../utils/authUtils";
+import { useUIManager } from "../../context/UIManagerContext";
 
 const SuccessPage: React.FC = () => {
   const { user, jwt } = useAuthContext(); // Should be set on session init
-  const { redirectUri, setUiState, clientId, devLicenseAlias } =
-    useDevCredentials();
+  const { redirectUri, clientId, devLicenseAlias } = useDevCredentials();
+  const { setUiState } = useUIManager();
 
   const sendJwtAfterPermissions = () => {
     if (jwt && redirectUri && clientId) {

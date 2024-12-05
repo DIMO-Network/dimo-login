@@ -32,12 +32,8 @@ import { useDevCredentials } from "./DevCredentialsContext";
 import { CredentialResult, OtpResult, UserResult } from "../models/resultTypes";
 
 interface AuthContextProps {
-  createAccountWithPasskey: (
-    email: string
-  ) => Promise<UserResult>;
-  sendOtp: (
-    email: string
-  ) => Promise<OtpResult>;
+  createAccountWithPasskey: (email: string) => Promise<UserResult>;
+  sendOtp: (email: string) => Promise<OtpResult>;
   verifyOtp: (
     email: string,
     otp: string,
@@ -71,14 +67,13 @@ export const AuthProvider = ({
   const [user, setUser] = useState<UserObject | undefined>(undefined);
   const [jwt, setJwt] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
-  const { clientId, apiKey, redirectUri, uiState, setUiState } =
-    useDevCredentials();
+  const { clientId, apiKey, redirectUri } = useDevCredentials();
 
   const createAccountWithPasskey = async (
     email: string
   ): Promise<UserResult> => {
     setLoading("Creating account");
-    setError(null);    
+    setError(null);
     if (!apiKey) {
       return {
         success: false,
@@ -105,16 +100,16 @@ export const AuthProvider = ({
         throw new Error("Failed to create account");
       }
     } catch (error) {
-      setError("Failed to create account, please try again or contact support.")
+      setError(
+        "Failed to create account, please try again or contact support."
+      );
       return { success: false, error: error as string };
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSendOtp = async (
-    email: string
-  ): Promise<OtpResult> => {
+  const handleSendOtp = async (email: string): Promise<OtpResult> => {
     setLoading("Sending OTP");
     setError(null);
 
@@ -141,7 +136,7 @@ export const AuthProvider = ({
       }
 
       console.log(`OTP sent to ${email}, OTP ID: ${otpResult.data.otpId}`);
-      return { success: true, data: {otpId: otpResult.data.otpId} };
+      return { success: true, data: { otpId: otpResult.data.otpId } };
     } catch (err) {
       setError("Failed to send OTP");
       console.error(err);
@@ -164,7 +159,7 @@ export const AuthProvider = ({
         console.log(`OTP verified for ${email}`);
         return {
           success: true,
-          data: {credentialBundle: result.data.credentialBundle},
+          data: { credentialBundle: result.data.credentialBundle },
         };
       } else {
         throw new Error("Invalid OTP");
@@ -182,13 +177,13 @@ export const AuthProvider = ({
     email: string,
     credentialBundle: string,
     setJwt: (jwt: string) => void,
-    setUiState: (step: string) => void,
+    setUiState: (step: string) => void
   ) => {
     setLoading("Authenticating User");
     setError(null);
 
     try {
-      if ( !user || !user.subOrganizationId ) {
+      if (!user || !user.subOrganizationId) {
         throw new Error("User does not exist");
       }
 
@@ -203,10 +198,12 @@ export const AuthProvider = ({
         user?.subOrganizationId,
         setJwt,
         setUiState,
-        setUser,
+        setUser
       ); //TODO: Better handling of null
     } catch (error) {
-      setError("Could not authenticate user, please verify your passkey and try again.")
+      setError(
+        "Could not authenticate user, please verify your passkey and try again."
+      );
       console.error(error);
     } finally {
       setLoading(false);
@@ -227,7 +224,7 @@ export const AuthProvider = ({
         setJwt,
         error,
         setError,
-        setLoading
+        setLoading,
       }}
     >
       {children}
