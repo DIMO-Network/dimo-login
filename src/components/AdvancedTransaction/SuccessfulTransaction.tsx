@@ -31,7 +31,7 @@ const SuccessfulTransaction: React.FC = () => {
       window.open(`${scanBaseUrl}/tx/${componentData.transactionHash}`);
     }
   };
-
+  
   const handleBackToThirdParty = () => {
     if (window.opener) {
       //Popup Mode
@@ -49,6 +49,7 @@ const SuccessfulTransaction: React.FC = () => {
         <PrimaryButton onClick={handleBackToThirdParty} width="max-w-[440px]">
           Back to {devLicenseAlias}
         </PrimaryButton>
+        </PrimaryButton>        
         <PrimaryButton onClick={handleView} width="w-[214px]">
           View Transaction
         </PrimaryButton>
