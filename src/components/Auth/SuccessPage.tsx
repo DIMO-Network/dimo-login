@@ -9,7 +9,7 @@ import { buildAuthPayload, sendAuthPayloadToParent } from "../../utils/authUtils
 
 const SuccessPage: React.FC = () => {
   const { user, jwt } = useAuthContext(); // Should be set on session init
-  const { redirectUri, setUiState, clientId } = useDevCredentials();
+  const { redirectUri, setUiState, clientId, devLicenseAlias } = useDevCredentials();
 
   const sendJwtAfterPermissions = () => {
     if (jwt && redirectUri && clientId) {
@@ -28,7 +28,7 @@ const SuccessPage: React.FC = () => {
       <Header title="You are logged in!" subtitle={user ? user.email : ""} />
       <div className="flex justify-center">
         <PrimaryButton onClick={handleContinue} width="w-[214px]">
-          Continue
+          Back to {devLicenseAlias}
         </PrimaryButton>
       </div>
     </Card>

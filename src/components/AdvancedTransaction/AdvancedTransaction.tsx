@@ -18,8 +18,7 @@ import { sendMessageToReferrer } from "../../utils/messageHandler";
 const AdvancedTransaction: React.FC = () => {
   //TODO
   //Loading and Error Handling should not be determined by AuthContext
-  const { redirectUri, setUiState, setComponentData } =
-    useDevCredentials();
+  const { redirectUri, setUiState, setComponentData } = useDevCredentials();
   const { user, setLoading, setError, error } = useAuthContext();
 
   const [transactionData, setTransactionData] = useState<
@@ -98,7 +97,9 @@ const AdvancedTransaction: React.FC = () => {
   };
 
   const onReject = async () => {
-    //TBD
+    //This will send the message, and close the winodw
+    //Doesn't currently handle redirecting
+    sendErrorToParent(`User Rejected the Transaction`, redirectUri!);
   };
 
   return (
