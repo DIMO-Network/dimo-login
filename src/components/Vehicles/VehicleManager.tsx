@@ -26,7 +26,10 @@ import PrimaryButton from "../Shared/PrimaryButton";
 import VehicleThumbnail from "../../assets/images/vehicle-thumbnail.png";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/solid";
 import ErrorMessage from "../Shared/ErrorMessage";
-import { sendMessageToReferrer } from "../../utils/messageHandler";
+import {
+  backToThirdParty,
+  sendMessageToReferrer,
+} from "../../utils/messageHandler";
 import { isStandalone } from "../../utils/isStandalone";
 import { useUIManager } from "../../context/UIManagerContext";
 
@@ -34,7 +37,7 @@ const VehicleManager: React.FC = () => {
   // const targetGrantee = "0xeAa35540a94e3ebdf80448Ae7c9dE5F42CaB3481"; // TODO: Replace with client ID
   const { user, jwt, error, setError, setLoading } = useAuthContext();
   const { clientId, redirectUri, devLicenseAlias } = useDevCredentials();
-  const { setUiState } = useUIManager();
+  const { setUiState, setComponentData } = useUIManager();
 
   //Data from SDK
   const [permissionTemplateId, setPermissionTemplateId] = useState<
@@ -64,8 +67,6 @@ const VehicleManager: React.FC = () => {
       setPermissionTemplateId(permissionTemplateIdFromUrl);
       if (vehiclesFromUrl.length) setVehicleTokenIds(vehiclesFromUrl);
       if (vehicleMakesFromUrl.length) setVehicleMakes(vehicleMakesFromUrl);
-    } else {
-      sendJwtAfterPermissions(); // Developer has not toggled permissions
     }
   };
 
@@ -75,19 +76,16 @@ const VehicleManager: React.FC = () => {
     const handleMessage = (event: MessageEvent) => {
       const {
         eventType,
-        permissionTemplateId,
+        permissionTemplateId: permissionTemplateIdFromMessage,
         vehicles: vehiclesFromMessage,
         vehicleMakes: vehicleMakesFromMessage,
       } = event.data;
 
       if (eventType === "SHARE_VEHICLES_DATA") {
-        if (!permissionTemplateId) {
-          sendJwtAfterPermissions();
-        } else {
-          setPermissionTemplateId(permissionTemplateId);
-          if (vehiclesFromMessage) setVehicleTokenIds(vehiclesFromMessage);
-          if (vehicleMakesFromMessage) setVehicleMakes(vehicleMakesFromMessage);
-        }
+        if (permissionTemplateIdFromMessage)
+          setPermissionTemplateId(permissionTemplateIdFromMessage);
+        if (vehiclesFromMessage) setVehicleTokenIds(vehiclesFromMessage);
+        if (vehicleMakesFromMessage) setVehicleMakes(vehicleMakesFromMessage);
       }
     };
 
@@ -128,8 +126,7 @@ const VehicleManager: React.FC = () => {
           clientId as string,
           user?.smartContractAddress as string,
           user?.email as string,
-          devLicenseAlias as string,
-
+          devLicenseAlias as string
         );
         setPermissionTemplate(permissionTemplate);
       } catch (error) {
@@ -150,7 +147,12 @@ const VehicleManager: React.FC = () => {
   useEffect(() => {
     // Run both fetches in parallel
     Promise.all([fetchVehicles(), fetchPermissions()]);
-  }, [user?.smartContractAddress, clientId, permissionTemplateId, devLicenseAlias]);
+  }, [
+    user?.smartContractAddress,
+    clientId,
+    permissionTemplateId,
+    devLicenseAlias,
+  ]);
 
   const handleVehicleSelect = (vehicle: Vehicle) => {
     setSelectedVehicles(
@@ -161,18 +163,22 @@ const VehicleManager: React.FC = () => {
     );
   };
 
-  const sendJwtAfterPermissions = () => {
+  const sendJwtAfterPermissions = (
+    handleNavigation: (authPayload: any) => void
+  ) => {
     if (jwt && redirectUri && clientId) {
       const authPayload = buildAuthPayload(clientId, jwt, user);
-      sendAuthPayloadToParent(authPayload, redirectUri, () => {
-        setSelectedVehicles([]); // Clear selection after sharing
-        setUiState("SUCCESS");
-      });
+      sendAuthPayloadToParent(authPayload, redirectUri, () =>
+        handleNavigation(authPayload)
+      );
     }
   };
 
   const handleContinue = () => {
-    sendJwtAfterPermissions();
+    sendJwtAfterPermissions((authPayload: any) => {
+      backToThirdParty(authPayload, redirectUri!);
+      setUiState("TRANSACTION_CANCELLED");
+    });
   };
 
   const handleShare = async () => {
@@ -231,7 +237,11 @@ const VehicleManager: React.FC = () => {
           );
         }
 
-        sendJwtAfterPermissions();
+        sendJwtAfterPermissions((authPayload: any) => {
+          setComponentData(selectedVehicles);
+          setUiState("VEHICLES_SHARED_SUCCESS");
+          setSelectedVehicles([])
+        });
         setLoading(false);
       } catch (error) {
         setError("Could not share vehicles");
@@ -353,7 +363,7 @@ const VehicleManager: React.FC = () => {
                 vehicle={vehicle}
                 isSelected={selectedVehicles.includes(vehicle)}
                 onSelect={() => handleVehicleSelect(vehicle)}
-                disabled={vehicle.shared}
+                disabled={false}
               />
             ))}
         </div>
