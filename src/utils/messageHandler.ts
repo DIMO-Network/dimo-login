@@ -15,3 +15,22 @@ export function sendMessageToReferrer(data: object) {
     console.warn("No referrer found");
   }
 }
+
+
+export function backToThirdParty(payload: any, redirectUri: string) {
+  if (isStandalone()) {
+    // Redirect with payload in query params
+    const queryParams = new URLSearchParams(payload).toString();
+    window.location.href = `${redirectUri}?${queryParams}`;
+    return;
+  }
+
+  if (window.opener) {
+    // Close popup window
+    window.close();
+    return;
+  }
+
+  // Embedded mode: Button won't show
+  console.warn("Embedded mode detected. Back to third-party action skipped.");
+}
