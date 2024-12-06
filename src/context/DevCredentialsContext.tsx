@@ -45,7 +45,7 @@ export const DevCredentialsProvider = ({
   const [credentialsLoading, setCredentialsLoading] = useState<boolean>(true); // Renamed loading state
   const [invalidCredentials, setInvalidCredentials] = useState<boolean>(false);
   const [devLicenseAlias, setDevLicenseAlias] = useState<string | null>(); // Alias will only be set if credentials are valid, defaults to client ID if not alias
-  const { setUiState } = useUIManager();
+  const { setUiState, setEntryState } = useUIManager();
 
   // Example of using postMessage to receive credentials (as described previously)
   useEffect(() => {
@@ -56,15 +56,17 @@ export const DevCredentialsProvider = ({
     const entryStateFromUrl = urlParams.get("entryState");
 
     if (clientIdFromUrl && redirectUriFromUrl) {
-      setCredentials({ clientId: clientIdFromUrl, apiKey:"api key", redirectUri: redirectUriFromUrl });
       setUiState(entryStateFromUrl || "EMAIL_INPUT");
+      setEntryState(entryStateFromUrl || "EMAIL_INPUT");
+      setCredentials({ clientId: clientIdFromUrl, apiKey:"api key", redirectUri: redirectUriFromUrl });
     } else {
       const handleMessage = (event: MessageEvent) => {
         const { eventType, clientId, apiKey, redirectUri, entryState } =
           event.data;
         if (eventType === "AUTH_INIT") {
-          setCredentials({ clientId, apiKey, redirectUri });
           setUiState(entryState || "EMAIL_INPUT");
+          setEntryState(entryState || "EMAIL_INPUT");
+          setCredentials({ clientId, apiKey, redirectUri });
         }
       };
       window.addEventListener("message", handleMessage);

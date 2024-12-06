@@ -42,6 +42,7 @@ interface AuthContextProps {
   authenticateUser: (
     email: string,
     credentialBundle: string,
+    entryState: string,
     setJwt: (jwt: string) => void,
     setUiState: (step: string) => void
   ) => void;
@@ -176,6 +177,7 @@ export const AuthProvider = ({
   const handleAuthenticateUser = async (
     email: string,
     credentialBundle: string,
+    entryState: string,
     setJwt: (jwt: string) => void,
     setUiState: (step: string) => void
   ) => {
@@ -196,6 +198,7 @@ export const AuthProvider = ({
         clientId,
         redirectUri,
         user?.subOrganizationId,
+        entryState,
         setJwt,
         setUiState,
         setUser
