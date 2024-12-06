@@ -18,7 +18,7 @@ import {
   storeUserInLocalStorage,
 } from "../services/storageService";
 import { UserObject } from "../models/user";
-import { sendMessageToReferrer } from "./messageHandler";
+import { backToThirdParty, sendMessageToReferrer } from "./messageHandler";
 import { isEmbed } from "./isEmbed";
 
 export function buildAuthPayload(
@@ -61,33 +61,25 @@ export function sendAuthPayloadToParent(
     walletAddress: string;
   }) => void
 ) {
-  if (isStandalone()) {
-    // Redirect with token in query params
-    const queryParams = new URLSearchParams(payload).toString();
-    window.location.href = `${redirectUri}?${queryParams}`;
-    onSuccess(payload);
-    return;
-  }
-
   sendMessageToReferrer({
     eventType: "authResponse",
     ...payload,
     authType: window.opener ? "popup" : "embed",
   }); //TODO: authType to be deprecated soon, only kept for backwards compatibility
 
-  if (window.opener) {
-    //Close popup window after auth
-    window.close();
-  }
   onSuccess(payload);
 }
 
-export function logout(clientId: string, redirectUri: string, setUiState: (step: string) => void) {
+export function logout(
+  clientId: string,
+  redirectUri: string,
+  setUiState: (step: string) => void
+) {
   clearSessionData(clientId);
-  sendMessageToReferrer({eventType:"logout"});
+  sendMessageToReferrer({ eventType: "logout" });
 
   //Deal with post-logout
-  if ( isStandalone() ) {
+  if (isStandalone()) {
     window.location.href = redirectUri;
   } else if (window.opener) {
     //Close popup window after auth
@@ -104,6 +96,7 @@ export async function authenticateUser(
   clientId: string,
   redirectUri: string,
   subOrganizationId: string | null,
+  entryState: string,
   setJwt: (jwt: string) => void,
   setUiState: (step: string) => void,
   setUser: (user: UserObject) => void
@@ -146,7 +139,6 @@ export async function authenticateUser(
           signature
         );
 
-        
         const userProperties: UserObject = {
           email,
           subOrganizationId,
@@ -155,14 +147,31 @@ export async function authenticateUser(
           hasPasskey: true, //TODO: These should not be hardcoded
           emailVerified: true, //TODO: These should not be hardcoded
         };
-        
+
         //TODO, this can potentially be moved to a diff function
         setJwt(jwt.data.access_token); //Store in global state, to allow being used in VehicleManager component
         setUser(userProperties);
         storeJWTInCookies(clientId, jwt.data.access_token); // Store JWT in cookies
         storeUserInLocalStorage(clientId, userProperties); // Store user properties in localStorage
 
-        setUiState("VEHICLE_MANAGER"); //Move to vehicle manager, and vehicle manager is what will determine if we go to success
+        //Parse Entry State
+        if (entryState === "EMAIL_INPUT") {
+          const authPayload = buildAuthPayload(
+            clientId,
+            jwt.data.access_token,
+            userProperties
+          );
+          sendAuthPayloadToParent(authPayload, redirectUri, (payload) => {
+            backToThirdParty(payload, redirectUri);
+            setUiState("SUCCESS") //For Embed Mode
+          });
+        } else if ( entryState === "VEHICLE_MANAGER" ) {
+          //Note: If the user is unauthenticated but the vehicle manager is the entry state, the payload will be sent to parent in the vehicle manager, after vehicles are shared
+          setUiState("VEHICLE_MANAGER"); //Move to vehicle manager
+        } else 
+        if ( entryState === "ADVANCED_TRANSACTION" ) {
+          setUiState("ADVANCED_TRANSACTION");
+        }
       }
     }
   }
