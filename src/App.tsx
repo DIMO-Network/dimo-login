@@ -13,6 +13,7 @@ import AdvancedTransaction from "./components/AdvancedTransaction/AdvancedTransa
 import SuccessfulTransaction from "./components/AdvancedTransaction/SuccessfulTransaction";
 import { useUIManager } from "./context/UIManagerContext";
 import CancelledTransaction from "./components/AdvancedTransaction/CancelledTransaction";
+import SuccessfulPermissions from "./components/Vehicles/SuccessfulPermissions";
 
 function App() {
   const { loading: authLoading, setJwt, setUser } = useAuthContext(); // Get loading state from AuthContext
@@ -67,6 +68,7 @@ function App() {
       {uiState === "VEHICLE_MANAGER" && <VehicleManager />}
       {uiState === "ADVANCED_TRANSACTION" && <AdvancedTransaction />}
       {uiState === "TRANSACTION_SUCCESS" && <SuccessfulTransaction />}
+      {uiState === "VEHICLES_SHARED_SUCCESS" && <SuccessfulPermissions />}
       {uiState === "TRANSACTION_CANCELLED" && <CancelledTransaction />}
       {uiState === "SUCCESS" && <SuccessPage />}
     </div>
