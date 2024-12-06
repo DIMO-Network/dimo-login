@@ -150,7 +150,7 @@ const VehicleManager: React.FC = () => {
   useEffect(() => {
     // Run both fetches in parallel
     Promise.all([fetchVehicles(), fetchPermissions()]);
-  }, [user?.smartContractAddress, clientId, permissionTemplateId]); //TODO: Switch to Kernel Signer
+  }, [user?.smartContractAddress, clientId, permissionTemplateId, devLicenseAlias]);
 
   const handleVehicleSelect = (vehicle: Vehicle) => {
     setSelectedVehicles(
