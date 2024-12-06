@@ -26,7 +26,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
   } = useAuthContext(); // Get sendOtp from the context
 
   const { clientId, devLicenseAlias } = useDevCredentials();
-  const { setUiState } = useUIManager();
+  const { setUiState, entryState } = useUIManager();
 
   const [email, setEmail] = useState("");
   const [triggerAuth, setTriggerAuth] = useState(false);
@@ -80,7 +80,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
   useEffect(() => {
     // Only authenticate if `user` is set and authentication hasn't been triggered
     if (triggerAuth) {
-      authenticateUser(email, "credentialBundle", setJwt, setUiState);
+      authenticateUser(email, "credentialBundle", entryState, setJwt, setUiState);
     }
   }, [triggerAuth]);
 
