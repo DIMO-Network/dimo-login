@@ -21,7 +21,7 @@ const AdvancedTransaction: React.FC = () => {
   //Loading and Error Handling should not be determined by AuthContext
   const { redirectUri } = useDevCredentials();
   const { setUiState, setComponentData } = useUIManager();
-  const { user, setLoading, setError, error } = useAuthContext();
+  const { user, setLoading, setError, error, jwt } = useAuthContext();
 
   const [transactionData, setTransactionData] = useState<
     TransactionData | undefined
@@ -58,7 +58,7 @@ const AdvancedTransaction: React.FC = () => {
     return (
       <ErrorScreen
         title="Missing Transaction Data"
-        message="Please check the configuration and reload the page."
+        message="ABI not supported in URL. Please contact developer"
       />
     );
   }
@@ -82,7 +82,7 @@ const AdvancedTransaction: React.FC = () => {
       );
 
       //Send transaction hash to developer, and show user successful txn
-      sendTxnResponseToParent(receipt, (transactionHash) => {
+      sendTxnResponseToParent(receipt, jwt!, (transactionHash) => {
         setComponentData({ transactionHash });
         setUiState("TRANSACTION_SUCCESS");
         setLoading(false);

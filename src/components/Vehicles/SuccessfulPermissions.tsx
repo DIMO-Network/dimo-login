@@ -7,46 +7,54 @@ import { useDevCredentials } from "../../context/DevCredentialsContext";
 import ErrorScreen from "../Shared/ErrorScreen";
 import { isStandalone } from "../../utils/isStandalone";
 import { useUIManager } from "../../context/UIManagerContext";
-import { backToThirdParty } from "../../utils/messageHandler";
-import { isEmbed } from "../../utils/isEmbed";
+import { buildAuthPayload } from "../../utils/authUtils";
 import { useAuthContext } from "../../context/AuthContext";
+import { backToThirdParty } from "../../utils/messageHandler";
+import { Vehicle } from "../../models/vehicle";
+import VehicleCard from "./VehicleCard";
+import { isEmbed } from "../../utils/isEmbed";
 
-const SuccessfulTransaction: React.FC = () => {
-  const { redirectUri, devLicenseAlias } = useDevCredentials();
-  const { componentData } = useUIManager();
-  const { jwt } = useAuthContext();
+const SuccessfulPermissions: React.FC = () => {
+  const { redirectUri, devLicenseAlias, clientId } = useDevCredentials();
+  const { componentData: vehicles } = useUIManager();
+  const { jwt, user } = useAuthContext();
 
-  if (!componentData.transactionHash) {
-    return (
-      <ErrorScreen
-        title="Missing Transaction Hash"
-        message="Transaction was not successfully completed."
-      />
-    );
-  }
-
-  const handleView = () => {
-    if (componentData.transactionHash) {
-      const scanBaseUrl =
-        process.env.REACT_APP_ENVIRONMENT == "prod"
-          ? "https://polygonscan.com"
-          : "https://amoy.polygonscan.com";
-
-      window.open(`${scanBaseUrl}/tx/${componentData.transactionHash}`);
-    }
-  };
+  //   if (!componentData.transactionHash) {
+  //     return (
+  //       <ErrorScreen
+  //         title="Invalid Navigation"
+  //         message="Please check the configuration and reload the page."
+  //       />
+  //     );
+  //   }
 
   const handleBackToThirdParty = () => {
     //If Dev is using popup mode, we simply exit the flow here and close the window
     //By this point the dev should already have the transaction data, so this screen is mainly for the users UX, for them to know what happened
     //Redirect mode however, the user controls when the data is sent because we need to perform a redirect
-    const payload = { transactionHash: componentData.transactionHash, token: jwt };
+    const payload = buildAuthPayload(clientId!, jwt, user);
     backToThirdParty(payload, redirectUri!);
   };
 
   return (
     <Card width="w-full max-w-[600px]" height="h-full max-h-[308px]">
-      <Header title="Successful Transaction!" subtitle={""} />
+      <Header
+        title="You have successfully shared your vehicles!"
+        subtitle={""}
+      />
+      <div className="space-y-4 max-h-[400px] overflow-scroll w-full max-w-[440px]">
+        {vehicles &&
+          vehicles.length > 0 &&
+          vehicles.map((vehicle: Vehicle) => (
+            <VehicleCard
+              key={vehicle.tokenId.toString()}
+              vehicle={vehicle}
+              isSelected={false}
+              onSelect={() => console.log("yee")}
+              disabled={true}
+            />
+          ))}
+      </div>
       <div className="space-y-4">
         {!isEmbed() && (
           <div className="flex justify-center">
@@ -55,14 +63,9 @@ const SuccessfulTransaction: React.FC = () => {
             </PrimaryButton>
           </div>
         )}
-        <div className="flex justify-center">
-          <PrimaryButton onClick={handleView} width="w-32">
-            View Transaction
-          </PrimaryButton>
-        </div>
       </div>
     </Card>
   );
 };
 
-export default SuccessfulTransaction;
+export default SuccessfulPermissions;

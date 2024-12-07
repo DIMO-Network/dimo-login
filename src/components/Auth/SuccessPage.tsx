@@ -12,6 +12,7 @@ import {
 } from "../../utils/authUtils";
 import { useUIManager } from "../../context/UIManagerContext";
 import { isEmbed } from "../../utils/isEmbed";
+import { backToThirdParty } from "../../utils/messageHandler";
 
 const SuccessPage: React.FC = () => {
   const { user, jwt } = useAuthContext(); // Should be set on session init
@@ -21,8 +22,8 @@ const SuccessPage: React.FC = () => {
   const sendJwtAfterPermissions = () => {
     if (jwt && redirectUri && clientId) {
       const authPayload = buildAuthPayload(clientId, jwt, user);
-      sendAuthPayloadToParent(authPayload, redirectUri, () => {
-        setUiState("SUCCESS");
+      sendAuthPayloadToParent(authPayload, redirectUri, (payload) => {
+        backToThirdParty(payload, redirectUri);        
       });
     }
   };
