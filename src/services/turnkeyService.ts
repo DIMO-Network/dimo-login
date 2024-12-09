@@ -12,15 +12,17 @@ import {
   KernelSigner,
   MintVehicleWithDeviceDefinition,
   newKernelConfig,
+  sacdDescription,
+  sacdPermissionArray,
   sacdPermissionValue,
   SetVehiclePermissions,
   SetVehiclePermissionsBulk,
   TransactionData,
 } from "@dimo-network/transactions";
 import { getWebAuthnAttestation } from "@turnkey/http";
-import { IframeStamper } from "@turnkey/iframe-stamper";
 import { WebauthnStamper } from "@turnkey/webauthn-stamper";
 import { base64UrlEncode, generateRandomBuffer } from "../utils/cryptoUtils";
+import { SACD_PERMISSIONS, VehcilePermissionDescription } from "@dimo-network/transactions/dist/core/types/args";
 
 const stamper = new WebauthnStamper({
   rpId:
@@ -227,4 +229,17 @@ export async function executeAdvancedTransaction(
   });  
 
   return response.receipt.transactionHash;
+}
+
+//Exported helpers, to reduce other services to depend on the transactions SDK
+export function getSacdValue(sacdPerms: SACD_PERMISSIONS) {
+  return sacdPermissionValue(sacdPerms);
+}
+
+export function getSacdDescription(args: VehcilePermissionDescription) {
+  return sacdDescription(args);
+}
+
+export function getSacdPermissionArray(permissionsObject: bigint) {
+  return sacdPermissionArray(permissionsObject);
 }
