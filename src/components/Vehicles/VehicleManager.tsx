@@ -36,9 +36,9 @@ import { SACDTemplate } from "@dimo-network/transactions/dist/core/types/dimo";
 
 const VehicleManager: React.FC = () => {
   // const targetGrantee = "0xeAa35540a94e3ebdf80448Ae7c9dE5F42CaB3481"; // TODO: Replace with client ID
-  const { user, jwt, error, setError } = useAuthContext();
+  const { user, jwt } = useAuthContext();
   const { clientId, redirectUri, devLicenseAlias } = useDevCredentials();
-  const { setUiState, setComponentData, setLoadingState } = useUIManager();
+  const { setUiState, setComponentData, setLoadingState, error, setError } = useUIManager();
 
   //Data from SDK
   const [permissionTemplateId, setPermissionTemplateId] = useState<

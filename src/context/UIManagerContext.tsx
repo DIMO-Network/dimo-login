@@ -10,6 +10,8 @@ interface UIManagerContextProps {
   isLoading: boolean;
   loadingMessage: string;
   setLoadingState: (loading: boolean, message?: string) => void;
+  error: string | null;
+  setError: React.Dispatch<React.SetStateAction<string | null>>;  
 }
 
 const UIManagerContext = createContext<UIManagerContextProps | undefined>(
@@ -22,6 +24,7 @@ export const UIManagerProvider = ({ children }: { children: ReactNode }) => {
   const [componentData, setComponentData] = useState<any | null>(null); // Initial component data
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const setLoadingState = (loading: boolean, message: string = "") => {
     setIsLoading(loading);
@@ -40,6 +43,8 @@ export const UIManagerProvider = ({ children }: { children: ReactNode }) => {
         isLoading,
         loadingMessage,
         setLoadingState,
+        error, 
+        setError
       }}
     >
       {children}

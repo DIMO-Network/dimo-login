@@ -20,8 +20,8 @@ const AdvancedTransaction: React.FC = () => {
   //TODO
   //Loading and Error Handling should not be determined by AuthContext
   const { redirectUri } = useDevCredentials();
-  const { setUiState, setComponentData, setLoadingState } = useUIManager();
-  const { user, setError, error, jwt } = useAuthContext();
+  const { setUiState, setComponentData, setLoadingState, error, setError } = useUIManager();
+  const { user, jwt } = useAuthContext();
 
   const [transactionData, setTransactionData] = useState<
     TransactionData | undefined

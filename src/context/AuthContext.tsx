@@ -51,8 +51,6 @@ interface AuthContextProps {
   setUser: React.Dispatch<React.SetStateAction<UserObject | undefined>>;
   jwt: string | undefined;
   setJwt: React.Dispatch<React.SetStateAction<string | undefined>>;
-  error: string | null;
-  setError: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -65,9 +63,8 @@ export const AuthProvider = ({
 }): JSX.Element => {
   const [user, setUser] = useState<UserObject | undefined>(undefined);
   const [jwt, setJwt] = useState<string | undefined>(undefined);
-  const [error, setError] = useState<string | null>(null);
   const { clientId, apiKey, redirectUri } = useDevCredentials();
-  const { setLoadingState } = useUIManager();
+  const { setLoadingState, error, setError } = useUIManager();
 
   const createAccountWithPasskey = async (
     email: string
@@ -223,8 +220,6 @@ export const AuthProvider = ({
         setUser,
         jwt,
         setJwt,
-        error,
-        setError,
       }}
     >
       {children}
