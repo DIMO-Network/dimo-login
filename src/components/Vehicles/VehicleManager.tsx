@@ -17,9 +17,9 @@ import {
 import { useDevCredentials } from "../../context/DevCredentialsContext";
 import {
   fetchPermissionsFromId,
-  PermissionTemplate,
+  getExpiration,
+  getPermsValue,
 } from "../../services/permissionsService";
-import { SACD_PERMISSIONS } from "@dimo-network/transactions/dist/core/types/args";
 import Card from "../Shared/Card";
 import Header from "../Shared/Header";
 import PrimaryButton from "../Shared/PrimaryButton";
@@ -32,6 +32,7 @@ import {
 } from "../../utils/messageHandler";
 import { isStandalone } from "../../utils/isStandalone";
 import { useUIManager } from "../../context/UIManagerContext";
+import { SACDTemplate } from "@dimo-network/transactions/dist/core/types/dimo";
 
 const VehicleManager: React.FC = () => {
   // const targetGrantee = "0xeAa35540a94e3ebdf80448Ae7c9dE5F42CaB3481"; // TODO: Replace with client ID
@@ -51,7 +52,7 @@ const VehicleManager: React.FC = () => {
   //Data from API's
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [permissionTemplate, setPermissionTemplate] =
-    useState<PermissionTemplate | null>(null);
+    useState<SACDTemplate | null>(null);
 
   //Data from User
   const [selectedVehicles, setSelectedVehicles] = useState<Vehicle[]>([]); // Array for multiple selected vehicles
@@ -128,7 +129,7 @@ const VehicleManager: React.FC = () => {
           user?.email as string,
           devLicenseAlias as string
         );
-        setPermissionTemplate(permissionTemplate);
+        setPermissionTemplate(permissionTemplate as SACDTemplate);
       } catch (error) {
         setError("Could not fetch permissions");
         console.error("Error fetching permissions:", error);
@@ -188,69 +189,60 @@ const VehicleManager: React.FC = () => {
     if (user && user.subOrganizationId && user.walletAddress) {
       await initializeIfNeeded(user.subOrganizationId);
     }
-    const permissionsObject: SACD_PERMISSIONS = permissionTemplate?.data.scope
-      .permissions
-      ? permissionTemplate.data.scope.permissions.reduce(
-          (obj: SACD_PERMISSIONS, permission: string) => {
-            obj[permission as keyof SACD_PERMISSIONS] = true;
-            return obj;
-          },
-          {} as SACD_PERMISSIONS
-        )
-      : {};
 
-    const perms = sacdPermissionValue(permissionsObject);
-    const expiration = BigInt(2933125200); //TODO: Make this a constant
+    if (permissionTemplateId) {
+      const perms = getPermsValue(permissionTemplateId);
+      const expiration = getExpiration();
+      if (selectedVehicles.length > 0 && clientId) {
+        const unsharedTokenIds = selectedVehicles
+          .filter((vehicle) => !vehicle.shared)
+          .map((vehicle) => vehicle.tokenId);
 
-    if (selectedVehicles.length > 0 && clientId) {
-      const unsharedTokenIds = selectedVehicles
-        .filter((vehicle) => !vehicle.shared)
-        .map((vehicle) => vehicle.tokenId);
-
-      if (unsharedTokenIds.length === 0) {
-        return;
-      }
-
-      try {
-        const sources = await generateIpfsSources(
-          unsharedTokenIds as bigint[],
-          perms,
-          clientId,
-          expiration
-        );
-
-        if (unsharedTokenIds.length === 1) {
-          await setVehiclePermissions(
-            unsharedTokenIds[0],
-            clientId as `0x${string}`,
-            perms,
-            expiration,
-            sources
-          );
-        } else {
-          await setVehiclePermissionsBulk(
-            unsharedTokenIds,
-            clientId as `0x${string}`,
-            perms,
-            expiration,
-            sources
-          );
+        if (unsharedTokenIds.length === 0) {
+          return;
         }
 
-        sendJwtAfterPermissions((authPayload: any) => {
-          setComponentData(selectedVehicles);
-          setUiState("VEHICLES_SHARED_SUCCESS");
-          setSelectedVehicles([])
-        });
+        try {
+          const sources = await generateIpfsSources(
+            unsharedTokenIds as bigint[],
+            perms,
+            clientId,
+            expiration
+          );
+
+          if (unsharedTokenIds.length === 1) {
+            await setVehiclePermissions(
+              unsharedTokenIds[0],
+              clientId as `0x${string}`,
+              perms,
+              expiration,
+              sources
+            );
+          } else {
+            await setVehiclePermissionsBulk(
+              unsharedTokenIds,
+              clientId as `0x${string}`,
+              perms,
+              expiration,
+              sources
+            );
+          }
+
+          sendJwtAfterPermissions((authPayload: any) => {
+            setComponentData(selectedVehicles);
+            setUiState("VEHICLES_SHARED_SUCCESS");
+            setSelectedVehicles([]);
+          });
+          setLoading(false);
+        } catch (error) {
+          setError("Could not share vehicles");
+          setLoading(false);
+          console.error("Error sharing vehicles:", error);
+        }
+      } else {
+        setError("No vehicles selected");
         setLoading(false);
-      } catch (error) {
-        setError("Could not share vehicles");
-        setLoading(false);
-        console.error("Error sharing vehicles:", error);
       }
-    } else {
-      setError("No vehicles selected");
-      setLoading(false);
     }
   };
 
