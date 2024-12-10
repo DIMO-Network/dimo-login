@@ -30,6 +30,7 @@ import { UserObject } from "../models/user";
 import { createPasskey } from "../services/turnkeyService";
 import { useDevCredentials } from "./DevCredentialsContext";
 import { CredentialResult, OtpResult, UserResult } from "../models/resultTypes";
+import { useUIManager } from "./UIManagerContext";
 
 interface AuthContextProps {
   createAccountWithPasskey: (email: string) => Promise<UserResult>;
@@ -48,12 +49,8 @@ interface AuthContextProps {
   ) => void;
   user: UserObject | undefined;
   setUser: React.Dispatch<React.SetStateAction<UserObject | undefined>>;
-  loading: boolean | string; // Add loading state to context
   jwt: string | undefined;
   setJwt: React.Dispatch<React.SetStateAction<string | undefined>>;
-  error: string | null;
-  setError: React.Dispatch<React.SetStateAction<string | null>>;
-  setLoading: React.Dispatch<React.SetStateAction<boolean | string>>;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -64,16 +61,15 @@ export const AuthProvider = ({
 }: {
   children: ReactNode;
 }): JSX.Element => {
-  const [loading, setLoading] = useState<boolean | string>(false);
   const [user, setUser] = useState<UserObject | undefined>(undefined);
   const [jwt, setJwt] = useState<string | undefined>(undefined);
-  const [error, setError] = useState<string | null>(null);
   const { clientId, apiKey, redirectUri } = useDevCredentials();
+  const { setLoadingState, error, setError } = useUIManager();
 
   const createAccountWithPasskey = async (
     email: string
   ): Promise<UserResult> => {
-    setLoading("Creating account");
+    setLoadingState(true,"Creating account");
     setError(null);
     if (!apiKey) {
       return {
@@ -106,12 +102,12 @@ export const AuthProvider = ({
       );
       return { success: false, error: error as string };
     } finally {
-      setLoading(false);
+      setLoadingState(false);
     }
   };
 
   const handleSendOtp = async (email: string): Promise<OtpResult> => {
-    setLoading("Sending OTP");
+    setLoadingState(true,"Sending OTP");
     setError(null);
 
     if (!apiKey) {
@@ -143,7 +139,7 @@ export const AuthProvider = ({
       console.error(err);
       return { success: false, error: error as string };
     } finally {
-      setLoading(false);
+      setLoadingState(false);
     }
   };
 
@@ -152,7 +148,7 @@ export const AuthProvider = ({
     otp: string,
     otpId: string
   ): Promise<CredentialResult> => {
-    setLoading("Verifying OTP");
+    setLoadingState(true, "Verifying OTP");
     setError(null);
     try {
       const result = await verifyOtp(email, otp, otpId);
@@ -170,7 +166,7 @@ export const AuthProvider = ({
       console.error(err);
       return { success: false, error: err as string };
     } finally {
-      setLoading(false);
+      setLoadingState(false);
     }
   };
 
@@ -181,7 +177,7 @@ export const AuthProvider = ({
     setJwt: (jwt: string) => void,
     setUiState: (step: string) => void
   ) => {
-    setLoading("Authenticating User");
+    setLoadingState(true,"Authenticating User");
     setError(null);
 
     try {
@@ -209,7 +205,7 @@ export const AuthProvider = ({
       );
       console.error(error);
     } finally {
-      setLoading(false);
+      setLoadingState(false);
     }
   };
 
@@ -220,14 +216,10 @@ export const AuthProvider = ({
         sendOtp: handleSendOtp,
         verifyOtp: handleVerifyOtp,
         authenticateUser: handleAuthenticateUser,
-        loading,
         user,
         setUser,
         jwt,
         setJwt,
-        error,
-        setError,
-        setLoading,
       }}
     >
       {children}

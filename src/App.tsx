@@ -16,15 +16,10 @@ import CancelledTransaction from "./components/AdvancedTransaction/CancelledTran
 import SuccessfulPermissions from "./components/Vehicles/SuccessfulPermissions";
 
 function App() {
-  const { loading: authLoading, setJwt, setUser } = useAuthContext(); // Get loading state from AuthContext
-  const {
-    credentialsLoading,
-    clientId,
-    apiKey,
-    redirectUri,
-    invalidCredentials,
-  } = useDevCredentials(); // Get loading state and credentials from DevCredentialsContext
-  const { uiState, setUiState } = useUIManager();
+  const { setJwt, setUser } = useAuthContext(); // Get loading state from AuthContext
+  const { clientId, apiKey, redirectUri, invalidCredentials } =
+    useDevCredentials(); // Get loading state and credentials from DevCredentialsContext
+  const { uiState, setUiState, isLoading } = useUIManager();
   const [email, setEmail] = useState("");
   const [otpId, setOtpId] = useState(""); // New state for OTP ID
 
@@ -36,7 +31,7 @@ function App() {
 
   // If either credentials or auth is loading, show the loader
   // Loading state
-  if (authLoading || credentialsLoading) {
+  if (isLoading) {
     return <LoadingScreen />;
   }
 

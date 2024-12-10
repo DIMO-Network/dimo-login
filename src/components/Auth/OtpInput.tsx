@@ -12,8 +12,8 @@ interface OtpInputProps {
 }
 
 const OtpInput: React.FC<OtpInputProps> = ({ email, otpId }) => {
-  const { verifyOtp, authenticateUser, setJwt, error } = useAuthContext(); // Get verifyOtp from the context
-  const { setUiState, entryState } = useUIManager();
+  const { verifyOtp, authenticateUser, setJwt } = useAuthContext(); // Get verifyOtp from the context
+  const { setUiState, entryState, error } = useUIManager();
   const [otpArray, setOtpArray] = useState(Array(6).fill("")); // Array of 6 empty strings
 
   // Function to handle change for each input
@@ -25,7 +25,7 @@ const OtpInput: React.FC<OtpInputProps> = ({ email, otpId }) => {
 
     // Detect paste event for the full OTP
     if (value.length === 6) {
-      const newOtpArray = value.split("").slice(0, 6); // Only take the first 6 characters
+      const newOtpArray = value.split("").slice(0, 6); // Only stake the first 6 characters
       setOtpArray(newOtpArray);
 
       // Move focus to the last input
