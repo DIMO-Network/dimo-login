@@ -75,10 +75,10 @@ const AdvancedTransaction: React.FC = () => {
     try {
       const receipt = await executeAdvancedTransaction(
         transactionData.address,
-        transactionData.value,
         transactionData.abi,
         transactionData.functionName,
-        transactionData.args
+        transactionData.args,
+        transactionData.value
       );
 
       //Send transaction hash to developer, and show user successful txn
@@ -97,7 +97,11 @@ const AdvancedTransaction: React.FC = () => {
   const onReject = async () => {
     //This will send the message, and close the winodw
     //Doesn't currently handle redirecting
-    sendErrorToParent(`User Rejected the Transaction`, redirectUri!, setUiState);
+    sendErrorToParent(
+      `User Rejected the Transaction`,
+      redirectUri!,
+      setUiState
+    );
   };
 
   return (
@@ -130,8 +134,15 @@ const AdvancedTransaction: React.FC = () => {
           <div className="flex flex-col w-full gap-[8px] rounded-md text-sm">
             <p className="text-gray-600">ADDRESS:</p>
             <p className="text-gray-600">{transactionData?.address}</p>
-            <p className="text-gray-600">VALUE:</p>
-            <p className="text-gray-600">{transactionData?.value.toString()}</p>
+
+            {transactionData.value && (
+              <>
+                <p className="text-gray-600">VALUE:</p>
+                <p className="text-gray-600">
+                  {transactionData?.value?.toString()}
+                </p>
+              </>
+            )}
           </div>
 
           {/* Render buttons */}
