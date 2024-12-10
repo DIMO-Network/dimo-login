@@ -36,9 +36,9 @@ import { SACDTemplate } from "@dimo-network/transactions/dist/core/types/dimo";
 
 const VehicleManager: React.FC = () => {
   // const targetGrantee = "0xeAa35540a94e3ebdf80448Ae7c9dE5F42CaB3481"; // TODO: Replace with client ID
-  const { user, jwt, error, setError, setLoading } = useAuthContext();
+  const { user, jwt, error, setError } = useAuthContext();
   const { clientId, redirectUri, devLicenseAlias } = useDevCredentials();
-  const { setUiState, setComponentData } = useUIManager();
+  const { setUiState, setComponentData, setLoadingState } = useUIManager();
 
   //Data from SDK
   const [permissionTemplateId, setPermissionTemplateId] = useState<
@@ -183,7 +183,7 @@ const VehicleManager: React.FC = () => {
   };
 
   const handleShare = async () => {
-    setLoading("Sharing vehicles");
+    setLoadingState(true,"Sharing vehicles");
 
     //TODO: Switch to Kernel Signer
     if (user && user.subOrganizationId && user.walletAddress) {
@@ -233,15 +233,15 @@ const VehicleManager: React.FC = () => {
             setUiState("VEHICLES_SHARED_SUCCESS");
             setSelectedVehicles([]);
           });
-          setLoading(false);
+          setLoadingState(false);
         } catch (error) {
           setError("Could not share vehicles");
-          setLoading(false);
+          setLoadingState(false);
           console.error("Error sharing vehicles:", error);
         }
       } else {
         setError("No vehicles selected");
-        setLoading(false);
+        setLoadingState(false);
       }
     }
   };
