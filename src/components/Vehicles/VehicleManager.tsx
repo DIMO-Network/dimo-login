@@ -20,7 +20,6 @@ import {
   getExpiration,
   getPermsValue,
 } from "../../services/permissionsService";
-import { SACD_PERMISSIONS } from "@dimo-network/transactions/dist/core/types/args";
 import Card from "../Shared/Card";
 import Header from "../Shared/Header";
 import PrimaryButton from "../Shared/PrimaryButton";

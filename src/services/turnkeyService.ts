@@ -22,7 +22,7 @@ import {
 import { getWebAuthnAttestation } from "@turnkey/http";
 import { WebauthnStamper } from "@turnkey/webauthn-stamper";
 import { base64UrlEncode, generateRandomBuffer } from "../utils/cryptoUtils";
-import { SACD_PERMISSIONS, VehcilePermissionDescription } from "@dimo-network/transactions/dist/core/types/args";
+import { VehcilePermissionDescription } from "@dimo-network/transactions/dist/core/types/args";
 
 const stamper = new WebauthnStamper({
   rpId:
@@ -55,11 +55,11 @@ export const createKernelSigner = (
 
 export const getSmartContractAddress = (): `0x${string}` | undefined => {
   return kernelSigner.kernelAddress;
-}
+};
 
 export const getWalletAddress = (): `0x${string}` | undefined => {
   return kernelSigner.walletAddress;
-}
+};
 
 export const createPasskey = async (email: string) => {
   const challenge = generateRandomBuffer();
@@ -200,20 +200,18 @@ export async function setVehiclePermissionsBulk(
 
 export async function executeAdvancedTransaction(
   address: `0x${string}`,
-  value: BigInt,
   abi: any,
   functionName: string,
-  args: any[]
-
+  args: any[],
+  value?: BigInt
 ): Promise<`0x${string}`> {
-
   const payload: TransactionData = {
     address,
     value,
     abi,
     functionName,
-    args
-  }
+    args,
+  };
 
   const response = await kernelSigner.executeTransaction({
     requireSignature: false,
@@ -226,13 +224,27 @@ export async function executeAdvancedTransaction(
         args,
       },
     ],
-  });  
+  });
 
   return response.receipt.transactionHash;
 }
 
 //Exported helpers, to reduce other services to depend on the transactions SDK
-export function getSacdValue(sacdPerms: SACD_PERMISSIONS) {
+export function getSacdValue(
+  sacdPerms: Partial<
+    Record<
+      | "NONLOCATION_TELEMETRY"
+      | "COMMANDS"
+      | "CURRENT_LOCATION"
+      | "ALLTIME_LOCATION"
+      | "CREDENTIALS"
+      | "STREAMS"
+      | "RAW_DATA"
+      | "APPROXIMATE_LOCATION",
+      boolean
+    >
+  >
+) {
   return sacdPermissionValue(sacdPerms);
 }
 
