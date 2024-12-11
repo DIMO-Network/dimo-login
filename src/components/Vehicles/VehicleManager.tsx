@@ -17,7 +17,6 @@ import {
 import { useDevCredentials } from "../../context/DevCredentialsContext";
 import {
   fetchPermissionsFromId,
-  getExpiration,
   getPermsValue,
 } from "../../services/permissionsService";
 import Card from "../Shared/Card";
@@ -33,12 +32,16 @@ import {
 import { isStandalone } from "../../utils/isStandalone";
 import { useUIManager } from "../../context/UIManagerContext";
 import { SACDTemplate } from "@dimo-network/transactions/dist/core/types/dimo";
+import {
+  getDefaultExpirationDate,
+  parseExpirationDate,
+} from "../../utils/dateUtils";
 
 const VehicleManager: React.FC = () => {
-  // const targetGrantee = "0xeAa35540a94e3ebdf80448Ae7c9dE5F42CaB3481"; // TODO: Replace with client ID
   const { user, jwt } = useAuthContext();
   const { clientId, redirectUri, devLicenseAlias } = useDevCredentials();
-  const { setUiState, setComponentData, setLoadingState, error, setError } = useUIManager();
+  const { setUiState, setComponentData, setLoadingState, error, setError } =
+    useUIManager();
 
   //Data from SDK
   const [permissionTemplateId, setPermissionTemplateId] = useState<
@@ -54,13 +57,18 @@ const VehicleManager: React.FC = () => {
   const [permissionTemplate, setPermissionTemplate] =
     useState<SACDTemplate | null>(null);
 
-  //Data from User
+  //Data from Developer
   const [selectedVehicles, setSelectedVehicles] = useState<Vehicle[]>([]); // Array for multiple selected vehicles
   const [isExpanded, setIsExpanded] = useState<boolean | undefined>(undefined);
+  const [expirationDate, setExpirationDate] = useState<BigInt>(
+    getDefaultExpirationDate()
+  );
 
   const handleStandaloneMode = () => {
+    //TODO: Handle Expiration Date
     const urlParams = new URLSearchParams(window.location.search);
     const permissionTemplateIdFromUrl = urlParams.get("permissionTemplateId");
+    const expirationDateFromUrl = urlParams.get("expirationDate");
     const vehiclesFromUrl = urlParams.getAll("vehicles");
     const vehicleMakesFromUrl = urlParams.getAll("vehicleMakes");
 
@@ -68,10 +76,13 @@ const VehicleManager: React.FC = () => {
       setPermissionTemplateId(permissionTemplateIdFromUrl);
       if (vehiclesFromUrl.length) setVehicleTokenIds(vehiclesFromUrl);
       if (vehicleMakesFromUrl.length) setVehicleMakes(vehicleMakesFromUrl);
+      if (expirationDateFromUrl)
+        setExpirationDate(parseExpirationDate(expirationDateFromUrl));
     }
   };
 
   const handleEmbedPopupMode = () => {
+    //TODO: Handle Expiration Data
     sendMessageToReferrer({ eventType: "SHARE_VEHICLES_DATA" });
 
     const handleMessage = (event: MessageEvent) => {
@@ -80,6 +91,7 @@ const VehicleManager: React.FC = () => {
         permissionTemplateId: permissionTemplateIdFromMessage,
         vehicles: vehiclesFromMessage,
         vehicleMakes: vehicleMakesFromMessage,
+        expirationDate: expirationDateFromMessage,
       } = event.data;
 
       if (eventType === "SHARE_VEHICLES_DATA") {
@@ -87,6 +99,8 @@ const VehicleManager: React.FC = () => {
           setPermissionTemplateId(permissionTemplateIdFromMessage);
         if (vehiclesFromMessage) setVehicleTokenIds(vehiclesFromMessage);
         if (vehicleMakesFromMessage) setVehicleMakes(vehicleMakesFromMessage);
+        if (expirationDateFromMessage)
+          setExpirationDate(parseExpirationDate(expirationDateFromMessage));
       }
     };
 
@@ -127,7 +141,8 @@ const VehicleManager: React.FC = () => {
           clientId as string,
           user?.smartContractAddress as string,
           user?.email as string,
-          devLicenseAlias as string
+          devLicenseAlias as string,
+          expirationDate
         );
         setPermissionTemplate(permissionTemplate as SACDTemplate);
       } catch (error) {
@@ -183,7 +198,7 @@ const VehicleManager: React.FC = () => {
   };
 
   const handleShare = async () => {
-    setLoadingState(true,"Sharing vehicles");
+    setLoadingState(true, "Sharing vehicles");
 
     //TODO: Switch to Kernel Signer
     if (user && user.subOrganizationId && user.walletAddress) {
@@ -192,7 +207,6 @@ const VehicleManager: React.FC = () => {
 
     if (permissionTemplateId) {
       const perms = getPermsValue(permissionTemplateId);
-      const expiration = getExpiration();
       if (selectedVehicles.length > 0 && clientId) {
         const unsharedTokenIds = selectedVehicles
           .filter((vehicle) => !vehicle.shared)
@@ -207,7 +221,7 @@ const VehicleManager: React.FC = () => {
             unsharedTokenIds as bigint[],
             perms,
             clientId,
-            expiration
+            expirationDate
           );
 
           if (unsharedTokenIds.length === 1) {
@@ -215,7 +229,7 @@ const VehicleManager: React.FC = () => {
               unsharedTokenIds[0],
               clientId as `0x${string}`,
               perms,
-              expiration,
+              expirationDate,
               sources
             );
           } else {
@@ -223,7 +237,7 @@ const VehicleManager: React.FC = () => {
               unsharedTokenIds,
               clientId as `0x${string}`,
               perms,
-              expiration,
+              expirationDate,
               sources
             );
           }
