@@ -65,7 +65,6 @@ const VehicleManager: React.FC = () => {
   );
 
   const handleStandaloneMode = () => {
-    //TODO: Handle Expiration Date
     const urlParams = new URLSearchParams(window.location.search);
     const permissionTemplateIdFromUrl = urlParams.get("permissionTemplateId");
     const expirationDateFromUrl = urlParams.get("expirationDate");
@@ -82,7 +81,6 @@ const VehicleManager: React.FC = () => {
   };
 
   const handleEmbedPopupMode = () => {
-    //TODO: Handle Expiration Data
     sendMessageToReferrer({ eventType: "SHARE_VEHICLES_DATA" });
 
     const handleMessage = (event: MessageEvent) => {
@@ -112,11 +110,10 @@ const VehicleManager: React.FC = () => {
   };
 
   const fetchVehicles = async () => {
-    //TODO: Switch to Kernel Signer
     if (user?.smartContractAddress && clientId) {
       try {
         const transformedVehicles = await fetchVehiclesWithTransformation(
-          user.smartContractAddress, //TODO: Switch to Kernel Signer
+          user.smartContractAddress,
           clientId,
           vehicleTokenIds,
           vehicleMakes
@@ -200,7 +197,6 @@ const VehicleManager: React.FC = () => {
   const handleShare = async () => {
     setLoadingState(true, "Sharing vehicles");
 
-    //TODO: Switch to Kernel Signer
     if (user && user.subOrganizationId && user.walletAddress) {
       await initializeIfNeeded(user.subOrganizationId);
     }
