@@ -67,7 +67,6 @@ const AdvancedTransaction: React.FC = () => {
     setLoadingState(true,"Executing Transaction");
     //Ensure Passkey
 
-    //TODO: Switch to Kernel Signer
     if (user && user.subOrganizationId && user.walletAddress) {
       await initializeIfNeeded(user.subOrganizationId);
     }

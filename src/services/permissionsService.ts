@@ -1,7 +1,11 @@
 import { SACDTemplate } from "@dimo-network/transactions/dist/core/types/dimo";
-import { getSacdDescription, getSacdPermissionArray, getSacdValue } from "./turnkeyService";
+import {
+  getSacdDescription,
+  getSacdPermissionArray,
+  getSacdValue,
+} from "./turnkeyService";
 import { VehcilePermissionDescription } from "@dimo-network/transactions/dist/core/types/args";
-
+import { formatBigIntAsReadableDate } from "../utils/dateUtils";
 
 //Helper functions that communicate with the transactions service
 export function getPermsValue(permissionTemplateId: string) {
@@ -25,19 +29,15 @@ export function getDescription(args: VehcilePermissionDescription) {
   return getSacdDescription(args);
 }
 
-export function getExpiration() {
-  return BigInt(2933125200); //TODO: Make this a constant
-}
-
 export async function fetchPermissionsFromId(
   permissionTemplateId: string,
   clientId: string,
   walletAddress: string,
   email: string,
-  devLicenseAlias: string
+  devLicenseAlias: string,
+  expirationDate: BigInt
 ) {
   const templateId = "$uuid";
-
 
   //Call helpers, that will communicate with the transactionService, which has access to the SDK
   //Not necessary, but the abstraction make it easier for us to mock responses etc
@@ -45,17 +45,19 @@ export async function fetchPermissionsFromId(
 
   const permissionArray = getSacdPermissionArray(permissionsValue);
 
-  const expiration = getExpiration();
-
   const currentTime = new Date();
-
+  const currentTimeBigInt = BigInt(Math.floor(currentTime.getTime() / 1000));
 
   let permissionsString = ``;
-  for ( const perm of permissionArray ) {
-    permissionsString += `\n- ${perm}`
+  for (const perm of permissionArray) {
+    permissionsString += `\n- ${perm}`;
   }
 
-  const description = `This contract gives permission for specific data access and control functions on the DIMO platform. Here’s what you’re agreeing to:\n\nContract Summary:\n- Grantor: ${email} (the entity giving permission).\n- Grantee: ${devLicenseAlias}  (the entity receiving permission).\n\nPermissions Granted:${permissionsString}\n\nEffective Date: ${currentTime.toISOString()} \n\nExpiration Date: December 12, 2062, at 18:51 UTC.\n\nDetails:\n- This grant provides the grantee with access to specific vehicle data and control functions as specified above.\n- Created by DIMO Platform, version 1.0 of this contract template.\n\nBy signing, both parties agree to these terms and the specified access scope.`
+  const description = `This contract gives permission for specific data access and control functions on the DIMO platform. Here’s what you’re agreeing to:\n\nContract Summary:\n- Grantor: ${email} (the entity giving permission).\n- Grantee: ${devLicenseAlias}  (the entity receiving permission).\n\nPermissions Granted:${permissionsString}\n\nEffective Date: ${formatBigIntAsReadableDate(
+    currentTimeBigInt
+  )} \n\nExpiration Date: ${formatBigIntAsReadableDate(
+    expirationDate
+  )}.\n\nDetails:\n- This grant provides the grantee with access to specific vehicle data and control functions as specified above.\n- Created by DIMO Platform, version 1.0 of this contract template.\n\nBy signing, both parties agree to these terms and the specified access scope.`;
 
   const template: SACDTemplate = {
     specVersion: "1.0",
@@ -72,7 +74,7 @@ export async function fetchPermissionsFromId(
         permissions: permissionArray,
       },
       effectiveAt: currentTime.toISOString(),
-      expiresAt: new Date(Number(expiration) * 1000).toISOString(),
+      expiresAt: new Date(Number(expirationDate) * 1000).toISOString(),
       attachments: [],
       description,
     },
