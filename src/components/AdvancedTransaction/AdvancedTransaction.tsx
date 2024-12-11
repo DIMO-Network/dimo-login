@@ -20,8 +20,8 @@ const AdvancedTransaction: React.FC = () => {
   //TODO
   //Loading and Error Handling should not be determined by AuthContext
   const { redirectUri } = useDevCredentials();
-  const { setUiState, setComponentData } = useUIManager();
-  const { user, setLoading, setError, error, jwt } = useAuthContext();
+  const { setUiState, setComponentData, setLoadingState, error, setError } = useUIManager();
+  const { user, jwt } = useAuthContext();
 
   const [transactionData, setTransactionData] = useState<
     TransactionData | undefined
@@ -64,7 +64,7 @@ const AdvancedTransaction: React.FC = () => {
   }
 
   const onApprove = async () => {
-    setLoading("Executing Transaction");
+    setLoadingState(true,"Executing Transaction");
     //Ensure Passkey
 
     //TODO: Switch to Kernel Signer
@@ -85,12 +85,12 @@ const AdvancedTransaction: React.FC = () => {
       sendTxnResponseToParent(receipt, jwt!, (transactionHash) => {
         setComponentData({ transactionHash });
         setUiState("TRANSACTION_SUCCESS");
-        setLoading(false);
+        setLoadingState(false);
       });
     } catch (e) {
       console.log(e);
       setError("Could not execute transaction, please try again");
-      setLoading(false);
+      setLoadingState(false);
     }
   };
 

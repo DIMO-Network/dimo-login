@@ -24,7 +24,6 @@ interface DevCredentialsContextProps {
   clientId?: string;
   apiKey?: string;
   redirectUri?: string;
-  credentialsLoading: boolean; // Renamed to avoid conflict with AuthContext
   invalidCredentials: boolean;
   devLicenseAlias: string | null | undefined;
 }
@@ -42,13 +41,13 @@ export const DevCredentialsProvider = ({
   const [clientId, setClientId] = useState<string | undefined>();
   const [apiKey, setApiKey] = useState<string | undefined>();
   const [redirectUri, setRedirectUri] = useState<string | undefined>();
-  const [credentialsLoading, setCredentialsLoading] = useState<boolean>(true); // Renamed loading state
   const [invalidCredentials, setInvalidCredentials] = useState<boolean>(false);
   const [devLicenseAlias, setDevLicenseAlias] = useState<string | null>(); // Alias will only be set if credentials are valid, defaults to client ID if not alias
-  const { setUiState, setEntryState } = useUIManager();
+  const { setUiState, setEntryState, setLoadingState } = useUIManager();
 
   // Example of using postMessage to receive credentials (as described previously)
   useEffect(() => {
+    setLoadingState(true, "Waiting for credentials...");
     const urlParams = new URLSearchParams(window.location.search);
 
     const clientIdFromUrl = urlParams.get("clientId");
@@ -58,7 +57,11 @@ export const DevCredentialsProvider = ({
     if (clientIdFromUrl && redirectUriFromUrl) {
       setUiState(entryStateFromUrl || "EMAIL_INPUT");
       setEntryState(entryStateFromUrl || "EMAIL_INPUT");
-      setCredentials({ clientId: clientIdFromUrl, apiKey:"api key", redirectUri: redirectUriFromUrl });
+      setCredentials({
+        clientId: clientIdFromUrl,
+        apiKey: "api key",
+        redirectUri: redirectUriFromUrl,
+      });
     } else {
       const handleMessage = (event: MessageEvent) => {
         const { eventType, clientId, apiKey, redirectUri, entryState } =
@@ -84,7 +87,7 @@ export const DevCredentialsProvider = ({
         if (isValid) {
           setDevLicenseAlias(alias); // Set the alias in global state
           createKernelSigner(clientId, clientId, redirectUri);
-          setCredentialsLoading(false); // Credentials loaded
+          setLoadingState(false); // Credentials loaded
         } else {
           setInvalidCredentials(true);
           console.error("Invalid client ID or redirect URI.");
@@ -108,7 +111,7 @@ export const DevCredentialsProvider = ({
     setClientId(clientId);
     setApiKey(apiKey);
     setRedirectUri(redirectUri);
-    setCredentialsLoading(false);
+    setLoadingState(false);
   };
 
   return (
@@ -117,7 +120,6 @@ export const DevCredentialsProvider = ({
         clientId,
         apiKey,
         redirectUri,
-        credentialsLoading,
         invalidCredentials,
         devLicenseAlias,
       }}
