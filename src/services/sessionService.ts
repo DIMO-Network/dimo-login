@@ -1,5 +1,6 @@
 // sessionService.ts
 
+import { UserObject } from "../models/user";
 import { getJWTFromCookies, getUserFromLocalStorage } from "./storageService";
 import { isTokenExpired } from "./tokenService";
 
@@ -7,9 +8,10 @@ import { isTokenExpired } from "./tokenService";
 type InitializeSessionParams = {
   clientId: string | null;
   setJwt: (jwt: string) => void;
-  setUser: (user: any) => void; // Replace `any` with a specific user type if you have one
+  setUser: (user: UserObject) => void;
   uiState: string;
   setUiState: (step: string) => void;
+  setUserInitialized: (initialized: boolean) => void;
 };
 
 export function initializeSession({
@@ -18,8 +20,13 @@ export function initializeSession({
   setUser,
   uiState,
   setUiState,
+  setUserInitialized,
 }: InitializeSessionParams): void {
-  if (!clientId) return;
+  if (!clientId) {
+    console.error("Client ID is missing. Cannot initialize session.");
+    setUserInitialized(true);
+    return;
+  }
 
   const jwt = getJWTFromCookies(clientId);
   const user = getUserFromLocalStorage(clientId);
@@ -27,12 +34,15 @@ export function initializeSession({
   if (jwt && !isTokenExpired(jwt) && user) {
     setJwt(jwt);
     setUser(user);
-    //
-    if ( uiState == "EMAIL_INPUT" ) {
+
+    if (uiState === "EMAIL_INPUT") {
       setUiState("SUCCESS");
     }
+
   } else {
+    // If JWT or user is invalid, reset the state
     setUiState("EMAIL_INPUT");
   }
 
+  setUserInitialized(true);
 }

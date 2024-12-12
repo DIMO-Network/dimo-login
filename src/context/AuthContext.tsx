@@ -47,13 +47,25 @@ interface AuthContextProps {
     setJwt: (jwt: string) => void,
     setUiState: (step: string) => void
   ) => void;
-  user: UserObject | undefined;
-  setUser: React.Dispatch<React.SetStateAction<UserObject | undefined>>;
-  jwt: string | undefined;
-  setJwt: React.Dispatch<React.SetStateAction<string | undefined>>;
+  user: UserObject;
+  setUser: React.Dispatch<React.SetStateAction<UserObject>>;
+  jwt: string;
+  setJwt: React.Dispatch<React.SetStateAction<string>>;
+  userInitialized: boolean;
+  setUserInitialized: React.Dispatch<React.SetStateAction<boolean>>;  
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
+
+//This will be set on account creation partially, and completed on wallet connection
+const defaultUser: UserObject = {
+  email: "",
+  smartContractAddress: "",
+  subOrganizationId: "",
+  hasPasskey: false,
+  walletAddress: "",
+  emailVerified: false
+};
 
 // AuthProvider component to provide the context
 export const AuthProvider = ({
@@ -61,8 +73,9 @@ export const AuthProvider = ({
 }: {
   children: ReactNode;
 }): JSX.Element => {
-  const [user, setUser] = useState<UserObject | undefined>(undefined);
-  const [jwt, setJwt] = useState<string | undefined>(undefined);
+  const [user, setUser] = useState<UserObject>(defaultUser);
+  const [jwt, setJwt] = useState<string>("");
+  const [userInitialized, setUserInitialized] = useState<boolean>(false);
   const { clientId, apiKey, redirectUri } = useDevCredentials();
   const { setLoadingState, error, setError } = useUIManager();
 
@@ -89,7 +102,7 @@ export const AuthProvider = ({
         attestation as object,
         challenge as string,
         true
-      ); //TODO: Better handling of types
+      );
       if (account.success && account.data.user) {
         setUser(account.data.user); // Store the user object in the context
         return { success: true, data: { user: account.data.user } };
@@ -193,12 +206,12 @@ export const AuthProvider = ({
         email,
         clientId,
         redirectUri,
-        user?.subOrganizationId,
+        user.subOrganizationId,
         entryState,
         setJwt,
         setUiState,
         setUser
-      ); //TODO: Better handling of null
+      );
     } catch (error) {
       setError(
         "Could not authenticate user, please verify your passkey and try again."
@@ -220,6 +233,8 @@ export const AuthProvider = ({
         setUser,
         jwt,
         setJwt,
+        userInitialized,
+        setUserInitialized
       }}
     >
       {children}

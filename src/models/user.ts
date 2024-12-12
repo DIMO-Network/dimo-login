@@ -2,10 +2,10 @@
 
 export interface UserObject {
     email: string;
-    subOrganizationId: string | null;
+    subOrganizationId: string;
     hasPasskey: boolean;
-    smartContractAddress: string | null;
-    walletAddress: string | null;
+    smartContractAddress: string;
+    walletAddress: string;
     emailVerified: boolean;
 }
   

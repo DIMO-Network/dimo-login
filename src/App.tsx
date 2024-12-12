@@ -16,25 +16,33 @@ import CancelledTransaction from "./components/AdvancedTransaction/CancelledTran
 import SuccessfulPermissions from "./components/Vehicles/SuccessfulPermissions";
 
 function App() {
-  const { setJwt, setUser } = useAuthContext(); // Get loading state from AuthContext
+  const { setJwt, setUser, setUserInitialized, userInitialized } =
+    useAuthContext(); // Get loading state from AuthContext
   const { clientId, apiKey, redirectUri, invalidCredentials } =
     useDevCredentials(); // Get loading state and credentials from DevCredentialsContext
-  const { uiState, setUiState, isLoading } = useUIManager();
   const [email, setEmail] = useState("");
   const [otpId, setOtpId] = useState(""); // New state for OTP ID
+  const { uiState, setUiState, isLoading } = useUIManager();
 
   useEffect(() => {
     if (clientId) {
-      initializeSession({ clientId, setJwt, setUser, uiState, setUiState });
+      initializeSession({
+        clientId,
+        setJwt,
+        setUser,
+        uiState,
+        setUiState,
+        setUserInitialized,
+      });
     }
   }, [clientId]);
 
   // If either credentials or auth is loading, show the loader
+
   // Loading state
-  if (isLoading) {
+  if (isLoading || !userInitialized) {
     return <LoadingScreen />;
   }
-
   // Error screens
   if (invalidCredentials) {
     return (
