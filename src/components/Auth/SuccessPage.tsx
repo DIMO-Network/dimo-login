@@ -40,7 +40,7 @@ const SuccessPage: React.FC = () => {
 
   return (
     <Card width="w-full max-w-[600px]" height="h-full max-h-[308px]">
-      <Header title="You are logged in!" subtitle={user ? user.email : ""} />
+      <Header title="You are logged in!" subtitle={user.email} />
       <div className="space-y-4">
         {!isEmbed() && (
           <div className="flex justify-center">

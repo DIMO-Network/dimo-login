@@ -18,7 +18,8 @@ import { useUIManager } from "../../context/UIManagerContext";
 
 const AdvancedTransaction: React.FC = () => {
   const { redirectUri } = useDevCredentials();
-  const { setUiState, setComponentData, setLoadingState, error, setError } = useUIManager();
+  const { setUiState, setComponentData, setLoadingState, error, setError } =
+    useUIManager();
   const { user, jwt } = useAuthContext();
 
   const [transactionData, setTransactionData] = useState<
@@ -62,12 +63,10 @@ const AdvancedTransaction: React.FC = () => {
   }
 
   const onApprove = async () => {
-    setLoadingState(true,"Executing Transaction");
+    setLoadingState(true, "Executing Transaction");
     //Ensure Passkey
 
-    if (user && user.subOrganizationId && user.walletAddress) {
-      await initializeIfNeeded(user.subOrganizationId);
-    }
+    await initializeIfNeeded(user.subOrganizationId);
 
     try {
       const receipt = await executeAdvancedTransaction(

@@ -25,7 +25,7 @@ interface DevCredentialsContextProps {
   apiKey: string;
   redirectUri: string;
   invalidCredentials: boolean;
-  devLicenseAlias: string | null | undefined;
+  devLicenseAlias: string;
 }
 
 const DevCredentialsContext = createContext<

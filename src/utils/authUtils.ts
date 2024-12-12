@@ -23,8 +23,8 @@ import { isEmbed } from "./isEmbed";
 
 export function buildAuthPayload(
   clientId: string,
-  jwt?: string,
-  userObj?: UserObject
+  jwt: string,
+  userObj: UserObject
 ): {
   token: string;
   email?: string;

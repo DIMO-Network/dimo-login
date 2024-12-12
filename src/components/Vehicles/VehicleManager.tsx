@@ -109,23 +109,21 @@ const VehicleManager: React.FC = () => {
   };
 
   const fetchVehicles = async () => {
-    if (user?.smartContractAddress && clientId) {
-      try {
-        const transformedVehicles = await fetchVehiclesWithTransformation(
-          user.smartContractAddress,
-          clientId,
-          vehicleTokenIds,
-          vehicleMakes
-        );
-        setVehicles(transformedVehicles);
-        // Set isExpanded based on vehicles length
-        setIsExpanded(
-          transformedVehicles.length === 0 && window.innerHeight >= 770
-        );
-      } catch (error) {
-        setError("Could not fetch vehicles");
-        console.error("Error fetching vehicles:", error);
-      }
+    try {
+      const transformedVehicles = await fetchVehiclesWithTransformation(
+        user.smartContractAddress,
+        clientId,
+        vehicleTokenIds,
+        vehicleMakes
+      );
+      setVehicles(transformedVehicles);
+      // Set isExpanded based on vehicles length
+      setIsExpanded(
+        transformedVehicles.length === 0 && window.innerHeight >= 770
+      );
+    } catch (error) {
+      setError("Could not fetch vehicles");
+      console.error("Error fetching vehicles:", error);
     }
   };
 
@@ -134,10 +132,10 @@ const VehicleManager: React.FC = () => {
       try {
         const permissionTemplate = await fetchPermissionsFromId(
           permissionTemplateId,
-          clientId as string,
-          user?.smartContractAddress as string,
-          user?.email as string,
-          devLicenseAlias as string,
+          clientId,
+          user.smartContractAddress,
+          user.email,
+          devLicenseAlias,
           expirationDate
         );
         setPermissionTemplate(permissionTemplate as SACDTemplate);
@@ -160,7 +158,7 @@ const VehicleManager: React.FC = () => {
     // Run both fetches in parallel
     Promise.all([fetchVehicles(), fetchPermissions()]);
   }, [
-    user?.smartContractAddress,
+    user.smartContractAddress,
     clientId,
     permissionTemplateId,
     devLicenseAlias,
@@ -196,9 +194,7 @@ const VehicleManager: React.FC = () => {
   const handleShare = async () => {
     setLoadingState(true, "Sharing vehicles");
 
-    if (user && user.subOrganizationId && user.walletAddress) {
-      await initializeIfNeeded(user.subOrganizationId);
-    }
+    await initializeIfNeeded(user.subOrganizationId);
 
     if (permissionTemplateId) {
       const perms = getPermsValue(permissionTemplateId);
