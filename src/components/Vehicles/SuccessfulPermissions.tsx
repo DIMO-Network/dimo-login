@@ -24,7 +24,6 @@ const SuccessfulPermissions: React.FC = () => {
     //By this point the dev should already have the transaction data, so this screen is mainly for the users UX, for them to know what happened
     //Redirect mode however, the user controls when the data is sent because we need to perform a redirect
 
-    //TODO: Handle Nulls
     const payload = buildAuthPayload(clientId, jwt, user);
     backToThirdParty(payload, redirectUri);
   };
