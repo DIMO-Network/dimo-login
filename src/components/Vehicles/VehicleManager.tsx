@@ -9,7 +9,6 @@ import {
   setVehiclePermissions,
   setVehiclePermissionsBulk,
 } from "../../services/turnkeyService";
-import { sacdPermissionValue } from "@dimo-network/transactions";
 import {
   buildAuthPayload,
   sendAuthPayloadToParent,
@@ -189,7 +188,7 @@ const VehicleManager: React.FC = () => {
 
   const handleContinue = () => {
     sendJwtAfterPermissions((authPayload: any) => {
-      backToThirdParty(authPayload, redirectUri!);
+      backToThirdParty(authPayload, redirectUri);
       setUiState("TRANSACTION_CANCELLED");
     });
   };

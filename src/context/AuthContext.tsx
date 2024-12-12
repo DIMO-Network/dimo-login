@@ -89,7 +89,7 @@ export const AuthProvider = ({
         attestation as object,
         challenge as string,
         true
-      ); //TODO: Better handling of types
+      );
       if (account.success && account.data.user) {
         setUser(account.data.user); // Store the user object in the context
         return { success: true, data: { user: account.data.user } };
