@@ -145,7 +145,7 @@ const AdvancedTransaction: React.FC = () => {
           <div className={`flex justify-between w-full pt-4`}>
             <button
               onClick={onReject}
-              className="bg-white w-[214px] text-[#09090B] border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500"
+              className="bg-white w-[214px] font-medium text-[#09090B] border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500"
             >
               Reject
             </button>

@@ -337,7 +337,7 @@ const VehicleManager: React.FC = () => {
             </div>
             <div className="w-full max-w-[440px]">
               <button
-                className="bg-white w-[145px] text-[#09090B] border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500 flex items-center justify-between"
+                className="bg-white w-[145px] text-[#09090B] font-medium border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500 flex items-center justify-between"
                 onClick={() => setIsExpanded(!isExpanded)}
               >
                 <span>{isExpanded ? "Show less" : "Show more"}</span>
@@ -380,7 +380,7 @@ const VehicleManager: React.FC = () => {
             <>
               <button
                 onClick={handleContinue}
-                className="bg-white w-[214px] text-[#09090B] border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500"
+                className="bg-white font-medium w-[214px] text-[#09090B] border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500"
               >
                 Cancel
               </button>
