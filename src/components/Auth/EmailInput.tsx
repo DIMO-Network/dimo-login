@@ -108,7 +108,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
       </div>
       <div
         onKeyDown={handleKeyDown} // Listen for key presses
-        className="frame9 flex flex-col items-center gap-[15px] lg:gap-[20px]"
+        className="frame9 flex flex-col items-center gap-[10px]"
       >
         <input
           type="email"
