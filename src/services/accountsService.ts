@@ -7,6 +7,7 @@
  *
  */
 
+import { CreateAccountParams } from "../models/account";
 import {
   CredentialResult,
   OtpResult,
@@ -131,13 +132,13 @@ export const verifyEmail = async (
 };
 
 // Function to create an account
-export const createAccount = async (
-  email: string,
-  apiKey: string,
-  attestation?: object,
-  challenge?: string,
-  deployAccount?: boolean
-): Promise<UserResult> => {
+export const createAccount = async ({
+  email,
+  apiKey,
+  attestation,
+  challenge,
+  deployAccount,
+}: CreateAccountParams): Promise<UserResult> => {
   const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account`, {
     method: "POST",
     headers: {
