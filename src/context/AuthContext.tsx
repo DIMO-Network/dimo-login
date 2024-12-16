@@ -21,6 +21,7 @@
 import React, { createContext, useContext, ReactNode, useState } from "react";
 import {
   createAccount,
+  deployAccount,
   fetchUserDetails,
   sendOtp,
   verifyOtp,
@@ -31,6 +32,7 @@ import { createPasskey } from "../services/turnkeyService";
 import { useDevCredentials } from "./DevCredentialsContext";
 import { CredentialResult, OtpResult, UserResult } from "../models/resultTypes";
 import { useUIManager } from "./UIManagerContext";
+import { CreateAccountParams } from "../models/account";
 
 interface AuthContextProps {
   createAccountWithPasskey: (email: string) => Promise<UserResult>;
@@ -43,14 +45,14 @@ interface AuthContextProps {
   authenticateUser: (
     email: string,
     credentialBundle: string,
-    entryState: string,
+    entryState: string
   ) => void;
   user: UserObject;
   setUser: React.Dispatch<React.SetStateAction<UserObject>>;
   jwt: string;
   setJwt: React.Dispatch<React.SetStateAction<string>>;
   userInitialized: boolean;
-  setUserInitialized: React.Dispatch<React.SetStateAction<boolean>>;  
+  setUserInitialized: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -62,7 +64,7 @@ const defaultUser: UserObject = {
   subOrganizationId: "",
   hasPasskey: false,
   walletAddress: "",
-  emailVerified: false
+  emailVerified: false,
 };
 
 // AuthProvider component to provide the context
@@ -80,7 +82,7 @@ export const AuthProvider = ({
   const createAccountWithPasskey = async (
     email: string
   ): Promise<UserResult> => {
-    setLoadingState(true,"Creating account");
+    setLoadingState(true, "Creating account");
     setError(null);
     if (!apiKey) {
       return {
@@ -94,13 +96,15 @@ export const AuthProvider = ({
       const [attestation, challenge] = await createPasskey(email);
 
       // Trigger account creation request
-      const account = await createAccount(
+      const accountCreationParams: CreateAccountParams = {
         email,
         apiKey,
-        attestation as object,
-        challenge as string,
-        true
-      );
+        attestation: attestation as object,
+        challenge: challenge as string,
+        deployAccount: true,
+      };
+      const account = await createAccount(accountCreationParams);
+      
       if (account.success && account.data.user) {
         setUser(account.data.user); // Store the user object in the context
         return { success: true, data: { user: account.data.user } };
@@ -118,7 +122,7 @@ export const AuthProvider = ({
   };
 
   const handleSendOtp = async (email: string): Promise<OtpResult> => {
-    setLoadingState(true,"Sending OTP");
+    setLoadingState(true, "Sending OTP");
     setError(null);
 
     if (!apiKey) {
@@ -184,9 +188,9 @@ export const AuthProvider = ({
   const handleAuthenticateUser = async (
     email: string,
     credentialBundle: string,
-    entryState: string,
+    entryState: string
   ) => {
-    setLoadingState(true,"Authenticating User");
+    setLoadingState(true, "Authenticating User");
     setError(null);
 
     try {
@@ -230,7 +234,7 @@ export const AuthProvider = ({
         jwt,
         setJwt,
         userInitialized,
-        setUserInitialized
+        setUserInitialized,
       }}
     >
       {children}
