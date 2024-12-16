@@ -44,8 +44,6 @@ interface AuthContextProps {
     email: string,
     credentialBundle: string,
     entryState: string,
-    setJwt: (jwt: string) => void,
-    setUiState: (step: string) => void
   ) => void;
   user: UserObject;
   setUser: React.Dispatch<React.SetStateAction<UserObject>>;
@@ -77,7 +75,7 @@ export const AuthProvider = ({
   const [jwt, setJwt] = useState<string>("");
   const [userInitialized, setUserInitialized] = useState<boolean>(false);
   const { clientId, apiKey, redirectUri } = useDevCredentials();
-  const { setLoadingState, error, setError } = useUIManager();
+  const { setLoadingState, error, setError, setUiState } = useUIManager();
 
   const createAccountWithPasskey = async (
     email: string
@@ -187,8 +185,6 @@ export const AuthProvider = ({
     email: string,
     credentialBundle: string,
     entryState: string,
-    setJwt: (jwt: string) => void,
-    setUiState: (step: string) => void
   ) => {
     setLoadingState(true,"Authenticating User");
     setError(null);
