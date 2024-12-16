@@ -35,6 +35,10 @@ import {
   getDefaultExpirationDate,
   parseExpirationDate,
 } from "../../utils/dateUtils";
+import {
+  SetVehiclePermissions,
+  SetVehiclePermissionsBulk,
+} from "@dimo-network/transactions";
 
 const VehicleManager: React.FC = () => {
   const { user, jwt } = useAuthContext();
@@ -214,22 +218,26 @@ const VehicleManager: React.FC = () => {
             expirationDate
           );
 
+          const basePermissions = {
+            grantee: clientId as `0x${string}`,
+            permissions: perms,
+            expiration: expirationDate,
+            source: sources,
+          };
+
           if (unsharedTokenIds.length === 1) {
-            await setVehiclePermissions(
-              unsharedTokenIds[0],
-              clientId as `0x${string}`,
-              perms,
-              expirationDate,
-              sources
-            );
+            const vehiclePermissions: SetVehiclePermissions = {
+              ...basePermissions,
+              tokenId: unsharedTokenIds[0],
+            };
+
+            await setVehiclePermissions(vehiclePermissions);
           } else {
-            await setVehiclePermissionsBulk(
-              unsharedTokenIds,
-              clientId as `0x${string}`,
-              perms,
-              expirationDate,
-              sources
-            );
+            const bulkVehiclePermissions: SetVehiclePermissionsBulk = {
+              ...basePermissions,
+              tokenIds: unsharedTokenIds,
+            };
+            await setVehiclePermissionsBulk(bulkVehiclePermissions);
           }
 
           sendJwtAfterPermissions((authPayload: any) => {
