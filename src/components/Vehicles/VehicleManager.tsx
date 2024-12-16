@@ -39,6 +39,7 @@ import {
   SetVehiclePermissions,
   SetVehiclePermissionsBulk,
 } from "@dimo-network/transactions";
+import { FetchPermissionsParams } from "../../models/permissions";
 
 const VehicleManager: React.FC = () => {
   const { user, jwt } = useAuthContext();
@@ -134,13 +135,16 @@ const VehicleManager: React.FC = () => {
   const fetchPermissions = async () => {
     if (permissionTemplateId) {
       try {
-        const permissionTemplate = await fetchPermissionsFromId(
+        const permissionsParams: FetchPermissionsParams = {
           permissionTemplateId,
           clientId,
-          user.smartContractAddress,
-          user.email,
           devLicenseAlias,
-          expirationDate
+          expirationDate,
+          walletAddress: user.smartContractAddress,
+          email: user.email,
+        };
+        const permissionTemplate = await fetchPermissionsFromId(
+          permissionsParams
         );
         setPermissionTemplate(permissionTemplate as SACDTemplate);
       } catch (error) {
