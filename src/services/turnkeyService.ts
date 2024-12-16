@@ -125,8 +125,7 @@ export const signChallenge = async (challenge: string) => {
 
 // Helper function to generate IPFS sources for one or more vehicles
 export const generateIpfsSources = async (
-  tokenIds: bigint[],
-  permissions: any,
+  permissions: BigInt,
   clientId: string,
   expiration: BigInt
 ) => {
@@ -146,6 +145,7 @@ export const generateIpfsSources = async (
 };
 
 // Define the bridge function in your Turnkey Service
+//TODO: Convert to Object Params
 export async function setVehiclePermissions(
   tokenId: BigInt,
   grantee: `0x${string}`,

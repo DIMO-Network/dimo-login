@@ -209,7 +209,6 @@ const VehicleManager: React.FC = () => {
 
         try {
           const sources = await generateIpfsSources(
-            unsharedTokenIds as bigint[],
             perms,
             clientId,
             expirationDate
