@@ -18,7 +18,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
     className={`flex items-center p-4 ${
       !disabled && "border"
     } rounded-2xl cursor-pointer transition ${
-      vehicle.shared || disabled
+      vehicle.shared
         ? "bg-gray-100 text-gray-500 cursor-not-allowed"
         : "hover:bg-gray-50 border-gray-300 cursor-pointer"
     } ${isSelected && "border-black"}`}
