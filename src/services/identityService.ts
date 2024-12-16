@@ -6,7 +6,7 @@
  * Specific Responsibilities include: Getting vehicles and their SACD permissions
  */
 
-const GRAPHQL_ENDPOINT = process.env.REACT_APP_DIMO_IDENTITY_URL;
+const GRAPHQL_ENDPOINT = process.env.REACT_APP_DIMO_IDENTITY_URL || "https://identity-api.dev.dimo.zone/query";
 
 // Function to fetch vehicles and transform data
 export async function fetchVehiclesWithTransformation(
@@ -37,7 +37,7 @@ export async function fetchVehiclesWithTransformation(
     }
   `;
 
-  const response = await fetch(GRAPHQL_ENDPOINT!, {
+  const response = await fetch(GRAPHQL_ENDPOINT, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -82,8 +82,10 @@ export async function fetchVehiclesWithTransformation(
     .sort((a: any, b: any) => Number(a.shared) - Number(b.shared)); // Sort non-shared first
 }
 
-export async function isValidClientId(clientId: string, redirectUri: string): Promise<{isValid: boolean, alias: string | null}> {
-
+export async function isValidClientId(
+  clientId: string,
+  redirectUri: string
+): Promise<{ isValid: boolean; alias: string }> {
   const query = `{
     developerLicense(by: { clientId: "${clientId}" }) {
       owner
@@ -110,7 +112,7 @@ export async function isValidClientId(clientId: string, redirectUri: string): Pr
   // Check if data is not null
   if (!response || !response.data || !response.data.developerLicense) {
     console.error("No data found in the response.");
-    return { isValid: false, alias: null };
+    return { isValid: false, alias: "" };
   }
 
   // Access the redirectURIs from the response
@@ -127,6 +129,6 @@ export async function isValidClientId(clientId: string, redirectUri: string): Pr
     return { isValid: exists, alias: alias || clientId };
   } else {
     console.error("No redirect URIs found.");
-    return { isValid: false, alias: null };
+    return { isValid: false, alias: "" };
   }
 }

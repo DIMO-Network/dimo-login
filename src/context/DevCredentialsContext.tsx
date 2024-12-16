@@ -21,11 +21,11 @@ import { TransactionData } from "@dimo-network/transactions";
 import { useUIManager } from "./UIManagerContext";
 
 interface DevCredentialsContextProps {
-  clientId?: string;
-  apiKey?: string;
-  redirectUri?: string;
+  clientId: string;
+  apiKey: string;
+  redirectUri: string;
   invalidCredentials: boolean;
-  devLicenseAlias: string | null | undefined;
+  devLicenseAlias: string;
 }
 
 const DevCredentialsContext = createContext<
@@ -38,11 +38,11 @@ export const DevCredentialsProvider = ({
 }: {
   children: ReactNode;
 }): JSX.Element => {
-  const [clientId, setClientId] = useState<string | undefined>();
-  const [apiKey, setApiKey] = useState<string | undefined>();
-  const [redirectUri, setRedirectUri] = useState<string | undefined>();
+  const [clientId, setClientId] = useState<string>("");
+  const [apiKey, setApiKey] = useState<string>("");
+  const [redirectUri, setRedirectUri] = useState<string>("");
   const [invalidCredentials, setInvalidCredentials] = useState<boolean>(false);
-  const [devLicenseAlias, setDevLicenseAlias] = useState<string | null>(); // Alias will only be set if credentials are valid, defaults to client ID if not alias
+  const [devLicenseAlias, setDevLicenseAlias] = useState<string>(""); // Alias will only be set if credentials are valid, defaults to client ID if not alias
   const { setUiState, setEntryState, setLoadingState } = useUIManager();
 
   // Example of using postMessage to receive credentials (as described previously)

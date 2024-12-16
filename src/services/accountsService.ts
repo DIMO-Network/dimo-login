@@ -156,10 +156,19 @@ export const createAccount = async (
     throw new Error("Failed to create account");
   }
 
-  const { walletAddress, smartContractAddress, ...user } =
-    await response.json(); //This is to mock the wallet address and smart contract address not being returned
+  const { subOrganizationId, hasPasskey } = await response.json(); //This is to mock the wallet address and smart contract address not being returned
 
-  return { success: true, data: { user: { ...user, email } } };
+  //Partial Construction of User Object, completed post connect
+  const userResponse = {
+    email,
+    subOrganizationId,
+    hasPasskey,
+    smartContractAddress: "",
+    walletAddress: "",
+    emailVerified: true,
+  };
+
+  return { success: true, data: { user: userResponse } };
 };
 
 // Function to deploy an account
@@ -196,10 +205,19 @@ export const fetchUserDetails = async (email: string): Promise<UserResult> => {
       };
     }
 
-    const { walletAddress, smartContractAddress, ...user } =
-      await response.json(); //This is to mock the wallet address and smart contract address not being returned
+    const { subOrganizationId, hasPasskey } = await response.json(); //This is to mock the wallet address and smart contract address not being returned
 
-    return { success: true, data: { user: { ...user, email } } };
+    //Partial Construction of User Object, completed post connect
+    const userResponse = {
+      email,
+      subOrganizationId,
+      hasPasskey,
+      smartContractAddress: "",
+      walletAddress: "",
+      emailVerified: true,
+    };
+
+    return { success: true, data: { user: userResponse } };
   } catch (error) {
     console.error("Error fetching user details:", error);
     return {

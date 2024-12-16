@@ -16,24 +16,16 @@ import { isEmbed } from "../../utils/isEmbed";
 
 const SuccessfulPermissions: React.FC = () => {
   const { redirectUri, devLicenseAlias, clientId } = useDevCredentials();
-  const { componentData: vehicles } = useUIManager();
   const { jwt, user } = useAuthContext();
-
-  //   if (!componentData.transactionHash) {
-  //     return (
-  //       <ErrorScreen
-  //         title="Invalid Navigation"
-  //         message="Please check the configuration and reload the page."
-  //       />
-  //     );
-  //   }
+  const { componentData: vehicles } = useUIManager();
 
   const handleBackToThirdParty = () => {
     //If Dev is using popup mode, we simply exit the flow here and close the window
     //By this point the dev should already have the transaction data, so this screen is mainly for the users UX, for them to know what happened
     //Redirect mode however, the user controls when the data is sent because we need to perform a redirect
-    const payload = buildAuthPayload(clientId!, jwt, user);
-    backToThirdParty(payload, redirectUri!);
+
+    const payload = buildAuthPayload(clientId, jwt, user);
+    backToThirdParty(payload, redirectUri);
   };
 
   return (

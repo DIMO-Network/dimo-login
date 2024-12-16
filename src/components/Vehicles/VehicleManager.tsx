@@ -9,7 +9,6 @@ import {
   setVehiclePermissions,
   setVehiclePermissionsBulk,
 } from "../../services/turnkeyService";
-import { sacdPermissionValue } from "@dimo-network/transactions";
 import {
   buildAuthPayload,
   sendAuthPayloadToParent,
@@ -110,23 +109,21 @@ const VehicleManager: React.FC = () => {
   };
 
   const fetchVehicles = async () => {
-    if (user?.smartContractAddress && clientId) {
-      try {
-        const transformedVehicles = await fetchVehiclesWithTransformation(
-          user.smartContractAddress,
-          clientId,
-          vehicleTokenIds,
-          vehicleMakes
-        );
-        setVehicles(transformedVehicles);
-        // Set isExpanded based on vehicles length
-        setIsExpanded(
-          transformedVehicles.length === 0 && window.innerHeight >= 770
-        );
-      } catch (error) {
-        setError("Could not fetch vehicles");
-        console.error("Error fetching vehicles:", error);
-      }
+    try {
+      const transformedVehicles = await fetchVehiclesWithTransformation(
+        user.smartContractAddress,
+        clientId,
+        vehicleTokenIds,
+        vehicleMakes
+      );
+      setVehicles(transformedVehicles);
+      // Set isExpanded based on vehicles length
+      setIsExpanded(
+        transformedVehicles.length === 0 && window.innerHeight >= 770
+      );
+    } catch (error) {
+      setError("Could not fetch vehicles");
+      console.error("Error fetching vehicles:", error);
     }
   };
 
@@ -135,10 +132,10 @@ const VehicleManager: React.FC = () => {
       try {
         const permissionTemplate = await fetchPermissionsFromId(
           permissionTemplateId,
-          clientId as string,
-          user?.smartContractAddress as string,
-          user?.email as string,
-          devLicenseAlias as string,
+          clientId,
+          user.smartContractAddress,
+          user.email,
+          devLicenseAlias,
           expirationDate
         );
         setPermissionTemplate(permissionTemplate as SACDTemplate);
@@ -161,7 +158,7 @@ const VehicleManager: React.FC = () => {
     // Run both fetches in parallel
     Promise.all([fetchVehicles(), fetchPermissions()]);
   }, [
-    user?.smartContractAddress,
+    user.smartContractAddress,
     clientId,
     permissionTemplateId,
     devLicenseAlias,
@@ -189,7 +186,7 @@ const VehicleManager: React.FC = () => {
 
   const handleContinue = () => {
     sendJwtAfterPermissions((authPayload: any) => {
-      backToThirdParty(authPayload, redirectUri!);
+      backToThirdParty(authPayload, redirectUri);
       setUiState("TRANSACTION_CANCELLED");
     });
   };
@@ -197,9 +194,7 @@ const VehicleManager: React.FC = () => {
   const handleShare = async () => {
     setLoadingState(true, "Sharing vehicles");
 
-    if (user && user.subOrganizationId && user.walletAddress) {
-      await initializeIfNeeded(user.subOrganizationId);
-    }
+    await initializeIfNeeded(user.subOrganizationId);
 
     if (permissionTemplateId) {
       const perms = getPermsValue(permissionTemplateId);
@@ -342,7 +337,7 @@ const VehicleManager: React.FC = () => {
             </div>
             <div className="w-full max-w-[440px]">
               <button
-                className="bg-white w-[145px] text-[#09090B] border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500 flex items-center justify-between"
+                className="bg-white w-[145px] text-[#09090B] font-medium border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500 flex items-center justify-between"
                 onClick={() => setIsExpanded(!isExpanded)}
               >
                 <span>{isExpanded ? "Show less" : "Show more"}</span>
@@ -385,7 +380,7 @@ const VehicleManager: React.FC = () => {
             <>
               <button
                 onClick={handleContinue}
-                className="bg-white w-[214px] text-[#09090B] border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500"
+                className="bg-white font-medium w-[214px] text-[#09090B] border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500"
               >
                 Cancel
               </button>

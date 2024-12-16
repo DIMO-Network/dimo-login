@@ -28,7 +28,7 @@ const stamper = new WebauthnStamper({
   rpId:
     process.env.REACT_APP_ENVIRONMENT == "prod"
       ? "dimo.org"
-      : window.location.hostname, //TODO: Pull from ENV based on prod or dev
+      : window.location.hostname,
 });
 
 let kernelSigner: KernelSigner;
@@ -73,7 +73,7 @@ export const createPasskey = async (email: string) => {
         id:
           process.env.REACT_APP_ENVIRONMENT == "prod"
             ? "dimo.org"
-            : window.location.hostname, //TODO: Pull from ENV based on prod or dev
+            : window.location.hostname,
         name: "Dimo Passkey Wallet",
       },
       challenge,

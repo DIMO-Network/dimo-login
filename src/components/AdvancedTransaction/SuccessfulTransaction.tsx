@@ -5,7 +5,6 @@ import Header from "../Shared/Header";
 import PrimaryButton from "../Shared/PrimaryButton";
 import { useDevCredentials } from "../../context/DevCredentialsContext";
 import ErrorScreen from "../Shared/ErrorScreen";
-import { isStandalone } from "../../utils/isStandalone";
 import { useUIManager } from "../../context/UIManagerContext";
 import { backToThirdParty } from "../../utils/messageHandler";
 import { isEmbed } from "../../utils/isEmbed";
@@ -41,7 +40,7 @@ const SuccessfulTransaction: React.FC = () => {
     //By this point the dev should already have the transaction data, so this screen is mainly for the users UX, for them to know what happened
     //Redirect mode however, the user controls when the data is sent because we need to perform a redirect
     const payload = { transactionHash: componentData.transactionHash, token: jwt };
-    backToThirdParty(payload, redirectUri!);
+    backToThirdParty(payload, redirectUri);
   };
 
   return (

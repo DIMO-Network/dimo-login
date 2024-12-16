@@ -17,10 +17,9 @@ import { sendMessageToReferrer } from "../../utils/messageHandler";
 import { useUIManager } from "../../context/UIManagerContext";
 
 const AdvancedTransaction: React.FC = () => {
-  //TODO
-  //Loading and Error Handling should not be determined by AuthContext
   const { redirectUri } = useDevCredentials();
-  const { setUiState, setComponentData, setLoadingState, error, setError } = useUIManager();
+  const { setUiState, setComponentData, setLoadingState, error, setError } =
+    useUIManager();
   const { user, jwt } = useAuthContext();
 
   const [transactionData, setTransactionData] = useState<
@@ -64,12 +63,10 @@ const AdvancedTransaction: React.FC = () => {
   }
 
   const onApprove = async () => {
-    setLoadingState(true,"Executing Transaction");
+    setLoadingState(true, "Executing Transaction");
     //Ensure Passkey
 
-    if (user && user.subOrganizationId && user.walletAddress) {
-      await initializeIfNeeded(user.subOrganizationId);
-    }
+    await initializeIfNeeded(user.subOrganizationId);
 
     try {
       const receipt = await executeAdvancedTransaction(
@@ -148,7 +145,7 @@ const AdvancedTransaction: React.FC = () => {
           <div className={`flex justify-between w-full pt-4`}>
             <button
               onClick={onReject}
-              className="bg-white w-[214px] text-[#09090B] border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500"
+              className="bg-white w-[214px] font-medium text-[#09090B] border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500"
             >
               Reject
             </button>
