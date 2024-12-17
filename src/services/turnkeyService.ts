@@ -23,6 +23,7 @@ import { getWebAuthnAttestation } from "@turnkey/http";
 import { WebauthnStamper } from "@turnkey/webauthn-stamper";
 import { base64UrlEncode, generateRandomBuffer } from "../utils/cryptoUtils";
 import { VehcilePermissionDescription } from "@dimo-network/transactions/dist/core/types/args";
+import { PasskeyCreationResult } from "../models/resultTypes";
 
 const stamper = new WebauthnStamper({
   rpId:
@@ -61,7 +62,7 @@ export const getWalletAddress = (): `0x${string}` | undefined => {
   return kernelSigner.walletAddress;
 };
 
-export const createPasskey = async (email: string) => {
+export const createPasskey = async (email: string): Promise<PasskeyCreationResult> => {
   const challenge = generateRandomBuffer();
   const authenticatorUserId = generateRandomBuffer();
 

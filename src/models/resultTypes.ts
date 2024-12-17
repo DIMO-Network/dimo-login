@@ -11,6 +11,9 @@ type GenerateChallengeResponse = {
   state: string;
 };
 
+export type PasskeyCreationResult = [attestation: any, challenge: string];
+
+
 // Generalized Result Type
 export type Result<T> =
   | { success: true; data: T }
