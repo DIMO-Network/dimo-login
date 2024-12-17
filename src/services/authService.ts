@@ -11,6 +11,7 @@
  * This service should be imported and called from components or hooks that handle authentication logic.
  */
 
+import { GenerateChallengeResult, SubmitChallengeResult } from "../models/resultTypes";
 import { GenerateChallengeParams, SubmitChallengeParams } from "../models/web3";
 
 const DIMO_AUTH_BASE_URL = process.env.REACT_APP_DIMO_AUTH_URL;
@@ -20,11 +21,7 @@ export const generateChallenge = async ({
   domain,
   scope,
   address,
-}: GenerateChallengeParams): Promise<{
-  success: boolean;
-  error?: string;
-  data?: any;
-}> => {
+}: GenerateChallengeParams): Promise<GenerateChallengeResult> => {
   try {
     const queryParams = new URLSearchParams({
       client_id: clientId,
@@ -69,11 +66,7 @@ export const submitWeb3Challenge = async ({
   state,
   domain,
   signature,
-}: SubmitChallengeParams): Promise<{
-  success: boolean;
-  error?: string;
-  data?: any;
-}> => {
+}: SubmitChallengeParams): Promise<SubmitChallengeResult> => {
   try {
     // Construct the body using URLSearchParams for form-urlencoded
     const formBody = new URLSearchParams({

@@ -21,7 +21,6 @@ const DIMO_ACCOUNTS_BASE_URL =
   process.env.REACT_APP_DIMO_ACCOUNTS_URL ||
   "https://accounts.dev.dimo.org/api";
 
-type Result<T> = { success: true; data: T } | { success: false; error: string };
 
 // Example: Send OTP using Accounts API
 export const sendOtp = async (

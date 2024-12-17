@@ -145,6 +145,10 @@ export async function authenticateUser(
         
         const jwt = await submitWeb3Challenge(web3ChallengeSubmission);
 
+        if ( !jwt.success ) {
+          throw new Error("Failed to submit web3 challenge");
+        }
+
         const userProperties: UserObject = {
           email,
           subOrganizationId,
