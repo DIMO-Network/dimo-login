@@ -1,11 +1,18 @@
-function base64UrlDecode(base64Url: string) {
+function base64UrlDecode(base64Url: string): string {
   const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
   const decodedData = atob(base64);
   return decodedData;
 }
 
+interface JWTPayload {
+  sub: string;
+  iat: number;
+  exp: number;
+  [key: string]: any; // Allow extra properties
+}
+
 // Function to decode JWT
-function decodeJWT(token: string) {
+function decodeJWT(token: string): JWTPayload {
   try {
     const parts = token.split(".");
     if (parts.length !== 3) {
@@ -14,13 +21,13 @@ function decodeJWT(token: string) {
 
     // Decode the payload (second part of the JWT)
     const payload = base64UrlDecode(parts[1]);
-    return JSON.parse(payload);
+    return JSON.parse(payload) as JWTPayload;
   } catch (e) {
     throw new Error("Error decoding JWT: " + e);
   }
 }
 
-export const isTokenExpired = (token: string) => {
+export const isTokenExpired = (token: string): boolean => {
   try {
     const decoded = decodeJWT(token);
     const currentTime = Date.now() / 1000; // current time in seconds

@@ -6,15 +6,20 @@
  * Specific Responsibilities include: Getting vehicles and their SACD permissions
  */
 
-const GRAPHQL_ENDPOINT = process.env.REACT_APP_DIMO_IDENTITY_URL || "https://identity-api.dev.dimo.zone/query";
+import { Vehicle } from "../models/vehicle";
+
+const GRAPHQL_ENDPOINT =
+  process.env.REACT_APP_DIMO_IDENTITY_URL ||
+  "https://identity-api.dev.dimo.zone/query";
 
 // Function to fetch vehicles and transform data
-export async function fetchVehiclesWithTransformation(
+//TODO: Convert to Object Params
+export const fetchVehiclesWithTransformation = async (
   ownerAddress: string,
   targetGrantee: string,
   vehicleTokenIds?: string[], // Array of tokenIds to filter by
   vehicleMakes?: string[]
-) {
+): Promise<Vehicle[]> => {
   const query = `
     {
       vehicles(filterBy: { owner: "${ownerAddress}" }, first: 100) {
@@ -80,12 +85,12 @@ export async function fetchVehiclesWithTransformation(
       year: vehicle.definition.year,
     }))
     .sort((a: any, b: any) => Number(a.shared) - Number(b.shared)); // Sort non-shared first
-}
+};
 
-export async function isValidClientId(
+export const isValidClientId = async (
   clientId: string,
   redirectUri: string
-): Promise<{ isValid: boolean; alias: string }> {
+): Promise<{ isValid: boolean; alias: string }> => {
   const query = `{
     developerLicense(by: { clientId: "${clientId}" }) {
       owner
@@ -131,4 +136,4 @@ export async function isValidClientId(
     console.error("No redirect URIs found.");
     return { isValid: false, alias: "" };
   }
-}
+};

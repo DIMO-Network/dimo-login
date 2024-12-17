@@ -23,6 +23,7 @@ import { getWebAuthnAttestation } from "@turnkey/http";
 import { WebauthnStamper } from "@turnkey/webauthn-stamper";
 import { base64UrlEncode, generateRandomBuffer } from "../utils/cryptoUtils";
 import { VehcilePermissionDescription } from "@dimo-network/transactions/dist/core/types/args";
+import { PasskeyCreationResult } from "../models/resultTypes";
 
 const stamper = new WebauthnStamper({
   rpId:
@@ -37,7 +38,7 @@ export const createKernelSigner = (
   clientId: string,
   domain: string,
   redirectUri: string
-) => {
+): KernelSigner => {
   const kernelSignerConfig = newKernelConfig({
     rpcUrl: process.env.REACT_APP_POLYGON_RPC_URL!,
     bundlerUrl: process.env.REACT_APP_ZERODEV_BUNDLER_URL!,
@@ -61,7 +62,7 @@ export const getWalletAddress = (): `0x${string}` | undefined => {
   return kernelSigner.walletAddress;
 };
 
-export const createPasskey = async (email: string) => {
+export const createPasskey = async (email: string): Promise<PasskeyCreationResult> => {
   const challenge = generateRandomBuffer();
   const authenticatorUserId = generateRandomBuffer();
 
@@ -99,15 +100,19 @@ export const createPasskey = async (email: string) => {
   return [attestation, base64UrlEncode(challenge)];
 };
 
-export const initializePasskey = async (subOrganizationId: string) => {
+export const initializePasskey = async (
+  subOrganizationId: string
+): Promise<void> => {
   await kernelSigner.passkeyToSession(subOrganizationId, stamper);
 };
 
-export const openSessionWithPasskey = async () => {
+export const openSessionWithPasskey = async (): Promise<void> => {
   return await kernelSigner.openSessionWithPasskey();
 };
 
-export const initializeIfNeeded = async (subOrganizationId: string) => {
+export const initializeIfNeeded = async (
+  subOrganizationId: string
+): Promise<void> => {
   try {
     await kernelSigner.getActiveClient();
   } catch (e) {
@@ -115,7 +120,9 @@ export const initializeIfNeeded = async (subOrganizationId: string) => {
   }
 };
 
-export const signChallenge = async (challenge: string) => {
+export const signChallenge = async (
+  challenge: string
+): Promise<`0x${string}`> => {
   //This is triggering a turnkey API request to sign a raw payload
   //Notes on signature, turnkey api returns an ecdsa signature, which the kernel client is handling
   const signature = await kernelSigner.signChallenge(challenge);
@@ -128,7 +135,7 @@ export const generateIpfsSources = async (
   permissions: BigInt,
   clientId: string,
   expiration: BigInt
-) => {
+): Promise<string> => {
   // Bulk vehicles
   const ipfsRes = await kernelSigner.signAndUploadSACDAgreement({
     driverID: clientId,
@@ -237,14 +244,14 @@ export function getSacdValue(
       boolean
     >
   >
-) {
+): bigint {
   return sacdPermissionValue(sacdPerms);
 }
 
-export function getSacdDescription(args: VehcilePermissionDescription) {
+export function getSacdDescription(args: VehcilePermissionDescription): string {
   return sacdDescription(args);
 }
 
-export function getSacdPermissionArray(permissionsObject: bigint) {
+export function getSacdPermissionArray(permissionsObject: bigint): string[] {
   return sacdPermissionArray(permissionsObject);
 }
