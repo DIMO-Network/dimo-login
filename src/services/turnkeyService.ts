@@ -128,7 +128,7 @@ export const generateIpfsSources = async (
   permissions: BigInt,
   clientId: string,
   expiration: BigInt
-) => {
+): Promise<string> => {
   // Bulk vehicles
   const ipfsRes = await kernelSigner.signAndUploadSACDAgreement({
     driverID: clientId,
@@ -237,14 +237,14 @@ export function getSacdValue(
       boolean
     >
   >
-) {
+): bigint {
   return sacdPermissionValue(sacdPerms);
 }
 
-export function getSacdDescription(args: VehcilePermissionDescription) {
+export function getSacdDescription(args: VehcilePermissionDescription): string {
   return sacdDescription(args);
 }
 
-export function getSacdPermissionArray(permissionsObject: bigint) {
+export function getSacdPermissionArray(permissionsObject: bigint): string[] {
   return sacdPermissionArray(permissionsObject);
 }
