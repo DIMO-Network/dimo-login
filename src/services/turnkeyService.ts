@@ -37,7 +37,7 @@ export const createKernelSigner = (
   clientId: string,
   domain: string,
   redirectUri: string
-) => {
+): KernelSigner => {
   const kernelSignerConfig = newKernelConfig({
     rpcUrl: process.env.REACT_APP_POLYGON_RPC_URL!,
     bundlerUrl: process.env.REACT_APP_ZERODEV_BUNDLER_URL!,
@@ -99,15 +99,19 @@ export const createPasskey = async (email: string) => {
   return [attestation, base64UrlEncode(challenge)];
 };
 
-export const initializePasskey = async (subOrganizationId: string) => {
+export const initializePasskey = async (
+  subOrganizationId: string
+): Promise<void> => {
   await kernelSigner.passkeyToSession(subOrganizationId, stamper);
 };
 
-export const openSessionWithPasskey = async () => {
+export const openSessionWithPasskey = async (): Promise<void> => {
   return await kernelSigner.openSessionWithPasskey();
 };
 
-export const initializeIfNeeded = async (subOrganizationId: string) => {
+export const initializeIfNeeded = async (
+  subOrganizationId: string
+): Promise<void> => {
   try {
     await kernelSigner.getActiveClient();
   } catch (e) {
@@ -115,7 +119,9 @@ export const initializeIfNeeded = async (subOrganizationId: string) => {
   }
 };
 
-export const signChallenge = async (challenge: string) => {
+export const signChallenge = async (
+  challenge: string
+): Promise<`0x${string}`> => {
   //This is triggering a turnkey API request to sign a raw payload
   //Notes on signature, turnkey api returns an ecdsa signature, which the kernel client is handling
   const signature = await kernelSigner.signChallenge(challenge);
