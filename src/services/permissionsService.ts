@@ -6,6 +6,7 @@ import {
 } from "./turnkeyService";
 import { VehcilePermissionDescription } from "@dimo-network/transactions/dist/core/types/args";
 import { formatBigIntAsReadableDate } from "../utils/dateUtils";
+import { FetchPermissionsParams } from "../models/permissions";
 
 //Helper functions that communicate with the transactions service
 export function getPermsValue(permissionTemplateId: string) {
@@ -29,14 +30,14 @@ export function getDescription(args: VehcilePermissionDescription) {
   return getSacdDescription(args);
 }
 
-export async function fetchPermissionsFromId(
-  permissionTemplateId: string,
-  clientId: string,
-  walletAddress: string,
-  email: string,
-  devLicenseAlias: string,
-  expirationDate: BigInt
-) {
+export async function fetchPermissionsFromId({
+  permissionTemplateId,
+  clientId,
+  walletAddress,
+  email,
+  devLicenseAlias,
+  expirationDate,
+}: FetchPermissionsParams) {
   const templateId = "$uuid";
 
   //Call helpers, that will communicate with the transactionService, which has access to the SDK

@@ -125,8 +125,7 @@ export const signChallenge = async (challenge: string) => {
 
 // Helper function to generate IPFS sources for one or more vehicles
 export const generateIpfsSources = async (
-  tokenIds: bigint[],
-  permissions: any,
+  permissions: BigInt,
   clientId: string,
   expiration: BigInt
 ) => {
@@ -146,25 +145,22 @@ export const generateIpfsSources = async (
 };
 
 // Define the bridge function in your Turnkey Service
-export async function setVehiclePermissions(
-  tokenId: BigInt,
-  grantee: `0x${string}`,
-  permissions: BigInt,
-  expiration: BigInt,
-  source: string
-): Promise<void> {
-  // Construct the payload in the format required by the SDK function
-  const payload: SetVehiclePermissions = {
-    tokenId,
-    grantee,
-    permissions,
-    expiration,
-    source,
-  };
-
+export async function setVehiclePermissions({
+  tokenId,
+  grantee,
+  permissions,
+  expiration,
+  source,
+}: SetVehiclePermissions): Promise<void> {
   try {
     // Call the kernelClient's setVehiclePermissions with the prepared payload
-    await kernelSigner.setVehiclePermissions(payload);
+    await kernelSigner.setVehiclePermissions({
+      tokenId,
+      grantee,
+      permissions,
+      expiration,
+      source,
+    });
     console.log("Vehicle permissions set successfully");
   } catch (error) {
     console.error("Error setting vehicle permissions:", error);
@@ -172,25 +168,22 @@ export async function setVehiclePermissions(
   }
 }
 
-export async function setVehiclePermissionsBulk(
-  tokenIds: BigInt[],
-  grantee: `0x${string}`,
-  permissions: BigInt,
-  expiration: BigInt,
-  source: string
-): Promise<void> {
-  // Construct the payload in the format required by the SDK function
-  const payload: SetVehiclePermissionsBulk = {
-    tokenIds,
-    grantee,
-    permissions,
-    expiration,
-    source,
-  };
-
+export async function setVehiclePermissionsBulk({
+  tokenIds,
+  grantee,
+  permissions,
+  expiration,
+  source,
+}: SetVehiclePermissionsBulk): Promise<void> {
   try {
-    // Call the kernelClient's setVehiclePermissions with the prepared payload
-    await kernelSigner.setVehiclePermissionsBulk(payload);
+    // Call the kernelClient's setVehiclePermissionsBulk with the prepared payload
+    await kernelSigner.setVehiclePermissionsBulk({
+      tokenIds,
+      grantee,
+      permissions,
+      expiration,
+      source,
+    });
     console.log("Vehicle permissions set successfully");
   } catch (error) {
     console.error("Error setting vehicle permissions:", error);

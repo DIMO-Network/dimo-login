@@ -19,7 +19,6 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
   const {
     sendOtp,
     authenticateUser,
-    setJwt,
     setUser,
     createAccountWithPasskey,
   } = useAuthContext(); // Get sendOtp from the context
@@ -82,9 +81,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
       authenticateUser(
         email,
         "credentialBundle",
-        entryState,
-        setJwt,
-        setUiState
+        entryState
       );
     }
   }, [triggerAuth]);

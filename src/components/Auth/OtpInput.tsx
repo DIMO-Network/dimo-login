@@ -13,7 +13,7 @@ interface OtpInputProps {
 
 const OtpInput: React.FC<OtpInputProps> = ({ email, otpId }) => {
   const { verifyOtp, authenticateUser, setJwt } = useAuthContext(); // Get verifyOtp from the context
-  const { setUiState, entryState, error } = useUIManager();
+  const { entryState, error } = useUIManager();
   const [otpArray, setOtpArray] = useState(Array(6).fill("")); // Array of 6 empty strings
 
   // Function to handle change for each input
@@ -52,13 +52,7 @@ const OtpInput: React.FC<OtpInputProps> = ({ email, otpId }) => {
       const result = await verifyOtp(email, otp, otpId);
 
       if (result.success && result.data.credentialBundle) {
-        authenticateUser(
-          email,          
-          result.data.credentialBundle,
-          entryState,
-          setJwt,
-          setUiState
-        );
+        authenticateUser(email, result.data.credentialBundle, entryState);
       }
     }
   };
@@ -79,10 +73,7 @@ const OtpInput: React.FC<OtpInputProps> = ({ email, otpId }) => {
       {error && <ErrorMessage message={error} />}
 
       <div className="frame9 flex flex-col items-center gap-[15px] lg:gap-[20px]">
-        <div
-          onKeyDown={handleKeyDown}
-          className="grid grid-cols-6 gap-3 mb-4"
-        >
+        <div onKeyDown={handleKeyDown} className="grid grid-cols-6 gap-3 mb-4">
           {otpArray.map((digit, index) => (
             <input
               key={index}

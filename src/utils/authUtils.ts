@@ -20,6 +20,7 @@ import {
 import { UserObject } from "../models/user";
 import { backToThirdParty, sendMessageToReferrer } from "./messageHandler";
 import { isEmbed } from "./isEmbed";
+import { GenerateChallengeParams, SubmitChallengeParams } from "../models/web3";
 
 export function buildAuthPayload(
   clientId: string,
@@ -119,12 +120,15 @@ export async function authenticateUser(
       );
     }
 
-    const resp = await generateChallenge(
-      clientId, //This is a dev licence, use this with the dev.dimo.zone endpoint if using dev RPC's
-      redirectUri, //Redirect uri for this dev licensce
-      "openid email",
-      smartContractAddress //We want this address to be recovered after signing
-    );
+    const generateChallengeParams: GenerateChallengeParams = {
+      clientId,
+      domain: redirectUri,
+      scope: "openid email",
+      address: smartContractAddress, //We want this address to be recovered after signing
+    };
+
+    const resp = await generateChallenge(generateChallengeParams);
+
     if (resp.success) {
       const challenge = resp.data.challenge;
       const state = resp.data.state;
@@ -132,12 +136,14 @@ export async function authenticateUser(
       const signature = await signChallenge(challenge);
 
       if (signature) {
-        const jwt = await submitWeb3Challenge(
+        const web3ChallengeSubmission: SubmitChallengeParams = {
           clientId,
           state,
-          redirectUri,
-          signature
-        );
+          domain: redirectUri,
+          signature,
+        };
+        
+        const jwt = await submitWeb3Challenge(web3ChallengeSubmission);
 
         const userProperties: UserObject = {
           email,
@@ -163,13 +169,12 @@ export async function authenticateUser(
           );
           sendAuthPayloadToParent(authPayload, redirectUri, (payload) => {
             backToThirdParty(payload, redirectUri);
-            setUiState("SUCCESS") //For Embed Mode
+            setUiState("SUCCESS"); //For Embed Mode
           });
-        } else if ( entryState === "VEHICLE_MANAGER" ) {
+        } else if (entryState === "VEHICLE_MANAGER") {
           //Note: If the user is unauthenticated but the vehicle manager is the entry state, the payload will be sent to parent in the vehicle manager, after vehicles are shared
           setUiState("VEHICLE_MANAGER"); //Move to vehicle manager
-        } else 
-        if ( entryState === "ADVANCED_TRANSACTION" ) {
+        } else if (entryState === "ADVANCED_TRANSACTION") {
           setUiState("ADVANCED_TRANSACTION");
         }
       }

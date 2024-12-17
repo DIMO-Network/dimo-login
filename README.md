@@ -2,6 +2,14 @@
 
 This app goes through the DIMO authorization flow
 
+
+## Conventions
+- React Components, Context files are named with PascalCase
+- Other files are named with camelCase
+- React Classes/Contexts are named with PascalCase
+- Methods/Variables are named with camelCase
+- Positional Params are used for any functions that take 3 or less inputs, object params used otherwise
+
 ## Available Scripts
 
 In the project directory, you can run:
