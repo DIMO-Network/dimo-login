@@ -7,6 +7,7 @@
  *
  */
 
+import { CreateAccountParams } from "../models/account";
 import {
   CredentialResult,
   OtpResult,
@@ -20,7 +21,6 @@ const DIMO_ACCOUNTS_BASE_URL =
   process.env.REACT_APP_DIMO_ACCOUNTS_URL ||
   "https://accounts.dev.dimo.org/api";
 
-type Result<T> = { success: true; data: T } | { success: false; error: string };
 
 // Example: Send OTP using Accounts API
 export const sendOtp = async (
@@ -131,13 +131,13 @@ export const verifyEmail = async (
 };
 
 // Function to create an account
-export const createAccount = async (
-  email: string,
-  apiKey: string,
-  attestation?: object,
-  challenge?: string,
-  deployAccount?: boolean
-): Promise<UserResult> => {
+export const createAccount = async ({
+  email,
+  apiKey,
+  attestation,
+  challenge,
+  deployAccount,
+}: CreateAccountParams): Promise<UserResult> => {
   const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account`, {
     method: "POST",
     headers: {

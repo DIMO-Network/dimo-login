@@ -6,9 +6,10 @@ import {
 } from "./turnkeyService";
 import { VehcilePermissionDescription } from "@dimo-network/transactions/dist/core/types/args";
 import { formatBigIntAsReadableDate } from "../utils/dateUtils";
+import { FetchPermissionsParams } from "../models/permissions";
 
 //Helper functions that communicate with the transactions service
-export function getPermsValue(permissionTemplateId: string) {
+export function getPermsValue(permissionTemplateId: string): bigint {
   const newPermissions = getSacdValue({
     NONLOCATION_TELEMETRY: true,
     COMMANDS: permissionTemplateId == "1",
@@ -21,29 +22,29 @@ export function getPermsValue(permissionTemplateId: string) {
   return newPermissions;
 }
 
-export function getPermissionArray(perms: bigint) {
-  getSacdPermissionArray(perms);
+export function getPermissionArray(perms: bigint): string[]{
+  return getSacdPermissionArray(perms);
 }
 
-export function getDescription(args: VehcilePermissionDescription) {
+export function getDescription(args: VehcilePermissionDescription): string {
   return getSacdDescription(args);
 }
 
-export async function fetchPermissionsFromId(
-  permissionTemplateId: string,
-  clientId: string,
-  walletAddress: string,
-  email: string,
-  devLicenseAlias: string,
-  expirationDate: BigInt
-) {
+export async function fetchPermissionsFromId({
+  permissionTemplateId,
+  clientId,
+  walletAddress,
+  email,
+  devLicenseAlias,
+  expirationDate,
+}: FetchPermissionsParams): Promise<SACDTemplate> {
   const templateId = "$uuid";
 
   //Call helpers, that will communicate with the transactionService, which has access to the SDK
   //Not necessary, but the abstraction make it easier for us to mock responses etc
   const permissionsValue = getPermsValue(permissionTemplateId);
 
-  const permissionArray = getSacdPermissionArray(permissionsValue);
+  const permissionArray = getPermissionArray(permissionsValue);
 
   const currentTime = new Date();
   const currentTimeBigInt = BigInt(Math.floor(currentTime.getTime() / 1000));
