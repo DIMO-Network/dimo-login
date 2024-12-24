@@ -87,19 +87,23 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
   }, [triggerAuth]);
 
   return (
-    <Card width="w-full max-w-[600px]" height="h-full max-h-[308px]">
+    <Card
+      width="w-full max-w-[600px]"
+      height="h-fit"
+      className="flex flex-col gap-6"
+    >
       <Header
         title="Enter an email to sign in with DIMO on"
         subtitle={appUrl}
       />
       {error && <ErrorMessage message={error} />}
-      <div className="flex justify-center text-sm mb-2">
+      <div className="flex justify-center items-center text-sm mb-4">
         <input
           type="checkbox"
           onChange={() => {
             setEmailPermissionGranted(!emailPermissionGranted);
           }}
-          className="mb-2 mr-2 w-5 h-5 text-black border-gray-300 rounded focus:ring-0 focus:ring-offset-0 accent-black"
+          className="mr-2 w-5 h-5 text-black border-gray-300 rounded focus:ring-0 focus:ring-offset-0 accent-black"
         />
         I agree to share my email with {devLicenseAlias}
       </div>
