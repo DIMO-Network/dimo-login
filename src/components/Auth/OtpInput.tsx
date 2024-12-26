@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useAuthContext } from "../../context/AuthContext"; // Use the auth context
 import ErrorMessage from "../Shared/ErrorMessage";
 import PrimaryButton from "../Shared/PrimaryButton";
+import SecondaryButton from "../Shared/SecondaryButton";
 import Card from "../Shared/Card";
 import Header from "../Shared/Header";
 import { useUIManager } from "../../context/UIManagerContext";
@@ -9,12 +10,24 @@ import { useUIManager } from "../../context/UIManagerContext";
 interface OtpInputProps {
   email: string;
   otpId: string;
+  setOtpId: (otpId: string) => void;
 }
 
-const OtpInput: React.FC<OtpInputProps> = ({ email, otpId }) => {
-  const { verifyOtp, authenticateUser, setJwt } = useAuthContext(); // Get verifyOtp from the context
+const OtpInput: React.FC<OtpInputProps> = ({ email, otpId, setOtpId }) => {
+  const { verifyOtp, authenticateUser } = useAuthContext(); // Get verifyOtp from the context
   const { entryState, error } = useUIManager();
   const [otpArray, setOtpArray] = useState(Array(6).fill("")); // Array of 6 empty strings
+  const { sendOtp } = useAuthContext(); // Get sendOtp from the context
+
+  const handleReOtpSend = async (email: string) => {
+    const otpResult = await sendOtp(email); // Send OTP for new account
+
+    if (otpResult.success && otpResult.data.otpId) {
+      setOtpId(otpResult.data.otpId); // Store the OTP ID
+    } else if (!otpResult.success) {
+      console.error(otpResult.error); // Handle OTP sending failure
+    }
+  };
 
   // Function to handle change for each input
   const handleChange = (
@@ -64,16 +77,28 @@ const OtpInput: React.FC<OtpInputProps> = ({ email, otpId }) => {
   };
 
   return (
-    <Card width="w-full max-w-[600px]" height="h-full max-h-[308px]">
+    <Card
+      width="w-full max-w-[600px]"
+      height="h-fit"
+      className="flex flex-col items-center gap-2"
+    >
       <Header
         title="Please enter your OTP Code"
         subtitle={email || "moiz@gmail.com"}
       />
+      <p className="max-w-[440px] text-sm">
+        A code was just sent to someone@example.com, which will expire in 5
+        minutes. If you don't see it, check your spam folder, then resend the
+        code.
+      </p>
 
       {error && <ErrorMessage message={error} />}
 
-      <div className="frame9 flex flex-col items-center gap-[15px] lg:gap-[20px]">
-        <div onKeyDown={handleKeyDown} className="grid grid-cols-6 gap-3 mb-4">
+      <div className="frame9 flex flex-col items-center gap-4">
+        <div
+          onKeyDown={handleKeyDown}
+          className="flex flex-row gap-3 w-full mt-8 justify-between"
+        >
           {otpArray.map((digit, index) => (
             <input
               key={index}
@@ -89,8 +114,14 @@ const OtpInput: React.FC<OtpInputProps> = ({ email, otpId }) => {
           ))}
         </div>
         <PrimaryButton onClick={handleSubmit} width="w-full lg:w-[440px]">
-          Continue
+          Verify email
         </PrimaryButton>
+        <SecondaryButton
+          onClick={() => handleReOtpSend(email)}
+          width="w-full lg:w-[440px]"
+        >
+          Resend code
+        </SecondaryButton>
       </div>
     </Card>
   );
