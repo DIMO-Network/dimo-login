@@ -19,12 +19,12 @@ const UIManagerContext = createContext<UIManagerContextProps | undefined>(
 );
 
 export const UIManagerProvider = ({ children }: { children: ReactNode }) => {
-  const [uiState, setUiState] = useState("EMAIL_INPUT"); // Initial UI state
+  const [uiState, setUiState] = useState("OTP_INPUT"); // Initial UI state
   const [entryState, setEntryState] = useState("EMAIL_INPUT");
   const [componentData, setComponentData] = useState<any | null>(null); // Initial component data
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>("");
 
   const setLoadingState = (loading: boolean, message: string = "") => {
     setIsLoading(loading);
@@ -43,8 +43,8 @@ export const UIManagerProvider = ({ children }: { children: ReactNode }) => {
         isLoading,
         loadingMessage,
         setLoadingState,
-        error, 
-        setError
+        error,
+        setError,
       }}
     >
       {children}
