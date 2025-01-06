@@ -6,8 +6,8 @@ const Loader: React.FC = () => {
   const { loadingMessage } = useUIManager();
 
   return (
-    <div className="flex flex-col items-center">
-      <div className="text-lg mb-4">{loadingMessage}</div>
+    <div className="flex flex-col items-center gap-10">
+      <div className="text-lg">{loadingMessage}</div>
       <div className="flex space-x-2">
         <div className="dot w-3 h-3 rounded-full animate-wave delay-100"></div>
         <div className="dot w-3 h-3 rounded-full animate-wave delay-200"></div>
