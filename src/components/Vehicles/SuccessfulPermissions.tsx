@@ -24,7 +24,12 @@ const SuccessfulPermissions: React.FC = () => {
     //By this point the dev should already have the transaction data, so this screen is mainly for the users UX, for them to know what happened
     //Redirect mode however, the user controls when the data is sent because we need to perform a redirect
 
-    const payload = buildAuthPayload(clientId, jwt, user);
+    const authPayload = buildAuthPayload(clientId, jwt, user);
+
+    const vehicleTokenIds = vehicles.map((vehicle:Vehicle) => vehicle.tokenId);
+
+    const payload = { ...authPayload, sharedVehicles: vehicles };
+    //Shared vehicles to be fetched through urlParams.getAll("sharedVehicles")
     backToThirdParty(payload, redirectUri);
   };
 
