@@ -43,8 +43,8 @@ export const UIManagerProvider = ({ children }: { children: ReactNode }) => {
         isLoading,
         loadingMessage,
         setLoadingState,
-        error, 
-        setError
+        error,
+        setError,
       }}
     >
       {children}

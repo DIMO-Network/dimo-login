@@ -67,7 +67,9 @@ function App() {
       {uiState === "EMAIL_INPUT" && (
         <EmailInput onSubmit={setEmail} setOtpId={setOtpId} />
       )}
-      {uiState === "OTP_INPUT" && <OtpInput email={email} otpId={otpId} />}
+      {uiState === "OTP_INPUT" && (
+        <OtpInput email={email} otpId={otpId} setOtpId={setOtpId} />
+      )}
       {uiState === "VEHICLE_MANAGER" && <VehicleManager />}
       {uiState === "ADVANCED_TRANSACTION" && <AdvancedTransaction />}
       {uiState === "TRANSACTION_SUCCESS" && <SuccessfulTransaction />}
