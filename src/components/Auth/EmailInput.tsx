@@ -30,9 +30,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
   const [triggerAuth, setTriggerAuth] = useState(false);
   const [emailPermissionGranted, setEmailPermissionGranted] = useState(false);
 
-  const appUrl = document.referrer
-    ? new URL(document.referrer).hostname
-    : "https://dimo.org";
+  const appUrl = new URL(document.referrer ? document.referrer : "https://dimo.org");
 
   const handleOtpSend = async (email: string) => {
     const otpResult = await sendOtp(email); // Send OTP for new account
@@ -78,11 +76,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
   useEffect(() => {
     // Only authenticate if `user` is set and authentication hasn't been triggered
     if (triggerAuth) {
-      authenticateUser(
-        email,
-        "credentialBundle",
-        entryState
-      );
+      authenticateUser(email, "credentialBundle", entryState);
     }
   }, [triggerAuth]);
 
@@ -90,7 +84,8 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
     <Card width="w-full max-w-[600px]" height="h-full max-h-[308px]">
       <Header
         title="Enter an email to sign in with DIMO on"
-        subtitle={appUrl}
+        subtitle={appUrl.hostname}
+        link={`${appUrl.protocol}//${appUrl.host}`}
       />
       {error && <ErrorMessage message={error} />}
       <div className="flex justify-center text-sm mb-2">
