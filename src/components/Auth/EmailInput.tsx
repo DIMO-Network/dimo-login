@@ -30,7 +30,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
   const [triggerAuth, setTriggerAuth] = useState(false);
   const [emailPermissionGranted, setEmailPermissionGranted] = useState(false);
 
-  const appUrl = new URL(document.referrer ?? "https://dimo.org");
+  const appUrl = new URL(document.referrer ? document.referrer : "https://dimo.org");
 
   const handleOtpSend = async (email: string) => {
     const otpResult = await sendOtp(email); // Send OTP for new account
