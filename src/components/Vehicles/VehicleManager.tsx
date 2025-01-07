@@ -40,6 +40,7 @@ import {
   SetVehiclePermissionsBulk,
 } from "@dimo-network/transactions";
 import { FetchPermissionsParams } from "../../models/permissions";
+import Loader from "../Shared/Loader";
 
 const VehicleManager: React.FC = () => {
   const { user, jwt } = useAuthContext();
@@ -55,11 +56,16 @@ const VehicleManager: React.FC = () => {
     string[] | undefined
   >();
   const [vehicleMakes, setVehicleMakes] = useState<string[] | undefined>();
+  const [vehiclesLoading, setVehiclesLoading] = useState(true);
 
   //Data from API's
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [permissionTemplate, setPermissionTemplate] =
     useState<SACDTemplate | null>(null);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [endCursor, setEndCursor] = useState("");
+  const [hasPreviousPage, setHasPreviousPage] = useState(false);
+  const [startCursor, setStartCursor] = useState("");
 
   //Data from Developer
   const [selectedVehicles, setSelectedVehicles] = useState<Vehicle[]>([]); // Array for multiple selected vehicles
@@ -113,18 +119,28 @@ const VehicleManager: React.FC = () => {
     };
   };
 
-  const fetchVehicles = async () => {
+  const fetchVehicles = async (direction = "next") => {
     try {
+      const cursor = direction === "next" ? endCursor : startCursor;
+
       const transformedVehicles = await fetchVehiclesWithTransformation(
         user.smartContractAddress,
         clientId,
+        cursor,
+        direction,
         vehicleTokenIds,
         vehicleMakes
       );
-      setVehicles(transformedVehicles);
+
+      setVehiclesLoading(false);
+      setVehicles(transformedVehicles.vehicles);
+      setEndCursor(transformedVehicles.endCursor);
+      setStartCursor(transformedVehicles.startCursor);
+      setHasPreviousPage(transformedVehicles.hasPreviousPage);
+      setHasNextPage(transformedVehicles.hasNextPage);
       // Set isExpanded based on vehicles length
       setIsExpanded(
-        transformedVehicles.length === 0 && window.innerHeight >= 770
+        transformedVehicles.vehicles.length === 0 && window.innerHeight >= 770
       );
     } catch (error) {
       setError("Could not fetch vehicles");
@@ -362,19 +378,49 @@ const VehicleManager: React.FC = () => {
           </>
         )}
 
-        <div className="space-y-4 pt-4 max-h-[400px] overflow-scroll w-full max-w-[440px]">
-          {vehicles &&
-            vehicles.length > 0 &&
-            vehicles.map((vehicle) => (
-              <VehicleCard
-                key={vehicle.tokenId.toString()}
-                vehicle={vehicle}
-                isSelected={selectedVehicles.includes(vehicle)}
-                onSelect={() => handleVehicleSelect(vehicle)}
-                disabled={false}
-              />
-            ))}
-        </div>
+        {vehiclesLoading ? (
+          <Loader />
+        ) : (
+          <div className="space-y-4 pt-4 max-h-[400px] overflow-scroll w-full max-w-[440px]">
+            {vehicles &&
+              vehicles.length > 0 &&
+              vehicles.map((vehicle) => (
+                <VehicleCard
+                  key={vehicle.tokenId.toString()}
+                  vehicle={vehicle}
+                  isSelected={selectedVehicles.includes(vehicle)}
+                  onSelect={() => handleVehicleSelect(vehicle)}
+                  disabled={false}
+                />
+              ))}
+            {(hasNextPage || hasPreviousPage) && (
+              <div className="flex justify-center space-x-4 mt-4">
+                {hasPreviousPage && (
+                  <PrimaryButton
+                    onClick={() => {
+                      setVehiclesLoading(true);
+                      fetchVehicles("previous");
+                    }}
+                    width="w-[214px]"
+                  >
+                    Back
+                  </PrimaryButton>
+                )}
+                {hasNextPage && (
+                  <PrimaryButton
+                    onClick={() => {
+                      setVehiclesLoading(true);
+                      fetchVehicles();
+                    }}
+                    width="w-[214px]"
+                  >
+                    Next
+                  </PrimaryButton>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Render buttons */}
         <div

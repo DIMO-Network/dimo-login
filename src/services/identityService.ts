@@ -6,7 +6,7 @@
  * Specific Responsibilities include: Getting vehicles and their SACD permissions
  */
 
-import { Vehicle } from "../models/vehicle";
+import { VehicleResponse } from "../models/vehicle";
 
 const GRAPHQL_ENDPOINT =
   process.env.REACT_APP_DIMO_IDENTITY_URL ||
@@ -17,30 +17,42 @@ const GRAPHQL_ENDPOINT =
 export const fetchVehiclesWithTransformation = async (
   ownerAddress: string,
   targetGrantee: string,
+  cursor: string,
+  direction: string,
   vehicleTokenIds?: string[], // Array of tokenIds to filter by
   vehicleMakes?: string[]
-): Promise<Vehicle[]> => {
+): Promise<VehicleResponse> => {
   const query = `
-    {
-      vehicles(filterBy: { owner: "${ownerAddress}" }, first: 100) {
-        nodes {
-          tokenId
-          imageURI
-          definition {
-            make
-            model
-            year
-          }
-          sacds(first: 10) {
-            nodes {
-              expiresAt
-              grantee
-            }
+  {
+    vehicles(filterBy: { owner: "${ownerAddress}" }, ${
+      direction === "next"
+        ? `first: 100 ${cursor ? `, after: "${cursor}"` : ""}`
+        : `last: 100 ${cursor ? `, before: "${cursor}"` : ""}`
+    }) {
+      nodes {
+        tokenId
+        imageURI
+        definition {
+          make
+          model
+          year
+        }
+        sacds(first: 10) {
+          nodes {
+            expiresAt
+            grantee
           }
         }
       }
+      pageInfo {
+        hasNextPage
+        endCursor
+        hasPreviousPage
+        startCursor        
+      }
     }
-  `;
+  }
+`;
 
   const response = await fetch(GRAPHQL_ENDPOINT, {
     method: "POST",
@@ -73,18 +85,24 @@ export const fetchVehiclesWithTransformation = async (
 
   // Transform the data
   //TODO: Add strict types
-  return filteredVehicles
-    .map((vehicle: any) => ({
-      tokenId: vehicle.tokenId,
-      imageURI: vehicle.imageURI,
-      shared: vehicle.sacds.nodes.some(
-        (sacd: any) => sacd.grantee === targetGrantee
-      ),
-      make: vehicle.definition.make,
-      model: vehicle.definition.model,
-      year: vehicle.definition.year,
-    }))
-    .sort((a: any, b: any) => Number(a.shared) - Number(b.shared)); // Sort non-shared first
+  return {
+    hasNextPage: data.data.vehicles.pageInfo.hasNextPage,
+    hasPreviousPage: data.data.vehicles.pageInfo.hasPreviousPage,
+    startCursor: data.data.vehicles.pageInfo.startCursor || "",
+    endCursor: data.data.vehicles.pageInfo.endCursor || "",
+    vehicles: filteredVehicles
+      .map((vehicle: any) => ({
+        tokenId: vehicle.tokenId,
+        imageURI: vehicle.imageURI,
+        shared: vehicle.sacds.nodes.some(
+          (sacd: any) => sacd.grantee === targetGrantee
+        ),
+        make: vehicle.definition.make,
+        model: vehicle.definition.model,
+        year: vehicle.definition.year,
+      }))
+      .sort((a: any, b: any) => Number(a.shared) - Number(b.shared)), // Sort non-shared first
+  };
 };
 
 export const isValidClientId = async (

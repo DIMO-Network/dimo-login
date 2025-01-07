@@ -6,3 +6,11 @@ export interface Vehicle {
   year: number;
   shared: boolean;
 }
+
+export interface VehicleResponse {
+  vehicles: Vehicle[];
+  hasNextPage: boolean;
+  endCursor: string;
+  hasPreviousPage: boolean;
+  startCursor: string;  
+}
