@@ -35,12 +35,8 @@ import {
   getDefaultExpirationDate,
   parseExpirationDate,
 } from "../../utils/dateUtils";
-import {
-  SetVehiclePermissions,
-  SetVehiclePermissionsBulk,
-} from "@dimo-network/transactions";
 import { FetchPermissionsParams } from "../../models/permissions";
-import Loader from "../Shared/Loader";
+import SecondaryButton from "../Shared/SecondaryButton";
 
 const VehicleManager: React.FC = () => {
   const { user, jwt } = useAuthContext();
@@ -58,21 +54,10 @@ const VehicleManager: React.FC = () => {
   const [vehicleMakes, setVehicleMakes] = useState<string[] | undefined>();
   const [vehiclesLoading, setVehiclesLoading] = useState(true);
 
-  //Data from API's
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [incompatibleVehicles, setIncompatibleVehicles] = useState<Vehicle[]>(
-    []
-  );
   const [permissionTemplate, setPermissionTemplate] =
     useState<SACDTemplate | null>(null);
-  const [hasNextPage, setHasNextPage] = useState(false);
-  const [endCursor, setEndCursor] = useState("");
-  const [hasPreviousPage, setHasPreviousPage] = useState(false);
-  const [startCursor, setStartCursor] = useState("");
 
-  //Data from Developer
-  const [selectedVehicles, setSelectedVehicles] = useState<Vehicle[]>([]); // Array for multiple selected vehicles
-  const [isExpanded, setIsExpanded] = useState<boolean | undefined>(undefined);
+  const [isExpanded, setIsExpanded] = useState<boolean | undefined>(false);
   const [expirationDate, setExpirationDate] = useState<BigInt>(
     getDefaultExpirationDate()
   );
@@ -112,6 +97,8 @@ const VehicleManager: React.FC = () => {
         if (vehicleMakesFromMessage) setVehicleMakes(vehicleMakesFromMessage);
         if (expirationDateFromMessage)
           setExpirationDate(parseExpirationDate(expirationDateFromMessage));
+
+        setIsExpanded(!(vehicleMakes && vehicleTokenIds));
       }
     };
 
@@ -120,37 +107,6 @@ const VehicleManager: React.FC = () => {
     return () => {
       window.removeEventListener("message", handleMessage);
     };
-  };
-
-  const fetchVehicles = async (direction = "next") => {
-    try {
-      const cursor = direction === "next" ? endCursor : startCursor;
-
-      const transformedVehicles = await fetchVehiclesWithTransformation(
-        user.smartContractAddress,
-        clientId,
-        cursor,
-        direction,
-        vehicleTokenIds,
-        vehicleMakes
-      );
-
-      setVehiclesLoading(false);
-      setVehicles(transformedVehicles.compatibleVehicles);
-      setIncompatibleVehicles(transformedVehicles.incompatibleVehicles);
-      setEndCursor(transformedVehicles.endCursor);
-      setStartCursor(transformedVehicles.startCursor);
-      setHasPreviousPage(transformedVehicles.hasPreviousPage);
-      setHasNextPage(transformedVehicles.hasNextPage);
-      // Set isExpanded based on vehicles length
-      setIsExpanded(
-        transformedVehicles.compatibleVehicles.length === 0 &&
-          window.innerHeight >= 770
-      );
-    } catch (error) {
-      setError("Could not fetch vehicles");
-      console.error("Error fetching vehicles:", error);
-    }
   };
 
   const fetchPermissions = async () => {
@@ -184,23 +140,13 @@ const VehicleManager: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Run both fetches in parallel
-    Promise.all([fetchVehicles(), fetchPermissions()]);
+    Promise.all([fetchPermissions()]);
   }, [
     user.smartContractAddress,
     clientId,
     permissionTemplateId,
     devLicenseAlias,
   ]);
-
-  const handleVehicleSelect = (vehicle: Vehicle) => {
-    setSelectedVehicles(
-      (prevSelected) =>
-        prevSelected.includes(vehicle)
-          ? prevSelected.filter((v) => v !== vehicle) // Deselect if already selected
-          : [...prevSelected, vehicle] // Add to selected if not already selected
-    );
-  };
 
   const sendJwtAfterPermissions = (
     handleNavigation: (authPayload: any) => void
@@ -213,74 +159,15 @@ const VehicleManager: React.FC = () => {
     }
   };
 
-  const handleContinue = () => {
+  const handleCancel = () => {
     sendJwtAfterPermissions((authPayload: any) => {
       backToThirdParty(authPayload, redirectUri);
       setUiState("TRANSACTION_CANCELLED");
     });
   };
 
-  const handleShare = async () => {
-    setLoadingState(true, "Sharing vehicles");
-
-    await initializeIfNeeded(user.subOrganizationId);
-
-    if (permissionTemplateId) {
-      const perms = getPermsValue(permissionTemplateId);
-      if (selectedVehicles.length > 0 && clientId) {
-        const unsharedTokenIds = selectedVehicles
-          .filter((vehicle) => !vehicle.shared)
-          .map((vehicle) => vehicle.tokenId);
-
-        if (unsharedTokenIds.length === 0) {
-          return;
-        }
-
-        try {
-          const sources = await generateIpfsSources(
-            perms,
-            clientId,
-            expirationDate
-          );
-
-          const basePermissions = {
-            grantee: clientId as `0x${string}`,
-            permissions: perms,
-            expiration: expirationDate,
-            source: sources,
-          };
-
-          if (unsharedTokenIds.length === 1) {
-            const vehiclePermissions: SetVehiclePermissions = {
-              ...basePermissions,
-              tokenId: unsharedTokenIds[0],
-            };
-
-            await setVehiclePermissions(vehiclePermissions);
-          } else {
-            const bulkVehiclePermissions: SetVehiclePermissionsBulk = {
-              ...basePermissions,
-              tokenIds: unsharedTokenIds,
-            };
-            await setVehiclePermissionsBulk(bulkVehiclePermissions);
-          }
-
-          sendJwtAfterPermissions((authPayload: any) => {
-            setComponentData(selectedVehicles);
-            setUiState("VEHICLES_SHARED_SUCCESS");
-            setSelectedVehicles([]);
-          });
-          setLoadingState(false);
-        } catch (error) {
-          setError("Could not share vehicles");
-          setLoadingState(false);
-          console.error("Error sharing vehicles:", error);
-        }
-      } else {
-        setError("No vehicles selected");
-        setLoadingState(false);
-      }
-    }
+  const handleContinue = () => {
+    setUiState("SELECT_VEHICLES");
   };
 
   const renderDescription = (description: string) => {
@@ -323,9 +210,6 @@ const VehicleManager: React.FC = () => {
     );
   };
 
-  const noVehicles = vehicles.length === 0 && incompatibleVehicles.length === 0;
-  const allShared = vehicles.length > 0 && vehicles.every((v) => v.shared);
-  const canShare = vehicles.some((v) => !v.shared);
   const appUrl = new URL(
     document.referrer ? document.referrer : "https://dimo.org"
   );
@@ -333,159 +217,120 @@ const VehicleManager: React.FC = () => {
   return (
     <Card width="w-full max-w-[600px]" height="h-fit max-h-[770px]">
       <Header
-        title="Select Vehicles to Share"
+        title={`${devLicenseAlias} wants to use DIMO to connect to your vehicles data`}
         subtitle={appUrl.hostname}
         link={`${appUrl.protocol}//${appUrl.host}`}
       />
       <div className="flex flex-col items-center justify-center max-h-[480px] lg:max-h-[584px] box-border overflow-y-auto">
         {error && <ErrorMessage message={error} />}
 
-        {noVehicles && (
-          <div className="flex flex-col items-center">
-            <img
-              style={{ height: "40px", width: "40px" }}
-              className="rounded-full object-cover mr-4"
-              src={VehicleThumbnail}
-            />
-            <h2 className="text-gray-500 text-xl font-medium pt-2">
-              No cars connected yet
-            </h2>
-            <p className="text-sm">
-              Connect your car in the DIMO app to share permissions.
-            </p>
-          </div>
-        )}
-
-        {allShared && (
-          <div className="flex flex-col items-center">
-            <h2 className="text-gray-500 text-xl font-medium pt-2">
-              All vehicles have been shared
-            </h2>
-            <p className="text-sm">
-              You have already shared all your vehicles with {devLicenseAlias}.
-            </p>
-          </div>
-        )}
-
-        {/* {canShare && (
-          <>
-            <div className="description w-fit max-w-[440px] text-sm mb-4 overflow-y-auto max-h-[356px]">
-              {permissionTemplate?.data.description
-                ? renderDescription(permissionTemplate?.data.description)
-                : "The developer is requesting access to view your vehicle data. Select the vehicles you’d like to share access to."}
-            </div>
-            <div className="w-full max-w-[440px]">
-              <button
-                className="bg-white w-[145px] text-[#09090B] font-medium border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500 flex items-center justify-between"
-                onClick={() => setIsExpanded(!isExpanded)}
-              >
-                <span>{isExpanded ? "Show less" : "Show more"}</span>
-                {isExpanded ? (
-                  <ChevronUpIcon className="h-4 w-4 ml-2" />
-                ) : (
-                  <ChevronDownIcon className="h-4 w-4 ml-2" />
-                )}
-              </button>
-            </div>
-          </>
-        )} */}
-
-        {vehiclesLoading ? (
-          <Loader />
-        ) : (
-          <div className="space-y-4 pt-4 max-h-[400px] overflow-scroll w-full max-w-[440px]">
-            {/* Render Compatible Vehicles */}
-            {vehicles && vehicles.length > 0 && (
-              <>
-                <h2 className="text-lg">Compatible</h2>
-                {vehicles.map((vehicle: Vehicle) => (
-                  <VehicleCard
-                    key={vehicle.tokenId.toString()}
-                    vehicle={vehicle}
-                    isSelected={selectedVehicles.includes(vehicle)}
-                    onSelect={() => handleVehicleSelect(vehicle)}
-                    disabled={false}
-                    incompatible={false}
+        {vehicleMakes && (
+          <div
+            className={`flex w-fit w-[440px] mt-2 items-center p-4 rounded-2xl cursor-pointer transition bg-gray-100 text-gray-500 cursor-not-allowed`}
+          >
+            <label
+              htmlFor={`vehicle-makes`}
+              className="flex-grow text-left hover:cursor-pointer"
+            >
+              <div className="flex text-black gap-2">
+                <svg
+                  width="16"
+                  height="24"
+                  viewBox="0 0 16 15"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M13.7667 1.67467C13.6 1.18301 13.1333 0.833008 12.5833 0.833008H3.41667C2.86667 0.833008 2.40833 1.18301 2.23333 1.67467L0.5 6.66634V13.333C0.5 13.7913 0.875 14.1663 1.33333 14.1663H2.16667C2.625 14.1663 3 13.7913 3 13.333V12.4997H13V13.333C13 13.7913 13.375 14.1663 13.8333 14.1663H14.6667C15.125 14.1663 15.5 13.7913 15.5 13.333V6.66634L13.7667 1.67467ZM3.70833 2.49967H12.2833L13.1833 5.09134H2.80833L3.70833 2.49967ZM13.8333 10.833H2.16667V6.66634H13.8333V10.833Z"
+                    fill="#080808"
                   />
-                ))}
-              </>
-            )}
-
-            {/* Render Incompatible Vehicles */}
-            {incompatibleVehicles && incompatibleVehicles.length > 0 && (
-              <>
-                <h2 className="text-lg">Incompatible</h2>
-                {incompatibleVehicles.map((vehicle: Vehicle) => (
-                  <VehicleCard
-                    key={vehicle.tokenId.toString()}
-                    vehicle={vehicle}
-                    isSelected={selectedVehicles.includes(vehicle)} //Wont execute since disabled
-                    onSelect={() => handleVehicleSelect(vehicle)} //Wont execute since disabled
-                    disabled={false}
-                    incompatible={true}
+                  <path
+                    d="M4.25 9.99967C4.94036 9.99967 5.5 9.44003 5.5 8.74967C5.5 8.05932 4.94036 7.49967 4.25 7.49967C3.55964 7.49967 3 8.05932 3 8.74967C3 9.44003 3.55964 9.99967 4.25 9.99967Z"
+                    fill="#080808"
                   />
-                ))}
-              </>
-            )}
-
-            {/* Pagination Buttons */}
-            {(hasNextPage || hasPreviousPage) && (
-              <div className="flex justify-center space-x-4 mt-4">
-                {hasPreviousPage && (
-                  <PrimaryButton
-                    onClick={() => {
-                      setVehiclesLoading(true);
-                      fetchVehicles("previous");
-                    }}
-                    width="w-[214px]"
-                  >
-                    Back
-                  </PrimaryButton>
-                )}
-                {hasNextPage && (
-                  <PrimaryButton
-                    onClick={() => {
-                      setVehiclesLoading(true);
-                      fetchVehicles();
-                    }}
-                    width="w-[214px]"
-                  >
-                    Next
-                  </PrimaryButton>
-                )}
+                  <path
+                    d="M11.75 9.99967C12.4404 9.99967 13 9.44003 13 8.74967C13 8.05932 12.4404 7.49967 11.75 7.49967C11.0596 7.49967 10.5 8.05932 10.5 8.74967C10.5 9.44003 11.0596 9.99967 11.75 9.99967Z"
+                    fill="#080808"
+                  />
+                </svg>
+                Vehicle Makes
               </div>
-            )}
+              <div className="text-sm text-gray-500">
+                {vehicleMakes.join(", ")}
+              </div>
+            </label>
           </div>
         )}
+
+        {vehicleTokenIds && (
+          <div
+            className={`flex w-fit w-[440px] mt-2 p-4 items-center rounded-2xl cursor-pointer transition bg-gray-100 text-gray-500 cursor-not-allowed`}
+          >
+            <label
+              htmlFor={`vehicle-ids`}
+              className="flex-grow text-left hover:cursor-pointer"
+            >
+              <div className="flex text-black gap-2">
+                <svg
+                  width="16"
+                  height="24"
+                  viewBox="0 0 16 15"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M13.7667 1.67467C13.6 1.18301 13.1333 0.833008 12.5833 0.833008H3.41667C2.86667 0.833008 2.40833 1.18301 2.23333 1.67467L0.5 6.66634V13.333C0.5 13.7913 0.875 14.1663 1.33333 14.1663H2.16667C2.625 14.1663 3 13.7913 3 13.333V12.4997H13V13.333C13 13.7913 13.375 14.1663 13.8333 14.1663H14.6667C15.125 14.1663 15.5 13.7913 15.5 13.333V6.66634L13.7667 1.67467ZM3.70833 2.49967H12.2833L13.1833 5.09134H2.80833L3.70833 2.49967ZM13.8333 10.833H2.16667V6.66634H13.8333V10.833Z"
+                    fill="#080808"
+                  />
+                  <path
+                    d="M4.25 9.99967C4.94036 9.99967 5.5 9.44003 5.5 8.74967C5.5 8.05932 4.94036 7.49967 4.25 7.49967C3.55964 7.49967 3 8.05932 3 8.74967C3 9.44003 3.55964 9.99967 4.25 9.99967Z"
+                    fill="#080808"
+                  />
+                  <path
+                    d="M11.75 9.99967C12.4404 9.99967 13 9.44003 13 8.74967C13 8.05932 12.4404 7.49967 11.75 7.49967C11.0596 7.49967 10.5 8.05932 10.5 8.74967C10.5 9.44003 11.0596 9.99967 11.75 9.99967Z"
+                    fill="#080808"
+                  />
+                </svg>
+                Vehicle Token IDs
+              </div>
+              <div className="text-sm text-gray-500">
+                {vehicleTokenIds
+                  .sort((a, b) => Number(a) - Number(b))
+                  .join(", ")}
+              </div>
+            </label>
+          </div>
+        )}
+
+        <>
+          <div className="description w-fit max-w-[440px] mt-2 text-sm mb-4 overflow-y-auto max-h-[356px]">
+            {permissionTemplate?.data.description
+              ? renderDescription(permissionTemplate?.data.description)
+              : "The developer is requesting access to view your vehicle data. Select the vehicles you’d like to share access to."}
+          </div>
+          <div className="w-full max-w-[440px]">
+            <button
+              className="bg-white w-[145px] text-[#09090B] font-medium border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500 flex items-center justify-between"
+              onClick={() => setIsExpanded(!isExpanded)}
+            >
+              <span>{isExpanded ? "Show less" : "Show more"}</span>
+              {isExpanded ? (
+                <ChevronUpIcon className="h-4 w-4 ml-2" />
+              ) : (
+                <ChevronDownIcon className="h-4 w-4 ml-2" />
+              )}
+            </button>
+          </div>
+        </>
 
         {/* Render buttons */}
-        <div
-          className={`flex ${
-            canShare ? "justify-between" : "justify-center"
-          } w-full max-w-[440px] pt-4`}
-        >
-          {(noVehicles || allShared) && (
-            <PrimaryButton onClick={handleContinue} width="w-[214px]">
-              Continue
-            </PrimaryButton>
-          )}
-          {canShare && (
-            <>
-              <button
-                onClick={handleContinue}
-                className="bg-white font-medium w-[214px] text-[#09090B] border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500"
-              >
-                Cancel
-              </button>
-              <PrimaryButton
-                onClick={handleShare}
-                width="w-[214px]"
-                disabled={selectedVehicles.length === 0}
-              >
-                Share Vehicles
-              </PrimaryButton>
-            </>
-          )}
+        <div className="flex flex-col pt-4 gap-2">
+          <PrimaryButton onClick={handleContinue} width="w-[214px]">
+            Select Vehicles
+          </PrimaryButton>
+          <SecondaryButton onClick={handleCancel} width="w-[214px]">
+            Cancel
+          </SecondaryButton>
         </div>
       </div>
     </Card>
