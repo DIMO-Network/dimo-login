@@ -28,7 +28,7 @@ const SuccessfulPermissions: React.FC = () => {
 
     const vehicleTokenIds = vehicles.map((vehicle:Vehicle) => vehicle.tokenId);
 
-    const payload = { ...authPayload, sharedVehicles: vehicles };
+    const payload = { ...authPayload, sharedVehicles: vehicleTokenIds };
     //Shared vehicles to be fetched through urlParams.getAll("sharedVehicles")
     backToThirdParty(payload, redirectUri);
   };
