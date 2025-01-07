@@ -60,6 +60,9 @@ const VehicleManager: React.FC = () => {
 
   //Data from API's
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [incompatibleVehicles, setIncompatibleVehicles] = useState<Vehicle[]>(
+    []
+  );
   const [permissionTemplate, setPermissionTemplate] =
     useState<SACDTemplate | null>(null);
   const [hasNextPage, setHasNextPage] = useState(false);
@@ -133,14 +136,16 @@ const VehicleManager: React.FC = () => {
       );
 
       setVehiclesLoading(false);
-      setVehicles(transformedVehicles.vehicles);
+      setVehicles(transformedVehicles.compatibleVehicles);
+      setIncompatibleVehicles(transformedVehicles.incompatibleVehicles);
       setEndCursor(transformedVehicles.endCursor);
       setStartCursor(transformedVehicles.startCursor);
       setHasPreviousPage(transformedVehicles.hasPreviousPage);
       setHasNextPage(transformedVehicles.hasNextPage);
       // Set isExpanded based on vehicles length
       setIsExpanded(
-        transformedVehicles.vehicles.length === 0 && window.innerHeight >= 770
+        transformedVehicles.compatibleVehicles.length === 0 &&
+          window.innerHeight >= 770
       );
     } catch (error) {
       setError("Could not fetch vehicles");
@@ -318,13 +323,20 @@ const VehicleManager: React.FC = () => {
     );
   };
 
-  const noVehicles = vehicles.length === 0;
+  const noVehicles = vehicles.length === 0 && incompatibleVehicles.length === 0;
   const allShared = vehicles.length > 0 && vehicles.every((v) => v.shared);
   const canShare = vehicles.some((v) => !v.shared);
+  const appUrl = new URL(
+    document.referrer ? document.referrer : "https://dimo.org"
+  );
 
   return (
     <Card width="w-full max-w-[600px]" height="h-fit max-h-[770px]">
-      <Header title="Share Permissions" subtitle={""} />
+      <Header
+        title="Select Vehicles to Share"
+        subtitle={appUrl.hostname}
+        link={`${appUrl.protocol}//${appUrl.host}`}
+      />
       <div className="flex flex-col items-center justify-center max-h-[480px] lg:max-h-[584px] box-border overflow-y-auto">
         {error && <ErrorMessage message={error} />}
 
@@ -355,7 +367,7 @@ const VehicleManager: React.FC = () => {
           </div>
         )}
 
-        {canShare && (
+        {/* {canShare && (
           <>
             <div className="description w-fit max-w-[440px] text-sm mb-4 overflow-y-auto max-h-[356px]">
               {permissionTemplate?.data.description
@@ -376,23 +388,47 @@ const VehicleManager: React.FC = () => {
               </button>
             </div>
           </>
-        )}
+        )} */}
 
         {vehiclesLoading ? (
           <Loader />
         ) : (
           <div className="space-y-4 pt-4 max-h-[400px] overflow-scroll w-full max-w-[440px]">
-            {vehicles &&
-              vehicles.length > 0 &&
-              vehicles.map((vehicle) => (
-                <VehicleCard
-                  key={vehicle.tokenId.toString()}
-                  vehicle={vehicle}
-                  isSelected={selectedVehicles.includes(vehicle)}
-                  onSelect={() => handleVehicleSelect(vehicle)}
-                  disabled={false}
-                />
-              ))}
+            {/* Render Compatible Vehicles */}
+            {vehicles && vehicles.length > 0 && (
+              <>
+                <h2 className="text-lg">Compatible</h2>
+                {vehicles.map((vehicle: Vehicle) => (
+                  <VehicleCard
+                    key={vehicle.tokenId.toString()}
+                    vehicle={vehicle}
+                    isSelected={selectedVehicles.includes(vehicle)}
+                    onSelect={() => handleVehicleSelect(vehicle)}
+                    disabled={false}
+                    incompatible={false}
+                  />
+                ))}
+              </>
+            )}
+
+            {/* Render Incompatible Vehicles */}
+            {incompatibleVehicles && incompatibleVehicles.length > 0 && (
+              <>
+                <h2 className="text-lg">Incompatible</h2>
+                {incompatibleVehicles.map((vehicle: Vehicle) => (
+                  <VehicleCard
+                    key={vehicle.tokenId.toString()}
+                    vehicle={vehicle}
+                    isSelected={selectedVehicles.includes(vehicle)} //Wont execute since disabled
+                    onSelect={() => handleVehicleSelect(vehicle)} //Wont execute since disabled
+                    disabled={false}
+                    incompatible={true}
+                  />
+                ))}
+              </>
+            )}
+
+            {/* Pagination Buttons */}
             {(hasNextPage || hasPreviousPage) && (
               <div className="flex justify-center space-x-4 mt-4">
                 {hasPreviousPage && (

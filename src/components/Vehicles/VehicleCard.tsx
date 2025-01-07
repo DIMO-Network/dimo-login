@@ -6,6 +6,7 @@ interface VehicleCardProps {
   isSelected: boolean;
   onSelect: () => void;
   disabled: boolean; //Disabled here implies we're on the shared view
+  incompatible: boolean;
 }
 
 const VehicleCard: React.FC<VehicleCardProps> = ({
@@ -13,19 +14,20 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
   isSelected,
   onSelect,
   disabled,
+  incompatible,
 }) => (
   <div
     className={`flex items-center p-4 ${
       !disabled && "border"
     } rounded-2xl cursor-pointer transition ${
-      vehicle.shared
+      vehicle.shared || incompatible
         ? "bg-gray-100 text-gray-500 cursor-not-allowed"
         : "hover:bg-gray-50 border-gray-300 cursor-pointer"
     } ${isSelected && "border-black"}`}
   >
     {/* Custom Checkbox */}
 
-    {!disabled && (
+    {!disabled && !incompatible && (
       <input
         type="checkbox"
         checked={isSelected || vehicle.shared}
@@ -34,6 +36,20 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
         disabled={vehicle.shared}
         className="mr-4 w-5 h-5 text-black border-gray-300 rounded focus:ring-0 focus:ring-offset-0 accent-black cursor-pointer"
       />
+    )}
+
+    {incompatible && (
+      <>
+        <input
+          type="checkbox"
+          checked={true}
+          onChange={onSelect}
+          id={`vehicle-${vehicle.tokenId.toString()}`}
+          disabled={true}
+          className={`mr-4 w-5 h-5 border-gray-300 rounded appearance-none cursor-pointer bg-[#3C3C432E] text-white before:content-['X'] before:text-center before:text-white before:block disabled:cursor-not-allowed disabled:opacity-50
+  `}
+        />
+      </>
     )}
 
     {/* Vehicle Image */}
