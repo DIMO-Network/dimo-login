@@ -6,7 +6,7 @@
  * Specific Responsibilities include: Getting vehicles and their SACD permissions
  */
 
-import { VehicleResponse } from "../models/vehicle";
+import { Vehicle, VehicleResponse } from "../models/vehicle";
 
 const GRAPHQL_ENDPOINT =
   process.env.REACT_APP_DIMO_IDENTITY_URL ||
@@ -25,10 +25,10 @@ export const fetchVehiclesWithTransformation = async (
   const query = `
   {
     vehicles(filterBy: { owner: "${ownerAddress}" }, ${
-      direction === "next"
-        ? `first: 100 ${cursor ? `, after: "${cursor}"` : ""}`
-        : `last: 100 ${cursor ? `, before: "${cursor}"` : ""}`
-    }) {
+    direction === "next"
+      ? `first: 100 ${cursor ? `, after: "${cursor}"` : ""}`
+      : `last: 100 ${cursor ? `, before: "${cursor}"` : ""}`
+  }) {
       nodes {
         tokenId
         imageURI
@@ -64,14 +64,16 @@ export const fetchVehiclesWithTransformation = async (
 
   const data = await response.json();
 
-  const filteredVehicles = data.data.vehicles.nodes.filter((vehicle: any) => {
-    // Filter on tokenIds if provided
+  const compatibleVehicles: Vehicle[] = [];
+  const incompatibleVehicles: Vehicle[] = [];
+
+  // Process vehicles
+  data.data.vehicles.nodes.forEach((vehicle: any) => {
     const tokenIdMatch =
       !vehicleTokenIds ||
       vehicleTokenIds.length === 0 ||
       vehicleTokenIds.includes(vehicle.tokenId.toString());
 
-    // Filter on vehicleMakes if provided
     const makeMatch =
       !vehicleMakes ||
       vehicleMakes.length === 0 ||
@@ -79,8 +81,23 @@ export const fetchVehiclesWithTransformation = async (
         (make) => make.toUpperCase() === vehicle.definition.make.toUpperCase()
       );
 
-    // Include the vehicle only if both conditions match
-    return tokenIdMatch && makeMatch;
+    const transformedVehicle = {
+      tokenId: vehicle.tokenId,
+      imageURI: vehicle.imageURI,
+      shared: vehicle.sacds.nodes.some(
+        (sacd: any) => sacd.grantee === targetGrantee
+      ),
+      make: vehicle.definition.make,
+      model: vehicle.definition.model,
+      year: vehicle.definition.year,
+    };
+
+    // Add to compatible or incompatible based on the conditions
+    if (tokenIdMatch && makeMatch) {
+      compatibleVehicles.push(transformedVehicle);
+    } else {
+      incompatibleVehicles.push(transformedVehicle);
+    }
   });
 
   // Transform the data
@@ -90,19 +107,9 @@ export const fetchVehiclesWithTransformation = async (
     hasPreviousPage: data.data.vehicles.pageInfo.hasPreviousPage,
     startCursor: data.data.vehicles.pageInfo.startCursor || "",
     endCursor: data.data.vehicles.pageInfo.endCursor || "",
-    vehicles: filteredVehicles
-      .map((vehicle: any) => ({
-        tokenId: vehicle.tokenId,
-        imageURI: vehicle.imageURI,
-        shared: vehicle.sacds.nodes.some(
-          (sacd: any) => sacd.grantee === targetGrantee
-        ),
-        make: vehicle.definition.make,
-        model: vehicle.definition.model,
-        year: vehicle.definition.year,
-      }))
-      .sort((a: any, b: any) => Number(a.shared) - Number(b.shared)), // Sort non-shared first
-  };
+    compatibleVehicles: compatibleVehicles.sort((a: any, b: any) => Number(a.shared) - Number(b.shared)),
+    incompatibleVehicles: incompatibleVehicles.sort((a: any, b: any) => Number(a.shared) - Number(b.shared))
+  }
 };
 
 export const isValidClientId = async (

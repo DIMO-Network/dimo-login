@@ -49,6 +49,7 @@ const SuccessfulPermissions: React.FC = () => {
               isSelected={false}
               onSelect={() => console.log("yee")}
               disabled={true}
+              incompatible={false}
             />
           ))}
       </div>

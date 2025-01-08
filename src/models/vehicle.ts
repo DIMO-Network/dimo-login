@@ -8,7 +8,8 @@ export interface Vehicle {
 }
 
 export interface VehicleResponse {
-  vehicles: Vehicle[];
+  compatibleVehicles: Vehicle[];
+  incompatibleVehicles: Vehicle[];
   hasNextPage: boolean;
   endCursor: string;
   hasPreviousPage: boolean;
