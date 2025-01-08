@@ -14,6 +14,7 @@ import SuccessfulTransaction from "./components/AdvancedTransaction/SuccessfulTr
 import { useUIManager } from "./context/UIManagerContext";
 import CancelledTransaction from "./components/AdvancedTransaction/CancelledTransaction";
 import SuccessfulPermissions from "./components/Vehicles/SuccessfulPermissions";
+import SelectVehicles from "./components/Vehicles/SelectVehicles";
 
 function App() {
   const { setJwt, setUser, setUserInitialized, userInitialized } =
@@ -71,6 +72,7 @@ function App() {
         <OtpInput email={email} otpId={otpId} setOtpId={setOtpId} />
       )}
       {uiState === "VEHICLE_MANAGER" && <VehicleManager />}
+      {uiState === "SELECT_VEHICLES" && <SelectVehicles />}
       {uiState === "ADVANCED_TRANSACTION" && <AdvancedTransaction />}
       {uiState === "TRANSACTION_SUCCESS" && <SuccessfulTransaction />}
       {uiState === "VEHICLES_SHARED_SUCCESS" && <SuccessfulPermissions />}
