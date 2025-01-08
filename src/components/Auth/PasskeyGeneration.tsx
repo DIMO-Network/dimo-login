@@ -1,4 +1,4 @@
-import React, { FC } from "react";
+import React, { type FC } from "react";
 
 import { Card } from "../Shared/Card";
 import { Header } from "../Shared/Header";
@@ -9,6 +9,8 @@ import {
   IconProps,
   SecurityIcon,
 } from "../Icons";
+import { useAuthContext } from "../../context/AuthContext";
+import { useUIManager } from "../../context/UIManagerContext";
 
 interface PasskeyBenefitProps {
   Icon: FC<IconProps>;
@@ -36,12 +38,44 @@ const PASSKEY_BENEFITS: PasskeyBenefitProps[] = [
   },
 ];
 
-export const PasskeyGeneration = () => {
-  const handlePasskeyGeneration = () => {};
+interface PasskeyGenerationProps {
+  email: string;
+  setOtpId: (otpId: string) => void;
+}
+
+export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({
+  email,
+  setOtpId,
+}) => {
+  const { createAccountWithPasskey, sendOtp } = useAuthContext();
+  const { setUiState } = useUIManager();
+
+  const handleOtpSend = async (email: string) => {
+    const otpResult = await sendOtp(email); // Send OTP for new account
+
+    if (otpResult.success && otpResult.data.otpId) {
+      setOtpId(otpResult.data.otpId); // Store the OTP ID
+      setUiState("OTP_INPUT"); // Move to OTP input step
+    } else if (!otpResult.success) {
+      console.error(otpResult.error); // Handle OTP sending failure
+    }
+  };
+
+  const handlePasskeyGeneration = async () => {
+    const account = await createAccountWithPasskey(email);
+    if (account.success && account.data.user) {
+      await handleOtpSend(email);
+    } else {
+      console.error("Account creation failed"); // Handle account creation failure
+    }
+  };
 
   const renderBenefit = ({ Icon, title, description }: PasskeyBenefitProps) => {
     return (
-      <div className="flex flex-col gap-2 w-full mt-2 p-4 rounded-2xl cursor-pointer transition bg-gray-50 text-gray-500 cursor-not-allowed">
+      <div
+        className="flex flex-col gap-2 w-full mt-2 p-4 rounded-2xl cursor-pointer transition bg-gray-50 text-gray-500 cursor-not-allowed"
+        key={title}
+      >
         <div className="flex flex-row gap-2 font-medium text-sm text-black">
           <Icon className="w-5 h-5" />
           <p>{title}</p>
