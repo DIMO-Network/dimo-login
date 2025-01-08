@@ -1,22 +1,26 @@
 import React, { useState, useEffect } from "react";
-import EmailInput from "./components/Auth/EmailInput";
-import SuccessPage from "./components/Auth/SuccessPage";
-import "./App.css";
+
+import { initializeSession } from "./services/sessionService";
+import { PasskeyGeneration } from "./components/Auth/PasskeyGeneration";
 import { useAuthContext } from "./context/AuthContext";
 import { useDevCredentials } from "./context/DevCredentialsContext"; // Import DevCredentialsContext
-import OtpInput from "./components/Auth/OtpInput";
-import VehicleManager from "./components/Vehicles/VehicleManager";
-import LoadingScreen from "./components/Shared/LoadingScreen";
-import ErrorScreen from "./components/Shared/ErrorScreen";
-import { initializeSession } from "./services/sessionService";
-import AdvancedTransaction from "./components/AdvancedTransaction/AdvancedTransaction";
-import SuccessfulTransaction from "./components/AdvancedTransaction/SuccessfulTransaction";
 import { useUIManager } from "./context/UIManagerContext";
-import CancelledTransaction from "./components/AdvancedTransaction/CancelledTransaction";
-import SuccessfulPermissions from "./components/Vehicles/SuccessfulPermissions";
-import SelectVehicles from "./components/Vehicles/SelectVehicles";
 
-function App() {
+import AdvancedTransaction from "./components/AdvancedTransaction/AdvancedTransaction";
+import CancelledTransaction from "./components/AdvancedTransaction/CancelledTransaction";
+import EmailInput from "./components/Auth/EmailInput";
+import ErrorScreen from "./components/Shared/ErrorScreen";
+import LoadingScreen from "./components/Shared/LoadingScreen";
+import OtpInput from "./components/Auth/OtpInput";
+import SelectVehicles from "./components/Vehicles/SelectVehicles";
+import SuccessfulPermissions from "./components/Vehicles/SuccessfulPermissions";
+import SuccessfulTransaction from "./components/AdvancedTransaction/SuccessfulTransaction";
+import SuccessPage from "./components/Auth/SuccessPage";
+import VehicleManager from "./components/Vehicles/VehicleManager";
+
+import "./App.css";
+
+const App = () => {
   const { setJwt, setUser, setUserInitialized, userInitialized } =
     useAuthContext(); // Get loading state from AuthContext
   const { clientId, apiKey, redirectUri, invalidCredentials } =
@@ -71,6 +75,9 @@ function App() {
       {uiState === "OTP_INPUT" && (
         <OtpInput email={email} otpId={otpId} setOtpId={setOtpId} />
       )}
+      {uiState === "PASSKEY_GENERATOR" && (
+        <PasskeyGeneration email={email} setOtpId={setOtpId} />
+      )}
       {uiState === "VEHICLE_MANAGER" && <VehicleManager />}
       {uiState === "SELECT_VEHICLES" && <SelectVehicles />}
       {uiState === "ADVANCED_TRANSACTION" && <AdvancedTransaction />}
@@ -80,6 +87,6 @@ function App() {
       {uiState === "SUCCESS" && <SuccessPage />}
     </div>
   );
-}
+};
 
 export default App;
