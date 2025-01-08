@@ -49,6 +49,8 @@ const SelectVehicles: React.FC = () => {
   const { setUiState, setComponentData, setLoadingState, error, setError } =
     useUIManager();
 
+  const [canFetchVehicles, setCanFetchVehicles] = useState(false);
+
   //Data from SDK
   const [permissionTemplateId, setPermissionTemplateId] = useState<
     string | undefined
@@ -64,8 +66,6 @@ const SelectVehicles: React.FC = () => {
   const [incompatibleVehicles, setIncompatibleVehicles] = useState<Vehicle[]>(
     []
   );
-  const [permissionTemplate, setPermissionTemplate] =
-    useState<SACDTemplate | null>(null);
   const [hasNextPage, setHasNextPage] = useState(false);
   const [endCursor, setEndCursor] = useState("");
   const [hasPreviousPage, setHasPreviousPage] = useState(false);
@@ -90,10 +90,13 @@ const SelectVehicles: React.FC = () => {
       if (vehicleMakesFromUrl.length) setVehicleMakes(vehicleMakesFromUrl);
       if (expirationDateFromUrl)
         setExpirationDate(parseExpirationDate(expirationDateFromUrl));
+
+      setCanFetchVehicles(true);
     }
   };
 
   const handleEmbedPopupMode = () => {
+    //TODO: Don't need to get this data again, it was already fetched from previous screen
     sendMessageToReferrer({ eventType: "SHARE_VEHICLES_DATA" });
 
     const handleMessage = (event: MessageEvent) => {
@@ -112,6 +115,8 @@ const SelectVehicles: React.FC = () => {
         if (vehicleMakesFromMessage) setVehicleMakes(vehicleMakesFromMessage);
         if (expirationDateFromMessage)
           setExpirationDate(parseExpirationDate(expirationDateFromMessage));
+
+        setCanFetchVehicles(true);
       }
     };
 
@@ -150,28 +155,6 @@ const SelectVehicles: React.FC = () => {
     }
   };
 
-  const fetchPermissions = async () => {
-    if (permissionTemplateId) {
-      try {
-        const permissionsParams: FetchPermissionsParams = {
-          permissionTemplateId,
-          clientId,
-          devLicenseAlias,
-          expirationDate,
-          walletAddress: user.smartContractAddress,
-          email: user.email,
-        };
-        const permissionTemplate = await fetchPermissionsFromId(
-          permissionsParams
-        );
-        setPermissionTemplate(permissionTemplate as SACDTemplate);
-      } catch (error) {
-        setError("Could not fetch permissions");
-        console.error("Error fetching permissions:", error);
-      }
-    }
-  };
-
   useEffect(() => {
     if (isStandalone()) {
       handleStandaloneMode();
@@ -182,13 +165,10 @@ const SelectVehicles: React.FC = () => {
 
   useEffect(() => {
     // Run both fetches in parallel
-    Promise.all([fetchVehicles(), fetchPermissions()]);
-  }, [
-    user.smartContractAddress,
-    clientId,
-    permissionTemplateId,
-    devLicenseAlias,
-  ]);
+    if (canFetchVehicles) {
+      Promise.all([fetchVehicles()]);
+    }
+  }, [canFetchVehicles]);
 
   const handleVehicleSelect = (vehicle: Vehicle) => {
     setSelectedVehicles(
