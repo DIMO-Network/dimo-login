@@ -5,7 +5,7 @@ interface CardProps {
   children: React.ReactNode;
 }
 
-const Card: React.FC<CardProps> = ({
+export const Card: React.FC<CardProps> = ({
   width,
   height,
   className = "",

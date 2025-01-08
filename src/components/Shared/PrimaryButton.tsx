@@ -9,7 +9,12 @@ interface PrimaryButtonProps {
 
 }
 
-const PrimaryButton: React.FC<PrimaryButtonProps> = ({ onClick, children, width, disabled }) => (
+export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
+  onClick,
+  children,
+  width,
+  disabled,
+}) => (
   <button
     onClick={onClick}
     disabled={disabled ? disabled : false}
