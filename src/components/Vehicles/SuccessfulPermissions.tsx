@@ -17,7 +17,7 @@ import { isEmbed } from "../../utils/isEmbed";
 const SuccessfulPermissions: React.FC = () => {
   const { redirectUri, devLicenseAlias, clientId } = useDevCredentials();
   const { jwt, user } = useAuthContext();
-  const { componentData: vehicles } = useUIManager();
+  const { componentData: {vehicles, action} } = useUIManager();
 
   const handleBackToThirdParty = () => {
     //If Dev is using popup mode, we simply exit the flow here and close the window
@@ -36,10 +36,10 @@ const SuccessfulPermissions: React.FC = () => {
   return (
     <Card width="w-full max-w-[600px]" height="h-full max-h-[308px]">
       <Header
-        title="You have successfully shared your vehicles!"
+        title={`You have successfully ${action} your vehicles!`}
         subtitle={""}
       />
-      <div className="space-y-4 max-h-[400px] overflow-scroll w-full max-w-[440px]">
+      <div className="space-y-4 pt-4 max-h-[400px] overflow-scroll w-full max-w-[440px]">
         {vehicles &&
           vehicles.length > 0 &&
           vehicles.map((vehicle: Vehicle) => (
@@ -53,7 +53,7 @@ const SuccessfulPermissions: React.FC = () => {
             />
           ))}
       </div>
-      <div className="space-y-4">
+      <div className="space-y-4 pt-4">
         {!isEmbed() && (
           <div className="flex justify-center">
             <PrimaryButton onClick={handleBackToThirdParty} width="w-64">
