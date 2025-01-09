@@ -60,7 +60,7 @@ const ManageVehicle: React.FC = () => {
   };
 
   return (
-    <Card width="w-full max-w-[600px]" height="h-full max-h-[308px]">
+    <Card width="w-full max-w-[600px]" height="h-full max-h-[400px]">
       <Header
         title={`${vehicle.make} ${vehicle.model} ${vehicle.year}`}
         subtitle={`ID:${vehicle.tokenId}`}
@@ -82,7 +82,7 @@ const ManageVehicle: React.FC = () => {
       </div>
 
       {/* Render buttons */}
-      <div className="flex pt-8 gap-2">
+      <div className="flex pt-8 justify-center gap-2">
         <button
           onClick={handleCancel}
           className="bg-white font-medium w-[214px] text-[#09090B] border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500"
