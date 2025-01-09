@@ -243,7 +243,7 @@ const SelectVehicles: React.FC = () => {
           }
 
           sendJwtAfterPermissions((authPayload: any) => {
-            setComponentData(selectedVehicles);
+            setComponentData({ action: "shared", vehicles: selectedVehicles });
             setUiState("VEHICLES_SHARED_SUCCESS");
             setSelectedVehicles([]);
           });
