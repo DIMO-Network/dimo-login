@@ -19,13 +19,7 @@
  */
 
 import React, { createContext, useContext, ReactNode, useState } from "react";
-import {
-  createAccount,
-  deployAccount,
-  fetchUserDetails,
-  sendOtp,
-  verifyOtp,
-} from "../services/accountsService"; // Import the service functions
+import { createAccount, sendOtp, verifyOtp } from "../services/accountsService"; // Import the service functions
 import { authenticateUser } from "../utils/authUtils";
 import { UserObject } from "../models/user";
 import { createPasskey } from "../services/turnkeyService";

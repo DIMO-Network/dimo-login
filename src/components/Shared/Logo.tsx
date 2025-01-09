@@ -7,7 +7,7 @@ const Logo = () => (
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <g clip-path="url(#clip0_3154_1597)">
+      <g clipPath="url(#clip0_3154_1597)">
         <path
           d="M24.0271 0.931091H19.6265V16.6455H24.0271V0.931091Z"
           fill="black"
