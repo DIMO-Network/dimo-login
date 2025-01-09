@@ -1,14 +1,16 @@
 // components/Auth/EmailInput.tsx
-import React, { useEffect, useRef, useState } from "react";
-import { useAuthContext } from "../../context/AuthContext"; // Use the auth context
+import React, { useEffect, useState } from "react";
+
+import { Card } from "../Shared/Card";
 import { fetchUserDetails } from "../../services/accountsService";
-import ErrorMessage from "../Shared/ErrorMessage";
-import PrimaryButton from "../Shared/PrimaryButton";
-import Card from "../Shared/Card";
-import Header from "../Shared/Header";
-import { useDevCredentials } from "../../context/DevCredentialsContext";
+import { Header } from "../Shared/Header";
+import { PrimaryButton } from "../Shared/PrimaryButton";
 import { setEmailGranted } from "../../services/storageService";
+import { useAuthContext } from "../../context/AuthContext";
+import { useDevCredentials } from "../../context/DevCredentialsContext";
 import { useUIManager } from "../../context/UIManagerContext";
+
+import ErrorMessage from "../Shared/ErrorMessage";
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;
@@ -16,12 +18,7 @@ interface EmailInputProps {
 }
 
 const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
-  const {
-    sendOtp,
-    authenticateUser,
-    setUser,
-    createAccountWithPasskey,
-  } = useAuthContext(); // Get sendOtp from the context
+  const { authenticateUser, setUser } = useAuthContext(); // Get sendOtp from the context
 
   const { clientId, devLicenseAlias } = useDevCredentials();
   const { setUiState, entryState, error } = useUIManager();
@@ -30,18 +27,9 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
   const [triggerAuth, setTriggerAuth] = useState(false);
   const [emailPermissionGranted, setEmailPermissionGranted] = useState(false);
 
-  const appUrl = new URL(document.referrer ? document.referrer : "https://dimo.org");
-
-  const handleOtpSend = async (email: string) => {
-    const otpResult = await sendOtp(email); // Send OTP for new account
-
-    if (otpResult.success && otpResult.data.otpId) {
-      setOtpId(otpResult.data.otpId); // Store the OTP ID
-      setUiState("OTP_INPUT"); // Move to OTP input step
-    } else if (!otpResult.success) {
-      console.error(otpResult.error); // Handle OTP sending failure
-    }
-  };
+  const appUrl = new URL(
+    document.referrer ? document.referrer : "https://dimo.org"
+  );
 
   const handleSubmit = async () => {
     if (!email || !clientId) return;
@@ -59,12 +47,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
     }
 
     // If user doesn't exist, create an account and send OTP
-    const account = await createAccountWithPasskey(email);
-    if (account.success && account.data.user) {
-      await handleOtpSend(email);
-    } else {
-      console.error("Account creation failed"); // Handle account creation failure
-    }
+    setUiState("PASSKEY_GENERATOR");
   };
 
   const handleKeyDown = (e: { key: string }) => {
@@ -116,6 +99,16 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
         <PrimaryButton onClick={handleSubmit} width="w-full lg:w-[440px]">
           Authenticate
         </PrimaryButton>
+        <p className="flex flex-inline gap-1 text-xs text-gray-500">
+          By continuing you agree to our
+          <a href="https://dimo.org/legal/privacy-policy" className="underline">
+            Privacy Policy
+          </a>
+          and
+          <a href="https://dimo.org/legal/terms-of-use" className="underline">
+            Terms of Service
+          </a>
+        </p>
       </div>
     </Card>
   );
