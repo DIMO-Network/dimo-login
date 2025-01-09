@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 
 import { Card } from "../Shared/Card";
+import { Checkbox } from "../Shared/Checkbox";
 import { fetchUserDetails } from "../../services/accountsService";
 import { Header } from "../Shared/Header";
 import { PrimaryButton } from "../Shared/PrimaryButton";
@@ -76,12 +77,13 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
       />
       {error && <ErrorMessage message={error} />}
       <div className="flex justify-center items-center text-sm mb-4">
-        <input
-          type="checkbox"
+        <Checkbox
           onChange={() => {
             setEmailPermissionGranted(!emailPermissionGranted);
           }}
-          className="mr-2 w-5 h-5 text-black border-gray-300 rounded focus:ring-0 focus:ring-offset-0 accent-black"
+          name="share-email"
+          id="share-email"
+          className="mr-2"
         />
         I agree to share my email with {devLicenseAlias}
       </div>
