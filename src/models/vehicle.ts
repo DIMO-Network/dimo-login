@@ -5,6 +5,7 @@ export interface Vehicle {
   model: string;
   year: number;
   shared: boolean;
+  expiresAt:string;
 }
 
 export interface VehicleResponse {
