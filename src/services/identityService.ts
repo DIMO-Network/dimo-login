@@ -7,6 +7,7 @@
  */
 
 import { Vehicle, VehicleResponse } from "../models/vehicle";
+import { formatDate } from "../utils/dateUtils";
 
 const GRAPHQL_ENDPOINT =
   process.env.REACT_APP_DIMO_IDENTITY_URL ||
@@ -81,12 +82,15 @@ export const fetchVehiclesWithTransformation = async (
         (make) => make.toUpperCase() === vehicle.definition.make.toUpperCase()
       );
 
+    const sacdForGrantee = vehicle.sacds.nodes.find(
+      (sacd: any) => sacd.grantee === targetGrantee
+    );
+
     const transformedVehicle = {
       tokenId: vehicle.tokenId,
       imageURI: vehicle.imageURI,
-      shared: vehicle.sacds.nodes.some(
-        (sacd: any) => sacd.grantee === targetGrantee
-      ),
+      shared: Boolean(sacdForGrantee), // True if a matching sacd exists
+      expiresAt: sacdForGrantee ? formatDate(sacdForGrantee.expiresAt) : "",
       make: vehicle.definition.make,
       model: vehicle.definition.model,
       year: vehicle.definition.year,
@@ -107,9 +111,13 @@ export const fetchVehiclesWithTransformation = async (
     hasPreviousPage: data.data.vehicles.pageInfo.hasPreviousPage,
     startCursor: data.data.vehicles.pageInfo.startCursor || "",
     endCursor: data.data.vehicles.pageInfo.endCursor || "",
-    compatibleVehicles: compatibleVehicles.sort((a: any, b: any) => Number(a.shared) - Number(b.shared)),
-    incompatibleVehicles: incompatibleVehicles.sort((a: any, b: any) => Number(a.shared) - Number(b.shared))
-  }
+    compatibleVehicles: compatibleVehicles.sort(
+      (a: any, b: any) => Number(a.shared) - Number(b.shared)
+    ),
+    incompatibleVehicles: incompatibleVehicles.sort(
+      (a: any, b: any) => Number(a.shared) - Number(b.shared)
+    ),
+  };
 };
 
 export const isValidClientId = async (
