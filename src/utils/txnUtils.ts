@@ -1,4 +1,3 @@
-import { isStandalone } from "./isStandalone";
 import { sendMessageToReferrer } from "./messageHandler";
 
 export function sendTxnResponseToParent(

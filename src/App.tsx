@@ -17,6 +17,7 @@ import SuccessfulPermissions from "./components/Vehicles/SuccessfulPermissions";
 import SuccessfulTransaction from "./components/AdvancedTransaction/SuccessfulTransaction";
 import SuccessPage from "./components/Auth/SuccessPage";
 import VehicleManager from "./components/Vehicles/VehicleManager";
+import ManageVehicle from "./components/Vehicles/ManageVehicle";
 
 import "./App.css";
 
@@ -80,6 +81,7 @@ const App = () => {
       )}
       {uiState === "VEHICLE_MANAGER" && <VehicleManager />}
       {uiState === "SELECT_VEHICLES" && <SelectVehicles />}
+      {uiState === "MANAGE_VEHICLE" && <ManageVehicle />}
       {uiState === "ADVANCED_TRANSACTION" && <AdvancedTransaction />}
       {uiState === "TRANSACTION_SUCCESS" && <SuccessfulTransaction />}
       {uiState === "VEHICLES_SHARED_SUCCESS" && <SuccessfulPermissions />}

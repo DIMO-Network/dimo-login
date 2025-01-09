@@ -123,6 +123,7 @@ const VehicleManager: React.FC = () => {
         const permissionTemplate = await fetchPermissionsFromId(
           permissionsParams
         );
+        setComponentData({permissionTemplateId}) //So that manage vehicle has a permission template ID
         setPermissionTemplate(permissionTemplate as SACDTemplate);
       } catch (error) {
         setError("Could not fetch permissions");

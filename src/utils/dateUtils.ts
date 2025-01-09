@@ -7,7 +7,6 @@
  * @param {string|null} isoDateString - The ISO 8601 date string or null.
  * @returns {BigInt} - Unix timestamp as BigInt.
  */
-
 export function parseExpirationDate(isoDateString: string | null): BigInt {
   if (!isoDateString) {
     const oneYearFromNow = new Date();
@@ -16,7 +15,6 @@ export function parseExpirationDate(isoDateString: string | null): BigInt {
     const unixTimestamp = Math.floor(oneYearFromNow.getTime() / 1000);
     return BigInt(unixTimestamp);
   }
-  
   // Attempt to parse the provided date
   const parsedDate = new Date(isoDateString);
 
@@ -56,4 +54,28 @@ export function formatBigIntAsReadableDate(bigIntDate: BigInt): string {
  */
 export function getDefaultExpirationDate(): BigInt {
   return parseExpirationDate(null);
+}
+
+export function formatDate(dateString: string | null): string {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", {
+    month: "2-digit",
+    day: "2-digit",
+    year: "numeric",
+  });
+}
+
+export function extendByYear(dateString: string, years = 1): string {
+  // Parse the string into a Date object
+
+  const date = new Date(dateString);
+  
+  // Add 1 year
+  date.setFullYear(date.getFullYear() + years);
+  
+  // Format the updated date back to a string
+  const updatedDateString = date.toLocaleDateString("en-US"); // Format as MM/DD/YYYY
+
+  return updatedDateString;
 }
