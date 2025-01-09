@@ -4,8 +4,6 @@ import Card from "../Shared/Card";
 import Header from "../Shared/Header";
 import PrimaryButton from "../Shared/PrimaryButton";
 import { useDevCredentials } from "../../context/DevCredentialsContext";
-import ErrorScreen from "../Shared/ErrorScreen";
-import { isStandalone } from "../../utils/isStandalone";
 import { useUIManager } from "../../context/UIManagerContext";
 import { buildAuthPayload } from "../../utils/authUtils";
 import { useAuthContext } from "../../context/AuthContext";
@@ -17,7 +15,9 @@ import { isEmbed } from "../../utils/isEmbed";
 const SuccessfulPermissions: React.FC = () => {
   const { redirectUri, devLicenseAlias, clientId } = useDevCredentials();
   const { jwt, user } = useAuthContext();
-  const { componentData: {vehicles, action} } = useUIManager();
+  const {
+    componentData: { vehicles, action },
+  } = useUIManager();
 
   const handleBackToThirdParty = () => {
     //If Dev is using popup mode, we simply exit the flow here and close the window
@@ -26,11 +26,16 @@ const SuccessfulPermissions: React.FC = () => {
 
     const authPayload = buildAuthPayload(clientId, jwt, user);
 
-    const vehicleTokenIds = vehicles.map((vehicle:Vehicle) => vehicle.tokenId);
+    const vehicleTokenIds = vehicles.map((vehicle: Vehicle) => vehicle.tokenId);
 
-    const payload = { ...authPayload, sharedVehicles: vehicleTokenIds };
-    //Shared vehicles to be fetched through urlParams.getAll("sharedVehicles")
+    const payload = {
+      ...authPayload,
+      [`${action}Vehicles`]:
+        vehicleTokenIds,
+    };
     backToThirdParty(payload, redirectUri);
+
+    //Shared vehicles to be fetched through urlParams.getAll("sharedVehicles")
   };
 
   return (
