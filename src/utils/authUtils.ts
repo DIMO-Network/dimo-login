@@ -8,7 +8,6 @@ import {
   initializePasskey,
   signChallenge,
 } from "../services/turnkeyService";
-import { isStandalone } from "./isStandalone";
 import {
   clearSessionData,
   getEmailGranted,
@@ -19,7 +18,6 @@ import {
 } from "../services/storageService";
 import { UserObject } from "../models/user";
 import { backToThirdParty, sendMessageToReferrer } from "./messageHandler";
-import { isEmbed } from "./isEmbed";
 import { GenerateChallengeParams, SubmitChallengeParams } from "../models/web3";
 
 export function buildAuthPayload(
@@ -79,15 +77,11 @@ export function logout(
   clearSessionData(clientId);
   sendMessageToReferrer({ eventType: "logout" });
 
-  //Deal with post-logout
-  if (isStandalone()) {
-    window.location.href = redirectUri;
-  } else if (window.opener) {
-    //Close popup window after auth
-    window.close();
-  } else if (isEmbed()) {
+  const payload = { logout: "true" };
+
+  backToThirdParty(payload, redirectUri, () => {
     setUiState("EMAIL_INPUT");
-  }
+  });
 }
 
 //TODO: Clean this up, and potentially move elsewhere
@@ -142,10 +136,10 @@ export async function authenticateUser(
           domain: redirectUri,
           signature,
         };
-        
+
         const jwt = await submitWeb3Challenge(web3ChallengeSubmission);
 
-        if ( !jwt.success ) {
+        if (!jwt.success) {
           throw new Error("Failed to submit web3 challenge");
         }
 

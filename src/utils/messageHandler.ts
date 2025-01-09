@@ -16,8 +16,11 @@ export function sendMessageToReferrer(data: object) {
   }
 }
 
-
-export function backToThirdParty(payload: any, redirectUri: string) {
+export function backToThirdParty(
+  payload: any,
+  redirectUri: string,
+  handleEmbed?: () => void
+) {
   if (isStandalone()) {
     // Redirect with payload in query params
     const queryParams = new URLSearchParams(payload).toString();
@@ -31,6 +34,10 @@ export function backToThirdParty(payload: any, redirectUri: string) {
     return;
   }
 
-  // Embedded mode: Button won't show
-  console.warn("Embedded mode detected. Back to third-party action skipped.");
+  // Embedded mode (Should be closed or redirected by now if non-embed)
+  if (handleEmbed) {
+    handleEmbed();
+  } else {
+    console.warn("Embedded mode detected. No action provided.");
+  }
 }

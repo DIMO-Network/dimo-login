@@ -4,8 +4,6 @@ import Card from "../Shared/Card";
 import Header from "../Shared/Header";
 import PrimaryButton from "../Shared/PrimaryButton";
 import { useDevCredentials } from "../../context/DevCredentialsContext";
-import ErrorScreen from "../Shared/ErrorScreen";
-import { isStandalone } from "../../utils/isStandalone";
 import { useUIManager } from "../../context/UIManagerContext";
 import { buildAuthPayload } from "../../utils/authUtils";
 import { useAuthContext } from "../../context/AuthContext";
@@ -32,7 +30,7 @@ const SuccessfulPermissions: React.FC = () => {
 
     const payload = {
       ...authPayload,
-      [action === "revoked" ? "revokedVehicles" : "sharedVehicles"]:
+      [`${action}Vehicles`]:
         vehicleTokenIds,
     };
     backToThirdParty(payload, redirectUri);

@@ -13,12 +13,13 @@ import {
   setVehiclePermissions,
 } from "../../services/turnkeyService";
 import { getPermsValue } from "../../services/permissionsService";
+import { extendByYear, parseExpirationDate } from "../../utils/dateUtils";
 
 const ManageVehicle: React.FC = () => {
   const { clientId } = useDevCredentials();
   const { user } = useAuthContext();
   const {
-    componentData: {vehicle, permissionTemplateId},
+    componentData: { vehicle, permissionTemplateId },
     setUiState,
     setComponentData,
     setLoadingState,
@@ -28,15 +29,23 @@ const ManageVehicle: React.FC = () => {
     setUiState("SELECT_VEHICLES");
   };
 
-  const handleContinue = async () => {
-    //Revokes Permissions
-    setLoadingState(true, "Revoking vehicles");
+  const handlePermissionUpdate = async (
+    actionType: "revoke" | "extend",
+    expirationDate: string
+  ) => {
+    const loadingMessage =
+      actionType === "revoke" ? "Revoking vehicles" : "Extending vehicles";
+    const newAction = actionType === "revoke" ? "revoked" : "extended";
+
+    setLoadingState(true, loadingMessage);
 
     await initializeIfNeeded(user.subOrganizationId);
 
-    const perms = getPermsValue(permissionTemplateId ? permissionTemplateId : "1");
+    const perms = getPermsValue(
+      permissionTemplateId ? permissionTemplateId : "1"
+    );
 
-    const expiration = BigInt(0);
+    const expiration = actionType == "revoke" ? BigInt(0) : parseExpirationDate(expirationDate);
 
     const sources = await generateIpfsSources(perms, clientId, expiration);
 
@@ -54,9 +63,19 @@ const ManageVehicle: React.FC = () => {
 
     await setVehiclePermissions(vehiclePermissions);
     vehicle.shared = false;
-    setComponentData({ action: "revoked", vehicles: [vehicle] });
+    setComponentData({ action: newAction, vehicles: [vehicle] });
     setUiState("VEHICLES_SHARED_SUCCESS");
     setLoadingState(false);
+  };
+
+  const handleRevoke = async () => {
+    const expirationDate = "0"; // Use current expiration for revoking
+    await handlePermissionUpdate("revoke", expirationDate);
+  };
+
+  const handleExtend = async () => {
+    const extendedExpirationDate = extendByYear(vehicle.expiresAt); // Extend expiration by 1 year
+    await handlePermissionUpdate("extend", extendedExpirationDate);
   };
 
   return (
@@ -89,8 +108,11 @@ const ManageVehicle: React.FC = () => {
         >
           Cancel
         </button>
-        <PrimaryButton onClick={handleContinue} width="w-[214px]">
+        <PrimaryButton onClick={handleRevoke} width="w-[214px]">
           Stop Sharing
+        </PrimaryButton>
+        <PrimaryButton onClick={handleExtend} width="w-[214px]">
+          Extend (1 year)
         </PrimaryButton>
       </div>
     </Card>
