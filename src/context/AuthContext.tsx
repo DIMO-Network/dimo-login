@@ -19,18 +19,20 @@
  */
 
 import React, { createContext, useContext, ReactNode, useState } from "react";
+
+import { authenticateUser, SignatureError } from "../utils/authUtils";
 import { createAccount, sendOtp, verifyOtp } from "../services/accountsService"; // Import the service functions
-import { authenticateUser } from "../utils/authUtils";
-import { UserObject } from "../models/user";
-import { createPasskey } from "../services/turnkeyService";
-import { useDevCredentials } from "./DevCredentialsContext";
-import { CredentialResult, OtpResult, UserResult } from "../models/resultTypes";
-import { useUIManager } from "./UIManagerContext";
 import { CreateAccountParams } from "../models/account";
+import { createPasskey } from "../services/turnkeyService";
+import { CredentialResult, OtpResult, UserResult } from "../models/resultTypes";
+import { useDevCredentials } from "./DevCredentialsContext";
+import { UserObject } from "../models/user";
+import { useUIManager } from "./UIManagerContext";
 
 interface AuthContextProps {
   createAccountWithPasskey: (email: string) => Promise<UserResult>;
   sendOtp: (email: string) => Promise<OtpResult>;
+  otpId: string;
   verifyOtp: (
     email: string,
     otp: string,
@@ -40,7 +42,7 @@ interface AuthContextProps {
     email: string,
     credentialBundle: string,
     entryState: string
-  ) => void;
+  ) => Promise<void>;
   user: UserObject;
   setUser: React.Dispatch<React.SetStateAction<UserObject>>;
   jwt: string;
@@ -68,6 +70,7 @@ export const AuthProvider = ({
   children: ReactNode;
 }): JSX.Element => {
   const [user, setUser] = useState<UserObject>(defaultUser);
+  const [otpId, setOtpId] = useState<string>("");
   const [jwt, setJwt] = useState<string>("");
   const [userInitialized, setUserInitialized] = useState<boolean>(false);
   const { clientId, apiKey, redirectUri } = useDevCredentials();
@@ -98,7 +101,7 @@ export const AuthProvider = ({
         deployAccount: true,
       };
       const account = await createAccount(accountCreationParams);
-      
+
       if (account.success && account.data.user) {
         setUser(account.data.user); // Store the user object in the context
         return { success: true, data: { user: account.data.user } };
@@ -141,6 +144,7 @@ export const AuthProvider = ({
           throw new Error("Failed to send OTP after account creation.");
       }
 
+      setOtpId(otpResult.data.otpId);
       console.log(`OTP sent to ${email}, OTP ID: ${otpResult.data.otpId}`);
       return { success: true, data: { otpId: otpResult.data.otpId } };
     } catch (err) {
@@ -206,11 +210,16 @@ export const AuthProvider = ({
         setUiState,
         setUser
       );
-    } catch (error) {
-      setError(
-        "Could not authenticate user, please verify your passkey and try again."
-      );
+    } catch (error: unknown) {
       console.error(error);
+      if (error instanceof SignatureError) {
+        handleSendOtp(email);
+        setUiState("OTP_INPUT");
+      } else {
+        setError(
+          "Could not authenticate user, please verify your passkey and try again."
+        );
+      }
     } finally {
       setLoadingState(false);
     }
@@ -221,6 +230,7 @@ export const AuthProvider = ({
       value={{
         createAccountWithPasskey,
         sendOtp: handleSendOtp,
+        otpId,
         verifyOtp: handleVerifyOtp,
         authenticateUser: handleAuthenticateUser,
         user,
