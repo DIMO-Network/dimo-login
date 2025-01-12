@@ -40,24 +40,17 @@ const PASSKEY_BENEFITS: PasskeyBenefitProps[] = [
 
 interface PasskeyGenerationProps {
   email: string;
-  setOtpId: (otpId: string) => void;
 }
 
-export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({
-  email,
-  setOtpId,
-}) => {
+export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
   const { createAccountWithPasskey, sendOtp } = useAuthContext();
   const { setUiState } = useUIManager();
 
   const handleOtpSend = async (email: string) => {
     const otpResult = await sendOtp(email); // Send OTP for new account
 
-    if (otpResult.success && otpResult.data.otpId) {
-      setOtpId(otpResult.data.otpId); // Store the OTP ID
-      setUiState("OTP_INPUT"); // Move to OTP input step
-    } else if (!otpResult.success) {
-      console.error(otpResult.error); // Handle OTP sending failure
+    if (otpResult.success) {
+      setUiState("OTP_INPUT");
     }
   };
 

@@ -15,12 +15,10 @@ import ErrorMessage from "../Shared/ErrorMessage";
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;
-  setOtpId: (otpId: string) => void;
 }
 
-const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
+const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   const { authenticateUser, setUser } = useAuthContext(); // Get sendOtp from the context
-
   const { clientId, devLicenseAlias } = useDevCredentials();
   const { setUiState, entryState, error } = useUIManager();
 

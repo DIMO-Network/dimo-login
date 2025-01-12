@@ -9,25 +9,12 @@ import { useUIManager } from "../../context/UIManagerContext";
 
 interface OtpInputProps {
   email: string;
-  otpId: string;
-  setOtpId: (otpId: string) => void;
 }
 
-const OtpInput: React.FC<OtpInputProps> = ({ email, otpId, setOtpId }) => {
-  const { verifyOtp, authenticateUser } = useAuthContext(); // Get verifyOtp from the context
+const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
+  const { verifyOtp, authenticateUser, otpId, sendOtp } = useAuthContext(); // Get verifyOtp from the context
   const { entryState, error } = useUIManager();
   const [otpArray, setOtpArray] = useState(Array(6).fill("")); // Array of 6 empty strings
-  const { sendOtp } = useAuthContext(); // Get sendOtp from the context
-
-  const handleReOtpSend = async (email: string) => {
-    const otpResult = await sendOtp(email); // Send OTP for new account
-
-    if (otpResult.success && otpResult.data.otpId) {
-      setOtpId(otpResult.data.otpId); // Store the OTP ID
-    } else if (!otpResult.success) {
-      console.error(otpResult.error); // Handle OTP sending failure
-    }
-  };
 
   // Function to handle change for each input
   const handleChange = (
@@ -117,7 +104,7 @@ const OtpInput: React.FC<OtpInputProps> = ({ email, otpId, setOtpId }) => {
           Verify email
         </PrimaryButton>
         <SecondaryButton
-          onClick={() => handleReOtpSend(email)}
+          onClick={() => sendOtp(email)}
           width="w-full lg:w-[440px]"
         >
           Resend code

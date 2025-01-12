@@ -27,7 +27,6 @@ const App = () => {
   const { clientId, apiKey, redirectUri, invalidCredentials } =
     useDevCredentials(); // Get loading state and credentials from DevCredentialsContext
   const [email, setEmail] = useState("");
-  const [otpId, setOtpId] = useState(""); // New state for OTP ID
   const { uiState, setUiState, isLoading } = useUIManager();
 
   useEffect(() => {
@@ -70,15 +69,9 @@ const App = () => {
 
   return (
     <div className="flex h-screen pt-2 lg:pt-40 justify-center bg-white lg:bg-[#F7F7F7]">
-      {uiState === "EMAIL_INPUT" && (
-        <EmailInput onSubmit={setEmail} setOtpId={setOtpId} />
-      )}
-      {uiState === "OTP_INPUT" && (
-        <OtpInput email={email} otpId={otpId} setOtpId={setOtpId} />
-      )}
-      {uiState === "PASSKEY_GENERATOR" && (
-        <PasskeyGeneration email={email} setOtpId={setOtpId} />
-      )}
+      {uiState === "EMAIL_INPUT" && <EmailInput onSubmit={setEmail} />}
+      {uiState === "OTP_INPUT" && <OtpInput email={email} />}
+      {uiState === "PASSKEY_GENERATOR" && <PasskeyGeneration email={email} />}
       {uiState === "VEHICLE_MANAGER" && <VehicleManager />}
       {uiState === "SELECT_VEHICLES" && <SelectVehicles />}
       {uiState === "MANAGE_VEHICLE" && <ManageVehicle />}
