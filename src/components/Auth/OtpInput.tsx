@@ -12,7 +12,7 @@ interface OtpInputProps {
 }
 
 const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
-  const { verifyOtp, authenticateUser, otpId, sendOtp } = useAuthContext(); // Get verifyOtp from the context
+  const { verifyOtp, authenticateUser, sendOtp } = useAuthContext(); // Get verifyOtp from the context
   const { entryState, error } = useUIManager();
   const [otpArray, setOtpArray] = useState(Array(6).fill("")); // Array of 6 empty strings
 
@@ -49,7 +49,7 @@ const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
     if (otpArray) {
       // Verify OTP using the auth context
       const otp = otpArray.join("");
-      const result = await verifyOtp(email, otp, otpId);
+      const result = await verifyOtp(email, otp);
 
       if (result.success && result.data.credentialBundle) {
         authenticateUser(email, result.data.credentialBundle, entryState);

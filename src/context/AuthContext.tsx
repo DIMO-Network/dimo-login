@@ -32,12 +32,7 @@ import { useUIManager } from "./UIManagerContext";
 interface AuthContextProps {
   createAccountWithPasskey: (email: string) => Promise<UserResult>;
   sendOtp: (email: string) => Promise<OtpResult>;
-  otpId: string;
-  verifyOtp: (
-    email: string,
-    otp: string,
-    otpId: string
-  ) => Promise<CredentialResult>;
+  verifyOtp: (email: string, otp: string) => Promise<CredentialResult>;
   authenticateUser: (
     email: string,
     credentialBundle: string,
@@ -158,8 +153,7 @@ export const AuthProvider = ({
 
   const handleVerifyOtp = async (
     email: string,
-    otp: string,
-    otpId: string
+    otp: string
   ): Promise<CredentialResult> => {
     setLoadingState(true, "Verifying OTP");
     setError(null);
@@ -230,7 +224,6 @@ export const AuthProvider = ({
       value={{
         createAccountWithPasskey,
         sendOtp: handleSendOtp,
-        otpId,
         verifyOtp: handleVerifyOtp,
         authenticateUser: handleAuthenticateUser,
         user,
