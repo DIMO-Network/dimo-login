@@ -9,7 +9,7 @@ import { PrimaryButton } from "../Shared/PrimaryButton";
 import { setEmailGranted } from "../../services/storageService";
 import { useAuthContext } from "../../context/AuthContext";
 import { useDevCredentials } from "../../context/DevCredentialsContext";
-import { useUIManager } from "../../context/UIManagerContext";
+import { UiStates, useUIManager } from "../../context/UIManagerContext";
 
 import ErrorMessage from "../Shared/ErrorMessage";
 
@@ -48,7 +48,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
     }
 
     // If user doesn't exist, create an account and send OTP
-    setUiState("PASSKEY_GENERATOR");
+    setUiState(UiStates.PASSKEY_GENERATOR, { setBack: true });
   };
 
   const handleKeyDown = (e: { key: string }) => {

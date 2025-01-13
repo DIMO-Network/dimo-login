@@ -1,27 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { fetchVehiclesWithTransformation } from "../../services/identityService";
-import VehicleCard from "./VehicleCard";
+
 import { useAuthContext } from "../../context/AuthContext";
-import { Vehicle } from "../../models/vehicle";
-import {
-  generateIpfsSources,
-  initializeIfNeeded,
-  setVehiclePermissions,
-  setVehiclePermissionsBulk,
-} from "../../services/turnkeyService";
 import {
   buildAuthPayload,
   sendAuthPayloadToParent,
 } from "../../utils/authUtils";
 import { useDevCredentials } from "../../context/DevCredentialsContext";
-import {
-  fetchPermissionsFromId,
-  getPermsValue,
-} from "../../services/permissionsService";
+import { fetchPermissionsFromId } from "../../services/permissionsService";
 import Card from "../Shared/Card";
 import Header from "../Shared/Header";
 import PrimaryButton from "../Shared/PrimaryButton";
-import VehicleThumbnail from "../../assets/images/vehicle-thumbnail.png";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/solid";
 import ErrorMessage from "../Shared/ErrorMessage";
 import {
@@ -29,7 +17,7 @@ import {
   sendMessageToReferrer,
 } from "../../utils/messageHandler";
 import { isStandalone } from "../../utils/isStandalone";
-import { useUIManager } from "../../context/UIManagerContext";
+import { UiStates, useUIManager } from "../../context/UIManagerContext";
 import { SACDTemplate } from "@dimo-network/transactions/dist/core/types/dimo";
 import {
   getDefaultExpirationDate,
@@ -41,8 +29,7 @@ import SecondaryButton from "../Shared/SecondaryButton";
 const VehicleManager: React.FC = () => {
   const { user, jwt } = useAuthContext();
   const { clientId, redirectUri, devLicenseAlias } = useDevCredentials();
-  const { setUiState, setComponentData, setLoadingState, error, setError } =
-    useUIManager();
+  const { setUiState, setComponentData, error, setError } = useUIManager();
 
   //Data from SDK
   const [permissionTemplateId, setPermissionTemplateId] = useState<
@@ -52,7 +39,6 @@ const VehicleManager: React.FC = () => {
     string[] | undefined
   >();
   const [vehicleMakes, setVehicleMakes] = useState<string[] | undefined>();
-  const [vehiclesLoading, setVehiclesLoading] = useState(true);
 
   const [permissionTemplate, setPermissionTemplate] =
     useState<SACDTemplate | null>(null);
@@ -123,7 +109,7 @@ const VehicleManager: React.FC = () => {
         const permissionTemplate = await fetchPermissionsFromId(
           permissionsParams
         );
-        setComponentData({permissionTemplateId}) //So that manage vehicle has a permission template ID
+        setComponentData({ permissionTemplateId }); //So that manage vehicle has a permission template ID
         setPermissionTemplate(permissionTemplate as SACDTemplate);
       } catch (error) {
         setError("Could not fetch permissions");
@@ -163,12 +149,14 @@ const VehicleManager: React.FC = () => {
   const handleCancel = () => {
     sendJwtAfterPermissions((authPayload: any) => {
       backToThirdParty(authPayload, redirectUri);
-      setUiState("TRANSACTION_CANCELLED");
+      setUiState(UiStates.TRANSACTION_CANCELLED);
     });
   };
 
   const handleContinue = () => {
-    setUiState("SELECT_VEHICLES");
+    setUiState(UiStates.SELECT_VEHICLES, {
+      setBack: true,
+    });
   };
 
   const renderDescription = (description: string) => {

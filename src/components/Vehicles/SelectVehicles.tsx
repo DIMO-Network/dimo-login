@@ -14,23 +14,18 @@ import {
   sendAuthPayloadToParent,
 } from "../../utils/authUtils";
 import { useDevCredentials } from "../../context/DevCredentialsContext";
-import {
-  fetchPermissionsFromId,
-  getPermsValue,
-} from "../../services/permissionsService";
+import { getPermsValue } from "../../services/permissionsService";
 import Card from "../Shared/Card";
 import Header from "../Shared/Header";
 import PrimaryButton from "../Shared/PrimaryButton";
 import VehicleThumbnail from "../../assets/images/vehicle-thumbnail.png";
-import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/solid";
 import ErrorMessage from "../Shared/ErrorMessage";
 import {
   backToThirdParty,
   sendMessageToReferrer,
 } from "../../utils/messageHandler";
 import { isStandalone } from "../../utils/isStandalone";
-import { useUIManager } from "../../context/UIManagerContext";
-import { SACDTemplate } from "@dimo-network/transactions/dist/core/types/dimo";
+import { UiStates, useUIManager } from "../../context/UIManagerContext";
 import {
   getDefaultExpirationDate,
   parseExpirationDate,
@@ -39,9 +34,7 @@ import {
   SetVehiclePermissions,
   SetVehiclePermissionsBulk,
 } from "@dimo-network/transactions";
-import { FetchPermissionsParams } from "../../models/permissions";
 import Loader from "../Shared/Loader";
-import SecondaryButton from "../Shared/SecondaryButton";
 
 const SelectVehicles: React.FC = () => {
   const { user, jwt } = useAuthContext();
@@ -193,7 +186,7 @@ const SelectVehicles: React.FC = () => {
   const handleContinue = () => {
     sendJwtAfterPermissions((authPayload: any) => {
       backToThirdParty(authPayload, redirectUri);
-      setUiState("TRANSACTION_CANCELLED");
+      setUiState(UiStates.TRANSACTION_CANCELLED);
     });
   };
 
@@ -244,7 +237,7 @@ const SelectVehicles: React.FC = () => {
 
           sendJwtAfterPermissions((authPayload: any) => {
             setComponentData({ action: "shared", vehicles: selectedVehicles });
-            setUiState("VEHICLES_SHARED_SUCCESS");
+            setUiState(UiStates.VEHICLES_SHARED_SUCCESS);
             setSelectedVehicles([]);
           });
           setLoadingState(false);

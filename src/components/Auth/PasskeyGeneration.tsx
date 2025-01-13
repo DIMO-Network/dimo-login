@@ -10,7 +10,7 @@ import {
   SecurityIcon,
 } from "../Icons";
 import { useAuthContext } from "../../context/AuthContext";
-import { useUIManager } from "../../context/UIManagerContext";
+import { UiStates, useUIManager } from "../../context/UIManagerContext";
 
 interface PasskeyBenefitProps {
   Icon: FC<IconProps>;
@@ -55,7 +55,10 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({
 
     if (otpResult.success && otpResult.data.otpId) {
       setOtpId(otpResult.data.otpId); // Store the OTP ID
-      setUiState("OTP_INPUT"); // Move to OTP input step
+      setUiState(UiStates.OTP_INPUT, {
+        setBack: true,
+        customUiState: UiStates.EMAIL_INPUT,
+      }); // Move to OTP input step
     } else if (!otpResult.success) {
       console.error(otpResult.error); // Handle OTP sending failure
     }

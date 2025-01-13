@@ -4,7 +4,7 @@ import { initializeSession } from "./services/sessionService";
 import { PasskeyGeneration } from "./components/Auth/PasskeyGeneration";
 import { useAuthContext } from "./context/AuthContext";
 import { useDevCredentials } from "./context/DevCredentialsContext"; // Import DevCredentialsContext
-import { useUIManager } from "./context/UIManagerContext";
+import { UiStates, useUIManager } from "./context/UIManagerContext";
 
 import AdvancedTransaction from "./components/AdvancedTransaction/AdvancedTransaction";
 import CancelledTransaction from "./components/AdvancedTransaction/CancelledTransaction";
@@ -70,23 +70,25 @@ const App = () => {
 
   return (
     <div className="flex h-screen pt-2 lg:pt-40 justify-center bg-white lg:bg-[#F7F7F7]">
-      {uiState === "EMAIL_INPUT" && (
+      {uiState === UiStates.EMAIL_INPUT && (
         <EmailInput onSubmit={setEmail} setOtpId={setOtpId} />
       )}
-      {uiState === "OTP_INPUT" && (
+      {uiState === UiStates.OTP_INPUT && (
         <OtpInput email={email} otpId={otpId} setOtpId={setOtpId} />
       )}
-      {uiState === "PASSKEY_GENERATOR" && (
+      {uiState === UiStates.PASSKEY_GENERATOR && (
         <PasskeyGeneration email={email} setOtpId={setOtpId} />
       )}
-      {uiState === "VEHICLE_MANAGER" && <VehicleManager />}
-      {uiState === "SELECT_VEHICLES" && <SelectVehicles />}
-      {uiState === "MANAGE_VEHICLE" && <ManageVehicle />}
-      {uiState === "ADVANCED_TRANSACTION" && <AdvancedTransaction />}
-      {uiState === "TRANSACTION_SUCCESS" && <SuccessfulTransaction />}
-      {uiState === "VEHICLES_SHARED_SUCCESS" && <SuccessfulPermissions />}
-      {uiState === "TRANSACTION_CANCELLED" && <CancelledTransaction />}
-      {uiState === "SUCCESS" && <SuccessPage />}
+      {uiState === UiStates.VEHICLE_MANAGER && <VehicleManager />}
+      {uiState === UiStates.SELECT_VEHICLES && <SelectVehicles />}
+      {uiState === UiStates.MANAGE_VEHICLE && <ManageVehicle />}
+      {uiState === UiStates.ADVANCED_TRANSACTION && <AdvancedTransaction />}
+      {uiState === UiStates.TRANSACTION_SUCCESS && <SuccessfulTransaction />}
+      {uiState === UiStates.VEHICLES_SHARED_SUCCESS && (
+        <SuccessfulPermissions />
+      )}
+      {uiState === UiStates.TRANSACTION_CANCELLED && <CancelledTransaction />}
+      {uiState === UiStates.SUCCESS && <SuccessPage />}
     </div>
   );
 };
