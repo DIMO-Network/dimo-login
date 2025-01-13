@@ -58,23 +58,26 @@ export const UIManagerProvider = ({ children }: { children: ReactNode }) => {
     options: UiStateOptionProps = { setBack: false }
   ) => {
     const { setBack, customUiState } = options;
+    const defaultValue = [value];
     if (setBack) {
-      let newPrevUiStates: UiStates[] = [];
+      let newPrevUiStates: UiStates[] = [...prevUiStates];
       if (customUiState) {
         newPrevUiStates = prevUiStates.filter((state) => state !== uiState);
       }
-      setPrevUiStates([...newPrevUiStates, customUiState || uiState]);
+
+      setPrevUiStates([...newPrevUiStates, customUiState || value]);
     } else {
-      setPrevUiStates([]);
+      setPrevUiStates(defaultValue);
     }
     setUiState(value);
   };
 
   const handleGoBack = () => {
     if (prevUiStates.length > 0) {
-      const prevUiState = prevUiStates.pop();
+      const newPrevUiStates = prevUiStates.filter((state) => state !== uiState);
+      const prevUiState = newPrevUiStates[newPrevUiStates.length - 1];
       setUiState(prevUiState!);
-      setPrevUiStates(prevUiStates.filter((state) => state !== prevUiState));
+      setPrevUiStates(newPrevUiStates);
     }
   };
 

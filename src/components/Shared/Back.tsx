@@ -6,7 +6,7 @@ export const Back = () => {
 
   return (
     <>
-      {prevUiStates.length > 0 && (
+      {prevUiStates.length > 1 && (
         <div
           className="absolute rounded-full border border-gray-500 h-10 w-10 flex items-center justify-center top left cursor-pointer"
           onClick={goBack}

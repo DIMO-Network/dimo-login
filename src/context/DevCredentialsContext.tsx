@@ -7,7 +7,6 @@
  *
  */
 
-import { UUID } from "crypto";
 import React, {
   createContext,
   useContext,
@@ -15,9 +14,9 @@ import React, {
   useState,
   useEffect,
 } from "react";
+
 import { isValidClientId } from "../services/identityService";
 import { createKernelSigner } from "../services/turnkeyService";
-import { TransactionData } from "@dimo-network/transactions";
 import { UiStates, useUIManager } from "./UIManagerContext";
 
 interface DevCredentialsContextProps {
