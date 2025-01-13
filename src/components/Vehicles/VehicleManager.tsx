@@ -86,8 +86,6 @@ const VehicleManager: React.FC = () => {
         if (vehicleMakesFromMessage) setVehicleMakes(vehicleMakesFromMessage);
         if (expirationDateFromMessage)
           setExpirationDate(parseExpirationDate(expirationDateFromMessage));
-
-        setIsExpanded(!(vehicleMakes && vehicleTokenIds));
       }
     };
 
