@@ -70,9 +70,30 @@ const OtpInput: React.FC<OtpInputProps> = ({ email, otpId, setOtpId }) => {
     }
   };
 
-  const handleKeyDown = (e: { key: string }) => {
+  const handleBackspace = (id: string, index: number) => {
+    const value =
+      (document?.getElementById(id) as HTMLInputElement).value || "";
+    if (value === "") {
+      if (index > 0) {
+        document?.getElementById(`otp-input-${index - 1}`)?.focus();
+      }
+    }
+  };
+
+  const handleKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    index: number
+  ) => {
     if (e.key === "Enter") {
       handleSubmit();
+    }
+
+    const {
+      key,
+      currentTarget: { id },
+    } = e;
+    if (key === "Backspace") {
+      setTimeout(() => handleBackspace(id, index), 100);
     }
   };
 
@@ -94,10 +115,7 @@ const OtpInput: React.FC<OtpInputProps> = ({ email, otpId, setOtpId }) => {
       {error && <ErrorMessage message={error} />}
 
       <div className="frame9 flex flex-col items-center gap-4">
-        <div
-          onKeyDown={handleKeyDown}
-          className="flex flex-row gap-3 w-full mt-8 justify-between"
-        >
+        <div className="flex flex-row gap-3 w-full mt-8 justify-between">
           {otpArray.map((digit, index) => (
             <input
               key={index}
@@ -105,6 +123,7 @@ const OtpInput: React.FC<OtpInputProps> = ({ email, otpId, setOtpId }) => {
               type="text"
               value={digit}
               onChange={(e) => handleChange(e, index)}
+              onKeyDown={(e) => handleKeyDown(e, index)}
               maxLength={6}
               className={`w-10 h-10 lg:w-12 lg:h-12 border rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                 error ? "border-[#E80303]" : "border-gray-300"
