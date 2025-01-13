@@ -1,14 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { fetchVehiclesWithTransformation } from "../../services/identityService";
-import VehicleCard from "./VehicleCard";
 import { useAuthContext } from "../../context/AuthContext";
-import { Vehicle } from "../../models/vehicle";
-import {
-  generateIpfsSources,
-  initializeIfNeeded,
-  setVehiclePermissions,
-  setVehiclePermissionsBulk,
-} from "../../services/turnkeyService";
 import {
   buildAuthPayload,
   sendAuthPayloadToParent,
@@ -16,12 +7,9 @@ import {
 import { useDevCredentials } from "../../context/DevCredentialsContext";
 import {
   fetchPermissionsFromId,
-  getPermsValue,
 } from "../../services/permissionsService";
 import Card from "../Shared/Card";
 import Header from "../Shared/Header";
-import PrimaryButton from "../Shared/PrimaryButton";
-import VehicleThumbnail from "../../assets/images/vehicle-thumbnail.png";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/solid";
 import ErrorMessage from "../Shared/ErrorMessage";
 import {
@@ -36,7 +24,7 @@ import {
   parseExpirationDate,
 } from "../../utils/dateUtils";
 import { FetchPermissionsParams } from "../../models/permissions";
-import SecondaryButton from "../Shared/SecondaryButton";
+import SelectVehicles from "./SelectVehicles";
 
 const VehicleManager: React.FC = () => {
   const { user, jwt } = useAuthContext();
@@ -75,6 +63,7 @@ const VehicleManager: React.FC = () => {
       if (vehicleMakesFromUrl.length) setVehicleMakes(vehicleMakesFromUrl);
       if (expirationDateFromUrl)
         setExpirationDate(parseExpirationDate(expirationDateFromUrl));
+
     }
   };
 
@@ -97,8 +86,6 @@ const VehicleManager: React.FC = () => {
         if (vehicleMakesFromMessage) setVehicleMakes(vehicleMakesFromMessage);
         if (expirationDateFromMessage)
           setExpirationDate(parseExpirationDate(expirationDateFromMessage));
-
-        setIsExpanded(!(vehicleMakes && vehicleTokenIds));
       }
     };
 
@@ -123,7 +110,7 @@ const VehicleManager: React.FC = () => {
         const permissionTemplate = await fetchPermissionsFromId(
           permissionsParams
         );
-        setComponentData({permissionTemplateId}) //So that manage vehicle has a permission template ID
+        setComponentData({ permissionTemplateId }); //So that manage vehicle has a permission template ID
         setPermissionTemplate(permissionTemplate as SACDTemplate);
       } catch (error) {
         setError("Could not fetch permissions");
@@ -225,83 +212,6 @@ const VehicleManager: React.FC = () => {
       <div className="flex flex-col items-center justify-center max-h-[480px] lg:max-h-[584px] box-border overflow-y-auto">
         {error && <ErrorMessage message={error} />}
 
-        {vehicleMakes && (
-          <div
-            className={`flex w-fit w-[440px] mt-2 items-center p-4 rounded-2xl cursor-pointer transition bg-gray-100 text-gray-500 cursor-not-allowed`}
-          >
-            <label
-              htmlFor={`vehicle-makes`}
-              className="flex-grow text-left hover:cursor-pointer"
-            >
-              <div className="flex text-black gap-2">
-                <svg
-                  width="16"
-                  height="24"
-                  viewBox="0 0 16 15"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M13.7667 1.67467C13.6 1.18301 13.1333 0.833008 12.5833 0.833008H3.41667C2.86667 0.833008 2.40833 1.18301 2.23333 1.67467L0.5 6.66634V13.333C0.5 13.7913 0.875 14.1663 1.33333 14.1663H2.16667C2.625 14.1663 3 13.7913 3 13.333V12.4997H13V13.333C13 13.7913 13.375 14.1663 13.8333 14.1663H14.6667C15.125 14.1663 15.5 13.7913 15.5 13.333V6.66634L13.7667 1.67467ZM3.70833 2.49967H12.2833L13.1833 5.09134H2.80833L3.70833 2.49967ZM13.8333 10.833H2.16667V6.66634H13.8333V10.833Z"
-                    fill="#080808"
-                  />
-                  <path
-                    d="M4.25 9.99967C4.94036 9.99967 5.5 9.44003 5.5 8.74967C5.5 8.05932 4.94036 7.49967 4.25 7.49967C3.55964 7.49967 3 8.05932 3 8.74967C3 9.44003 3.55964 9.99967 4.25 9.99967Z"
-                    fill="#080808"
-                  />
-                  <path
-                    d="M11.75 9.99967C12.4404 9.99967 13 9.44003 13 8.74967C13 8.05932 12.4404 7.49967 11.75 7.49967C11.0596 7.49967 10.5 8.05932 10.5 8.74967C10.5 9.44003 11.0596 9.99967 11.75 9.99967Z"
-                    fill="#080808"
-                  />
-                </svg>
-                Vehicle Makes
-              </div>
-              <div className="text-sm text-gray-500">
-                {vehicleMakes.join(", ")}
-              </div>
-            </label>
-          </div>
-        )}
-
-        {vehicleTokenIds && (
-          <div
-            className={`flex w-fit w-[440px] mt-2 p-4 items-center rounded-2xl cursor-pointer transition bg-gray-100 text-gray-500 cursor-not-allowed`}
-          >
-            <label
-              htmlFor={`vehicle-ids`}
-              className="flex-grow text-left hover:cursor-pointer"
-            >
-              <div className="flex text-black gap-2">
-                <svg
-                  width="16"
-                  height="24"
-                  viewBox="0 0 16 15"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M13.7667 1.67467C13.6 1.18301 13.1333 0.833008 12.5833 0.833008H3.41667C2.86667 0.833008 2.40833 1.18301 2.23333 1.67467L0.5 6.66634V13.333C0.5 13.7913 0.875 14.1663 1.33333 14.1663H2.16667C2.625 14.1663 3 13.7913 3 13.333V12.4997H13V13.333C13 13.7913 13.375 14.1663 13.8333 14.1663H14.6667C15.125 14.1663 15.5 13.7913 15.5 13.333V6.66634L13.7667 1.67467ZM3.70833 2.49967H12.2833L13.1833 5.09134H2.80833L3.70833 2.49967ZM13.8333 10.833H2.16667V6.66634H13.8333V10.833Z"
-                    fill="#080808"
-                  />
-                  <path
-                    d="M4.25 9.99967C4.94036 9.99967 5.5 9.44003 5.5 8.74967C5.5 8.05932 4.94036 7.49967 4.25 7.49967C3.55964 7.49967 3 8.05932 3 8.74967C3 9.44003 3.55964 9.99967 4.25 9.99967Z"
-                    fill="#080808"
-                  />
-                  <path
-                    d="M11.75 9.99967C12.4404 9.99967 13 9.44003 13 8.74967C13 8.05932 12.4404 7.49967 11.75 7.49967C11.0596 7.49967 10.5 8.05932 10.5 8.74967C10.5 9.44003 11.0596 9.99967 11.75 9.99967Z"
-                    fill="#080808"
-                  />
-                </svg>
-                Vehicle Token IDs
-              </div>
-              <div className="text-sm text-gray-500">
-                {vehicleTokenIds
-                  .sort((a, b) => Number(a) - Number(b))
-                  .join(", ")}
-              </div>
-            </label>
-          </div>
-        )}
 
         <>
           <div className="description w-fit max-w-[440px] mt-2 text-sm mb-4 overflow-y-auto max-h-[356px]">
@@ -324,15 +234,13 @@ const VehicleManager: React.FC = () => {
           </div>
         </>
 
-        {/* Render buttons */}
-        <div className="flex flex-col pt-4 gap-2">
-          <PrimaryButton onClick={handleContinue} width="w-[214px]">
-            Select Vehicles
-          </PrimaryButton>
-          <SecondaryButton onClick={handleCancel} width="w-[214px]">
-            Cancel
-          </SecondaryButton>
-        </div>
+        {permissionTemplateId && (
+          <SelectVehicles
+            vehicleTokenIds={vehicleTokenIds}
+            vehicleMakes={vehicleMakes}
+            permissionTemplateId={permissionTemplateId}
+          />
+        )}
       </div>
     </Card>
   );

@@ -15,50 +15,37 @@ import {
 } from "../../utils/authUtils";
 import { useDevCredentials } from "../../context/DevCredentialsContext";
 import {
-  fetchPermissionsFromId,
   getPermsValue,
 } from "../../services/permissionsService";
-import Card from "../Shared/Card";
-import Header from "../Shared/Header";
 import PrimaryButton from "../Shared/PrimaryButton";
 import VehicleThumbnail from "../../assets/images/vehicle-thumbnail.png";
-import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/solid";
 import ErrorMessage from "../Shared/ErrorMessage";
 import {
   backToThirdParty,
-  sendMessageToReferrer,
 } from "../../utils/messageHandler";
-import { isStandalone } from "../../utils/isStandalone";
 import { useUIManager } from "../../context/UIManagerContext";
-import { SACDTemplate } from "@dimo-network/transactions/dist/core/types/dimo";
 import {
   getDefaultExpirationDate,
-  parseExpirationDate,
 } from "../../utils/dateUtils";
 import {
   SetVehiclePermissions,
   SetVehiclePermissionsBulk,
 } from "@dimo-network/transactions";
-import { FetchPermissionsParams } from "../../models/permissions";
 import Loader from "../Shared/Loader";
-import SecondaryButton from "../Shared/SecondaryButton";
 
-const SelectVehicles: React.FC = () => {
+interface SelectVehiclesProps {
+  vehicleTokenIds: string[] | undefined; // Adjust the type based on your data
+  permissionTemplateId: string; // Adjust the type if necessary
+  vehicleMakes: string[] | undefined; // Adjust the type if necessary
+}
+
+
+const SelectVehicles: React.FC<SelectVehiclesProps> = ({ vehicleTokenIds, permissionTemplateId, vehicleMakes }) => {
   const { user, jwt } = useAuthContext();
   const { clientId, redirectUri, devLicenseAlias } = useDevCredentials();
   const { setUiState, setComponentData, setLoadingState, error, setError } =
     useUIManager();
 
-  const [canFetchVehicles, setCanFetchVehicles] = useState(false);
-
-  //Data from SDK
-  const [permissionTemplateId, setPermissionTemplateId] = useState<
-    string | undefined
-  >();
-  const [vehicleTokenIds, setVehicleTokenIds] = useState<
-    string[] | undefined
-  >();
-  const [vehicleMakes, setVehicleMakes] = useState<string[] | undefined>();
   const [vehiclesLoading, setVehiclesLoading] = useState(true);
 
   //Data from API's
@@ -76,56 +63,6 @@ const SelectVehicles: React.FC = () => {
   const [expirationDate, setExpirationDate] = useState<BigInt>(
     getDefaultExpirationDate()
   );
-
-  const handleStandaloneMode = () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const permissionTemplateIdFromUrl = urlParams.get("permissionTemplateId");
-    const expirationDateFromUrl = urlParams.get("expirationDate");
-    const vehiclesFromUrl = urlParams.getAll("vehicles");
-    const vehicleMakesFromUrl = urlParams.getAll("vehicleMakes");
-
-    if (permissionTemplateIdFromUrl) {
-      setPermissionTemplateId(permissionTemplateIdFromUrl);
-      if (vehiclesFromUrl.length) setVehicleTokenIds(vehiclesFromUrl);
-      if (vehicleMakesFromUrl.length) setVehicleMakes(vehicleMakesFromUrl);
-      if (expirationDateFromUrl)
-        setExpirationDate(parseExpirationDate(expirationDateFromUrl));
-
-      setCanFetchVehicles(true);
-    }
-  };
-
-  const handleEmbedPopupMode = () => {
-    //TODO: Don't need to get this data again, it was already fetched from previous screen
-    sendMessageToReferrer({ eventType: "SHARE_VEHICLES_DATA" });
-
-    const handleMessage = (event: MessageEvent) => {
-      const {
-        eventType,
-        permissionTemplateId: permissionTemplateIdFromMessage,
-        vehicles: vehiclesFromMessage,
-        vehicleMakes: vehicleMakesFromMessage,
-        expirationDate: expirationDateFromMessage,
-      } = event.data;
-
-      if (eventType === "SHARE_VEHICLES_DATA") {
-        if (permissionTemplateIdFromMessage)
-          setPermissionTemplateId(permissionTemplateIdFromMessage);
-        if (vehiclesFromMessage) setVehicleTokenIds(vehiclesFromMessage);
-        if (vehicleMakesFromMessage) setVehicleMakes(vehicleMakesFromMessage);
-        if (expirationDateFromMessage)
-          setExpirationDate(parseExpirationDate(expirationDateFromMessage));
-
-        setCanFetchVehicles(true);
-      }
-    };
-
-    window.addEventListener("message", handleMessage);
-
-    return () => {
-      window.removeEventListener("message", handleMessage);
-    };
-  };
 
   const fetchVehicles = async (direction = "next") => {
     try {
@@ -156,19 +93,9 @@ const SelectVehicles: React.FC = () => {
   };
 
   useEffect(() => {
-    if (isStandalone()) {
-      handleStandaloneMode();
-    } else {
-      handleEmbedPopupMode();
-    }
-  }, []);
-
-  useEffect(() => {
     // Run both fetches in parallel
-    if (canFetchVehicles) {
       Promise.all([fetchVehicles()]);
-    }
-  }, [canFetchVehicles]);
+  }, []);
 
   const handleVehicleSelect = (vehicle: Vehicle) => {
     setSelectedVehicles(
@@ -280,157 +207,150 @@ const SelectVehicles: React.FC = () => {
   );
 
   return (
-    <Card width="w-full max-w-[600px]" height="h-fit max-h-[770px]">
-      <Header
-        title="Select Vehicles to Share"
-        subtitle={appUrl.hostname}
-        link={`${appUrl.protocol}//${appUrl.host}`}
-      />
-      <div className="flex flex-col items-center justify-center max-h-[480px] lg:max-h-[584px] box-border overflow-y-auto">
-        {error && <ErrorMessage message={error} />}
+    <div className="flex flex-col items-center justify-center max-h-[480px] lg:max-h-[584px] box-border overflow-y-auto">
+      {error && <ErrorMessage message={error} />}
 
-        {noVehicles && !vehiclesLoading && (
-          <div className="flex flex-col items-center">
-            <img
-              style={{ height: "40px", width: "40px" }}
-              className="rounded-full object-cover mr-4"
-              src={VehicleThumbnail}
-            />
-            <h2 className="text-gray-500 text-xl font-medium pt-2">
-              No cars connected yet
-            </h2>
-            <p className="text-sm">
-              Connect your car in the DIMO app to share permissions.
-            </p>
-          </div>
-        )}
+      {noVehicles && !vehiclesLoading && (
+        <div className="flex flex-col items-center">
+          <img
+            style={{ height: "40px", width: "40px" }}
+            className="rounded-full object-cover mr-4"
+            src={VehicleThumbnail}
+          />
+          <h2 className="text-gray-500 text-xl font-medium pt-2">
+            No cars connected yet
+          </h2>
+          <p className="text-sm">
+            Connect your car in the DIMO app to share permissions.
+          </p>
+        </div>
+      )}
 
-        {allShared && (
-          <div className="flex flex-col items-center">
-            <h2 className="text-gray-500 text-xl font-medium pt-2">
-              All vehicles have been shared
-            </h2>
-            <p className="text-sm">
-              You have already shared all your vehicles with {devLicenseAlias}.
-            </p>
-          </div>
-        )}
+      {allShared && (
+        <div className="flex flex-col items-center">
+          <h2 className="text-gray-500 text-xl font-medium pt-2">
+            All vehicles have been shared
+          </h2>
+          <p className="text-sm">
+            You have already shared all your vehicles with {devLicenseAlias}.
+          </p>
+        </div>
+      )}
 
-        {vehiclesLoading ? (
-          <Loader />
-        ) : (
-          <div className="space-y-4 pt-4 max-h-[400px] overflow-scroll w-full max-w-[440px]">
-            {/* Render Compatible Vehicles */}
-            {vehicles && vehicles.length > 0 && (
-              <>
-                <div className="flex justify-between">
-                  <h2 className="text-lg">Compatible</h2>
-                  <button
-                    onClick={handleToggleSelectAll}
-                    className="bg-white text-xs w-[75px] text-[#09090B] border border-gray-300 pr-px pl-px py-1 rounded-full hover:border-gray-500"
-                  >
-                    {vehicles
-                      .filter((vehicle) => !vehicle.shared)
-                      .every((vehicle) => selectedVehicles.includes(vehicle))
-                      ? "Deselect All"
-                      : "Select All"}
-                  </button>
-                </div>
-                {vehicles.map((vehicle: Vehicle) => (
-                  <VehicleCard
-                    key={vehicle.tokenId.toString()}
-                    vehicle={vehicle}
-                    isSelected={selectedVehicles.includes(vehicle)}
-                    onSelect={() => handleVehicleSelect(vehicle)}
-                    disabled={false}
-                    incompatible={false}
-                  />
-                ))}
-              </>
-            )}
-
-            {/* Render Incompatible Vehicles */}
-            {incompatibleVehicles && incompatibleVehicles.length > 0 && (
-              <>
-                <h2 className="text-lg">Incompatible</h2>
-                {incompatibleVehicles.map((vehicle: Vehicle) => (
-                  <VehicleCard
-                    key={vehicle.tokenId.toString()}
-                    vehicle={vehicle}
-                    isSelected={selectedVehicles.includes(vehicle)} //Wont execute since disabled
-                    onSelect={() => handleVehicleSelect(vehicle)} //Wont execute since disabled
-                    disabled={false}
-                    incompatible={true}
-                  />
-                ))}
-              </>
-            )}
-
-            {/* Pagination Buttons */}
-            {(hasNextPage || hasPreviousPage) && (
-              <div className="flex justify-center space-x-4 mt-4">
-                {hasPreviousPage && (
-                  <PrimaryButton
-                    onClick={() => {
-                      setVehiclesLoading(true);
-                      fetchVehicles("previous");
-                    }}
-                    width="w-[214px]"
-                  >
-                    Back
-                  </PrimaryButton>
-                )}
-                {hasNextPage && (
-                  <PrimaryButton
-                    onClick={() => {
-                      setVehiclesLoading(true);
-                      fetchVehicles();
-                    }}
-                    width="w-[214px]"
-                  >
-                    Next
-                  </PrimaryButton>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Render buttons */}
-        <div
-          className={`flex ${
-            canShare ? "justify-between" : "justify-center"
-          } w-full max-w-[440px] pt-4`}
-        >
-          {(noVehicles || allShared) && (
-            <PrimaryButton onClick={handleContinue} width="w-[214px]">
-              Continue
-            </PrimaryButton>
-          )}
-          {canShare && (
+      {vehiclesLoading ? (
+        <Loader />
+      ) : (
+        <div className="space-y-4 pt-4 max-h-[400px] overflow-scroll w-full max-w-[440px]">
+          {/* Render Compatible Vehicles */}
+          {vehicles && vehicles.length > 0 && (
             <>
-              <button
-                onClick={handleContinue}
-                className="bg-white font-medium w-[214px] text-[#09090B] border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500"
-              >
-                Cancel
-              </button>
-              <PrimaryButton
-                onClick={handleShare}
-                width="w-[214px]"
-                disabled={selectedVehicles.length === 0}
-              >
-                {selectedVehicles.length === 0
-                  ? "Share selected cars"
-                  : selectedVehicles.length === 1
-                  ? "Share 1 car selected"
-                  : `Share ${selectedVehicles.length} cars selected`}
-              </PrimaryButton>
+              <div className="flex justify-between">
+                <h2 className="text-lg">Compatible</h2>
+                <button
+                  onClick={handleToggleSelectAll}
+                  className="bg-white text-xs w-[75px] text-[#09090B] border border-gray-300 pr-px pl-px py-1 rounded-full hover:border-gray-500"
+                >
+                  {vehicles
+                    .filter((vehicle) => !vehicle.shared)
+                    .every((vehicle) => selectedVehicles.includes(vehicle))
+                    ? "Deselect All"
+                    : "Select All"}
+                </button>
+              </div>
+              {vehicles.map((vehicle: Vehicle) => (
+                <VehicleCard
+                  key={vehicle.tokenId.toString()}
+                  vehicle={vehicle}
+                  isSelected={selectedVehicles.includes(vehicle)}
+                  onSelect={() => handleVehicleSelect(vehicle)}
+                  disabled={false}
+                  incompatible={false}
+                />
+              ))}
             </>
           )}
+
+          {/* Render Incompatible Vehicles */}
+          {incompatibleVehicles && incompatibleVehicles.length > 0 && (
+            <>
+              <h2 className="text-lg">Incompatible</h2>
+              {incompatibleVehicles.map((vehicle: Vehicle) => (
+                <VehicleCard
+                  key={vehicle.tokenId.toString()}
+                  vehicle={vehicle}
+                  isSelected={selectedVehicles.includes(vehicle)} //Wont execute since disabled
+                  onSelect={() => handleVehicleSelect(vehicle)} //Wont execute since disabled
+                  disabled={false}
+                  incompatible={true}
+                />
+              ))}
+            </>
+          )}
+
+          {/* Pagination Buttons */}
+          {(hasNextPage || hasPreviousPage) && (
+            <div className="flex justify-center space-x-4 mt-4">
+              {hasPreviousPage && (
+                <PrimaryButton
+                  onClick={() => {
+                    setVehiclesLoading(true);
+                    fetchVehicles("previous");
+                  }}
+                  width="w-[214px]"
+                >
+                  Back
+                </PrimaryButton>
+              )}
+              {hasNextPage && (
+                <PrimaryButton
+                  onClick={() => {
+                    setVehiclesLoading(true);
+                    fetchVehicles();
+                  }}
+                  width="w-[214px]"
+                >
+                  Next
+                </PrimaryButton>
+              )}
+            </div>
+          )}
         </div>
+      )}
+
+      {/* Render buttons */}
+      <div
+        className={`flex ${
+          canShare ? "justify-between" : "justify-center"
+        } w-full max-w-[440px] pt-4`}
+      >
+        {(noVehicles || allShared) && (
+          <PrimaryButton onClick={handleContinue} width="w-[214px]">
+            Continue
+          </PrimaryButton>
+        )}
+        {canShare && (
+          <>
+            <button
+              onClick={handleContinue}
+              className="bg-white font-medium w-[214px] text-[#09090B] border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500"
+            >
+              Cancel
+            </button>
+            <PrimaryButton
+              onClick={handleShare}
+              width="w-[214px]"
+              disabled={selectedVehicles.length === 0}
+            >
+              {selectedVehicles.length === 0
+                ? "Share selected cars"
+                : selectedVehicles.length === 1
+                ? "Share 1 car selected"
+                : `Share ${selectedVehicles.length} cars selected`}
+            </PrimaryButton>
+          </>
+        )}
       </div>
-    </Card>
+    </div>
   );
 };
 
