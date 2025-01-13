@@ -14,15 +14,11 @@ import {
   sendAuthPayloadToParent,
 } from "../../utils/authUtils";
 import { useDevCredentials } from "../../context/DevCredentialsContext";
-import {
-  fetchPermissionsFromId,
-  getPermsValue,
-} from "../../services/permissionsService";
+import { getPermsValue } from "../../services/permissionsService";
 import Card from "../Shared/Card";
 import Header from "../Shared/Header";
 import PrimaryButton from "../Shared/PrimaryButton";
 import VehicleThumbnail from "../../assets/images/vehicle-thumbnail.png";
-import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/solid";
 import ErrorMessage from "../Shared/ErrorMessage";
 import {
   backToThirdParty,
@@ -30,7 +26,6 @@ import {
 } from "../../utils/messageHandler";
 import { isStandalone } from "../../utils/isStandalone";
 import { useUIManager } from "../../context/UIManagerContext";
-import { SACDTemplate } from "@dimo-network/transactions/dist/core/types/dimo";
 import {
   getDefaultExpirationDate,
   parseExpirationDate,
@@ -39,9 +34,7 @@ import {
   SetVehiclePermissions,
   SetVehiclePermissionsBulk,
 } from "@dimo-network/transactions";
-import { FetchPermissionsParams } from "../../models/permissions";
 import Loader from "../Shared/Loader";
-import SecondaryButton from "../Shared/SecondaryButton";
 
 const SelectVehicles: React.FC = () => {
   const { user, jwt } = useAuthContext();
@@ -280,7 +273,11 @@ const SelectVehicles: React.FC = () => {
   );
 
   return (
-    <Card width="w-full max-w-[600px]" height="h-fit max-h-[770px]">
+    <Card
+      width="w-full max-w-[600px]"
+      height="h-fit max-h-[770px]"
+      className="flex flex-col gap-6"
+    >
       <Header
         title="Select Vehicles to Share"
         subtitle={appUrl.hostname}
@@ -295,6 +292,7 @@ const SelectVehicles: React.FC = () => {
               style={{ height: "40px", width: "40px" }}
               className="rounded-full object-cover mr-4"
               src={VehicleThumbnail}
+              alt="Vehicle Thumbnail"
             />
             <h2 className="text-gray-500 text-xl font-medium pt-2">
               No cars connected yet
@@ -319,7 +317,7 @@ const SelectVehicles: React.FC = () => {
         {vehiclesLoading ? (
           <Loader />
         ) : (
-          <div className="space-y-4 pt-4 max-h-[400px] overflow-scroll w-full max-w-[440px]">
+          <div className="space-y-4 max-h-[400px] overflow-auto w-full max-w-[440px]">
             {/* Render Compatible Vehicles */}
             {vehicles && vehicles.length > 0 && (
               <>
