@@ -87,9 +87,8 @@ const OtpInput: React.FC<OtpInputProps> = ({ email, otpId, setOtpId }) => {
         subtitle={email || "moiz@gmail.com"}
       />
       <p className="max-w-[440px] text-sm">
-        A code was just sent to someone@example.com, which will expire in 5
-        minutes. If you don't see it, check your spam folder, then resend the
-        code.
+        A code was just sent to {email}, which will expire in 5 minutes. If you
+        don't see it, check your spam folder, then resend the code.
       </p>
 
       {error && <ErrorMessage message={error} />}
