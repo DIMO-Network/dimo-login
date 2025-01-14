@@ -1,5 +1,5 @@
 // src/components/SuccessPage.tsx
-import React, { useEffect } from "react";
+import React from "react";
 import Card from "../Shared/Card";
 import Header from "../Shared/Header";
 import PrimaryButton from "../Shared/PrimaryButton";

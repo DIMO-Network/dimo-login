@@ -12,7 +12,6 @@ import EmailInput from "./components/Auth/EmailInput";
 import ErrorScreen from "./components/Shared/ErrorScreen";
 import LoadingScreen from "./components/Shared/LoadingScreen";
 import OtpInput from "./components/Auth/OtpInput";
-import SelectVehicles from "./components/Vehicles/SelectVehicles";
 import SuccessfulPermissions from "./components/Vehicles/SuccessfulPermissions";
 import SuccessfulTransaction from "./components/AdvancedTransaction/SuccessfulTransaction";
 import SuccessPage from "./components/Auth/SuccessPage";
@@ -80,7 +79,6 @@ const App = () => {
         <PasskeyGeneration email={email} setOtpId={setOtpId} />
       )}
       {uiState === UiStates.VEHICLE_MANAGER && <VehicleManager />}
-      {uiState === UiStates.SELECT_VEHICLES && <SelectVehicles />}
       {uiState === UiStates.MANAGE_VEHICLE && <ManageVehicle />}
       {uiState === UiStates.ADVANCED_TRANSACTION && <AdvancedTransaction />}
       {uiState === UiStates.TRANSACTION_SUCCESS && <SuccessfulTransaction />}
