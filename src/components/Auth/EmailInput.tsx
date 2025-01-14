@@ -24,7 +24,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
   const { authenticateUser, setUser } = useAuthContext(); // Get sendOtp from the context
 
   const { clientId, devLicenseAlias, redirectUri } = useDevCredentials();
-  const { setUiState, entryState, error } = useUIManager();
+  const { setUiState, entryState, error, setLoadingState } = useUIManager();
 
   const [email, setEmail] = useState("");
   const [triggerAuth, setTriggerAuth] = useState(false);
@@ -106,6 +106,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoadingState(true,"Loading....")
       try {
         const urlParams = new URLSearchParams(window.location.search);
         const codeFromUrl = urlParams.get("code");
@@ -130,6 +131,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
       } catch (error) {
         console.error("Error during code exchange:", error);
       }
+      setLoadingState(false);
     };
 
     fetchData();
