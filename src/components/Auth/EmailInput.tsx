@@ -109,22 +109,29 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
   useEffect(() => {
     const fetchData = () => {
       setLoadingState(true, "Loading....");
-      submitCodeExchange({
-        clientId: "login-with-dimo",
-        redirectUri: "https://login.dev.dimo.org",
-        code: "codeFromUrl",
-      }).then((result) => {
-        if (result.success) {
-          const access_token = result.data.access_token;
-          const decodedJwt = decodeJwt(access_token);
-          if (decodedJwt) {
-            setTokenExchanged(true);
-            setEmail(decodedJwt.email);
-            setComponentData({ emailValidated: decodedJwt.email });
-            handleEmail(decodedJwt.email);
+      const urlParams = new URLSearchParams(window.location.search);
+      const codeFromUrl = urlParams.get("code");
+
+      if (codeFromUrl) {
+        submitCodeExchange({
+          clientId: "login-with-dimo",
+          redirectUri: "https://login.dev.dimo.org",
+          code: codeFromUrl,
+        }).then((result) => {
+          if (result.success) {
+            const access_token = result.data.access_token;
+            const decodedJwt = decodeJwt(access_token);
+            if (decodedJwt) {
+              setTokenExchanged(true);
+              setEmail(decodedJwt.email);
+              setComponentData({ emailValidated: decodedJwt.email });
+              handleEmail(decodedJwt.email);
+            }
           }
-        }
-      });
+        });
+      } else {
+        setTokenExchanged(true);
+      }
       setLoadingState(false);
       // try {
       //   const urlParams = new URLSearchParams(window.location.search);
