@@ -70,7 +70,9 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({
     const account = await createAccountWithPasskey(email);
 
     //MOVE TO AUTHENTICATE, IF FROM SSO
+    console.log(account);
     if (account.success && account.data.user) {
+      console.log(emailValidated);
       if (emailValidated) {
         authenticateUser(emailValidated, "", entryState);
       } else {

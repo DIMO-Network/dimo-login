@@ -184,6 +184,7 @@ export const AuthProvider = ({
     credentialBundle: string,
     entryState: string
   ) => {
+    console.log("Here");
     setLoadingState(true, "Authenticating User");
     setError(null);
 
