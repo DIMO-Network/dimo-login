@@ -47,8 +47,13 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({
   email,
   setOtpId,
 }) => {
-  const { createAccountWithPasskey, sendOtp } = useAuthContext();
-  const { setUiState } = useUIManager();
+  const { createAccountWithPasskey, sendOtp, authenticateUser } =
+    useAuthContext();
+  const {
+    setUiState,
+    componentData: { emailValidated },
+    entryState,
+  } = useUIManager();
 
   const handleOtpSend = async (email: string) => {
     const otpResult = await sendOtp(email); // Send OTP for new account
@@ -63,8 +68,14 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({
 
   const handlePasskeyGeneration = async () => {
     const account = await createAccountWithPasskey(email);
+
+    //MOVE TO AUTHENTICATE, IF FROM SSO
     if (account.success && account.data.user) {
-      await handleOtpSend(email);
+      if (emailValidated) {
+        authenticateUser(emailValidated, "", entryState);
+      } else {
+        await handleOtpSend(email);
+      }
     } else {
       console.error("Account creation failed"); // Handle account creation failure
     }

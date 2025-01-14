@@ -24,7 +24,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
   const { authenticateUser, setUser } = useAuthContext(); // Get sendOtp from the context
 
   const { clientId, devLicenseAlias, redirectUri } = useDevCredentials();
-  const { setUiState, entryState, error, setLoadingState } = useUIManager();
+  const { setUiState, entryState, error, setLoadingState, setComponentData } = useUIManager();
 
   const [email, setEmail] = useState("");
   const [triggerAuth, setTriggerAuth] = useState(false);
@@ -124,6 +124,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
 
             if (decodedJwt) {
               setEmail(decodedJwt.email);
+              setComponentData({emailValidated:decodedJwt.email})
               handleEmail(decodedJwt.email);
             }
           }
