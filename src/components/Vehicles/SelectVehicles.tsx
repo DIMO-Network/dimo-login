@@ -14,19 +14,13 @@ import {
   sendAuthPayloadToParent,
 } from "../../utils/authUtils";
 import { useDevCredentials } from "../../context/DevCredentialsContext";
-import {
-  getPermsValue,
-} from "../../services/permissionsService";
+import { getPermsValue } from "../../services/permissionsService";
 import PrimaryButton from "../Shared/PrimaryButton";
 import VehicleThumbnail from "../../assets/images/vehicle-thumbnail.png";
 import ErrorMessage from "../Shared/ErrorMessage";
-import {
-  backToThirdParty,
-} from "../../utils/messageHandler";
+import { backToThirdParty } from "../../utils/messageHandler";
 import { useUIManager } from "../../context/UIManagerContext";
-import {
-  getDefaultExpirationDate,
-} from "../../utils/dateUtils";
+import { getDefaultExpirationDate } from "../../utils/dateUtils";
 import {
   SetVehiclePermissions,
   SetVehiclePermissionsBulk,
@@ -39,8 +33,11 @@ interface SelectVehiclesProps {
   vehicleMakes: string[] | undefined; // Adjust the type if necessary
 }
 
-
-const SelectVehicles: React.FC<SelectVehiclesProps> = ({ vehicleTokenIds, permissionTemplateId, vehicleMakes }) => {
+const SelectVehicles: React.FC<SelectVehiclesProps> = ({
+  vehicleTokenIds,
+  permissionTemplateId,
+  vehicleMakes,
+}) => {
   const { user, jwt } = useAuthContext();
   const { clientId, redirectUri, devLicenseAlias } = useDevCredentials();
   const { setUiState, setComponentData, setLoadingState, error, setError } =
@@ -94,7 +91,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({ vehicleTokenIds, permis
 
   useEffect(() => {
     // Run both fetches in parallel
-      Promise.all([fetchVehicles()]);
+    Promise.all([fetchVehicles()]);
   }, []);
 
   const handleVehicleSelect = (vehicle: Vehicle) => {
@@ -240,12 +237,12 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({ vehicleTokenIds, permis
       {vehiclesLoading ? (
         <Loader />
       ) : (
-        <div className="space-y-4 pt-4 max-h-[400px] overflow-scroll w-full max-w-[440px]">
+        <div className="space-y-4 pt-4 max-h-[400px] overflow-scroll w-full lg:min-w-[440px] max-w-[440px]">
           {/* Render Compatible Vehicles */}
           {vehicles && vehicles.length > 0 && (
             <>
               <div className="flex justify-between">
-                <h2 className="text-lg">Compatible</h2>
+              <h2 className="text-lg">Compatible</h2>
                 <button
                   onClick={handleToggleSelectAll}
                   className="bg-white text-xs w-[75px] text-[#09090B] border border-gray-300 pr-px pl-px py-1 rounded-full hover:border-gray-500"
@@ -323,7 +320,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({ vehicleTokenIds, permis
           canShare ? "justify-between" : "justify-center"
         } w-full max-w-[440px] pt-4`}
       >
-        {(noVehicles || allShared) && (
+        {(noVehicles || allShared || vehicles.length < 1) && (
           <PrimaryButton onClick={handleContinue} width="w-[214px]">
             Continue
           </PrimaryButton>
