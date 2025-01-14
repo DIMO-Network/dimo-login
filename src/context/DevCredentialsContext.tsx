@@ -53,6 +53,20 @@ export const DevCredentialsProvider = ({
     const clientIdFromUrl = urlParams.get("clientId");
     const redirectUriFromUrl = urlParams.get("redirectUri");
     const entryStateFromUrl = urlParams.get("entryState");
+    const stateFromUrl = urlParams.get("state");
+
+    if ( stateFromUrl ) {
+      //SSO Purpose
+      const state = JSON.parse(stateFromUrl);
+      setUiState(state.entryState || "EMAIL_INPUT");
+      setEntryState(state.entryState || "EMAIL_INPUT");
+      setCredentials({
+        clientId: state.clientId,
+        apiKey: "api key",
+        redirectUri: state.redirectUri,
+      });
+
+    }
 
     if (clientIdFromUrl && redirectUriFromUrl) {
       setUiState(entryStateFromUrl || "EMAIL_INPUT");
