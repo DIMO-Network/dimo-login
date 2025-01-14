@@ -12,6 +12,8 @@ import { useDevCredentials } from "../../context/DevCredentialsContext";
 import { useUIManager } from "../../context/UIManagerContext";
 
 import ErrorMessage from "../Shared/ErrorMessage";
+import { submitCodeExchange } from "../../services/authService";
+import { decodeJwt } from "../../utils/jwtUtils";
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;
@@ -21,7 +23,7 @@ interface EmailInputProps {
 const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
   const { authenticateUser, setUser } = useAuthContext(); // Get sendOtp from the context
 
-  const { clientId, devLicenseAlias } = useDevCredentials();
+  const { clientId, devLicenseAlias, redirectUri } = useDevCredentials();
   const { setUiState, entryState, error } = useUIManager();
 
   const [email, setEmail] = useState("");
@@ -51,10 +53,48 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
     setUiState("PASSKEY_GENERATOR");
   };
 
+  const handleEmail = async (email: string) => {
+    if (!email || !clientId) return;
+
+    onSubmit(email); // Trigger any on-submit actions
+
+    setEmailGranted(clientId, emailPermissionGranted);
+
+    // Check if the user exists and authenticate if they do
+    const userExistsResult = await fetchUserDetails(email); //TODO: This should be in Auth Context, so that user is set by auth context
+    if (userExistsResult.success && userExistsResult.data.user) {
+      setUser(userExistsResult.data.user); //Sets initial user from API Response
+      setTriggerAuth(true); // Trigger authentication for existing users
+      return; // Early return to prevent additional logic from running
+    }
+
+    // If user doesn't exist, create an account and send OTP
+    setUiState("PASSKEY_GENERATOR");
+  };
+
   const handleKeyDown = (e: { key: string }) => {
     if (e.key === "Enter") {
       handleSubmit();
     }
+  };
+
+  const handleGoogleAuth = () => {
+    const stateParams = {
+      clientId,
+      redirectUri,
+      entryState,
+    };
+    const serializedState = JSON.stringify(stateParams);
+    const encodedState = encodeURIComponent(serializedState);
+
+    const url = `https://auth.dev.dimo.zone/auth/google?client_id=login-with-dimo&redirect_uri=https://login.dev.dimo.org&response_type=code&scope=openid%20email&state=${encodedState}`;
+
+    window.location.href = url;
+  };
+
+  const handleAppleAuth = () => {
+    const url = `https://auth.dev.dimo.zone/auth/apple?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=openid%20email`;
+    window.location.href = url;
   };
 
   useEffect(() => {
@@ -63,6 +103,37 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
       authenticateUser(email, "credentialBundle", entryState);
     }
   }, [triggerAuth]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const codeFromUrl = urlParams.get("code");
+
+        if (codeFromUrl) {
+          const result = await submitCodeExchange({
+            clientId:"login-with-dimo",
+            redirectUri:"https://login.dev.dimo.org",
+            code: codeFromUrl,
+          });
+
+          if (result.success) {
+            const access_token = result.data.access_token;
+            const decodedJwt = decodeJwt(access_token);
+
+            if (decodedJwt) {
+              setEmail(decodedJwt.email);
+              handleEmail(decodedJwt.email);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error during code exchange:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   return (
     <Card
@@ -101,6 +172,11 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
         <PrimaryButton onClick={handleSubmit} width="w-full lg:w-[440px]">
           Authenticate
         </PrimaryButton>
+
+        <div>
+          <button onClick={handleGoogleAuth}>Google Auth</button>
+          <button onClick={handleAppleAuth}>Apple Auth</button>
+        </div>
         <p className="flex flex-inline gap-1 text-xs text-gray-500">
           By continuing you agree to our
           <a href="https://dimo.org/legal/privacy-policy" className="underline">

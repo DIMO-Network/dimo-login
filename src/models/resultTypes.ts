@@ -6,6 +6,11 @@ type SubmitChallengeResponse = {
   access_token: string;
 };
 
+
+type SubmitCodeExchangeResponse = {
+  access_token: string;
+}
+
 type GenerateChallengeResponse = {
   challenge: string;
   state: string;
@@ -27,3 +32,4 @@ export type SimpleResult = Result<null>;
 export type SimpleDataResult<T = null> = Result<T>;
 export type GenerateChallengeResult = Result<GenerateChallengeResponse>;
 export type SubmitChallengeResult = Result<SubmitChallengeResponse>;
+export type SubmitCodeExchangeResult = Result<SubmitCodeExchangeResponse>;
