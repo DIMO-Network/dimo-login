@@ -20,7 +20,7 @@
 
 import React, { createContext, useContext, ReactNode, useState } from "react";
 
-import { authenticateUser, SignatureError } from "../utils/authUtils";
+import { authenticateUser } from "../utils/authUtils";
 import { createAccount, sendOtp, verifyOtp } from "../services/accountsService"; // Import the service functions
 import { CreateAccountParams } from "../models/account";
 import { createPasskey } from "../services/turnkeyService";
@@ -206,14 +206,9 @@ export const AuthProvider = ({
       );
     } catch (error: unknown) {
       console.error(error);
-      if (error instanceof SignatureError) {
-        handleSendOtp(email);
-        setUiState("OTP_INPUT");
-      } else {
-        setError(
-          "Could not authenticate user, please verify your passkey and try again."
-        );
-      }
+      setError(
+        "Could not authenticate user, please verify your passkey and try again."
+      );
     } finally {
       setLoadingState(false);
     }

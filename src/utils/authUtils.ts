@@ -103,13 +103,7 @@ export async function authenticateUser(
   }
 
   if (subOrganizationId) {
-    await initializePasskey(subOrganizationId).catch((err) => {
-      console.error("Error signing the challenge", err);
-
-      throw new SignatureError(
-        "Could not authenticate user, please verify your passkey and try again."
-      );
-    });
+    await initializePasskey(subOrganizationId);
 
     const smartContractAddress = getSmartContractAddress();
     const walletAddress = getWalletAddress();
@@ -185,5 +179,3 @@ export async function authenticateUser(
     }
   }
 }
-
-export class SignatureError extends Error {}
