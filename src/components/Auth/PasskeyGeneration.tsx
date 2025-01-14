@@ -57,7 +57,7 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({
       setOtpId(otpResult.data.otpId); // Store the OTP ID
       setUiState(UiStates.OTP_INPUT, {
         setBack: true,
-        customUiState: UiStates.EMAIL_INPUT,
+        removeCurrent: true,
       }); // Move to OTP input step
     } else if (!otpResult.success) {
       console.error(otpResult.error); // Handle OTP sending failure

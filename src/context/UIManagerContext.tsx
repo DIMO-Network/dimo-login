@@ -2,7 +2,7 @@ import React, { createContext, ReactNode, useContext, useState } from "react";
 
 interface UiStateOptionProps {
   setBack: boolean;
-  customUiState?: UiStates;
+  removeCurrent?: boolean;
 }
 
 interface UIManagerContextProps {
@@ -57,15 +57,15 @@ export const UIManagerProvider = ({ children }: { children: ReactNode }) => {
     value: UiStates,
     options: UiStateOptionProps = { setBack: false }
   ) => {
-    const { setBack, customUiState } = options;
+    const { setBack, removeCurrent } = options;
     const defaultValue = [value];
     if (setBack) {
       let newPrevUiStates: UiStates[] = [...prevUiStates];
-      if (customUiState) {
+      if (removeCurrent) {
         newPrevUiStates = prevUiStates.filter((state) => state !== uiState);
       }
 
-      setPrevUiStates([...newPrevUiStates, customUiState || value]);
+      setPrevUiStates([...newPrevUiStates, value]);
     } else {
       setPrevUiStates(defaultValue);
     }
