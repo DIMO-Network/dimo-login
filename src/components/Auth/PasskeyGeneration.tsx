@@ -49,7 +49,7 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
   const handleOtpSend = async (email: string) => {
     const otpResult = await sendOtp(email); // Send OTP for new account
 
-    if (otpResult.success) {
+    if (otpResult.success && otpResult.data.otpId) {
       setUiState("OTP_INPUT");
     }
   };
