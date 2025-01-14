@@ -29,6 +29,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
   const [email, setEmail] = useState("");
   const [triggerAuth, setTriggerAuth] = useState(false);
   const [emailPermissionGranted, setEmailPermissionGranted] = useState(false);
+  const [tokenExchanged, setTokenExchanged] = useState(false);
 
   const appUrl = new URL(
     document.referrer ? document.referrer : "https://dimo.org"
@@ -126,6 +127,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
               setEmail(decodedJwt.email);
               setComponentData({emailValidated:decodedJwt.email})
               handleEmail(decodedJwt.email);
+              setTokenExchanged(true);
             }
           }
         }
@@ -135,8 +137,10 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
       setLoadingState(false);
     };
 
-    fetchData();
-  }, []);
+    if ( !tokenExchanged ) {
+      fetchData();
+    }
+  }, [tokenExchanged]);
 
   return (
     <Card
