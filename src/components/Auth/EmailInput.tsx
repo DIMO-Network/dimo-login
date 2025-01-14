@@ -124,10 +124,10 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
             const decodedJwt = decodeJwt(access_token);
 
             if (decodedJwt) {
+              setTokenExchanged(true);
               setEmail(decodedJwt.email);
               setComponentData({emailValidated:decodedJwt.email})
               handleEmail(decodedJwt.email);
-              setTokenExchanged(true);
             }
           }
         }
