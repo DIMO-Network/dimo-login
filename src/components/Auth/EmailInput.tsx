@@ -24,7 +24,8 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
   const { authenticateUser, setUser } = useAuthContext(); // Get sendOtp from the context
 
   const { clientId, devLicenseAlias, redirectUri } = useDevCredentials();
-  const { setUiState, entryState, error, setLoadingState, setComponentData } = useUIManager();
+  const { setUiState, entryState, error, setLoadingState, setComponentData } =
+    useUIManager();
 
   const [email, setEmail] = useState("");
   const [triggerAuth, setTriggerAuth] = useState(false);
@@ -106,38 +107,54 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
   }, [triggerAuth]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoadingState(true,"Loading....")
-      try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const codeFromUrl = urlParams.get("code");
-
-        if (codeFromUrl) {
-          const result = await submitCodeExchange({
-            clientId:"login-with-dimo",
-            redirectUri:"https://login.dev.dimo.org",
-            code: codeFromUrl,
-          });
-
-          if (result.success) {
-            const access_token = result.data.access_token;
-            const decodedJwt = decodeJwt(access_token);
-
-            if (decodedJwt) {
-              setTokenExchanged(true);
-              setEmail(decodedJwt.email);
-              setComponentData({emailValidated:decodedJwt.email})
-              handleEmail(decodedJwt.email);
-            }
+    const fetchData = () => {
+      setLoadingState(true, "Loading....");
+      submitCodeExchange({
+        clientId: "login-with-dimo",
+        redirectUri: "https://login.dev.dimo.org",
+        code: "codeFromUrl",
+      }).then((result) => {
+        if (result.success) {
+          const access_token = result.data.access_token;
+          const decodedJwt = decodeJwt(access_token);
+          if (decodedJwt) {
+            setTokenExchanged(true);
+            setEmail(decodedJwt.email);
+            setComponentData({ emailValidated: decodedJwt.email });
+            handleEmail(decodedJwt.email);
           }
         }
-      } catch (error) {
-        console.error("Error during code exchange:", error);
-      }
+      });
       setLoadingState(false);
+      // try {
+      //   const urlParams = new URLSearchParams(window.location.search);
+      //   const codeFromUrl = urlParams.get("code");
+
+      //   if (codeFromUrl) {
+      //     const result = await submitCodeExchange({
+      //       clientId: "login-with-dimo",
+      //       redirectUri: "https://login.dev.dimo.org",
+      //       code: codeFromUrl,
+      //     });
+
+      //     if (result.success) {
+      //       const access_token = result.data.access_token;
+      //       const decodedJwt = decodeJwt(access_token);
+
+      //       if (decodedJwt) {
+      //         setEmail(decodedJwt.email);
+      //         setComponentData({ emailValidated: decodedJwt.email });
+      //         handleEmail(decodedJwt.email);
+      //       }
+      //     }
+      //   }
+      // } catch (error) {
+      //   console.error("Error during code exchange:", error);
+      // }
+      // setLoadingState(false);
     };
 
-    if ( !tokenExchanged ) {
+    if (!tokenExchanged) {
       fetchData();
     }
   }, [tokenExchanged]);
