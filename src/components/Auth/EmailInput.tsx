@@ -84,7 +84,9 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     const serializedState = JSON.stringify(stateParams);
     const encodedState = encodeURIComponent(serializedState);
 
-    const url = `https://auth.dev.dimo.zone/auth/${provider}?client_id=login-with-dimo&redirect_uri=https://login.dev.dimo.org&response_type=code&scope=openid%20email&state=${encodedState}`;
+    const dimoRedirectUri = process.env.REACT_APP_ENVIRONMENT == "prod" ? "https://login.dimo.org" : "https://login.dev.dimo.org"
+
+    const url = `https://auth.dev.dimo.zone/auth/${provider}?client_id=login-with-dimo&redirect_uri=${dimoRedirectUri}&response_type=code&scope=openid%20email&state=${encodedState}`;
 
     window.location.href = url;
   };
@@ -107,9 +109,10 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       if (codeFromUrl) {
         setIsSSO(true);
         try {
+          const dimoRedirectUri = process.env.REACT_APP_ENVIRONMENT == "prod" ? "https://login.dimo.org" : "https://login.dev.dimo.org"
           const result = await submitCodeExchange({
             clientId: "login-with-dimo",
-            redirectUri: "https://login.dev.dimo.org",
+            redirectUri: dimoRedirectUri,
             code: codeFromUrl,
           });
           if (result.success) {
