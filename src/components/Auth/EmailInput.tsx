@@ -56,6 +56,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
   };
 
   const handleEmail = async (email: string) => {
+    console.log("LOg 1");
     setLoadingState(false);
     if (!email || !clientId) return;
 
@@ -156,12 +157,14 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
             redirectUri: "https://login.dev.dimo.org",
             code: codeFromUrl,
           });
-
+          console.log("IS MOUNTED", isMounted);
+          console.log("Result Success", result.success);
           if (result.success && isMounted) {
             const access_token = result.data.access_token;
             const decodedJwt = decodeJwt(access_token);
 
             if (decodedJwt) {
+              console.log("Yes");
               setTokenExchanged(true);
               setEmail(decodedJwt.email);
               setComponentData({ emailValidated: decodedJwt.email });
