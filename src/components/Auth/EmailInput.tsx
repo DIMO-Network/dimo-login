@@ -19,10 +19,9 @@ import { AppleIcon, GoogleIcon } from "../Icons";
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;
-  setOtpId: (otpId: string) => void;
 }
 
-const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
+const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   const { authenticateUser, setUser } = useAuthContext(); // Get sendOtp from the context
 
   const { clientId, devLicenseAlias, redirectUri } = useDevCredentials();
