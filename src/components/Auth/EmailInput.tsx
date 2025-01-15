@@ -74,13 +74,20 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   };
 
   const handleAuth = (provider: string) => {
+    const urlParams = new URLSearchParams(window.location.search);
+
     const stateParams = {
       clientId,
       redirectUri,
       entryState,
       emailPermissionGranted,
       referrer: document.referrer, // Pass referrer to state
+      permissionTemplateId: urlParams.get("permissionTemplateId"),
+      expirationDate: urlParams.get("expirationDate"),
+      vehicles: urlParams.getAll("vehicles"),
+      vehicleMakes: urlParams.getAll("vehicleMakes"),      
     };
+
     const serializedState = JSON.stringify(stateParams);
     const encodedState = encodeURIComponent(serializedState);
 

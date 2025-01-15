@@ -5,9 +5,7 @@ import {
   sendAuthPayloadToParent,
 } from "../../utils/authUtils";
 import { useDevCredentials } from "../../context/DevCredentialsContext";
-import {
-  fetchPermissionsFromId,
-} from "../../services/permissionsService";
+import { fetchPermissionsFromId } from "../../services/permissionsService";
 import Card from "../Shared/Card";
 import Header from "../Shared/Header";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/solid";
@@ -25,6 +23,7 @@ import {
 } from "../../utils/dateUtils";
 import { FetchPermissionsParams } from "../../models/permissions";
 import SelectVehicles from "./SelectVehicles";
+import { getParamFromUrlOrState } from "../../utils/urlHelpers";
 
 const VehicleManager: React.FC = () => {
   const { user, jwt } = useAuthContext();
@@ -52,18 +51,46 @@ const VehicleManager: React.FC = () => {
 
   const handleStandaloneMode = () => {
     const urlParams = new URLSearchParams(window.location.search);
-    const permissionTemplateIdFromUrl = urlParams.get("permissionTemplateId");
-    const expirationDateFromUrl = urlParams.get("expirationDate");
-    const vehiclesFromUrl = urlParams.getAll("vehicles");
-    const vehicleMakesFromUrl = urlParams.getAll("vehicleMakes");
+    const state = urlParams.get("state");
+    const decodedState = state ? JSON.parse(decodeURIComponent(state)) : {};
 
-    if (permissionTemplateIdFromUrl) {
-      setPermissionTemplateId(permissionTemplateIdFromUrl);
-      if (vehiclesFromUrl.length) setVehicleTokenIds(vehiclesFromUrl);
-      if (vehicleMakesFromUrl.length) setVehicleMakes(vehicleMakesFromUrl);
-      if (expirationDateFromUrl)
-        setExpirationDate(parseExpirationDate(expirationDateFromUrl));
+    const permissionTemplateId = getParamFromUrlOrState(
+      "permissionTemplateId",
+      urlParams,
+      decodedState
+    );
+    const expirationDate = getParamFromUrlOrState(
+      "expirationDate",
+      urlParams,
+      decodedState
+    );
+    const vehicles = getParamFromUrlOrState(
+      "vehicles",
+      urlParams,
+      decodedState
+    );
+    const vehicleMakes = getParamFromUrlOrState(
+      "vehicleMakes",
+      urlParams,
+      decodedState
+    );
 
+    if (permissionTemplateId) {
+      setPermissionTemplateId(permissionTemplateId as string);
+    }
+
+    if (vehicles) {
+      setVehicleTokenIds(Array.isArray(vehicles) ? vehicles : [vehicles]);
+    }
+
+    if (vehicleMakes) {
+      setVehicleMakes(
+        Array.isArray(vehicleMakes) ? vehicleMakes : [vehicleMakes]
+      );
+    }
+
+    if (expirationDate) {
+      setExpirationDate(parseExpirationDate(expirationDate as string));
     }
   };
 
@@ -213,7 +240,6 @@ const VehicleManager: React.FC = () => {
       />
       <div className="flex flex-col items-center justify-center max-h-[480px] lg:max-h-[584px] box-border overflow-y-auto">
         {error && <ErrorMessage message={error} />}
-
 
         <>
           <div className="description w-fit max-w-[440px] mt-2 text-sm mb-4 overflow-y-auto max-h-[356px]">
