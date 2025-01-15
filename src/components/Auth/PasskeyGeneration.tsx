@@ -47,7 +47,7 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({
   email,
   setOtpId,
 }) => {
-  const { createAccountWithPasskey, sendOtp, authenticateUser } =
+  const { createAccountWithPasskey, sendOtp, authenticateUser, user } =
     useAuthContext();
   const {
     setUiState,
@@ -73,7 +73,7 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({
     //MOVE TO AUTHENTICATE, IF FROM SSO
     if (account.success && account.data.user) {
       if (emailValidated) {
-        setTriggerAuth(true);
+        setTriggerAuth(true); //Essentially waits for state updates, before authenticating the user
       } else {
         await handleOtpSend(email);
       }
@@ -85,6 +85,7 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({
   useEffect(() => {
     // Only authenticate if `user` is set and authentication hasn't been triggered
     if (triggerAuth && emailValidated) {
+      console.log(user);
       authenticateUser(emailValidated, "credentialBundle", entryState);
     }
   }, [triggerAuth]);
