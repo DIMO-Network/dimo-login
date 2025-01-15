@@ -56,6 +56,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
   };
 
   const handleEmail = async (email: string) => {
+    setLoadingState(false);
     if (!email || !clientId) return;
 
     onSubmit(email); // Trigger any on-submit actions
@@ -86,7 +87,6 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
       redirectUri,
       entryState,
       referrer: document.referrer, // Pass referrer to state
-
     };
     const serializedState = JSON.stringify(stateParams);
     const encodedState = encodeURIComponent(serializedState);
@@ -108,67 +108,86 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
     }
   }, [triggerAuth]);
 
+  // useEffect(() => {
+  //   const fetchData = () => {
+  //     const urlParams = new URLSearchParams(window.location.search);
+  //     const codeFromUrl = urlParams.get("code");
+
+  //     if (codeFromUrl) {
+  //       setLoadingState(true, "Loading...");
+  //       submitCodeExchange({
+  //         clientId: "login-with-dimo",
+  //         redirectUri: "https://login.dev.dimo.org",
+  //         code: codeFromUrl,
+  //       }).then((result) => {
+  //         if (result.success) {
+  //           const access_token = result.data.access_token;
+  //           const decodedJwt = decodeJwt(access_token);
+  //           if (decodedJwt) {
+  //             setTokenExchanged(true);
+  //             setEmail(decodedJwt.email);
+  //             setComponentData({ emailValidated: decodedJwt.email });
+  //             handleEmail(decodedJwt.email);
+  //           }
+  //         }
+  //       });
+  //     } else {
+  //       setTokenExchanged(true);
+  //     }
+  //   };
+
+  //   if (!tokenExchanged) {
+  //     fetchData();
+  //   }
+  // }, [tokenExchanged]);
+
   useEffect(() => {
-    const fetchData = () => {
-      console.log("Should be loadin bruh");
-      setLoadingState(true, "Loading....");
+    let isMounted = true; // Flag to ensure cleanup
+
+    const fetchData = async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const codeFromUrl = urlParams.get("code");
 
       if (codeFromUrl) {
-        submitCodeExchange({
-          clientId: "login-with-dimo",
-          redirectUri: "https://login.dev.dimo.org",
-          code: codeFromUrl,
-        }).then((result) => {
-          if (result.success) {
+        setLoadingState(true, "Loading...");
+        try {
+          const result = await submitCodeExchange({
+            clientId: "login-with-dimo",
+            redirectUri: "https://login.dev.dimo.org",
+            code: codeFromUrl,
+          });
+
+          if (result.success && isMounted) {
             const access_token = result.data.access_token;
             const decodedJwt = decodeJwt(access_token);
+
             if (decodedJwt) {
               setTokenExchanged(true);
               setEmail(decodedJwt.email);
               setComponentData({ emailValidated: decodedJwt.email });
-              setLoadingState(false);
               handleEmail(decodedJwt.email);
             }
           }
-        });
-      } else {
+        } catch (error) {
+          console.error("Error in code exchange:", error);
+        } finally {
+          if (isMounted) {
+            setLoadingState(false, "Done");
+          }
+        }
+      } else if (isMounted) {
         setTokenExchanged(true);
-        setLoadingState(false);
       }
-      // try {
-      //   const urlParams = new URLSearchParams(window.location.search);
-      //   const codeFromUrl = urlParams.get("code");
-
-      //   if (codeFromUrl) {
-      //     const result = await submitCodeExchange({
-      //       clientId: "login-with-dimo",
-      //       redirectUri: "https://login.dev.dimo.org",
-      //       code: codeFromUrl,
-      //     });
-
-      //     if (result.success) {
-      //       const access_token = result.data.access_token;
-      //       const decodedJwt = decodeJwt(access_token);
-
-      //       if (decodedJwt) {
-      //         setEmail(decodedJwt.email);
-      //         setComponentData({ emailValidated: decodedJwt.email });
-      //         handleEmail(decodedJwt.email);
-      //       }
-      //     }
-      //   }
-      // } catch (error) {
-      //   console.error("Error during code exchange:", error);
-      // }
-      // setLoadingState(false);
     };
 
     if (!tokenExchanged) {
       fetchData();
     }
-  }, [tokenExchanged]);
+
+    return () => {
+      isMounted = false; // Cleanup to prevent updates on unmounted component
+    };
+  }, [tokenExchanged, setLoadingState]);
 
   return (
     <Card
