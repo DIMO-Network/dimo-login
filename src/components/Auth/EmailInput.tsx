@@ -28,6 +28,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
     useUIManager();
 
   const [email, setEmail] = useState("");
+  const [isSSO, setIsSSO] = useState(false);
   const [triggerAuth, setTriggerAuth] = useState(false);
   const [emailPermissionGranted, setEmailPermissionGranted] = useState(false);
   const [tokenExchanged, setTokenExchanged] = useState(false);
@@ -143,28 +144,23 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
   // }, [tokenExchanged]);
 
   useEffect(() => {
-    let isMounted = true; // Flag to ensure cleanup
-
     const fetchData = async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const codeFromUrl = urlParams.get("code");
 
       if (codeFromUrl) {
-        setLoadingState(true, "Loading...");
+        setIsSSO(true);
         try {
           const result = await submitCodeExchange({
             clientId: "login-with-dimo",
             redirectUri: "https://login.dev.dimo.org",
             code: codeFromUrl,
           });
-          console.log("IS MOUNTED", isMounted);
-          console.log("Result Success", result.success);
-          if (result.success && isMounted) {
+          if (result.success) {
             const access_token = result.data.access_token;
             const decodedJwt = decodeJwt(access_token);
 
             if (decodedJwt) {
-              console.log("Yes");
               setTokenExchanged(true);
               setEmail(decodedJwt.email);
               setComponentData({ emailValidated: decodedJwt.email });
@@ -173,12 +169,8 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
           }
         } catch (error) {
           console.error("Error in code exchange:", error);
-        } finally {
-          if (isMounted) {
-            setLoadingState(false, "Done");
-          }
         }
-      } else if (isMounted) {
+      } else {
         setTokenExchanged(true);
       }
     };
@@ -186,11 +178,11 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
     if (!tokenExchanged) {
       fetchData();
     }
+  }, [tokenExchanged]);
 
-    return () => {
-      isMounted = false; // Cleanup to prevent updates on unmounted component
-    };
-  }, [tokenExchanged, setLoadingState]);
+  if ( isSSO ) {
+    return (<h1>SSO</h1>)
+  }
 
   return (
     <Card
