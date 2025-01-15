@@ -14,6 +14,7 @@ import { useUIManager } from "../../context/UIManagerContext";
 import ErrorMessage from "../Shared/ErrorMessage";
 import { submitCodeExchange } from "../../services/authService";
 import { decodeJwt } from "../../utils/jwtUtils";
+import LoadingScreen from "../Shared/LoadingScreen";
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;
@@ -181,7 +182,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
   }, [tokenExchanged]);
 
   if ( isSSO ) {
-    return (<h1>SSO</h1>)
+    return <LoadingScreen />;
   }
 
   return (
