@@ -12,43 +12,59 @@ import { useDevCredentials } from "../../context/DevCredentialsContext";
 import { useUIManager } from "../../context/UIManagerContext";
 
 import ErrorMessage from "../Shared/ErrorMessage";
+import { submitCodeExchange } from "../../services/authService";
+import { decodeJwt } from "../../utils/jwtUtils";
+import LoadingScreen from "../Shared/LoadingScreen";
+import { AppleIcon, GoogleIcon } from "../Icons";
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;
-  setOtpId: (otpId: string) => void;
 }
 
-const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
+const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   const { authenticateUser, setUser } = useAuthContext(); // Get sendOtp from the context
 
-  const { clientId, devLicenseAlias } = useDevCredentials();
-  const { setUiState, entryState, error } = useUIManager();
+  const { clientId, devLicenseAlias, redirectUri } = useDevCredentials();
+  const { setUiState, entryState, error, setLoadingState, setComponentData } =
+    useUIManager();
 
   const [email, setEmail] = useState("");
+  const [isSSO, setIsSSO] = useState(false);
   const [triggerAuth, setTriggerAuth] = useState(false);
   const [emailPermissionGranted, setEmailPermissionGranted] = useState(false);
+  const [tokenExchanged, setTokenExchanged] = useState(false);
 
   const appUrl = new URL(
     document.referrer ? document.referrer : "https://dimo.org"
   );
 
-  const handleSubmit = async () => {
+  const processEmailSubmission = async (email: string) => {
     if (!email || !clientId) return;
 
     onSubmit(email); // Trigger any on-submit actions
 
-    setEmailGranted(clientId, emailPermissionGranted);
-
     // Check if the user exists and authenticate if they do
     const userExistsResult = await fetchUserDetails(email); //TODO: This should be in Auth Context, so that user is set by auth context
     if (userExistsResult.success && userExistsResult.data.user) {
-      setUser(userExistsResult.data.user); //Sets initial user from API Response
+      setUser(userExistsResult.data.user); // Sets initial user from API Response
       setTriggerAuth(true); // Trigger authentication for existing users
-      return; // Early return to prevent additional logic from running
+      return true; // Indicate that the user exists
     }
 
     // If user doesn't exist, create an account and send OTP
     setUiState("PASSKEY_GENERATOR");
+    return false; // Indicate that the user does not exist
+  };
+
+  const handleSubmit = async () => {
+    if (!email) return;
+
+    setEmailGranted(clientId, emailPermissionGranted);
+    await processEmailSubmission(email);
+  };
+
+  const handleEmail = async (email: string) => {
+    await processEmailSubmission(email);
   };
 
   const handleKeyDown = (e: { key: string }) => {
@@ -57,12 +73,72 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
     }
   };
 
+  const handleAuth = (provider: string) => {
+    const stateParams = {
+      clientId,
+      redirectUri,
+      entryState,
+      emailPermissionGranted,
+      referrer: document.referrer, // Pass referrer to state
+    };
+    const serializedState = JSON.stringify(stateParams);
+    const encodedState = encodeURIComponent(serializedState);
+
+    const url = `https://auth.dev.dimo.zone/auth/${provider}?client_id=login-with-dimo&redirect_uri=https://login.dev.dimo.org&response_type=code&scope=openid%20email&state=${encodedState}`;
+
+    window.location.href = url;
+  };
+
+  const handleGoogleAuth = () => handleAuth("google");
+  const handleAppleAuth = () => handleAuth("apple");
+
   useEffect(() => {
     // Only authenticate if `user` is set and authentication hasn't been triggered
     if (triggerAuth) {
       authenticateUser(email, "credentialBundle", entryState);
     }
   }, [triggerAuth]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const codeFromUrl = urlParams.get("code");
+
+      if (codeFromUrl) {
+        setIsSSO(true);
+        try {
+          const result = await submitCodeExchange({
+            clientId: "login-with-dimo",
+            redirectUri: "https://login.dev.dimo.org",
+            code: codeFromUrl,
+          });
+          if (result.success) {
+            const access_token = result.data.access_token;
+            const decodedJwt = decodeJwt(access_token);
+
+            if (decodedJwt) {
+              setTokenExchanged(true);
+              setEmail(decodedJwt.email);
+              setComponentData({ emailValidated: decodedJwt.email });
+              handleEmail(decodedJwt.email);
+            }
+          }
+        } catch (error) {
+          console.error("Error in code exchange:", error);
+        }
+      } else {
+        setTokenExchanged(true);
+      }
+    };
+
+    if (!tokenExchanged) {
+      fetchData();
+    }
+  }, [tokenExchanged]);
+
+  if (isSSO && !error) {
+    return <LoadingScreen />;
+  }
 
   return (
     <Card
@@ -99,8 +175,27 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
           className="p-2 border border-gray-300 rounded-md w-full lg:w-[440px]"
         />
         <PrimaryButton onClick={handleSubmit} width="w-full lg:w-[440px]">
-          Authenticate
+          Continue
         </PrimaryButton>
+
+        <div className="flex gap-2">
+          <button
+            onClick={handleGoogleAuth}
+            className="flex items-center justify-center gap-2 w-[216px] h-[40px] rounded-full border border-gray-300 bg-white text-black text-sm hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400"
+          >
+            <GoogleIcon />
+            Sign in with Google
+          </button>
+
+          <button
+            onClick={handleAppleAuth}
+            className="flex items-center justify-center gap-2 w-[216px] h-[40px] rounded-full border border-gray-300 bg-white text-black text-sm hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400"
+          >
+            <AppleIcon />
+            Sign in with Apple
+          </button>
+        </div>
+
         <p className="flex flex-inline gap-1 text-xs text-gray-500">
           By continuing you agree to our
           <a href="https://dimo.org/legal/privacy-policy" className="underline">

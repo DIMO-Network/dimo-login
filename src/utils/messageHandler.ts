@@ -5,11 +5,29 @@ export function sendMessageToReferrer(data: object) {
     console.warn("Not opened in popup or iframe, use url based creds");
     return;
   }
-  const parentOrigin = new URL(document.referrer).origin;
+  const params = new URLSearchParams(window.location.search);
+
+  let parentOrigin;
+
+  const state = params.get("state");
+
+  if (state) {
+    const decodedState = JSON.parse(decodeURIComponent(state));
+    parentOrigin = new URL(decodedState.referrer).origin; // Use referrer from state
+  } else {
+    parentOrigin = new URL(document.referrer).origin;
+  }
+
   const referrer = window.opener || window.parent;
 
+  console.log("Referrer",referrer);
+  console.log("Parent",parentOrigin);
+
   if (referrer) {
-    referrer.postMessage({...data, mode: window.opener ? "popup" : "embed" }, parentOrigin);
+    referrer.postMessage(
+      { ...data, mode: window.opener ? "popup" : "embed" },
+      parentOrigin
+    );
     console.log("Message sent to developer app");
   } else {
     console.warn("No referrer found");
