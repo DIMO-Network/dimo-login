@@ -16,6 +16,7 @@ import { submitCodeExchange } from "../../services/authService";
 import { decodeJwt } from "../../utils/jwtUtils";
 import LoadingScreen from "../Shared/LoadingScreen";
 import { AppleIcon, GoogleIcon } from "../Icons";
+import { isValidEmail } from "../../utils/emailUtils";
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;
@@ -25,7 +26,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   const { authenticateUser, setUser } = useAuthContext(); // Get sendOtp from the context
 
   const { clientId, devLicenseAlias, redirectUri } = useDevCredentials();
-  const { setUiState, entryState, error, setLoadingState, setComponentData } =
+  const { setUiState, entryState, error, setError, setComponentData } =
     useUIManager();
 
   const [email, setEmail] = useState("");
@@ -57,7 +58,10 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   };
 
   const handleSubmit = async () => {
-    if (!email) return;
+    if (!email || !isValidEmail(email)) {
+      setError("Please enter a valid email");
+      return;
+    } 
 
     setEmailGranted(clientId, emailPermissionGranted);
     await processEmailSubmission(email);
