@@ -84,6 +84,7 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({
 
   useEffect(() => {
     // Only authenticate if `user` is set and authentication hasn't been triggered
+    console.log(triggerAuth, emailValidated);
     if (triggerAuth && emailValidated) {
       console.log(user);
       authenticateUser(emailValidated, "credentialBundle", entryState);
