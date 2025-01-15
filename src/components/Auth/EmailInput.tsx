@@ -15,6 +15,7 @@ import ErrorMessage from "../Shared/ErrorMessage";
 import { submitCodeExchange } from "../../services/authService";
 import { decodeJwt } from "../../utils/jwtUtils";
 import LoadingScreen from "../Shared/LoadingScreen";
+import { AppleIcon, GoogleIcon } from "../Icons";
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;
@@ -73,7 +74,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
     }
   };
 
-  const handleGoogleAuth = () => {
+  const handleAuth = (provider: string) => {
     const stateParams = {
       clientId,
       redirectUri,
@@ -84,15 +85,13 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
     const serializedState = JSON.stringify(stateParams);
     const encodedState = encodeURIComponent(serializedState);
 
-    const url = `https://auth.dev.dimo.zone/auth/google?client_id=login-with-dimo&redirect_uri=https://login.dev.dimo.org&response_type=code&scope=openid%20email&state=${encodedState}`;
+    const url = `https://auth.dev.dimo.zone/auth/${provider}?client_id=login-with-dimo&redirect_uri=https://login.dev.dimo.org&response_type=code&scope=openid%20email&state=${encodedState}`;
 
     window.location.href = url;
   };
 
-  const handleAppleAuth = () => {
-    const url = `https://auth.dev.dimo.zone/auth/apple?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=openid%20email`;
-    window.location.href = url;
-  };
+  const handleGoogleAuth = () => handleAuth("google");
+  const handleAppleAuth = () => handleAuth("apple");
 
   useEffect(() => {
     // Only authenticate if `user` is set and authentication hasn't been triggered
@@ -177,13 +176,27 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
           className="p-2 border border-gray-300 rounded-md w-full lg:w-[440px]"
         />
         <PrimaryButton onClick={handleSubmit} width="w-full lg:w-[440px]">
-          Authenticate
+          Continue
         </PrimaryButton>
 
-        <div>
-          <button onClick={handleGoogleAuth}>Google Auth</button>
-          <button onClick={handleAppleAuth}>Apple Auth</button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleGoogleAuth}
+            className="flex items-center justify-center gap-2 w-[216px] h-[40px] rounded-full border border-gray-300 bg-white text-black text-sm hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400"
+          >
+            <GoogleIcon />
+            Sign in with Google
+          </button>
+
+          <button
+            onClick={handleAppleAuth}
+            className="flex items-center justify-center gap-2 w-[216px] h-[40px] rounded-full border border-gray-300 bg-white text-black text-sm hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400"
+          >
+            <AppleIcon />
+            Sign in with Apple
+          </button>
         </div>
+
         <p className="flex flex-inline gap-1 text-xs text-gray-500">
           By continuing you agree to our
           <a href="https://dimo.org/legal/privacy-policy" className="underline">
