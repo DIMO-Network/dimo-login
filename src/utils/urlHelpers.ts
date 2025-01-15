@@ -1,0 +1,17 @@
+export const getParamFromUrlOrState = (
+  key: string,
+  urlParams: URLSearchParams,
+  decodedState: Record<string, any>
+): string | string[] | undefined => {
+  // Handle array fields via `getAll()`
+  const fromUrl = urlParams.getAll(key);
+  const fromState = decodedState[key];
+
+  // Return array if applicable
+  if (fromUrl.length > 0) {
+    return fromUrl.length === 1 ? fromUrl[0] : fromUrl;
+  }
+
+  // Handle state fallback (array or string)
+  return fromState ?? undefined;
+};

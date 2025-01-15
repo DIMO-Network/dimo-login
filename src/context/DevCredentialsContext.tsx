@@ -57,13 +57,13 @@ export const DevCredentialsProvider = ({
     const entryStateFromUrl = urlParams.get("entryState");
     const stateFromUrl = urlParams.get("state");
 
-    if ( stateFromUrl) {
+    if (stateFromUrl) {
       //SSO Purpose
       //So, the SSO will add state to the URL, which is useful for the redirect mode where we've lost state
       //However, in popup mode, we can still get data, from the SDK directly by requesting it
       const state = JSON.parse(stateFromUrl);
 
-      if ( isStandalone() ) {
+      if (isStandalone()) {
         //We'll be getting these variables via a message anyway
         setUiState(state.entryState || "EMAIL_INPUT");
         setEntryState(state.entryState || "EMAIL_INPUT");
@@ -72,7 +72,6 @@ export const DevCredentialsProvider = ({
           apiKey: "api key",
           redirectUri: state.redirectUri,
         });
-        
       }
 
       //We have to set this in state param, since we lose it for SSO
@@ -80,7 +79,6 @@ export const DevCredentialsProvider = ({
       //This sets email granted property to true/false in storage
       //Then when we build the auth payload, it should be retrievable
       setEmailGranted(state.clientId, state.emailPermissionGranted || false);
-
     }
 
     if (clientIdFromUrl && redirectUriFromUrl) {
@@ -97,7 +95,7 @@ export const DevCredentialsProvider = ({
           event.data;
         console.log(event.data);
         if (eventType === "AUTH_INIT") {
-          setUiState(entryState || "EMAIL_INPUT");
+          setUiState(entryState || "EMAIL_INPUT"); //Try to go to the state specified, but if no session it will go to email input
           setEntryState(entryState || "EMAIL_INPUT");
           setCredentials({ clientId, apiKey, redirectUri });
         }
