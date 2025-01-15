@@ -34,42 +34,6 @@ export function sendMessageToReferrer(data: object) {
   }
 }
 
-// export function sendMessageToReferrer(data: object) {
-//   if (isStandalone()) {
-//     console.warn("Not opened in popup or iframe, use URL-based credentials");
-//     return;
-//   }
-
-//   // Retrieve and decode the `state` parameter
-//   const params = new URLSearchParams(window.location.search);
-//   const state = params.get("state");
-
-//   if (!state) {
-//     console.warn("State not found in URL parameters.");
-//     return;
-//   }
-
-//   const decodedState = JSON.parse(decodeURIComponent(state));
-//   const parentOrigin = decodedState.parentOrigin; // Retrieve parent origin from the state
-
-//   if (!parentOrigin) {
-//     console.warn("Parent origin not found in state.");
-//     return;
-//   }
-
-//   const referrer = window.opener || window.parent;
-
-//   if (referrer) {
-//     referrer.postMessage(
-//       { ...data, mode: window.opener ? "popup" : "embed" },
-//       parentOrigin
-//     );
-//     console.log("Message sent to developer app");
-//   } else {
-//     console.warn("No referrer found");
-//   }
-// }
-
 export function backToThirdParty(
   payload: any,
   redirectUri: string,

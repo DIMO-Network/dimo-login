@@ -110,6 +110,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
 
   useEffect(() => {
     const fetchData = () => {
+      console.log("Should be loadin bruh");
       setLoadingState(true, "Loading....");
       const urlParams = new URLSearchParams(window.location.search);
       const codeFromUrl = urlParams.get("code");
@@ -127,14 +128,15 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
               setTokenExchanged(true);
               setEmail(decodedJwt.email);
               setComponentData({ emailValidated: decodedJwt.email });
+              setLoadingState(false);
               handleEmail(decodedJwt.email);
             }
           }
         });
       } else {
         setTokenExchanged(true);
+        setLoadingState(false);
       }
-      setLoadingState(false);
       // try {
       //   const urlParams = new URLSearchParams(window.location.search);
       //   const codeFromUrl = urlParams.get("code");
