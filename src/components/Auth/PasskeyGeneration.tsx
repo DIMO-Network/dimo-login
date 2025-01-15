@@ -72,7 +72,9 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({
 
     //MOVE TO AUTHENTICATE, IF FROM SSO
     if (account.success && account.data.user) {
+      console.log("Yes1");
       if (emailValidated) {
+        console.log("Yes");
         setTriggerAuth(true); //Essentially waits for state updates, before authenticating the user
       } else {
         await handleOtpSend(email);
@@ -85,7 +87,7 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({
   useEffect(() => {
     // Only authenticate if `user` is set and authentication hasn't been triggered
     console.log(triggerAuth, emailValidated, user);
-    if (triggerAuth && emailValidated) {
+    if (user && user.subOrganizationId && emailValidated) {
       console.log(user);
       authenticateUser(emailValidated, "credentialBundle", entryState);
     }
