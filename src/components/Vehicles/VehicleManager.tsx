@@ -79,6 +79,8 @@ const VehicleManager: React.FC = () => {
         expirationDate: expirationDateFromMessage,
       } = event.data;
 
+      console.log(event.data);
+
       if (eventType === "SHARE_VEHICLES_DATA") {
         if (permissionTemplateIdFromMessage)
           setPermissionTemplateId(permissionTemplateIdFromMessage);

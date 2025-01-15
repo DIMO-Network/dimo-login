@@ -20,6 +20,7 @@ import { createKernelSigner } from "../services/turnkeyService";
 import { TransactionData } from "@dimo-network/transactions";
 import { useUIManager } from "./UIManagerContext";
 import { setEmailGranted } from "../services/storageService";
+import { isStandalone } from "../utils/isStandalone";
 
 interface DevCredentialsContextProps {
   clientId: string;
@@ -56,22 +57,29 @@ export const DevCredentialsProvider = ({
     const entryStateFromUrl = urlParams.get("entryState");
     const stateFromUrl = urlParams.get("state");
 
-    if ( stateFromUrl ) {
+    if ( stateFromUrl) {
       //SSO Purpose
+      //So, the SSO will add state to the URL, which is useful for the redirect mode where we've lost state
+      //However, in popup mode, we can still get data, from the SDK directly by requesting it
       const state = JSON.parse(stateFromUrl);
-      setUiState(state.entryState || "EMAIL_INPUT");
-      setEntryState(state.entryState || "EMAIL_INPUT");
+
+      if ( isStandalone() ) {
+        //We'll be getting these variables via a message anyway
+        setUiState(state.entryState || "EMAIL_INPUT");
+        setEntryState(state.entryState || "EMAIL_INPUT");
+        setCredentials({
+          clientId: state.clientId,
+          apiKey: "api key",
+          redirectUri: state.redirectUri,
+        });
+        
+      }
 
       //We have to set this in state param, since we lose it for SSO
       //We could do this setting in Email Input, however since we're already parsing state here, it feels more natural to put it here
       //This sets email granted property to true/false in storage
       //Then when we build the auth payload, it should be retrievable
       setEmailGranted(state.clientId, state.emailPermissionGranted || false);
-      setCredentials({
-        clientId: state.clientId,
-        apiKey: "api key",
-        redirectUri: state.redirectUri,
-      });
 
     }
 
@@ -87,6 +95,7 @@ export const DevCredentialsProvider = ({
       const handleMessage = (event: MessageEvent) => {
         const { eventType, clientId, apiKey, redirectUri, entryState } =
           event.data;
+        console.log(event.data);
         if (eventType === "AUTH_INIT") {
           setUiState(entryState || "EMAIL_INPUT");
           setEntryState(entryState || "EMAIL_INPUT");
