@@ -85,6 +85,8 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
       clientId,
       redirectUri,
       entryState,
+      referrer: document.referrer, // Pass referrer to state
+
     };
     const serializedState = JSON.stringify(stateParams);
     const encodedState = encodeURIComponent(serializedState);
