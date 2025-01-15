@@ -126,15 +126,11 @@ export async function authenticateUser(
 
     const resp = await generateChallenge(generateChallengeParams);
 
-    console.log("Challenge Generated");
-
     if (resp.success) {
       const challenge = resp.data.challenge;
       const state = resp.data.state;
 
       const signature = await signChallenge(challenge);
-
-      console.log("Challenge Signed");
 
       if (signature) {
         const web3ChallengeSubmission: SubmitChallengeParams = {
@@ -145,8 +141,6 @@ export async function authenticateUser(
         };
 
         const jwt = await submitWeb3Challenge(web3ChallengeSubmission);
-
-        console.log("Challenge Submitted");
 
         if (!jwt.success) {
           throw new Error("Failed to submit web3 challenge");
@@ -166,8 +160,6 @@ export async function authenticateUser(
         setUser(userProperties);
         storeJWTInCookies(clientId, jwt.data.access_token); // Store JWT in cookies
         storeUserInLocalStorage(clientId, userProperties); // Store user properties in localStorage
-
-        console.log(entryState);
 
         //Parse Entry State
         if (entryState === "EMAIL_INPUT") {
