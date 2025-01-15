@@ -11,3 +11,9 @@ export interface SubmitChallengeParams {
     state: string;
     signature: string;
 }
+
+export interface SubmitCodeExchangeParams {
+    clientId: string;
+    code: string;
+    redirectUri: string;
+}

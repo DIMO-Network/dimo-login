@@ -103,7 +103,10 @@ export async function authenticateUser(
   }
 
   if (subOrganizationId) {
+    console.log("Debugging Account Creation");
     await initializePasskey(subOrganizationId);
+
+    console.log("Passkey Initialized");
 
     const smartContractAddress = getSmartContractAddress();
     const walletAddress = getWalletAddress();

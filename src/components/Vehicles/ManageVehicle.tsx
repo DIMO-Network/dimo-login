@@ -26,7 +26,7 @@ const ManageVehicle: React.FC = () => {
   } = useUIManager();
 
   const handleCancel = () => {
-    setUiState("SELECT_VEHICLES");
+    setUiState("VEHICLE_MANAGER");
   };
 
   const handlePermissionUpdate = async (

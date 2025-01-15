@@ -1,4 +1,4 @@
-import React, { type FC } from "react";
+import React, { useEffect, useState, type FC } from "react";
 
 import { Card } from "../Shared/Card";
 import { Header } from "../Shared/Header";
@@ -42,9 +42,17 @@ interface PasskeyGenerationProps {
   email: string;
 }
 
-export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
-  const { createAccountWithPasskey, sendOtp } = useAuthContext();
-  const { setUiState } = useUIManager();
+export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({
+  email,
+}) => {
+  const { createAccountWithPasskey, sendOtp, authenticateUser, user } =
+    useAuthContext();
+  const {
+    setUiState,
+    componentData: { emailValidated },
+    entryState,
+  } = useUIManager();
+  const [triggerAuth, setTriggerAuth] = useState(false);
 
   const handleOtpSend = async (email: string) => {
     const otpResult = await sendOtp(email); // Send OTP for new account
@@ -56,12 +64,25 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
 
   const handlePasskeyGeneration = async () => {
     const account = await createAccountWithPasskey(email);
+
+    //MOVE TO AUTHENTICATE, IF FROM SSO
     if (account.success && account.data.user) {
-      await handleOtpSend(email);
+      if (emailValidated) {
+        setTriggerAuth(true); //Essentially waits for state updates, before authenticating the user
+      } else {
+        await handleOtpSend(email);
+      }
     } else {
       console.error("Account creation failed"); // Handle account creation failure
     }
   };
+
+  useEffect(() => {
+    // Only authenticate if `user` is set and authentication hasn't been triggered
+    if (user && user.subOrganizationId && emailValidated) {
+      authenticateUser(emailValidated, "credentialBundle", entryState);
+    }
+  }, [triggerAuth]);
 
   const renderBenefit = ({ Icon, title, description }: PasskeyBenefitProps) => {
     return (
