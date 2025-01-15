@@ -86,7 +86,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
 
     const dimoRedirectUri = process.env.REACT_APP_ENVIRONMENT == "prod" ? "https://login.dimo.org" : "https://login.dev.dimo.org"
 
-    const url = `https://auth.dev.dimo.zone/auth/${provider}?client_id=login-with-dimo&redirect_uri=${dimoRedirectUri}&response_type=code&scope=openid%20email&state=${encodedState}`;
+    const url = `${process.env.REACT_APP_DIMO_AUTH_URL}/auth/${provider}?client_id=login-with-dimo&redirect_uri=${dimoRedirectUri}&response_type=code&scope=openid%20email&state=${encodedState}`;
 
     window.location.href = url;
   };
