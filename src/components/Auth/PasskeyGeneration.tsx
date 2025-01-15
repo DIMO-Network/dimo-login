@@ -1,4 +1,4 @@
-import React, { type FC } from "react";
+import React, { useEffect, useState, type FC } from "react";
 
 import { Card } from "../Shared/Card";
 import { Header } from "../Shared/Header";
@@ -54,6 +54,7 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({
     componentData: { emailValidated },
     entryState,
   } = useUIManager();
+  const [triggerAuth, setTriggerAuth] = useState(false);
 
   const handleOtpSend = async (email: string) => {
     const otpResult = await sendOtp(email); // Send OTP for new account
@@ -70,11 +71,9 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({
     const account = await createAccountWithPasskey(email);
 
     //MOVE TO AUTHENTICATE, IF FROM SSO
-    console.log(account);
     if (account.success && account.data.user) {
-      console.log(emailValidated);
       if (emailValidated) {
-        authenticateUser(emailValidated, "", entryState);
+        setTriggerAuth(true);
       } else {
         await handleOtpSend(email);
       }
@@ -82,6 +81,13 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({
       console.error("Account creation failed"); // Handle account creation failure
     }
   };
+
+  useEffect(() => {
+    // Only authenticate if `user` is set and authentication hasn't been triggered
+    if (triggerAuth && emailValidated) {
+      authenticateUser(emailValidated, "credentialBundle", entryState);
+    }
+  }, [triggerAuth]);
 
   const renderBenefit = ({ Icon, title, description }: PasskeyBenefitProps) => {
     return (
