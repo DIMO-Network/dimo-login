@@ -58,13 +58,9 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
   };
 
   const handleEmail = async (email: string) => {
-    console.log("LOg 1");
-    setLoadingState(false);
     if (!email || !clientId) return;
 
     onSubmit(email); // Trigger any on-submit actions
-
-    setEmailGranted(clientId, emailPermissionGranted);
 
     // Check if the user exists and authenticate if they do
     const userExistsResult = await fetchUserDetails(email); //TODO: This should be in Auth Context, so that user is set by auth context
@@ -89,6 +85,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
       clientId,
       redirectUri,
       entryState,
+      emailPermissionGranted,
       referrer: document.referrer, // Pass referrer to state
     };
     const serializedState = JSON.stringify(stateParams);
@@ -110,39 +107,6 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
       authenticateUser(email, "credentialBundle", entryState);
     }
   }, [triggerAuth]);
-
-  // useEffect(() => {
-  //   const fetchData = () => {
-  //     const urlParams = new URLSearchParams(window.location.search);
-  //     const codeFromUrl = urlParams.get("code");
-
-  //     if (codeFromUrl) {
-  //       setLoadingState(true, "Loading...");
-  //       submitCodeExchange({
-  //         clientId: "login-with-dimo",
-  //         redirectUri: "https://login.dev.dimo.org",
-  //         code: codeFromUrl,
-  //       }).then((result) => {
-  //         if (result.success) {
-  //           const access_token = result.data.access_token;
-  //           const decodedJwt = decodeJwt(access_token);
-  //           if (decodedJwt) {
-  //             setTokenExchanged(true);
-  //             setEmail(decodedJwt.email);
-  //             setComponentData({ emailValidated: decodedJwt.email });
-  //             handleEmail(decodedJwt.email);
-  //           }
-  //         }
-  //       });
-  //     } else {
-  //       setTokenExchanged(true);
-  //     }
-  //   };
-
-  //   if (!tokenExchanged) {
-  //     fetchData();
-  //   }
-  // }, [tokenExchanged]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -181,7 +145,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
     }
   }, [tokenExchanged]);
 
-  if ( isSSO ) {
+  if (isSSO && !error) {
     return <LoadingScreen />;
   }
 

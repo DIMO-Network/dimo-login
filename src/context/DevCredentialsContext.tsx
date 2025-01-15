@@ -19,6 +19,7 @@ import { isValidClientId } from "../services/identityService";
 import { createKernelSigner } from "../services/turnkeyService";
 import { TransactionData } from "@dimo-network/transactions";
 import { useUIManager } from "./UIManagerContext";
+import { setEmailGranted } from "../services/storageService";
 
 interface DevCredentialsContextProps {
   clientId: string;
@@ -60,6 +61,12 @@ export const DevCredentialsProvider = ({
       const state = JSON.parse(stateFromUrl);
       setUiState(state.entryState || "EMAIL_INPUT");
       setEntryState(state.entryState || "EMAIL_INPUT");
+
+      //We have to set this in state param, since we lose it for SSO
+      //We could do this setting in Email Input, however since we're already parsing state here, it feels more natural to put it here
+      //This sets email granted property to true/false in storage
+      //Then when we build the auth payload, it should be retrievable
+      setEmailGranted(state.clientId, state.emailPermissionGranted || false);
       setCredentials({
         clientId: state.clientId,
         apiKey: "api key",
