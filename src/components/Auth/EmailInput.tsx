@@ -38,40 +38,33 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit, setOtpId }) => {
     document.referrer ? document.referrer : "https://dimo.org"
   );
 
-  const handleSubmit = async () => {
+  const processEmailSubmission = async (email: string) => {
     if (!email || !clientId) return;
 
     onSubmit(email); // Trigger any on-submit actions
 
-    setEmailGranted(clientId, emailPermissionGranted);
-
     // Check if the user exists and authenticate if they do
     const userExistsResult = await fetchUserDetails(email); //TODO: This should be in Auth Context, so that user is set by auth context
     if (userExistsResult.success && userExistsResult.data.user) {
-      setUser(userExistsResult.data.user); //Sets initial user from API Response
+      setUser(userExistsResult.data.user); // Sets initial user from API Response
       setTriggerAuth(true); // Trigger authentication for existing users
-      return; // Early return to prevent additional logic from running
+      return true; // Indicate that the user exists
     }
 
     // If user doesn't exist, create an account and send OTP
     setUiState("PASSKEY_GENERATOR");
+    return false; // Indicate that the user does not exist
+  };
+
+  const handleSubmit = async () => {
+    if (!email) return;
+
+    setEmailGranted(clientId, emailPermissionGranted);
+    await processEmailSubmission(email);
   };
 
   const handleEmail = async (email: string) => {
-    if (!email || !clientId) return;
-
-    onSubmit(email); // Trigger any on-submit actions
-
-    // Check if the user exists and authenticate if they do
-    const userExistsResult = await fetchUserDetails(email); //TODO: This should be in Auth Context, so that user is set by auth context
-    if (userExistsResult.success && userExistsResult.data.user) {
-      setUser(userExistsResult.data.user); //Sets initial user from API Response
-      setTriggerAuth(true); // Trigger authentication for existing users
-      return; // Early return to prevent additional logic from running
-    }
-
-    // If user doesn't exist, create an account and send OTP
-    setUiState("PASSKEY_GENERATOR");
+    await processEmailSubmission(email);
   };
 
   const handleKeyDown = (e: { key: string }) => {
