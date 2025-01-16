@@ -92,6 +92,11 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   };
 
   const handleAuth = (provider: string) => {
+    if (forceEmail && !emailPermissionGranted) {
+      setError("Email sharing is required to proceed. Please check the box.");
+      return;
+    }
+        
     const urlParams = new URLSearchParams(window.location.search);
 
     const stateParams = {
