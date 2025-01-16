@@ -32,12 +32,14 @@ interface SelectVehiclesProps {
   vehicleTokenIds: string[] | undefined; // Adjust the type based on your data
   permissionTemplateId: string; // Adjust the type if necessary
   vehicleMakes: string[] | undefined; // Adjust the type if necessary
+  expirationDate: BigInt;
 }
 
 const SelectVehicles: React.FC<SelectVehiclesProps> = ({
   vehicleTokenIds,
   permissionTemplateId,
   vehicleMakes,
+  expirationDate
 }) => {
   const { user, jwt } = useAuthContext();
   const { clientId, redirectUri, devLicenseAlias } = useDevCredentials();
@@ -58,7 +60,6 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
 
   //Data from Developer
   const [selectedVehicles, setSelectedVehicles] = useState<Vehicle[]>([]); // Array for multiple selected vehicles
-  const [expirationDate] = useState<BigInt>(getDefaultExpirationDate());
 
   const fetchVehicles = async (direction = "next") => {
     try {
