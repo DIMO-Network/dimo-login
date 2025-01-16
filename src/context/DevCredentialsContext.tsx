@@ -20,6 +20,7 @@ import { createKernelSigner } from "../services/turnkeyService";
 import { UiStates, useUIManager } from "./UIManagerContext";
 import { setEmailGranted } from "../services/storageService";
 import { isStandalone } from "../utils/isStandalone";
+import { setForceEmail } from "../stores/AuthStateStore";
 
 interface DevCredentialsContextProps {
   clientId: string;
@@ -54,6 +55,7 @@ export const DevCredentialsProvider = ({
     const clientIdFromUrl = urlParams.get("clientId");
     const redirectUriFromUrl = urlParams.get("redirectUri");
     const entryStateFromUrl = urlParams.get("entryState") as UiStates;
+    const forceEmailFromUrl = urlParams.get("forceEmail");
     const stateFromUrl = urlParams.get("state");
 
     if (stateFromUrl) {
@@ -83,6 +85,7 @@ export const DevCredentialsProvider = ({
     if (clientIdFromUrl && redirectUriFromUrl) {
       setUiState(entryStateFromUrl || UiStates.EMAIL_INPUT);
       setEntryState(entryStateFromUrl || UiStates.EMAIL_INPUT);
+      setForceEmail(forceEmailFromUrl === "true");
       setCredentials({
         clientId: clientIdFromUrl,
         apiKey: "api key",
@@ -90,12 +93,19 @@ export const DevCredentialsProvider = ({
       });
     } else {
       const handleMessage = (event: MessageEvent) => {
-        const { eventType, clientId, apiKey, redirectUri, entryState } =
-          event.data;
+        const {
+          eventType,
+          clientId,
+          apiKey,
+          redirectUri,
+          entryState,
+          forceEmail,
+        } = event.data;
         console.log(event.data);
         if (eventType === "AUTH_INIT") {
           setUiState(entryState || UiStates.EMAIL_INPUT); //Try to go to the state specified, but if no session it will go to email input
           setEntryState(entryState || UiStates.EMAIL_INPUT);
+          setForceEmail(forceEmail === "true");
           setCredentials({ clientId, apiKey, redirectUri });
         }
       };

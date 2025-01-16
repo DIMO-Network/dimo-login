@@ -17,23 +17,32 @@ import { decodeJwt } from "../../utils/jwtUtils";
 import LoadingScreen from "../Shared/LoadingScreen";
 import { AppleIcon, GoogleIcon } from "../Icons";
 import { isValidEmail } from "../../utils/emailUtils";
+import { getForceEmail } from "../../stores/AuthStateStore";
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;
 }
 
 const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
-  const { authenticateUser, setUser } = useAuthContext(); // Get sendOtp from the context
+  // 1️⃣ Authentication & User Context
+  const { authenticateUser, setUser } = useAuthContext();
 
+  // 2️⃣ Developer Credentials
   const { clientId, devLicenseAlias, redirectUri } = useDevCredentials();
+
+  // 3️⃣ UI State Management
   const { setUiState, entryState, error, setError, setComponentData } =
     useUIManager();
 
-  const [email, setEmail] = useState("");
-  const [isSSO, setIsSSO] = useState(false);
-  const [triggerAuth, setTriggerAuth] = useState(false);
-  const [emailPermissionGranted, setEmailPermissionGranted] = useState(false);
-  const [tokenExchanged, setTokenExchanged] = useState(false);
+  // 4️⃣ Local State Variables
+  const [email, setEmail] = useState(""); // User Input (primary)
+  const [isSSO, setIsSSO] = useState(false); // Derived from auth flow
+  const [triggerAuth, setTriggerAuth] = useState(false); // Controls authentication flow
+  const [emailPermissionGranted, setEmailPermissionGranted] = useState(false); // User consent tracking
+  const [tokenExchanged, setTokenExchanged] = useState(false); // Token tracking
+
+  // 5️⃣ Derived Values
+  const forceEmail = getForceEmail();
 
   const appUrl = new URL(
     document.referrer ? document.referrer : "https://dimo.org"
@@ -61,7 +70,12 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     if (!email || !isValidEmail(email)) {
       setError("Please enter a valid email");
       return;
-    } 
+    }
+
+    if (forceEmail && !emailPermissionGranted) {
+      setError("Email sharing is required to proceed. Please check the box.");
+      return;
+    }
 
     setEmailGranted(clientId, emailPermissionGranted);
     await processEmailSubmission(email);
