@@ -7,7 +7,6 @@
  *
  */
 
-import { UUID } from "crypto";
 import React, {
   createContext,
   useContext,
@@ -15,10 +14,10 @@ import React, {
   useState,
   useEffect,
 } from "react";
+
 import { isValidClientId } from "../services/identityService";
 import { createKernelSigner } from "../services/turnkeyService";
-import { TransactionData } from "@dimo-network/transactions";
-import { useUIManager } from "./UIManagerContext";
+import { UiStates, useUIManager } from "./UIManagerContext";
 import { setEmailGranted } from "../services/storageService";
 import { isStandalone } from "../utils/isStandalone";
 
@@ -54,7 +53,7 @@ export const DevCredentialsProvider = ({
 
     const clientIdFromUrl = urlParams.get("clientId");
     const redirectUriFromUrl = urlParams.get("redirectUri");
-    const entryStateFromUrl = urlParams.get("entryState");
+    const entryStateFromUrl = urlParams.get("entryState") as UiStates;
     const stateFromUrl = urlParams.get("state");
 
     if (stateFromUrl) {
@@ -65,8 +64,8 @@ export const DevCredentialsProvider = ({
 
       if (isStandalone()) {
         //We'll be getting these variables via a message anyway
-        setUiState(state.entryState || "EMAIL_INPUT");
-        setEntryState(state.entryState || "EMAIL_INPUT");
+        setUiState(state.entryState || UiStates.EMAIL_INPUT);
+        setEntryState(state.entryState || UiStates.EMAIL_INPUT);
         setCredentials({
           clientId: state.clientId,
           apiKey: "api key",
@@ -82,8 +81,8 @@ export const DevCredentialsProvider = ({
     }
 
     if (clientIdFromUrl && redirectUriFromUrl) {
-      setUiState(entryStateFromUrl || "EMAIL_INPUT");
-      setEntryState(entryStateFromUrl || "EMAIL_INPUT");
+      setUiState(entryStateFromUrl || UiStates.EMAIL_INPUT);
+      setEntryState(entryStateFromUrl || UiStates.EMAIL_INPUT);
       setCredentials({
         clientId: clientIdFromUrl,
         apiKey: "api key",
@@ -95,8 +94,8 @@ export const DevCredentialsProvider = ({
           event.data;
         console.log(event.data);
         if (eventType === "AUTH_INIT") {
-          setUiState(entryState || "EMAIL_INPUT"); //Try to go to the state specified, but if no session it will go to email input
-          setEntryState(entryState || "EMAIL_INPUT");
+          setUiState(entryState || UiStates.EMAIL_INPUT); //Try to go to the state specified, but if no session it will go to email input
+          setEntryState(entryState || UiStates.EMAIL_INPUT);
           setCredentials({ clientId, apiKey, redirectUri });
         }
       };

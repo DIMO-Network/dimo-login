@@ -1,5 +1,6 @@
 // sessionService.ts
 
+import { UiStates } from "../context/UIManagerContext";
 import { UserObject } from "../models/user";
 import { getJWTFromCookies, getUserFromLocalStorage } from "./storageService";
 import { isTokenExpired } from "./tokenService";
@@ -9,8 +10,8 @@ type InitializeSessionParams = {
   clientId: string | null;
   setJwt: (jwt: string) => void;
   setUser: (user: UserObject) => void;
-  uiState: string;
-  setUiState: (step: string) => void;
+  uiState: UiStates;
+  setUiState: (step: UiStates) => void;
   setUserInitialized: (initialized: boolean) => void;
 };
 
@@ -35,13 +36,12 @@ export function initializeSession({
     setJwt(jwt);
     setUser(user);
 
-    if (uiState === "EMAIL_INPUT") {
-      setUiState("SUCCESS");
+    if (uiState === UiStates.EMAIL_INPUT) {
+      setUiState(UiStates.SUCCESS);
     }
-
   } else {
     // If JWT or user is invalid, reset the state
-    setUiState("EMAIL_INPUT");
+    setUiState(UiStates.EMAIL_INPUT);
   }
 
   setUserInitialized(true);

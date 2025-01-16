@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+
 import { fetchVehiclesWithTransformation } from "../../services/identityService";
 import VehicleCard from "./VehicleCard";
 import { useAuthContext } from "../../context/AuthContext";
@@ -19,7 +20,7 @@ import PrimaryButton from "../Shared/PrimaryButton";
 import VehicleThumbnail from "../../assets/images/vehicle-thumbnail.png";
 import ErrorMessage from "../Shared/ErrorMessage";
 import { backToThirdParty } from "../../utils/messageHandler";
-import { useUIManager } from "../../context/UIManagerContext";
+import { UiStates, useUIManager } from "../../context/UIManagerContext";
 import { getDefaultExpirationDate } from "../../utils/dateUtils";
 import {
   SetVehiclePermissions,
@@ -115,7 +116,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
   const handleContinue = () => {
     sendJwtAfterPermissions((authPayload: any) => {
       backToThirdParty(authPayload, redirectUri);
-      setUiState("TRANSACTION_CANCELLED");
+      setUiState(UiStates.TRANSACTION_CANCELLED);
     });
   };
 
@@ -166,7 +167,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
 
           sendJwtAfterPermissions((authPayload: any) => {
             setComponentData({ action: "shared", vehicles: selectedVehicles });
-            setUiState("VEHICLES_SHARED_SUCCESS");
+            setUiState(UiStates.VEHICLES_SHARED_SUCCESS);
             setSelectedVehicles([]);
           });
           setLoadingState(false);

@@ -10,7 +10,7 @@ import {
   SecurityIcon,
 } from "../Icons";
 import { useAuthContext } from "../../context/AuthContext";
-import { useUIManager } from "../../context/UIManagerContext";
+import { UiStates, useUIManager } from "../../context/UIManagerContext";
 
 interface PasskeyBenefitProps {
   Icon: FC<IconProps>;
@@ -42,23 +42,20 @@ interface PasskeyGenerationProps {
   email: string;
 }
 
-export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({
-  email,
-}) => {
+export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
   const { createAccountWithPasskey, sendOtp, authenticateUser, user } =
     useAuthContext();
-  const {
-    setUiState,
-    componentData,
-    entryState,
-  } = useUIManager();
+  const { setUiState, componentData, entryState } = useUIManager();
   const [triggerAuth, setTriggerAuth] = useState(false);
 
   const handleOtpSend = async (email: string) => {
     const otpResult = await sendOtp(email); // Send OTP for new account
 
     if (otpResult.success && otpResult.data.otpId) {
-      setUiState("OTP_INPUT");
+      setUiState(UiStates.OTP_INPUT, {
+        setBack: true,
+        removeCurrent: true,
+      });
     }
   };
 
@@ -79,8 +76,17 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({
 
   useEffect(() => {
     // Only authenticate if `user` is set and authentication hasn't been triggered
-    if (user && user.subOrganizationId && componentData && componentData.emailValidated) {
-      authenticateUser(componentData.emailValidated, "credentialBundle", entryState);
+    if (
+      user &&
+      user.subOrganizationId &&
+      componentData &&
+      componentData.emailValidated
+    ) {
+      authenticateUser(
+        componentData.emailValidated,
+        "credentialBundle",
+        entryState
+      );
     }
   }, [triggerAuth]);
 

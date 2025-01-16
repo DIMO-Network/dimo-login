@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+
 import Card from "../Shared/Card";
 import PrimaryButton from "../Shared/PrimaryButton";
 import Header from "../Shared/Header";
@@ -14,7 +15,7 @@ import { sendTxnResponseToParent } from "../../utils/txnUtils";
 import { sendErrorToParent } from "../../utils/errorUtils";
 import { TransactionData } from "@dimo-network/transactions";
 import { sendMessageToReferrer } from "../../utils/messageHandler";
-import { useUIManager } from "../../context/UIManagerContext";
+import { UiStates, useUIManager } from "../../context/UIManagerContext";
 
 const AdvancedTransaction: React.FC = () => {
   const { redirectUri } = useDevCredentials();
@@ -80,7 +81,7 @@ const AdvancedTransaction: React.FC = () => {
       //Send transaction hash to developer, and show user successful txn
       sendTxnResponseToParent(receipt, jwt!, (transactionHash) => {
         setComponentData({ transactionHash });
-        setUiState("TRANSACTION_SUCCESS");
+        setUiState(UiStates.TRANSACTION_SUCCESS);
         setLoadingState(false);
       });
     } catch (e) {
@@ -111,7 +112,7 @@ const AdvancedTransaction: React.FC = () => {
             <p>
               {window.location.hostname} is requesting that you sign a
               non-standard transaction. Only complete this transaction if you
-              trust the developer.{" "}
+              trust the developer.
             </p>
           </div>
 

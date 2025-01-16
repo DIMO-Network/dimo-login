@@ -1,3 +1,4 @@
+import { Back } from "./Back";
 import Logo from "./Logo";
 
 interface HeaderProps {
@@ -7,7 +8,8 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ title, subtitle, link }) => (
-  <div className="header">
+  <div className="header w-full relative">
+    <Back />
     <Logo />
     <div className="frame18Title text-center">
       <p className="text-xl font-medium">{title}</p>

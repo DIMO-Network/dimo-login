@@ -1,6 +1,7 @@
 import React from "react";
+
 import { Vehicle } from "../../models/vehicle";
-import { useUIManager } from "../../context/UIManagerContext";
+import { UiStates, useUIManager } from "../../context/UIManagerContext";
 
 interface VehicleCardProps {
   vehicle: Vehicle;
@@ -20,8 +21,10 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
   const { componentData, setComponentData, setUiState } = useUIManager(); // Access the manage function from the context
 
   const handleManageClick = (e: React.MouseEvent) => {
-    setComponentData({...componentData, vehicle}) //Retains permissionTemplateID for Manage Vehicle
-    setUiState("MANAGE_VEHICLE");
+    setComponentData({ ...componentData, vehicle }); //Retains permissionTemplateID for Manage Vehicle
+    setUiState(UiStates.MANAGE_VEHICLE, {
+      setBack: true,
+    });
   };
 
   return (

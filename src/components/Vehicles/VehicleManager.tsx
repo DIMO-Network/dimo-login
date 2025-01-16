@@ -9,7 +9,7 @@ import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/solid";
 import ErrorMessage from "../Shared/ErrorMessage";
 import { sendMessageToReferrer } from "../../utils/messageHandler";
 import { isStandalone } from "../../utils/isStandalone";
-import { useUIManager } from "../../context/UIManagerContext";
+import { UiStates, useUIManager } from "../../context/UIManagerContext";
 import { SACDTemplate } from "@dimo-network/transactions/dist/core/types/dimo";
 import {
   getDefaultExpirationDate,
@@ -20,8 +20,8 @@ import SelectVehicles from "./SelectVehicles";
 import { getParamFromUrlOrState } from "../../utils/urlHelpers";
 
 const VehicleManager: React.FC = () => {
-  const { user } = useAuthContext();
-  const { clientId, devLicenseAlias } = useDevCredentials();
+  const { user, jwt } = useAuthContext();
+  const { clientId, redirectUri, devLicenseAlias } = useDevCredentials();
   const { setComponentData, error, setError } = useUIManager();
 
   //Data from SDK
@@ -156,6 +156,18 @@ const VehicleManager: React.FC = () => {
     permissionTemplateId,
     devLicenseAlias,
   ]);
+
+
+  const sendJwtAfterPermissions = (
+    handleNavigation: (authPayload: any) => void
+  ) => {
+    if (jwt && redirectUri && clientId) {
+      const authPayload = buildAuthPayload(clientId, jwt, user);
+      sendAuthPayloadToParent(authPayload, redirectUri, () =>
+        handleNavigation(authPayload)
+      );
+    }
+  };
 
   const renderDescription = (description: string) => {
     const paragraphs = description.split("\n\n");
