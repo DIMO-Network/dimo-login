@@ -25,8 +25,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   const { authenticateUser, setUser } = useAuthContext(); // Get sendOtp from the context
 
   const { clientId, devLicenseAlias, redirectUri } = useDevCredentials();
-  const { setUiState, entryState, error, setLoadingState, setComponentData } =
-    useUIManager();
+  const { setUiState, entryState, error, setComponentData } = useUIManager();
 
   const [email, setEmail] = useState("");
   const [isSSO, setIsSSO] = useState(false);
@@ -85,13 +84,16 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       permissionTemplateId: urlParams.get("permissionTemplateId"),
       expirationDate: urlParams.get("expirationDate"),
       vehicles: urlParams.getAll("vehicles"),
-      vehicleMakes: urlParams.getAll("vehicleMakes"),      
+      vehicleMakes: urlParams.getAll("vehicleMakes"),
     };
 
     const serializedState = JSON.stringify(stateParams);
     const encodedState = encodeURIComponent(serializedState);
 
-    const dimoRedirectUri = process.env.REACT_APP_ENVIRONMENT == "prod" ? "https://login.dimo.org" : "https://login.dev.dimo.org"
+    const dimoRedirectUri =
+      process.env.REACT_APP_ENVIRONMENT === "prod"
+        ? "https://login.dimo.org"
+        : "https://login.dev.dimo.org";
 
     const url = `${process.env.REACT_APP_DIMO_AUTH_URL}/auth/${provider}?client_id=login-with-dimo&redirect_uri=${dimoRedirectUri}&response_type=code&scope=openid%20email&state=${encodedState}`;
 
@@ -116,7 +118,10 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       if (codeFromUrl) {
         setIsSSO(true);
         try {
-          const dimoRedirectUri = process.env.REACT_APP_ENVIRONMENT == "prod" ? "https://login.dimo.org" : "https://login.dev.dimo.org"
+          const dimoRedirectUri =
+            process.env.REACT_APP_ENVIRONMENT === "prod"
+              ? "https://login.dimo.org"
+              : "https://login.dev.dimo.org";
           const result = await submitCodeExchange({
             clientId: "login-with-dimo",
             redirectUri: dimoRedirectUri,

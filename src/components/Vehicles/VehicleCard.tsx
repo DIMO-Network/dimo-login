@@ -59,8 +59,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
 
       {/* Vehicle Image */}
       <img
-        style={{ height: "48px", width: "48px" }}
-        className="rounded-full object-cover mr-4"
+        className="h-[48px] w-[48px] rounded-full object-cover mr-4"
         src={
           "https://assets.dimo.xyz/ipfs/QmaaxazmGtNM6srcRmLyNdjCp8EAmvaTDYSo1k2CXVRTaY"
         }
@@ -72,10 +71,10 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
         htmlFor={`vehicle-${vehicle.tokenId.toString()}`}
         className="flex-grow text-left hover:cursor-pointer"
       >
-        <div className="text-black">
+        <div className="text-black font-medium">
           {vehicle.make} {vehicle.model} ({vehicle.year})
         </div>
-        <div className="text-sm text-gray-500">
+        <div className="text-sm text-gray-500 font-medium">
           ID: {vehicle.tokenId.toString()}
         </div>
         {vehicle.shared && (
