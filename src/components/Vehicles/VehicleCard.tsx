@@ -1,6 +1,7 @@
 import React from "react";
+
 import { Vehicle } from "../../models/vehicle";
-import { useUIManager } from "../../context/UIManagerContext";
+import { UiStates, useUIManager } from "../../context/UIManagerContext";
 
 interface VehicleCardProps {
   vehicle: Vehicle;
@@ -20,8 +21,10 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
   const { componentData, setComponentData, setUiState } = useUIManager(); // Access the manage function from the context
 
   const handleManageClick = (e: React.MouseEvent) => {
-    setComponentData({...componentData, vehicle}) //Retains permissionTemplateID for Manage Vehicle
-    setUiState("MANAGE_VEHICLE");
+    setComponentData({ ...componentData, vehicle }); //Retains permissionTemplateID for Manage Vehicle
+    setUiState(UiStates.MANAGE_VEHICLE, {
+      setBack: true,
+    });
   };
 
   return (
@@ -31,7 +34,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
       } rounded-2xl cursor-pointer transition ${
         vehicle.shared || incompatible
           ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-          : "hover:bg-gray-50 border-gray-300 cursor-pointer"
+          : "hover:bg-gray-50 border-black cursor-pointer"
       } ${isSelected && "border-black"}`}
     >
       {/* Custom Checkbox */}
@@ -59,8 +62,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
 
       {/* Vehicle Image */}
       <img
-        style={{ height: "48px", width: "48px" }}
-        className="rounded-full object-cover mr-4"
+        className="h-[48px] w-[48px] rounded-full object-cover mr-4"
         src={
           "https://assets.dimo.xyz/ipfs/QmaaxazmGtNM6srcRmLyNdjCp8EAmvaTDYSo1k2CXVRTaY"
         }
@@ -72,10 +74,10 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
         htmlFor={`vehicle-${vehicle.tokenId.toString()}`}
         className="flex-grow text-left hover:cursor-pointer"
       >
-        <div className="text-black">
+        <div className="text-black font-medium">
           {vehicle.make} {vehicle.model} ({vehicle.year})
         </div>
-        <div className="text-sm text-gray-500">
+        <div className="text-sm text-gray-500 font-medium">
           ID: {vehicle.tokenId.toString()}
         </div>
         {vehicle.shared && (
@@ -91,7 +93,9 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
           onClick={handleManageClick}
           className="flex justify-center items-center w-6 h-6 border border-gray-300 rounded-full cursor-pointer hover:border-gray-400 hover:bg-gray-100 hover:scale-105 transition duration-200"
         >
-          <span className="text-black font-semibold text-xs mt-[-5px]">...</span>
+          <span className="text-black font-semibold text-xs mt-[-5px]">
+            ...
+          </span>
         </div>
       )}
     </div>

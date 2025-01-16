@@ -9,13 +9,14 @@ import { PrimaryButton } from "../Shared/PrimaryButton";
 import { setEmailGranted } from "../../services/storageService";
 import { useAuthContext } from "../../context/AuthContext";
 import { useDevCredentials } from "../../context/DevCredentialsContext";
-import { useUIManager } from "../../context/UIManagerContext";
+import { UiStates, useUIManager } from "../../context/UIManagerContext";
 
 import ErrorMessage from "../Shared/ErrorMessage";
 import { submitCodeExchange } from "../../services/authService";
 import { decodeJwt } from "../../utils/jwtUtils";
 import LoadingScreen from "../Shared/LoadingScreen";
 import { AppleIcon, GoogleIcon } from "../Icons";
+import { isValidEmail } from "../../utils/emailUtils";
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;
@@ -25,7 +26,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   const { authenticateUser, setUser } = useAuthContext(); // Get sendOtp from the context
 
   const { clientId, devLicenseAlias, redirectUri } = useDevCredentials();
-  const { setUiState, entryState, error, setLoadingState, setComponentData } =
+  const { setUiState, entryState, error, setError, setComponentData } =
     useUIManager();
 
   const [email, setEmail] = useState("");
@@ -52,12 +53,15 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     }
 
     // If user doesn't exist, create an account and send OTP
-    setUiState("PASSKEY_GENERATOR");
+    setUiState(UiStates.PASSKEY_GENERATOR, { setBack: true });
     return false; // Indicate that the user does not exist
   };
 
   const handleSubmit = async () => {
-    if (!email) return;
+    if (!email || !isValidEmail(email)) {
+      setError("Please enter a valid email");
+      return;
+    } 
 
     setEmailGranted(clientId, emailPermissionGranted);
     await processEmailSubmission(email);
@@ -85,13 +89,16 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       permissionTemplateId: urlParams.get("permissionTemplateId"),
       expirationDate: urlParams.get("expirationDate"),
       vehicles: urlParams.getAll("vehicles"),
-      vehicleMakes: urlParams.getAll("vehicleMakes"),      
+      vehicleMakes: urlParams.getAll("vehicleMakes"),
     };
 
     const serializedState = JSON.stringify(stateParams);
     const encodedState = encodeURIComponent(serializedState);
 
-    const dimoRedirectUri = process.env.REACT_APP_ENVIRONMENT == "prod" ? "https://login.dimo.org" : "https://login.dev.dimo.org"
+    const dimoRedirectUri =
+      process.env.REACT_APP_ENVIRONMENT == "prod"
+        ? "https://login.dimo.org"
+        : "https://login.dev.dimo.org";
 
     const url = `${process.env.REACT_APP_DIMO_AUTH_URL}/auth/${provider}?client_id=login-with-dimo&redirect_uri=${dimoRedirectUri}&response_type=code&scope=openid%20email&state=${encodedState}`;
 
@@ -116,7 +123,10 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       if (codeFromUrl) {
         setIsSSO(true);
         try {
-          const dimoRedirectUri = process.env.REACT_APP_ENVIRONMENT == "prod" ? "https://login.dimo.org" : "https://login.dev.dimo.org"
+          const dimoRedirectUri =
+            process.env.REACT_APP_ENVIRONMENT == "prod"
+              ? "https://login.dimo.org"
+              : "https://login.dev.dimo.org";
           const result = await submitCodeExchange({
             clientId: "login-with-dimo",
             redirectUri: dimoRedirectUri,
