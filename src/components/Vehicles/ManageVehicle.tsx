@@ -1,10 +1,10 @@
 // src/components/SuccessPage.tsx
-import React, { useEffect } from "react";
+import React from "react";
 import Card from "../Shared/Card";
 import Header from "../Shared/Header";
 import PrimaryButton from "../Shared/PrimaryButton";
 import { useDevCredentials } from "../../context/DevCredentialsContext";
-import { useUIManager } from "../../context/UIManagerContext";
+import { UiStates, useUIManager } from "../../context/UIManagerContext";
 import { useAuthContext } from "../../context/AuthContext";
 import { SetVehiclePermissions } from "@dimo-network/transactions";
 import {
@@ -23,11 +23,8 @@ const ManageVehicle: React.FC = () => {
     setUiState,
     setComponentData,
     setLoadingState,
+    goBack,
   } = useUIManager();
-
-  const handleCancel = () => {
-    setUiState("VEHICLE_MANAGER");
-  };
 
   const handlePermissionUpdate = async (
     actionType: "revoke" | "extend",
@@ -45,7 +42,8 @@ const ManageVehicle: React.FC = () => {
       permissionTemplateId ? permissionTemplateId : "1"
     );
 
-    const expiration = actionType == "revoke" ? BigInt(0) : parseExpirationDate(expirationDate);
+    const expiration =
+      actionType == "revoke" ? BigInt(0) : parseExpirationDate(expirationDate);
 
     const sources = await generateIpfsSources(perms, clientId, expiration);
 
@@ -64,7 +62,7 @@ const ManageVehicle: React.FC = () => {
     await setVehiclePermissions(vehiclePermissions);
     vehicle.shared = false;
     setComponentData({ action: newAction, vehicles: [vehicle] });
-    setUiState("VEHICLES_SHARED_SUCCESS");
+    setUiState(UiStates.VEHICLES_SHARED_SUCCESS);
     setLoadingState(false);
   };
 
@@ -103,7 +101,7 @@ const ManageVehicle: React.FC = () => {
       {/* Render buttons */}
       <div className="flex pt-8 justify-center gap-2">
         <button
-          onClick={handleCancel}
+          onClick={goBack}
           className="bg-white font-medium w-[214px] text-[#09090B] border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500"
         >
           Cancel
@@ -120,6 +118,3 @@ const ManageVehicle: React.FC = () => {
 };
 
 export default ManageVehicle;
-function setLoadingState(arg0: boolean, arg1: string) {
-  throw new Error("Function not implemented.");
-}

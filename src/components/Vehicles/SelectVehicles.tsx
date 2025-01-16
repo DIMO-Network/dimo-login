@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+
 import { fetchVehiclesWithTransformation } from "../../services/identityService";
 import VehicleCard from "./VehicleCard";
 import { useAuthContext } from "../../context/AuthContext";
@@ -14,19 +15,13 @@ import {
   sendAuthPayloadToParent,
 } from "../../utils/authUtils";
 import { useDevCredentials } from "../../context/DevCredentialsContext";
-import {
-  getPermsValue,
-} from "../../services/permissionsService";
+import { getPermsValue } from "../../services/permissionsService";
 import PrimaryButton from "../Shared/PrimaryButton";
 import VehicleThumbnail from "../../assets/images/vehicle-thumbnail.png";
 import ErrorMessage from "../Shared/ErrorMessage";
-import {
-  backToThirdParty,
-} from "../../utils/messageHandler";
-import { useUIManager } from "../../context/UIManagerContext";
-import {
-  getDefaultExpirationDate,
-} from "../../utils/dateUtils";
+import { backToThirdParty } from "../../utils/messageHandler";
+import { UiStates, useUIManager } from "../../context/UIManagerContext";
+import { getDefaultExpirationDate } from "../../utils/dateUtils";
 import {
   SetVehiclePermissions,
   SetVehiclePermissionsBulk,
@@ -39,8 +34,11 @@ interface SelectVehiclesProps {
   vehicleMakes: string[] | undefined; // Adjust the type if necessary
 }
 
-
-const SelectVehicles: React.FC<SelectVehiclesProps> = ({ vehicleTokenIds, permissionTemplateId, vehicleMakes }) => {
+const SelectVehicles: React.FC<SelectVehiclesProps> = ({
+  vehicleTokenIds,
+  permissionTemplateId,
+  vehicleMakes,
+}) => {
   const { user, jwt } = useAuthContext();
   const { clientId, redirectUri, devLicenseAlias } = useDevCredentials();
   const { setUiState, setComponentData, setLoadingState, error, setError } =
@@ -94,7 +92,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({ vehicleTokenIds, permis
 
   useEffect(() => {
     // Run both fetches in parallel
-      Promise.all([fetchVehicles()]);
+    Promise.all([fetchVehicles()]);
   }, []);
 
   const handleVehicleSelect = (vehicle: Vehicle) => {
@@ -120,7 +118,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({ vehicleTokenIds, permis
   const handleContinue = () => {
     sendJwtAfterPermissions((authPayload: any) => {
       backToThirdParty(authPayload, redirectUri);
-      setUiState("TRANSACTION_CANCELLED");
+      setUiState(UiStates.TRANSACTION_CANCELLED);
     });
   };
 
@@ -171,7 +169,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({ vehicleTokenIds, permis
 
           sendJwtAfterPermissions((authPayload: any) => {
             setComponentData({ action: "shared", vehicles: selectedVehicles });
-            setUiState("VEHICLES_SHARED_SUCCESS");
+            setUiState(UiStates.VEHICLES_SHARED_SUCCESS);
             setSelectedVehicles([]);
           });
           setLoadingState(false);

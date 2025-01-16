@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+
 import { useAuthContext } from "../../context/AuthContext";
 import {
   buildAuthPayload,
@@ -15,7 +16,7 @@ import {
   sendMessageToReferrer,
 } from "../../utils/messageHandler";
 import { isStandalone } from "../../utils/isStandalone";
-import { useUIManager } from "../../context/UIManagerContext";
+import { UiStates, useUIManager } from "../../context/UIManagerContext";
 import { SACDTemplate } from "@dimo-network/transactions/dist/core/types/dimo";
 import {
   getDefaultExpirationDate,
@@ -28,8 +29,7 @@ import { getParamFromUrlOrState } from "../../utils/urlHelpers";
 const VehicleManager: React.FC = () => {
   const { user, jwt } = useAuthContext();
   const { clientId, redirectUri, devLicenseAlias } = useDevCredentials();
-  const { setUiState, setComponentData, setLoadingState, error, setError } =
-    useUIManager();
+  const { setComponentData, error, setError } = useUIManager();
 
   //Data from SDK
   const [permissionTemplateId, setPermissionTemplateId] = useState<
@@ -39,7 +39,6 @@ const VehicleManager: React.FC = () => {
     string[] | undefined
   >();
   const [vehicleMakes, setVehicleMakes] = useState<string[] | undefined>();
-  const [vehiclesLoading, setVehiclesLoading] = useState(true);
 
   const [permissionTemplate, setPermissionTemplate] =
     useState<SACDTemplate | null>(null);
@@ -174,17 +173,6 @@ const VehicleManager: React.FC = () => {
         handleNavigation(authPayload)
       );
     }
-  };
-
-  const handleCancel = () => {
-    sendJwtAfterPermissions((authPayload: any) => {
-      backToThirdParty(authPayload, redirectUri);
-      setUiState("TRANSACTION_CANCELLED");
-    });
-  };
-
-  const handleContinue = () => {
-    setUiState("SELECT_VEHICLES");
   };
 
   const renderDescription = (description: string) => {

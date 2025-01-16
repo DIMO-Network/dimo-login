@@ -19,6 +19,7 @@ import {
 import { UserObject } from "../models/user";
 import { backToThirdParty, sendMessageToReferrer } from "./messageHandler";
 import { GenerateChallengeParams, SubmitChallengeParams } from "../models/web3";
+import { UiStates } from "../context/UIManagerContext";
 
 export function buildAuthPayload(
   clientId: string,
@@ -72,7 +73,7 @@ export function sendAuthPayloadToParent(
 export function logout(
   clientId: string,
   redirectUri: string,
-  setUiState: (step: string) => void
+  setUiState: (step: UiStates) => void
 ) {
   clearSessionData(clientId);
   sendMessageToReferrer({ eventType: "logout" });
@@ -80,7 +81,7 @@ export function logout(
   const payload = { logout: "true" };
 
   backToThirdParty(payload, redirectUri, () => {
-    setUiState("EMAIL_INPUT");
+    setUiState(UiStates.EMAIL_INPUT);
   });
 }
 
@@ -93,7 +94,7 @@ export async function authenticateUser(
   subOrganizationId: string | null,
   entryState: string,
   setJwt: (jwt: string) => void,
-  setUiState: (step: string) => void,
+  setUiState: (step: UiStates) => void,
   setUser: (user: UserObject) => void
 ) {
   console.log(`Authenticating user with email: ${email}`);
@@ -162,7 +163,7 @@ export async function authenticateUser(
         storeUserInLocalStorage(clientId, userProperties); // Store user properties in localStorage
 
         //Parse Entry State
-        if (entryState === "EMAIL_INPUT") {
+        if (entryState === UiStates.EMAIL_INPUT) {
           const authPayload = buildAuthPayload(
             clientId,
             jwt.data.access_token,
@@ -170,13 +171,13 @@ export async function authenticateUser(
           );
           sendAuthPayloadToParent(authPayload, redirectUri, (payload) => {
             backToThirdParty(payload, redirectUri);
-            setUiState("SUCCESS"); //For Embed Mode
+            setUiState(UiStates.SUCCESS); //For Embed Mode
           });
-        } else if (entryState === "VEHICLE_MANAGER") {
+        } else if (entryState === UiStates.VEHICLE_MANAGER) {
           //Note: If the user is unauthenticated but the vehicle manager is the entry state, the payload will be sent to parent in the vehicle manager, after vehicles are shared
-          setUiState("VEHICLE_MANAGER"); //Move to vehicle manager
-        } else if (entryState === "ADVANCED_TRANSACTION") {
-          setUiState("ADVANCED_TRANSACTION");
+          setUiState(UiStates.VEHICLE_MANAGER); //Move to vehicle manager
+        } else if (entryState === UiStates.ADVANCED_TRANSACTION) {
+          setUiState(UiStates.ADVANCED_TRANSACTION);
         }
       }
     }
