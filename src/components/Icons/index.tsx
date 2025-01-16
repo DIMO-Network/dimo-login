@@ -5,3 +5,5 @@ export interface IconProps {
 export * from "./FingerprintIcon";
 export * from "./SecurityIcon";
 export * from "./DevicesIcon";
+export * from "./GoogleIcon"
+export * from "./AppleIcon"
