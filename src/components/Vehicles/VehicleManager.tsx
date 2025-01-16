@@ -157,18 +157,6 @@ const VehicleManager: React.FC = () => {
     devLicenseAlias,
   ]);
 
-
-  const sendJwtAfterPermissions = (
-    handleNavigation: (authPayload: any) => void
-  ) => {
-    if (jwt && redirectUri && clientId) {
-      const authPayload = buildAuthPayload(clientId, jwt, user);
-      sendAuthPayloadToParent(authPayload, redirectUri, () =>
-        handleNavigation(authPayload)
-      );
-    }
-  };
-
   const renderDescription = (description: string) => {
     const paragraphs = description.split("\n\n");
 
