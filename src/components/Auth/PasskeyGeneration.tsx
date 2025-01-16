@@ -1,4 +1,4 @@
-import React, { type FC } from "react";
+import React, { useEffect, useState, type FC } from "react";
 
 import { Card } from "../Shared/Card";
 import { Header } from "../Shared/Header";
@@ -40,38 +40,55 @@ const PASSKEY_BENEFITS: PasskeyBenefitProps[] = [
 
 interface PasskeyGenerationProps {
   email: string;
-  setOtpId: (otpId: string) => void;
 }
 
-export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({
-  email,
-  setOtpId,
-}) => {
-  const { createAccountWithPasskey, sendOtp } = useAuthContext();
-  const { setUiState } = useUIManager();
+export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
+  const { createAccountWithPasskey, sendOtp, authenticateUser, user } =
+    useAuthContext();
+  const { setUiState, componentData, entryState } = useUIManager();
+  const [triggerAuth, setTriggerAuth] = useState(false);
 
   const handleOtpSend = async (email: string) => {
     const otpResult = await sendOtp(email); // Send OTP for new account
 
     if (otpResult.success && otpResult.data.otpId) {
-      setOtpId(otpResult.data.otpId); // Store the OTP ID
       setUiState(UiStates.OTP_INPUT, {
         setBack: true,
         removeCurrent: true,
-      }); // Move to OTP input step
-    } else if (!otpResult.success) {
-      console.error(otpResult.error); // Handle OTP sending failure
+      });
     }
   };
 
   const handlePasskeyGeneration = async () => {
     const account = await createAccountWithPasskey(email);
+
+    //MOVE TO AUTHENTICATE, IF FROM SSO
     if (account.success && account.data.user) {
-      await handleOtpSend(email);
+      if (componentData && componentData.emailValidated) {
+        setTriggerAuth(true); //Essentially waits for state updates, before authenticating the user
+      } else {
+        await handleOtpSend(email);
+      }
     } else {
       console.error("Account creation failed"); // Handle account creation failure
     }
   };
+
+  useEffect(() => {
+    // Only authenticate if `user` is set and authentication hasn't been triggered
+    if (
+      user &&
+      user.subOrganizationId &&
+      componentData &&
+      componentData.emailValidated
+    ) {
+      authenticateUser(
+        componentData.emailValidated,
+        "credentialBundle",
+        entryState
+      );
+    }
+  }, [triggerAuth]);
 
   const renderBenefit = ({ Icon, title, description }: PasskeyBenefitProps) => {
     return (

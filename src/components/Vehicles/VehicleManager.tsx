@@ -24,11 +24,12 @@ import {
 } from "../../utils/dateUtils";
 import { FetchPermissionsParams } from "../../models/permissions";
 import SelectVehicles from "./SelectVehicles";
+import { getParamFromUrlOrState } from "../../utils/urlHelpers";
 
 const VehicleManager: React.FC = () => {
   const { user, jwt } = useAuthContext();
   const { clientId, redirectUri, devLicenseAlias } = useDevCredentials();
-  const { setUiState, setComponentData, error, setError } = useUIManager();
+  const { setComponentData, error, setError } = useUIManager();
 
   //Data from SDK
   const [permissionTemplateId, setPermissionTemplateId] = useState<
@@ -49,17 +50,46 @@ const VehicleManager: React.FC = () => {
 
   const handleStandaloneMode = () => {
     const urlParams = new URLSearchParams(window.location.search);
-    const permissionTemplateIdFromUrl = urlParams.get("permissionTemplateId");
-    const expirationDateFromUrl = urlParams.get("expirationDate");
-    const vehiclesFromUrl = urlParams.getAll("vehicles");
-    const vehicleMakesFromUrl = urlParams.getAll("vehicleMakes");
+    const state = urlParams.get("state");
+    const decodedState = state ? JSON.parse(decodeURIComponent(state)) : {};
 
-    if (permissionTemplateIdFromUrl) {
-      setPermissionTemplateId(permissionTemplateIdFromUrl);
-      if (vehiclesFromUrl.length) setVehicleTokenIds(vehiclesFromUrl);
-      if (vehicleMakesFromUrl.length) setVehicleMakes(vehicleMakesFromUrl);
-      if (expirationDateFromUrl)
-        setExpirationDate(parseExpirationDate(expirationDateFromUrl));
+    const permissionTemplateId = getParamFromUrlOrState(
+      "permissionTemplateId",
+      urlParams,
+      decodedState
+    );
+    const expirationDate = getParamFromUrlOrState(
+      "expirationDate",
+      urlParams,
+      decodedState
+    );
+    const vehicles = getParamFromUrlOrState(
+      "vehicles",
+      urlParams,
+      decodedState
+    );
+    const vehicleMakes = getParamFromUrlOrState(
+      "vehicleMakes",
+      urlParams,
+      decodedState
+    );
+
+    if (permissionTemplateId) {
+      setPermissionTemplateId(permissionTemplateId as string);
+    }
+
+    if (vehicles) {
+      setVehicleTokenIds(Array.isArray(vehicles) ? vehicles : [vehicles]);
+    }
+
+    if (vehicleMakes) {
+      setVehicleMakes(
+        Array.isArray(vehicleMakes) ? vehicleMakes : [vehicleMakes]
+      );
+    }
+
+    if (expirationDate) {
+      setExpirationDate(parseExpirationDate(expirationDate as string));
     }
   };
 
@@ -74,6 +104,8 @@ const VehicleManager: React.FC = () => {
         vehicleMakes: vehicleMakesFromMessage,
         expirationDate: expirationDateFromMessage,
       } = event.data;
+
+      console.log(event.data);
 
       if (eventType === "SHARE_VEHICLES_DATA") {
         if (permissionTemplateIdFromMessage)
