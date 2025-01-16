@@ -10,7 +10,7 @@
 export function parseExpirationDate(isoDateString: string | null): BigInt {
   if (!isoDateString) {
     const oneYearFromNow = new Date();
-    oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+    oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 100);
 
     const unixTimestamp = Math.floor(oneYearFromNow.getTime() / 1000);
     return BigInt(unixTimestamp);

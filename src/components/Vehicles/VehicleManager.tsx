@@ -240,6 +240,7 @@ const VehicleManager: React.FC = () => {
             vehicleTokenIds={vehicleTokenIds}
             vehicleMakes={vehicleMakes}
             permissionTemplateId={permissionTemplateId}
+            expirationDate={expirationDate}
           />
         )}
       </div>
