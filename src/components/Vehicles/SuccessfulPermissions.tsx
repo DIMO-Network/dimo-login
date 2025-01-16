@@ -30,8 +30,7 @@ const SuccessfulPermissions: React.FC = () => {
 
     const payload = {
       ...authPayload,
-      [`${action}Vehicles`]:
-        vehicleTokenIds,
+      [`${action}Vehicles`]: vehicleTokenIds,
     };
     backToThirdParty(payload, redirectUri);
 
@@ -39,12 +38,16 @@ const SuccessfulPermissions: React.FC = () => {
   };
 
   return (
-    <Card width="w-full max-w-[600px]" height="h-full max-h-[308px]">
+    <Card
+      width="w-full max-w-[600px]"
+      height="h-fit max-h-[770px]"
+      className="flex flex-col gap-6 items-center"
+    >
       <Header
         title={`You have successfully ${action} your vehicles!`}
         subtitle={""}
       />
-      <div className="space-y-4 pt-4 max-h-[400px] overflow-scroll w-full max-w-[440px]">
+      <div className="flex flex-col gap-4 max-h-[400px] overflow-auto w-full max-w-[440px]">
         {vehicles &&
           vehicles.length > 0 &&
           vehicles.map((vehicle: Vehicle) => (
@@ -58,10 +61,10 @@ const SuccessfulPermissions: React.FC = () => {
             />
           ))}
       </div>
-      <div className="space-y-4 pt-4">
+      <div className="flex fex-col">
         {!isEmbed() && (
           <div className="flex justify-center">
-            <PrimaryButton onClick={handleBackToThirdParty} width="w-64">
+            <PrimaryButton onClick={handleBackToThirdParty} width="w-full">
               Back to {devLicenseAlias}
             </PrimaryButton>
           </div>

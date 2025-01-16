@@ -1,20 +1,13 @@
 import React, { useEffect, useState } from "react";
 
 import { useAuthContext } from "../../context/AuthContext";
-import {
-  buildAuthPayload,
-  sendAuthPayloadToParent,
-} from "../../utils/authUtils";
 import { useDevCredentials } from "../../context/DevCredentialsContext";
 import { fetchPermissionsFromId } from "../../services/permissionsService";
 import Card from "../Shared/Card";
 import Header from "../Shared/Header";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/solid";
 import ErrorMessage from "../Shared/ErrorMessage";
-import {
-  backToThirdParty,
-  sendMessageToReferrer,
-} from "../../utils/messageHandler";
+import { sendMessageToReferrer } from "../../utils/messageHandler";
 import { isStandalone } from "../../utils/isStandalone";
 import { UiStates, useUIManager } from "../../context/UIManagerContext";
 import { SACDTemplate } from "@dimo-network/transactions/dist/core/types/dimo";
@@ -164,23 +157,11 @@ const VehicleManager: React.FC = () => {
     devLicenseAlias,
   ]);
 
-  const sendJwtAfterPermissions = (
-    handleNavigation: (authPayload: any) => void
-  ) => {
-    if (jwt && redirectUri && clientId) {
-      const authPayload = buildAuthPayload(clientId, jwt, user);
-      sendAuthPayloadToParent(authPayload, redirectUri, () =>
-        handleNavigation(authPayload)
-      );
-    }
-  };
-
   const renderDescription = (description: string) => {
     const paragraphs = description.split("\n\n");
 
     // Show only the first paragraph by default, and the rest will be shown when expanded
     const firstParagraph = paragraphs[0];
-    const restOfDescription = paragraphs.slice(1).join("\n\n");
 
     return (
       <div>
@@ -220,13 +201,17 @@ const VehicleManager: React.FC = () => {
   );
 
   return (
-    <Card width="w-full max-w-[600px]" height="h-fit max-h-[770px]">
+    <Card
+      width="w-full max-w-[600px]"
+      height="h-fit max-h-[770px]"
+      className="flex flex-col"
+    >
       <Header
         title={`${devLicenseAlias} wants to use DIMO to connect to your vehicles data`}
         subtitle={appUrl.hostname}
         link={`${appUrl.protocol}//${appUrl.host}`}
       />
-      <div className="flex flex-col items-center justify-center max-h-[480px] lg:max-h-[584px] box-border overflow-y-auto">
+      <div className="flex flex-col items-center justify-center max-h-[480px] lg:max-h-[584px] box-border overflow-y-auto w-full">
         {error && <ErrorMessage message={error} />}
 
         <>

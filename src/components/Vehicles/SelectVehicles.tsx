@@ -58,9 +58,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
 
   //Data from Developer
   const [selectedVehicles, setSelectedVehicles] = useState<Vehicle[]>([]); // Array for multiple selected vehicles
-  const [expirationDate, setExpirationDate] = useState<BigInt>(
-    getDefaultExpirationDate()
-  );
+  const [expirationDate] = useState<BigInt>(getDefaultExpirationDate());
 
   const fetchVehicles = async (direction = "next") => {
     try {
@@ -200,12 +198,9 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
   const noVehicles = vehicles.length === 0 && incompatibleVehicles.length === 0;
   const allShared = vehicles.length > 0 && vehicles.every((v) => v.shared);
   const canShare = vehicles.some((v) => !v.shared);
-  const appUrl = new URL(
-    document.referrer ? document.referrer : "https://dimo.org"
-  );
 
   return (
-    <div className="flex flex-col items-center justify-center max-h-[480px] lg:max-h-[584px] box-border overflow-y-auto">
+    <div className="flex flex-col w-full items-center justify-center max-h-[480px] lg:max-h-[584px] box-border overflow-y-auto">
       {error && <ErrorMessage message={error} />}
 
       {noVehicles && !vehiclesLoading && (
@@ -214,6 +209,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
             style={{ height: "40px", width: "40px" }}
             className="rounded-full object-cover mr-4"
             src={VehicleThumbnail}
+            alt="Vehicle Thumbnail"
           />
           <h2 className="text-gray-500 text-xl font-medium pt-2">
             No cars connected yet
@@ -238,7 +234,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
       {vehiclesLoading ? (
         <Loader />
       ) : (
-        <div className="space-y-4 pt-4 max-h-[400px] overflow-scroll w-full max-w-[440px]">
+        <div className="space-y-4 pt-4 max-h-[400px] overflow-auto w-full max-w-[440px]">
           {/* Render Compatible Vehicles */}
           {vehicles && vehicles.length > 0 && (
             <>
@@ -317,26 +313,23 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
 
       {/* Render buttons */}
       <div
-        className={`flex ${
+        className={`grid grid-flow-col auto-cols-fr gap-4 ${
           canShare ? "justify-between" : "justify-center"
         } w-full max-w-[440px] pt-4`}
       >
         {(noVehicles || allShared) && (
-          <PrimaryButton onClick={handleContinue} width="w-[214px]">
-            Continue
-          </PrimaryButton>
+          <PrimaryButton onClick={handleContinue}>Continue</PrimaryButton>
         )}
         {canShare && (
           <>
             <button
               onClick={handleContinue}
-              className="bg-white font-medium w-[214px] text-[#09090B] border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500"
+              className="bg-white font-medium text-[#09090B] border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500"
             >
               Cancel
             </button>
             <PrimaryButton
               onClick={handleShare}
-              width="w-[214px]"
               disabled={selectedVehicles.length === 0}
             >
               {selectedVehicles.length === 0
