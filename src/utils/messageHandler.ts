@@ -1,22 +1,13 @@
 import { isStandalone } from "./isStandalone";
+import { getAppUrl } from "./urlHelpers";
 
 export function sendMessageToReferrer(data: object) {
   if (isStandalone()) {
     console.warn("Not opened in popup or iframe, use url based creds");
     return;
   }
-  const params = new URLSearchParams(window.location.search);
 
-  let parentOrigin;
-
-  const state = params.get("state");
-
-  if (state) {
-    const decodedState = JSON.parse(decodeURIComponent(state));
-    parentOrigin = new URL(decodedState.referrer).origin; // Use referrer from state
-  } else {
-    parentOrigin = new URL(document.referrer).origin;
-  }
+  const parentOrigin = getAppUrl().origin;
 
   const referrer = window.opener || window.parent;
 

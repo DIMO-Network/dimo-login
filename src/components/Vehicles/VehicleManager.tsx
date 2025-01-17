@@ -17,7 +17,7 @@ import {
 } from "../../utils/dateUtils";
 import { FetchPermissionsParams } from "../../models/permissions";
 import SelectVehicles from "./SelectVehicles";
-import { getParamFromUrlOrState } from "../../utils/urlHelpers";
+import { getAppUrl, getParamFromUrlOrState } from "../../utils/urlHelpers";
 
 const VehicleManager: React.FC = () => {
   const { user, jwt } = useAuthContext();
@@ -196,9 +196,7 @@ const VehicleManager: React.FC = () => {
     );
   };
 
-  const appUrl = new URL(
-    document.referrer ? document.referrer : "https://dimo.org"
-  );
+  const appUrl = getAppUrl();
 
   return (
     <Card

@@ -18,6 +18,7 @@ import LoadingScreen from "../Shared/LoadingScreen";
 import { AppleIcon, GoogleIcon } from "../Icons";
 import { isValidEmail } from "../../utils/emailUtils";
 import { getForceEmail } from "../../stores/AuthStateStore";
+import { getAppUrl } from "../../utils/urlHelpers";
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;
@@ -44,9 +45,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   // 5️⃣ Derived Values
   const forceEmail = getForceEmail();
 
-  const appUrl = new URL(
-    document.referrer ? document.referrer : "https://dimo.org"
-  );
+  const appUrl = getAppUrl();
 
   const processEmailSubmission = async (email: string) => {
     if (!email || !clientId) return;
@@ -96,7 +95,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       setError("Email sharing is required to proceed. Please check the box.");
       return;
     }
-        
+
     const urlParams = new URLSearchParams(window.location.search);
 
     const stateParams = {
