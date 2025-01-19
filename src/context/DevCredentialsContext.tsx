@@ -27,7 +27,6 @@ interface DevCredentialsContextProps {
   clientId: string;
   apiKey: string;
   redirectUri: string;
-  utm: string;
   invalidCredentials: boolean;
   devLicenseAlias: string;
 }
@@ -45,7 +44,6 @@ export const DevCredentialsProvider = ({
   const [clientId, setClientId] = useState<string>("");
   const [apiKey, setApiKey] = useState<string>("");
   const [redirectUri, setRedirectUri] = useState<string>("");
-  const [utm, setUtm] = useState<string>("");
   const [invalidCredentials, setInvalidCredentials] = useState<boolean>(false);
   const [devLicenseAlias, setDevLicenseAlias] = useState<string>(""); // Alias will only be set if credentials are valid, defaults to client ID if not alias
   const { setUiState, setEntryState, setLoadingState } = useUIManager();
@@ -142,17 +140,27 @@ export const DevCredentialsProvider = ({
     validateCredentials();
   }, [clientId, redirectUri]);
 
+  const getRedirectUriWithUtm = (redirectUri: string, utm: string) => {
+    const url = new URL(redirectUri);
+    const utmParams = new URLSearchParams(utm);
+    utmParams.forEach((value, key) => {
+      url.searchParams.set(key, value);
+    });
+    return url.toString();
+  };
+
   const setCredentials = ({
     clientId,
     apiKey,
     redirectUri,
     utm,
   }: CredentialParams) => {
+    const redirectUriWithUtm = getRedirectUriWithUtm(redirectUri, utm || "");
+
     setClientId(clientId);
     setApiKey(apiKey);
-    setRedirectUri(redirectUri);
+    setRedirectUri(redirectUriWithUtm);
     setLoadingState(false);
-    if (utm) setUtm(utm);
   };
 
   return (
@@ -161,7 +169,6 @@ export const DevCredentialsProvider = ({
         clientId,
         apiKey,
         redirectUri,
-        utm,
         invalidCredentials,
         devLicenseAlias,
       }}
