@@ -29,7 +29,7 @@ export const EmptyState: FC = () => {
       </div>
       <div className="flex flex-col items-center gap-6">
         <p className="text-xl font-medium">Download the DIMO app now</p>
-        <div className="flex flex-row gap-2">
+        <div className="flex flex-row gap-6">
           <AppStoreButton
             url={IOS_URL}
             theme="dark"
