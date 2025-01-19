@@ -21,11 +21,13 @@ import { UiStates, useUIManager } from "./UIManagerContext";
 import { setEmailGranted } from "../services/storageService";
 import { isStandalone } from "../utils/isStandalone";
 import { setForceEmail } from "../stores/AuthStateStore";
+import { CredentialParams } from "../types";
 
 interface DevCredentialsContextProps {
   clientId: string;
   apiKey: string;
   redirectUri: string;
+  utm: string;
   invalidCredentials: boolean;
   devLicenseAlias: string;
 }
@@ -43,6 +45,7 @@ export const DevCredentialsProvider = ({
   const [clientId, setClientId] = useState<string>("");
   const [apiKey, setApiKey] = useState<string>("");
   const [redirectUri, setRedirectUri] = useState<string>("");
+  const [utm, setUtm] = useState<string>("");
   const [invalidCredentials, setInvalidCredentials] = useState<boolean>(false);
   const [devLicenseAlias, setDevLicenseAlias] = useState<string>(""); // Alias will only be set if credentials are valid, defaults to client ID if not alias
   const { setUiState, setEntryState, setLoadingState } = useUIManager();
@@ -57,6 +60,7 @@ export const DevCredentialsProvider = ({
     const entryStateFromUrl = urlParams.get("entryState") as UiStates;
     const forceEmailFromUrl = urlParams.get("forceEmail");
     const stateFromUrl = urlParams.get("state");
+    const utmFromUrl = urlParams.get("utm");
 
     if (stateFromUrl) {
       //SSO Purpose
@@ -72,6 +76,7 @@ export const DevCredentialsProvider = ({
           clientId: state.clientId,
           apiKey: "api key",
           redirectUri: state.redirectUri,
+          utm: state.utm,
         });
       }
 
@@ -90,6 +95,7 @@ export const DevCredentialsProvider = ({
         clientId: clientIdFromUrl,
         apiKey: "api key",
         redirectUri: redirectUriFromUrl,
+        utm: utmFromUrl,
       });
     } else {
       const handleMessage = (event: MessageEvent) => {
@@ -140,15 +146,13 @@ export const DevCredentialsProvider = ({
     clientId,
     apiKey,
     redirectUri,
-  }: {
-    clientId: string;
-    apiKey: string;
-    redirectUri: string;
-  }) => {
+    utm,
+  }: CredentialParams) => {
     setClientId(clientId);
     setApiKey(apiKey);
     setRedirectUri(redirectUri);
     setLoadingState(false);
+    if (utm) setUtm(utm);
   };
 
   return (
@@ -157,6 +161,7 @@ export const DevCredentialsProvider = ({
         clientId,
         apiKey,
         redirectUri,
+        utm,
         invalidCredentials,
         devLicenseAlias,
       }}
