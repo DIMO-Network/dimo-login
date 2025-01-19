@@ -120,6 +120,15 @@ export const fetchVehiclesWithTransformation = async (
   };
 };
 
+const getBaseURI = (uri: string) => {
+  const redirectUrl = new URL(uri);
+  return `${redirectUrl.protocol}//${
+    redirectUrl.port
+      ? `${redirectUrl.hostname}:${redirectUrl.port}`
+      : redirectUrl.hostname
+  }`;
+};
+
 export const isValidClientId = async (
   clientId: string,
   redirectUri: string
@@ -159,10 +168,12 @@ export const isValidClientId = async (
   // Check if redirectURIs exist and contains nodes
   if (redirectURIs && redirectURIs.nodes) {
     // Extract the URIs from the nodes
-    const uris = redirectURIs.nodes.map((node: { uri: any }) => node.uri);
+    const uris = redirectURIs.nodes.map((node: { uri: any }) =>
+      getBaseURI(node.uri)
+    );
 
     // Verify if the redirectUri exists in the list
-    const exists = uris.includes(redirectUri);
+    const exists = uris.includes(getBaseURI(redirectUri));
 
     return { isValid: exists, alias: alias || clientId };
   } else {
