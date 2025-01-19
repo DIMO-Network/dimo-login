@@ -122,11 +122,7 @@ export const fetchVehiclesWithTransformation = async (
 
 const getBaseURI = (uri: string) => {
   const redirectUrl = new URL(uri);
-  return `${redirectUrl.protocol}//${
-    redirectUrl.port
-      ? `${redirectUrl.hostname}:${redirectUrl.port}`
-      : redirectUrl.hostname
-  }`;
+  return `${redirectUrl.origin}${redirectUrl.pathname}`;
 };
 
 export const isValidClientId = async (
