@@ -26,14 +26,18 @@ export function sendMessageToReferrer(data: object) {
 }
 
 export function backToThirdParty(
-  payload: any,
+  payload: Record<string, string | number | boolean>,
   redirectUri: string,
   handleEmbed?: () => void
 ) {
   if (isStandalone()) {
     // Redirect with payload in query params
-    const queryParams = new URLSearchParams(payload).toString();
-    window.location.href = `${redirectUri}?${queryParams}`;
+    const url = new URL(redirectUri);
+    Object.entries(payload).forEach(([key, value]) => {
+      url.searchParams.set(key, String(value));
+    });
+
+    window.location.href = url.toString();
     return;
   }
 
