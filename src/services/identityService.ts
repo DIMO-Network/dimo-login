@@ -8,6 +8,7 @@
 
 import { Vehicle, VehicleResponse } from "../models/vehicle";
 import { formatDate } from "../utils/dateUtils";
+import { getBaseURI } from "../utils/urlHelpers";
 
 const GRAPHQL_ENDPOINT =
   process.env.REACT_APP_DIMO_IDENTITY_URL ||
@@ -118,11 +119,6 @@ export const fetchVehiclesWithTransformation = async (
       (a: any, b: any) => Number(a.shared) - Number(b.shared)
     ),
   };
-};
-
-const getBaseURI = (uri: string) => {
-  const redirectUrl = new URL(uri);
-  return `${redirectUrl.origin}${redirectUrl.pathname}`;
 };
 
 export const isValidClientId = async (
