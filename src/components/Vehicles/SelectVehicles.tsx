@@ -84,6 +84,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
       setError(null);
       // Set isExpanded based on vehicles length
     } catch (error) {
+      setVehiclesLoading(false);
       setError("Could not fetch vehicles");
       console.error("Error fetching vehicles:", error);
     }
@@ -202,8 +203,6 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
 
   return (
     <div className="flex flex-col w-full items-center justify-center max-h-[480px] lg:max-h-[584px] box-border overflow-y-auto">
-      {error && <ErrorMessage message={error} />}
-
       {noVehicles && !vehiclesLoading && <EmptyState />}
 
       {allShared && (
