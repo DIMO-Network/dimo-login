@@ -15,13 +15,14 @@ import React, {
   useEffect,
 } from "react";
 
-import { isValidClientId } from "../services/identityService";
 import { createKernelSigner } from "../services/turnkeyService";
-import { UiStates, useUIManager } from "./UIManagerContext";
-import { setEmailGranted } from "../services/storageService";
-import { isStandalone } from "../utils/isStandalone";
-import { setForceEmail } from "../stores/AuthStateStore";
 import { CredentialParams } from "../types";
+import { getRedirectUriWithUtm } from "../utils/urlHelpers";
+import { isStandalone } from "../utils/isStandalone";
+import { isValidClientId } from "../services/identityService";
+import { setEmailGranted } from "../services/storageService";
+import { setForceEmail } from "../stores/AuthStateStore";
+import { UiStates, useUIManager } from "./UIManagerContext";
 
 interface DevCredentialsContextProps {
   clientId: string;
@@ -139,15 +140,6 @@ export const DevCredentialsProvider = ({
 
     validateCredentials();
   }, [clientId, redirectUri]);
-
-  const getRedirectUriWithUtm = (redirectUri: string, utm: string) => {
-    const url = new URL(redirectUri);
-    const utmParams = new URLSearchParams(utm);
-    utmParams.forEach((value, key) => {
-      url.searchParams.set(key, value);
-    });
-    return url.toString();
-  };
 
   const setCredentials = ({
     clientId,
