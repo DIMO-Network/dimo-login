@@ -100,14 +100,15 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
 
     const stateParams = {
       clientId,
-      redirectUri,
-      entryState,
       emailPermissionGranted,
-      referrer: document.referrer, // Pass referrer to state
-      permissionTemplateId: urlParams.get("permissionTemplateId"),
+      entryState,
       expirationDate: urlParams.get("expirationDate"),
-      vehicles: urlParams.getAll("vehicles"),
+      permissionTemplateId: urlParams.get("permissionTemplateId"),
+      redirectUri,
+      referrer: document.referrer, // Pass referrer to state
+      utm: urlParams.getAll("utm"),
       vehicleMakes: urlParams.getAll("vehicleMakes"),
+      vehicles: urlParams.getAll("vehicles"),
     };
 
     const serializedState = JSON.stringify(stateParams);
