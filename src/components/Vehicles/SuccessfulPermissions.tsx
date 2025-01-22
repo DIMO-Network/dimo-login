@@ -1,5 +1,6 @@
 // src/components/SuccessPage.tsx
 import React from "react";
+
 import Card from "../Shared/Card";
 import Header from "../Shared/Header";
 import PrimaryButton from "../Shared/PrimaryButton";
@@ -13,7 +14,7 @@ import VehicleCard from "./VehicleCard";
 import { isEmbed } from "../../utils/isEmbed";
 
 const SuccessfulPermissions: React.FC = () => {
-  const { redirectUri, devLicenseAlias, clientId } = useDevCredentials();
+  const { redirectUri, utm, devLicenseAlias, clientId } = useDevCredentials();
   const { jwt, user } = useAuthContext();
   const {
     componentData: { vehicles, action },
@@ -32,7 +33,7 @@ const SuccessfulPermissions: React.FC = () => {
       ...authPayload,
       [`${action}Vehicles`]: vehicleTokenIds,
     };
-    backToThirdParty(payload, redirectUri);
+    backToThirdParty(payload, redirectUri, utm);
 
     //Shared vehicles to be fetched through urlParams.getAll("sharedVehicles")
   };

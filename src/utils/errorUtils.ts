@@ -4,6 +4,7 @@ import { backToThirdParty, sendMessageToReferrer } from "./messageHandler";
 export function sendErrorToParent(
   error: Error | string,
   redirectUri: string,
+  utm: string,
   setUiState: (step: UiStates) => void
 ) {
   //Notifies the developer of a rejected transaction, through redirecting, or sending a message, closing the popup or navigating to the transaction cancelled screen
@@ -12,7 +13,7 @@ export function sendErrorToParent(
 
   const payload = { error: errorMessage };
 
-  backToThirdParty(payload, redirectUri, () => {
+  backToThirdParty(payload, redirectUri, utm, () => {
     setUiState(UiStates.TRANSACTION_CANCELLED); //For Embed
   });
 }

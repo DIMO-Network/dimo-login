@@ -68,7 +68,7 @@ export const AuthProvider = ({
   const [otpId, setOtpId] = useState<string>("");
   const [jwt, setJwt] = useState<string>("");
   const [userInitialized, setUserInitialized] = useState<boolean>(false);
-  const { clientId, apiKey, redirectUri } = useDevCredentials();
+  const { clientId, apiKey, redirectUri, utm } = useDevCredentials();
   const { setLoadingState, error, setError, setUiState } = useUIManager();
 
   const createAccountWithPasskey = async (
@@ -199,6 +199,7 @@ export const AuthProvider = ({
         email,
         clientId,
         redirectUri,
+        utm,
         user.subOrganizationId,
         entryState,
         setJwt,

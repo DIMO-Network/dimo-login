@@ -21,7 +21,6 @@ import VehicleThumbnail from "../../assets/images/vehicle-thumbnail.png";
 import ErrorMessage from "../Shared/ErrorMessage";
 import { backToThirdParty } from "../../utils/messageHandler";
 import { UiStates, useUIManager } from "../../context/UIManagerContext";
-import { getDefaultExpirationDate } from "../../utils/dateUtils";
 import {
   SetVehiclePermissions,
   SetVehiclePermissionsBulk,
@@ -39,10 +38,10 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
   vehicleTokenIds,
   permissionTemplateId,
   vehicleMakes,
-  expirationDate
+  expirationDate,
 }) => {
   const { user, jwt } = useAuthContext();
-  const { clientId, redirectUri, devLicenseAlias } = useDevCredentials();
+  const { clientId, redirectUri, utm, devLicenseAlias } = useDevCredentials();
   const { setUiState, setComponentData, setLoadingState, error, setError } =
     useUIManager();
 
@@ -116,7 +115,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
 
   const handleContinue = () => {
     sendJwtAfterPermissions((authPayload: any) => {
-      backToThirdParty(authPayload, redirectUri);
+      backToThirdParty(authPayload, redirectUri, utm);
       setUiState(UiStates.TRANSACTION_CANCELLED);
     });
   };

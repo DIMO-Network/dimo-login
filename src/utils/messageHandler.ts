@@ -28,7 +28,7 @@ export function sendMessageToReferrer(data: object) {
 export function backToThirdParty(
   payload: Record<string, string | number | boolean>,
   redirectUri: string,
-  utm?: string,
+  utm: string,
   handleEmbed?: () => void
 ) {
   if (isStandalone()) {
