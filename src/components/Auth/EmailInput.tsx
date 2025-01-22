@@ -100,14 +100,15 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
 
     const stateParams = {
       clientId,
-      redirectUri,
-      entryState,
       emailPermissionGranted,
-      referrer: document.referrer, // Pass referrer to state
-      permissionTemplateId: urlParams.get("permissionTemplateId"),
+      entryState,
       expirationDate: urlParams.get("expirationDate"),
-      vehicles: urlParams.getAll("vehicles"),
+      permissionTemplateId: urlParams.get("permissionTemplateId"),
+      redirectUri,
+      referrer: document.referrer, // Pass referrer to state
+      utm: urlParams.getAll("utm"),
       vehicleMakes: urlParams.getAll("vehicleMakes"),
+      vehicles: urlParams.getAll("vehicles"),
     };
 
     const serializedState = JSON.stringify(stateParams);
@@ -216,10 +217,11 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
           Continue
         </PrimaryButton>
 
-        <div className="flex gap-2">
+        {/* Flex wrap is only applied on smaller screens, ensuring buttons stay side by side when possible */}
+        <div className="flex flex-wrap sm:flex-nowrap justify-center gap-3 w-full">
           <button
             onClick={handleGoogleAuth}
-            className="flex items-center justify-center gap-2 w-[216px] h-[40px] rounded-full border border-gray-300 bg-white text-black text-sm hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400"
+            className="flex items-center justify-center gap-2 w-full sm:max-w-[210px] h-[40px] rounded-full border border-gray-300 bg-white text-black text-sm hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400"
           >
             <GoogleIcon />
             Sign in with Google
@@ -227,20 +229,26 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
 
           <button
             onClick={handleAppleAuth}
-            className="flex items-center justify-center gap-2 w-[216px] h-[40px] rounded-full border border-gray-300 bg-white text-black text-sm hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400"
+            className="flex items-center justify-center gap-2 w-full sm:max-w-[210px] h-[40px] rounded-full border border-gray-300 bg-white text-black text-sm hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400"
           >
             <AppleIcon />
             Sign in with Apple
           </button>
         </div>
 
-        <p className="flex flex-inline gap-1 text-xs text-gray-500">
-          By continuing you agree to our
-          <a href="https://dimo.org/legal/privacy-policy" className="underline">
+        <p className="flex flex-wrap justify-center text-center text-xs text-gray-500">
+          By continuing you agree to our&nbsp;
+          <a
+            href="https://dimo.org/legal/privacy-policy"
+            className="underline whitespace-nowrap"
+          >
             Privacy Policy
           </a>
-          and
-          <a href="https://dimo.org/legal/terms-of-use" className="underline">
+          &nbsp;and&nbsp;
+          <a
+            href="https://dimo.org/legal/terms-of-use"
+            className="underline whitespace-nowrap"
+          >
             Terms of Service
           </a>
         </p>
