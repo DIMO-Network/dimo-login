@@ -17,7 +17,6 @@ import React, {
 
 import { createKernelSigner } from "../services/turnkeyService";
 import { CredentialParams } from "../types";
-import { getRedirectUriWithUtm } from "../utils/urlHelpers";
 import { isStandalone } from "../utils/isStandalone";
 import { isValidClientId } from "../services/identityService";
 import { setEmailGranted } from "../services/storageService";
@@ -25,11 +24,12 @@ import { setForceEmail } from "../stores/AuthStateStore";
 import { UiStates, useUIManager } from "./UIManagerContext";
 
 interface DevCredentialsContextProps {
-  clientId: string;
   apiKey: string;
-  redirectUri: string;
-  invalidCredentials: boolean;
+  clientId: string;
   devLicenseAlias: string;
+  invalidCredentials: boolean;
+  redirectUri: string;
+  utm: string;
 }
 
 const DevCredentialsContext = createContext<
@@ -45,6 +45,7 @@ export const DevCredentialsProvider = ({
   const [clientId, setClientId] = useState<string>("");
   const [apiKey, setApiKey] = useState<string>("");
   const [redirectUri, setRedirectUri] = useState<string>("");
+  const [utm, setUtm] = useState<string>("");
   const [invalidCredentials, setInvalidCredentials] = useState<boolean>(false);
   const [devLicenseAlias, setDevLicenseAlias] = useState<string>(""); // Alias will only be set if credentials are valid, defaults to client ID if not alias
   const { setUiState, setEntryState, setLoadingState } = useUIManager();
@@ -147,22 +148,22 @@ export const DevCredentialsProvider = ({
     redirectUri,
     utm,
   }: CredentialParams) => {
-    const redirectUriWithUtm = getRedirectUriWithUtm(redirectUri, utm || "");
-
     setClientId(clientId);
     setApiKey(apiKey);
-    setRedirectUri(redirectUriWithUtm);
+    setRedirectUri(redirectUri);
     setLoadingState(false);
+    if (utm) setUtm(utm);
   };
 
   return (
     <DevCredentialsContext.Provider
       value={{
-        clientId,
         apiKey,
-        redirectUri,
-        invalidCredentials,
+        clientId,
         devLicenseAlias,
+        invalidCredentials,
+        redirectUri,
+        utm,
       }}
     >
       {children}
