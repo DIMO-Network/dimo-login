@@ -67,7 +67,7 @@ const App = () => {
   }
 
   return (
-    <div className="flex h-screen pt-2 lg:pt-40 justify-center bg-white lg:bg-[#F7F7F7]">
+    <div className="flex h-screen pt-2 justify-center bg-white lg-h-screen">
       {uiState === UiStates.EMAIL_INPUT && <EmailInput onSubmit={setEmail} />}
       {uiState === UiStates.OTP_INPUT && <OtpInput email={email} />}
       {uiState === UiStates.PASSKEY_GENERATOR && (
