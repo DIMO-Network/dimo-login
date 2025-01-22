@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer utilities {
+  @media (min-width: 1024px) and (min-height: 801px) {
+    /* Large Screens should have some top padding + grayish background, but requires a min height as well */
+    .lg-h-screen {
+      padding-top: 10rem; /* Equivalent to pt-40 */
+      background-color: #F7F7F7;
+    }
+  }
+}
+
 
 
 /* Default Font */
