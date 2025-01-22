@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from "react";
 
+import {
+  SetVehiclePermissions,
+  SetVehiclePermissionsBulk,
+} from "@dimo-network/transactions";
+
 import { fetchVehiclesWithTransformation } from "../../services/identityService";
 import VehicleCard from "./VehicleCard";
 import { useAuthContext } from "../../context/AuthContext";
@@ -17,15 +22,10 @@ import {
 import { useDevCredentials } from "../../context/DevCredentialsContext";
 import { getPermsValue } from "../../services/permissionsService";
 import PrimaryButton from "../Shared/PrimaryButton";
-import VehicleThumbnail from "../../assets/images/vehicle-thumbnail.png";
-import ErrorMessage from "../Shared/ErrorMessage";
 import { backToThirdParty } from "../../utils/messageHandler";
 import { UiStates, useUIManager } from "../../context/UIManagerContext";
-import {
-  SetVehiclePermissions,
-  SetVehiclePermissionsBulk,
-} from "@dimo-network/transactions";
 import Loader from "../Shared/Loader";
+import { EmptyState } from "./EmptyState";
 
 interface SelectVehiclesProps {
   vehicleTokenIds: string[] | undefined; // Adjust the type based on your data
@@ -83,6 +83,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
       setError(null);
       // Set isExpanded based on vehicles length
     } catch (error) {
+      setVehiclesLoading(false);
       setError("Could not fetch vehicles");
       console.error("Error fetching vehicles:", error);
     }
@@ -201,24 +202,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
 
   return (
     <div className="flex flex-col w-full items-center justify-center max-h-[480px] lg:max-h-[584px] box-border overflow-y-auto">
-      {error && <ErrorMessage message={error} />}
-
-      {noVehicles && !vehiclesLoading && (
-        <div className="flex flex-col items-center">
-          <img
-            style={{ height: "40px", width: "40px" }}
-            className="rounded-full object-cover mr-4"
-            src={VehicleThumbnail}
-            alt="Vehicle Thumbnail"
-          />
-          <h2 className="text-gray-500 text-xl font-medium pt-2">
-            No cars connected yet
-          </h2>
-          <p className="text-sm">
-            Connect your car in the DIMO app to share permissions.
-          </p>
-        </div>
-      )}
+      {noVehicles && !vehiclesLoading && <EmptyState />}
 
       {allShared && (
         <div className="flex flex-col items-center">
