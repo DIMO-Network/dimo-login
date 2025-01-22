@@ -38,7 +38,7 @@ export const getRedirectUriWithUtm = (redirectUri: string, utm: string) => {
   utmParams.forEach((value, key) => {
     url.searchParams.set(key, value);
   });
-  return url.toString();
+  return url;
 };
 
 export const getBaseURI = (uri: string) => {

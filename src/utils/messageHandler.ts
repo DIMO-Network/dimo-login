@@ -1,5 +1,5 @@
 import { isStandalone } from "./isStandalone";
-import { getAppUrl } from "./urlHelpers";
+import { getAppUrl, getRedirectUriWithUtm } from "./urlHelpers";
 
 export function sendMessageToReferrer(data: object) {
   if (isStandalone()) {
@@ -11,8 +11,8 @@ export function sendMessageToReferrer(data: object) {
 
   const referrer = window.opener || window.parent;
 
-  console.log("Referrer",referrer);
-  console.log("Parent",parentOrigin);
+  console.log("Referrer", referrer);
+  console.log("Parent", parentOrigin);
 
   if (referrer) {
     referrer.postMessage(
@@ -28,16 +28,17 @@ export function sendMessageToReferrer(data: object) {
 export function backToThirdParty(
   payload: Record<string, string | number | boolean>,
   redirectUri: string,
+  utm?: string,
   handleEmbed?: () => void
 ) {
   if (isStandalone()) {
     // Redirect with payload in query params
-    const url = new URL(redirectUri);
+    const redirectUriWithUtm = getRedirectUriWithUtm(redirectUri, utm || "");
     Object.entries(payload).forEach(([key, value]) => {
-      url.searchParams.set(key, String(value));
+      redirectUriWithUtm.searchParams.set(key, String(value));
     });
 
-    window.location.href = url.toString();
+    window.location.href = redirectUriWithUtm.toString();
     return;
   }
 
