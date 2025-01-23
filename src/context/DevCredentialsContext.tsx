@@ -101,7 +101,6 @@ export const DevCredentialsProvider = ({
           entryState,
           forceEmail,
         } = event.data;
-        console.log(event.data);
         if (eventType === "AUTH_INIT") {
           setUiState(entryState || UiStates.EMAIL_INPUT); //Try to go to the state specified, but if no session it will go to email input
           setEntryState(entryState || UiStates.EMAIL_INPUT);
