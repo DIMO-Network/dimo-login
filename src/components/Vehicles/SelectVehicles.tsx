@@ -111,7 +111,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
       const authPayload = buildAuthPayload(clientId, jwt, user);
       const authPayloadWithVehicles = {
         ...authPayload,
-        updatedVehicles: selectedVehicles.map((vehicle: Vehicle) => vehicle.tokenId)
+        sharedVehicles: selectedVehicles.map((vehicle: Vehicle) => vehicle.tokenId)
       }
       sendAuthPayloadToParent(authPayloadWithVehicles, redirectUri, () =>
         handleNavigation(authPayloadWithVehicles)
