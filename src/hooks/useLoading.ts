@@ -29,7 +29,7 @@ const useLoading = (
       }, 5000);
 
       timeoutIdAlmostThere = setTimeout(() => {
-        setMessage("Hang tight, almost there.");
+        setMessage("Hang tight, almost there");
       }, 8000);
     }
 
