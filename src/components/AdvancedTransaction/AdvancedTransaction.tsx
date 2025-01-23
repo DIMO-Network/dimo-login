@@ -64,7 +64,7 @@ const AdvancedTransaction: React.FC = () => {
   }
 
   const onApprove = async () => {
-    setLoadingState(true, "Executing Transaction");
+    setLoadingState(true, "Executing Transaction", true);
     //Ensure Passkey
 
     await initializeIfNeeded(user.subOrganizationId);

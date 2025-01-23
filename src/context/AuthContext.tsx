@@ -74,7 +74,7 @@ export const AuthProvider = ({
   const createAccountWithPasskey = async (
     email: string
   ): Promise<UserResult> => {
-    setLoadingState(true, "Creating account");
+    setLoadingState(true, "Creating account", true);
     setError(null);
     if (!apiKey) {
       return {
@@ -114,7 +114,7 @@ export const AuthProvider = ({
   };
 
   const handleSendOtp = async (email: string): Promise<OtpResult> => {
-    setLoadingState(true, "Sending OTP");
+    setLoadingState(true, "Sending OTP", true);
     setError(null);
 
     if (!apiKey) {
@@ -155,7 +155,7 @@ export const AuthProvider = ({
     email: string,
     otp: string
   ): Promise<CredentialResult> => {
-    setLoadingState(true, "Verifying OTP");
+    setLoadingState(true, "Verifying OTP", true);
     setError(null);
     try {
       const result = await verifyOtp(email, otp, otpId);
