@@ -34,7 +34,7 @@ const ManageVehicle: React.FC = () => {
       actionType === "revoke" ? "Revoking vehicles" : "Extending vehicles";
     const newAction = actionType === "revoke" ? "revoked" : "extended";
 
-    setLoadingState(true, loadingMessage);
+    setLoadingState(true, loadingMessage, true);
 
     await initializeIfNeeded(user.subOrganizationId);
 

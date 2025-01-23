@@ -1,5 +1,7 @@
 import React, { createContext, ReactNode, useContext, useState } from "react";
 
+import useLoading from "../hooks/useLoading";
+
 interface UiStateOptionProps {
   setBack: boolean;
   removeCurrent?: boolean;
@@ -16,7 +18,11 @@ interface UIManagerContextProps {
   setComponentData: React.Dispatch<React.SetStateAction<any>>;
   isLoading: boolean;
   loadingMessage: string;
-  setLoadingState: (loading: boolean, message?: string) => void;
+  setLoadingState: (
+    loading: boolean,
+    message?: string,
+    isLongProcess?: boolean
+  ) => void;
   error: string | null;
   setError: React.Dispatch<React.SetStateAction<string | null>>;
 }
@@ -44,14 +50,8 @@ export const UIManagerProvider = ({ children }: { children: ReactNode }) => {
   const [prevUiStates, setPrevUiStates] = useState<UiStates[]>([]);
   const [entryState, setEntryState] = useState<UiStates>(UiStates.EMAIL_INPUT);
   const [componentData, setComponentData] = useState<any | null>(null); // Initial component data
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState("");
+  const [isLoading, setLoadingState, loadingMessage] = useLoading(false);
   const [error, setError] = useState<string | null>(null);
-
-  const setLoadingState = (loading: boolean, message: string = "") => {
-    setIsLoading(loading);
-    setLoadingMessage(loading ? message : ""); // Clear the message if not loading
-  };
 
   const handleUiState = (
     value: UiStates,
