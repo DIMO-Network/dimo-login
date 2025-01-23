@@ -123,7 +123,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
   };
 
   const handleShare = async () => {
-    setLoadingState(true, "Sharing vehicles");
+    setLoadingState(true, "Sharing vehicles", true);
 
     await initializeIfNeeded(user.subOrganizationId);
 
