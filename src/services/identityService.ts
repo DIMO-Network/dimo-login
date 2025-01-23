@@ -8,6 +8,7 @@
 
 import { Vehicle, VehicleResponse } from "../models/vehicle";
 import { formatDate } from "../utils/dateUtils";
+import { getBaseURI } from "../utils/urlHelpers";
 
 const GRAPHQL_ENDPOINT =
   process.env.REACT_APP_DIMO_IDENTITY_URL ||
@@ -159,10 +160,12 @@ export const isValidClientId = async (
   // Check if redirectURIs exist and contains nodes
   if (redirectURIs && redirectURIs.nodes) {
     // Extract the URIs from the nodes
-    const uris = redirectURIs.nodes.map((node: { uri: any }) => node.uri);
+    const uris = redirectURIs.nodes.map((node: { uri: any }) =>
+      getBaseURI(node.uri)
+    );
 
     // Verify if the redirectUri exists in the list
-    const exists = uris.includes(redirectUri);
+    const exists = uris.includes(getBaseURI(redirectUri));
 
     return { isValid: exists, alias: alias || clientId };
   } else {

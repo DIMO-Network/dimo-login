@@ -73,6 +73,7 @@ export function sendAuthPayloadToParent(
 export function logout(
   clientId: string,
   redirectUri: string,
+  utm: string,
   setUiState: (step: UiStates) => void
 ) {
   clearSessionData(clientId);
@@ -80,7 +81,7 @@ export function logout(
 
   const payload = { logout: "true" };
 
-  backToThirdParty(payload, redirectUri, () => {
+  backToThirdParty(payload, redirectUri, utm, () => {
     setUiState(UiStates.EMAIL_INPUT);
   });
 }
@@ -91,6 +92,7 @@ export async function authenticateUser(
   email: string,
   clientId: string,
   redirectUri: string,
+  utm: string,
   subOrganizationId: string | null,
   entryState: string,
   setJwt: (jwt: string) => void,
@@ -170,7 +172,7 @@ export async function authenticateUser(
             userProperties
           );
           sendAuthPayloadToParent(authPayload, redirectUri, (payload) => {
-            backToThirdParty(payload, redirectUri);
+            backToThirdParty(payload, redirectUri, utm);
             setUiState(UiStates.SUCCESS); //For Embed Mode
           });
         } else if (entryState === UiStates.VEHICLE_MANAGER) {

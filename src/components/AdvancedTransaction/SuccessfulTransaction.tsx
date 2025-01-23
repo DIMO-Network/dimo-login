@@ -11,7 +11,7 @@ import { isEmbed } from "../../utils/isEmbed";
 import { useAuthContext } from "../../context/AuthContext";
 
 const SuccessfulTransaction: React.FC = () => {
-  const { redirectUri, devLicenseAlias } = useDevCredentials();
+  const { redirectUri, utm, devLicenseAlias } = useDevCredentials();
   const { componentData } = useUIManager();
   const { jwt } = useAuthContext();
 
@@ -39,8 +39,11 @@ const SuccessfulTransaction: React.FC = () => {
     //If Dev is using popup mode, we simply exit the flow here and close the window
     //By this point the dev should already have the transaction data, so this screen is mainly for the users UX, for them to know what happened
     //Redirect mode however, the user controls when the data is sent because we need to perform a redirect
-    const payload = { transactionHash: componentData.transactionHash, token: jwt };
-    backToThirdParty(payload, redirectUri);
+    const payload = {
+      transactionHash: componentData.transactionHash,
+      token: jwt,
+    };
+    backToThirdParty(payload, redirectUri, utm);
   };
 
   return (

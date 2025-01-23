@@ -18,7 +18,7 @@ import { sendMessageToReferrer } from "../../utils/messageHandler";
 import { UiStates, useUIManager } from "../../context/UIManagerContext";
 
 const AdvancedTransaction: React.FC = () => {
-  const { redirectUri } = useDevCredentials();
+  const { redirectUri, utm } = useDevCredentials();
   const { setUiState, setComponentData, setLoadingState, error, setError } =
     useUIManager();
   const { user, jwt } = useAuthContext();
@@ -97,6 +97,7 @@ const AdvancedTransaction: React.FC = () => {
     sendErrorToParent(
       `User Rejected the Transaction`,
       redirectUri!,
+      utm,
       setUiState
     );
   };
