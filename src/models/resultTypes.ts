@@ -16,6 +16,10 @@ type GenerateChallengeResponse = {
   state: string;
 };
 
+type MintVehicleResponse = {
+  userOperationHash: string;
+};
+
 export type PasskeyCreationResult = [attestation: any, challenge: string];
 
 
@@ -31,5 +35,6 @@ export type CredentialResult = Result<{ credentialBundle: string }>;
 export type SimpleResult = Result<null>;
 export type SimpleDataResult<T = null> = Result<T>;
 export type GenerateChallengeResult = Result<GenerateChallengeResponse>;
+export type MintVehicleResult = Result<MintVehicleResponse>;
 export type SubmitChallengeResult = Result<SubmitChallengeResponse>;
 export type SubmitCodeExchangeResult = Result<SubmitCodeExchangeResponse>;
