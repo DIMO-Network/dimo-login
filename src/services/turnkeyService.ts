@@ -54,6 +54,10 @@ export const createKernelSigner = (
   return kernelSigner;
 };
 
+export const getKernelSigner = (): KernelSigner => {
+  return kernelSigner;
+};
+
 export const getSmartContractAddress = (): `0x${string}` | undefined => {
   return kernelSigner.kernelAddress;
 };
@@ -62,7 +66,9 @@ export const getWalletAddress = (): `0x${string}` | undefined => {
   return kernelSigner.walletAddress;
 };
 
-export const createPasskey = async (email: string): Promise<PasskeyCreationResult> => {
+export const createPasskey = async (
+  email: string
+): Promise<PasskeyCreationResult> => {
   const challenge = generateRandomBuffer();
   const authenticatorUserId = generateRandomBuffer();
 
