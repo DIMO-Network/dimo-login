@@ -1,24 +1,25 @@
 // components/Auth/EmailInput.tsx
 import React, { useEffect, useState } from "react";
 
+import { AppleIcon, GoogleIcon } from "../Icons";
 import { Card } from "../Shared/Card";
 import { Checkbox } from "../Shared/Checkbox";
+import { decodeJwt } from "../../utils/jwtUtils";
 import { fetchUserDetails } from "../../services/accountsService";
+import { getAppUrl } from "../../utils/urlHelpers";
+import { getForceEmail } from "../../stores/AuthStateStore";
+import { getSignInTitle } from "../../utils/txnUtils";
 import { Header } from "../Shared/Header";
+import { isValidEmail } from "../../utils/emailUtils";
 import { PrimaryButton } from "../Shared/PrimaryButton";
 import { setEmailGranted } from "../../services/storageService";
+import { submitCodeExchange } from "../../services/authService";
+import { UiStates, useUIManager } from "../../context/UIManagerContext";
 import { useAuthContext } from "../../context/AuthContext";
 import { useDevCredentials } from "../../context/DevCredentialsContext";
-import { UiStates, useUIManager } from "../../context/UIManagerContext";
 
 import ErrorMessage from "../Shared/ErrorMessage";
-import { submitCodeExchange } from "../../services/authService";
-import { decodeJwt } from "../../utils/jwtUtils";
 import LoadingScreen from "../Shared/LoadingScreen";
-import { AppleIcon, GoogleIcon } from "../Icons";
-import { isValidEmail } from "../../utils/emailUtils";
-import { getForceEmail } from "../../stores/AuthStateStore";
-import { getAppUrl } from "../../utils/urlHelpers";
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;
@@ -41,6 +42,8 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   const [triggerAuth, setTriggerAuth] = useState(false); // Controls authentication flow
   const [emailPermissionGranted, setEmailPermissionGranted] = useState(false); // User consent tracking
   const [tokenExchanged, setTokenExchanged] = useState(false); // Token tracking
+
+  const urlParams = new URLSearchParams(window.location.search);
 
   // 5️⃣ Derived Values
   const forceEmail = getForceEmail();
@@ -95,8 +98,6 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       setError("Email sharing is required to proceed. Please check the box.");
       return;
     }
-
-    const urlParams = new URLSearchParams(window.location.search);
 
     const stateParams = {
       clientId,
@@ -186,7 +187,9 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       className="flex flex-col gap-6"
     >
       <Header
-        title="Enter an email to sign in with DIMO on"
+        title={getSignInTitle(devLicenseAlias, {
+          altText: urlParams.get("altText") === "true",
+        })}
         subtitle={appUrl.hostname}
         link={`${appUrl.protocol}//${appUrl.host}`}
       />
