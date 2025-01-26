@@ -19,8 +19,8 @@ export const sendTxnResponseToParent = (
 
 export const getSignInTitle = (
   alias: string,
-  { altText = false }: { altText?: boolean } = {}
+  { altTitle = false }: { altTitle?: boolean } = {}
 ) => {
-  const titleBaseText = altText ? HEADERS.ALT : HEADERS.DEFAULT;
+  const titleBaseText = altTitle ? HEADERS.ALT : HEADERS.DEFAULT;
   return titleBaseText.replace("%s", alias);
 };

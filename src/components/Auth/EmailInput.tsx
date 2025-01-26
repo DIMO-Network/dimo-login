@@ -30,7 +30,8 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   const { authenticateUser, setUser } = useAuthContext();
 
   // 2️⃣ Developer Credentials
-  const { clientId, devLicenseAlias, redirectUri } = useDevCredentials();
+  const { clientId, devLicenseAlias, redirectUri, altTitle } =
+    useDevCredentials();
 
   // 3️⃣ UI State Management
   const { setUiState, entryState, error, setError, setComponentData } =
@@ -42,8 +43,6 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   const [triggerAuth, setTriggerAuth] = useState(false); // Controls authentication flow
   const [emailPermissionGranted, setEmailPermissionGranted] = useState(false); // User consent tracking
   const [tokenExchanged, setTokenExchanged] = useState(false); // Token tracking
-
-  const urlParams = new URLSearchParams(window.location.search);
 
   // 5️⃣ Derived Values
   const forceEmail = getForceEmail();
@@ -98,6 +97,8 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       setError("Email sharing is required to proceed. Please check the box.");
       return;
     }
+
+    const urlParams = new URLSearchParams(window.location.search);
 
     const stateParams = {
       clientId,
@@ -188,7 +189,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     >
       <Header
         title={getSignInTitle(devLicenseAlias, {
-          altText: urlParams.get("altText") === "true",
+          altTitle: Boolean(altTitle),
         })}
         subtitle={appUrl.hostname}
         link={`${appUrl.protocol}//${appUrl.host}`}
