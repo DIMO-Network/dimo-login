@@ -109,6 +109,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       redirectUri,
       referrer: document.referrer, // Pass referrer to state
       utm: urlParams.getAll("utm"),
+      altTitle,
       vehicleMakes: urlParams.getAll("vehicleMakes"),
       vehicles: urlParams.getAll("vehicles"),
     };

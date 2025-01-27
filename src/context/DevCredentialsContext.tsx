@@ -76,6 +76,7 @@ export const DevCredentialsProvider = ({
           apiKey: "api key",
           redirectUri: state.redirectUri,
         });
+        setAltTitle(state.altTitle);
       }
 
       //We have to set this in state param, since we lose it for SSO
