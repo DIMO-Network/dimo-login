@@ -40,8 +40,3 @@ export const getRedirectUriWithUtm = (redirectUri: string, utm: string) => {
   });
   return url;
 };
-
-export const getBaseURI = (uri: string) => {
-  const redirectUrl = new URL(uri);
-  return `${redirectUrl.origin}${redirectUrl.pathname}`;
-};
