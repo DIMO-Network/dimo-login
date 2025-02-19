@@ -1,8 +1,8 @@
-import React, { type FC } from "react";
+import React, { type FC } from 'react';
 
-import { IconProps } from ".";
+import { IconProps } from '.';
 
-export const SecurityIcon: FC<IconProps> = ({ className = "" }) => {
+export const SecurityIcon: FC<IconProps> = ({ className = '' }) => {
   return (
     <svg
       className={className}

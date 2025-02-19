@@ -1,4 +1,3 @@
 export const isEmbed = () => {
-    return !window.opener && window !== window.top;
-  };
-  
+  return !window.opener && window !== window.top;
+};

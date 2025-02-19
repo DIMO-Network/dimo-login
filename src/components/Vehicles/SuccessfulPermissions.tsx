@@ -1,16 +1,16 @@
 // src/components/SuccessPage.tsx
-import React from "react";
-import Card from "../Shared/Card";
-import Header from "../Shared/Header";
-import PrimaryButton from "../Shared/PrimaryButton";
-import { useDevCredentials } from "../../context/DevCredentialsContext";
-import { useUIManager } from "../../context/UIManagerContext";
-import { buildAuthPayload } from "../../utils/authUtils";
-import { useAuthContext } from "../../context/AuthContext";
-import { backToThirdParty } from "../../utils/messageHandler";
-import { Vehicle } from "../../models/vehicle";
-import VehicleCard from "./VehicleCard";
-import { isEmbed } from "../../utils/isEmbed";
+import React from 'react';
+import Card from '../Shared/Card';
+import Header from '../Shared/Header';
+import PrimaryButton from '../Shared/PrimaryButton';
+import { useDevCredentials } from '../../context/DevCredentialsContext';
+import { useUIManager } from '../../context/UIManagerContext';
+import { buildAuthPayload } from '../../utils/authUtils';
+import { useAuthContext } from '../../context/AuthContext';
+import { backToThirdParty } from '../../utils/messageHandler';
+import { Vehicle } from '../../models/vehicle';
+import VehicleCard from './VehicleCard';
+import { isEmbed } from '../../utils/isEmbed';
 
 const SuccessfulPermissions: React.FC = () => {
   const { redirectUri, devLicenseAlias, clientId } = useDevCredentials();
@@ -45,7 +45,7 @@ const SuccessfulPermissions: React.FC = () => {
     >
       <Header
         title={`You have successfully ${action} your vehicles!`}
-        subtitle={""}
+        subtitle={''}
       />
       <div className="flex flex-col gap-4 max-h-[400px] overflow-auto w-full max-w-[440px]">
         {vehicles &&
@@ -55,7 +55,7 @@ const SuccessfulPermissions: React.FC = () => {
               key={vehicle.tokenId.toString()}
               vehicle={vehicle}
               isSelected={false}
-              onSelect={() => console.log("yee")}
+              onSelect={() => console.log('yee')}
               disabled={true}
               incompatible={false}
             />

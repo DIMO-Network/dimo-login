@@ -1,18 +1,18 @@
 // src/components/SuccessPage.tsx
-import React from "react";
-import { useAuthContext } from "../../context/AuthContext";
-import Card from "../Shared/Card";
-import Header from "../Shared/Header";
-import PrimaryButton from "../Shared/PrimaryButton";
-import { useDevCredentials } from "../../context/DevCredentialsContext";
+import React from 'react';
+import { useAuthContext } from '../../context/AuthContext';
+import Card from '../Shared/Card';
+import Header from '../Shared/Header';
+import PrimaryButton from '../Shared/PrimaryButton';
+import { useDevCredentials } from '../../context/DevCredentialsContext';
 import {
   buildAuthPayload,
   logout,
   sendAuthPayloadToParent,
-} from "../../utils/authUtils";
-import { useUIManager } from "../../context/UIManagerContext";
-import { isEmbed } from "../../utils/isEmbed";
-import { backToThirdParty } from "../../utils/messageHandler";
+} from '../../utils/authUtils';
+import { useUIManager } from '../../context/UIManagerContext';
+import { isEmbed } from '../../utils/isEmbed';
+import { backToThirdParty } from '../../utils/messageHandler';
 
 const SuccessPage: React.FC = () => {
   const { user, jwt } = useAuthContext(); // Should be set on session init
@@ -23,7 +23,7 @@ const SuccessPage: React.FC = () => {
     if (jwt && redirectUri && clientId) {
       const authPayload = buildAuthPayload(clientId, jwt, user);
       sendAuthPayloadToParent(authPayload, redirectUri, (payload) => {
-        backToThirdParty(payload, redirectUri);        
+        backToThirdParty(payload, redirectUri);
       });
     }
   };

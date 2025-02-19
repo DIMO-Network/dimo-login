@@ -1,6 +1,6 @@
-import React, { createContext, ReactNode, useContext, useState } from "react";
+import React, { createContext, ReactNode, useContext, useState } from 'react';
 
-import useLoading from "../hooks/useLoading";
+import useLoading from '../hooks/useLoading';
 
 interface UiStateOptionProps {
   setBack: boolean;
@@ -28,17 +28,17 @@ interface UIManagerContextProps {
 }
 
 export enum UiStates {
-  EMAIL_INPUT = "EMAIL_INPUT",
-  OTP_INPUT = "OTP_INPUT",
-  PASSKEY_GENERATOR = "PASSKEY_GENERATOR",
-  VEHICLE_MANAGER = "VEHICLE_MANAGER",
-  SELECT_VEHICLES = "SELECT_VEHICLES",
-  MANAGE_VEHICLE = "MANAGE_VEHICLE",
-  ADVANCED_TRANSACTION = "ADVANCED_TRANSACTION",
-  TRANSACTION_SUCCESS = "TRANSACTION_SUCCESS",
-  TRANSACTION_CANCELLED = "TRANSACTION_CANCELLED",
-  VEHICLES_SHARED_SUCCESS = "VEHICLES_SHARED_SUCCESS",
-  SUCCESS = "SUCCESS",
+  EMAIL_INPUT = 'EMAIL_INPUT',
+  OTP_INPUT = 'OTP_INPUT',
+  PASSKEY_GENERATOR = 'PASSKEY_GENERATOR',
+  VEHICLE_MANAGER = 'VEHICLE_MANAGER',
+  SELECT_VEHICLES = 'SELECT_VEHICLES',
+  MANAGE_VEHICLE = 'MANAGE_VEHICLE',
+  ADVANCED_TRANSACTION = 'ADVANCED_TRANSACTION',
+  TRANSACTION_SUCCESS = 'TRANSACTION_SUCCESS',
+  TRANSACTION_CANCELLED = 'TRANSACTION_CANCELLED',
+  VEHICLES_SHARED_SUCCESS = 'VEHICLES_SHARED_SUCCESS',
+  SUCCESS = 'SUCCESS',
 }
 
 const UIManagerContext = createContext<UIManagerContextProps | undefined>(
@@ -107,7 +107,7 @@ export const UIManagerProvider = ({ children }: { children: ReactNode }) => {
 export const useUIManager = () => {
   const context = useContext(UIManagerContext);
   if (!context) {
-    throw new Error("useUIManager must be used within a UIManagerProvider");
+    throw new Error('useUIManager must be used within a UIManagerProvider');
   }
   return context;
 };
