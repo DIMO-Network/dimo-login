@@ -1,7 +1,8 @@
-import React from "react";
+import React from 'react';
 
-import { Vehicle } from "../../models/vehicle";
-import { UiStates, useUIManager } from "../../context/UIManagerContext";
+import { Vehicle } from '@models/vehicle';
+import { useUIManager } from '@context/UIManagerContext';
+import { UiStates } from '@context/types/UIManagerContext';
 
 interface VehicleCardProps {
   vehicle: Vehicle;
@@ -20,7 +21,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
 }) => {
   const { componentData, setComponentData, setUiState } = useUIManager(); // Access the manage function from the context
 
-  const handleManageClick = (e: React.MouseEvent) => {
+  const handleManageClick = () => {
     setComponentData({ ...componentData, vehicle }); //Retains permissionTemplateID for Manage Vehicle
     setUiState(UiStates.MANAGE_VEHICLE, {
       setBack: true,
@@ -30,12 +31,12 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
   return (
     <div
       className={`flex items-center p-4 ${
-        !disabled && "border"
+        !disabled && 'border'
       } rounded-2xl cursor-pointer transition ${
         vehicle.shared || incompatible
-          ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-          : "hover:bg-gray-50 border-black cursor-pointer"
-      } ${isSelected && "border-black"}`}
+          ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+          : 'hover:bg-gray-50 border-black cursor-pointer'
+      } ${isSelected && 'border-black'}`}
     >
       {/* Custom Checkbox */}
       {!disabled && !incompatible && (
@@ -64,7 +65,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
       <img
         className="h-[48px] w-[48px] rounded-full object-cover mr-4"
         src={
-          "https://assets.dimo.xyz/ipfs/QmaaxazmGtNM6srcRmLyNdjCp8EAmvaTDYSo1k2CXVRTaY"
+          'https://assets.dimo.xyz/ipfs/QmaaxazmGtNM6srcRmLyNdjCp8EAmvaTDYSo1k2CXVRTaY'
         }
         alt={`${vehicle.make} ${vehicle.model}`}
       />

@@ -1,8 +1,8 @@
-import React, { type FC } from "react";
+import React, { type FC } from 'react';
 
-import { IconProps } from ".";
+import { IconProps } from '.';
 
-export const GoogleIcon: FC<IconProps> = ({ className = "" }) => {
+export const GoogleIcon: FC<IconProps> = () => {
   return (
     <svg
       width="21"

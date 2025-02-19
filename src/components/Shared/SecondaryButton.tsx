@@ -1,5 +1,4 @@
-// components/Shared/SecondaryButton.tsx
-import React, { ReactNode } from "react";
+import React, { ReactNode } from 'react';
 
 interface SecondaryButtonProps {
   onClick: () => void;

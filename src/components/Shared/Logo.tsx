@@ -1,3 +1,4 @@
+import React from 'react';
 const Logo = () => (
   <div className="flex justify-center h-[40px]">
     <svg

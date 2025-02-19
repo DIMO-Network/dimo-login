@@ -4,5 +4,5 @@ export interface FetchPermissionsParams {
   walletAddress: string;
   email: string;
   devLicenseAlias: string;
-  expirationDate: BigInt;
+  expirationDate: bigint;
 }

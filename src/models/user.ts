@@ -1,4 +1,3 @@
-// src/models/user.ts
 export interface UserObject {
   email: string;
   subOrganizationId: string;

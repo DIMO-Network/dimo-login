@@ -1,38 +1,35 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
 
 import {
   SetVehiclePermissions,
   SetVehiclePermissionsBulk,
-} from "@dimo-network/transactions";
+} from '@dimo-network/transactions';
 
-import { fetchVehiclesWithTransformation } from "../../services/identityService";
-import VehicleCard from "./VehicleCard";
-import { useAuthContext } from "../../context/AuthContext";
-import { Vehicle } from "../../models/vehicle";
+import { fetchVehiclesWithTransformation } from '@services/identityService';
+import VehicleCard from './VehicleCard';
+import { useAuthContext } from '@context/AuthContext';
+import { Vehicle } from '@models/vehicle';
 import {
   generateIpfsSources,
   initializeIfNeeded,
   setVehiclePermissions,
   setVehiclePermissionsBulk,
-} from "../../services/turnkeyService";
-import {
-  buildAuthPayload,
-  sendAuthPayloadToParent,
-} from "../../utils/authUtils";
-import { useDevCredentials } from "../../context/DevCredentialsContext";
-import { getPermsValue } from "../../services/permissionsService";
-import PrimaryButton from "../Shared/PrimaryButton";
-import ErrorMessage from "../Shared/ErrorMessage";
-import { backToThirdParty } from "../../utils/messageHandler";
-import { UiStates, useUIManager } from "../../context/UIManagerContext";
-import Loader from "../Shared/Loader";
-import { EmptyState } from "./EmptyState";
+} from '@services/turnkeyService';
+import { buildAuthPayload, sendAuthPayloadToParent } from '@utils/authUtils';
+import { useDevCredentials } from '@context/DevCredentialsContext';
+import { getPermsValue } from '@services/permissionsService';
+import PrimaryButton from '../Shared/PrimaryButton';
+import { backToThirdParty } from '@utils/messageHandler';
+import { useUIManager } from '@context/UIManagerContext';
+import Loader from '../Shared/Loader';
+import { EmptyState } from './EmptyState';
+import { UiStates } from '@context/types/UIManagerContext';
 
 interface SelectVehiclesProps {
   vehicleTokenIds: string[] | undefined; // Adjust the type based on your data
   permissionTemplateId: string; // Adjust the type if necessary
   vehicleMakes: string[] | undefined; // Adjust the type if necessary
-  expirationDate: BigInt;
+  expirationDate: bigint;
 }
 
 const SelectVehicles: React.FC<SelectVehiclesProps> = ({
@@ -43,7 +40,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
 }) => {
   const { user, jwt } = useAuthContext();
   const { clientId, redirectUri, devLicenseAlias } = useDevCredentials();
-  const { setUiState, setComponentData, setLoadingState, error, setError } =
+  const { setUiState, setComponentData, setLoadingState, setError } =
     useUIManager();
 
   const [vehiclesLoading, setVehiclesLoading] = useState(true);
@@ -54,16 +51,16 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
     []
   );
   const [hasNextPage, setHasNextPage] = useState(false);
-  const [endCursor, setEndCursor] = useState("");
+  const [endCursor, setEndCursor] = useState('');
   const [hasPreviousPage, setHasPreviousPage] = useState(false);
-  const [startCursor, setStartCursor] = useState("");
+  const [startCursor, setStartCursor] = useState('');
 
   //Data from Developer
   const [selectedVehicles, setSelectedVehicles] = useState<Vehicle[]>([]); // Array for multiple selected vehicles
 
-  const fetchVehicles = async (direction = "next") => {
+  const fetchVehicles = async (direction = 'next') => {
     try {
-      const cursor = direction === "next" ? endCursor : startCursor;
+      const cursor = direction === 'next' ? endCursor : startCursor;
 
       const transformedVehicles = await fetchVehiclesWithTransformation(
         user.smartContractAddress,
@@ -85,8 +82,8 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
       // Set isExpanded based on vehicles length
     } catch (error) {
       setVehiclesLoading(false);
-      setError("Could not fetch vehicles");
-      console.error("Error fetching vehicles:", error);
+      setError('Could not fetch vehicles');
+      console.error('Error fetching vehicles:', error);
     }
   };
 
@@ -111,8 +108,10 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
       const authPayload = buildAuthPayload(clientId, jwt, user);
       const authPayloadWithVehicles = {
         ...authPayload,
-        sharedVehicles: selectedVehicles.map((vehicle: Vehicle) => vehicle.tokenId)
-      }
+        sharedVehicles: selectedVehicles.map(
+          (vehicle: Vehicle) => vehicle.tokenId
+        ),
+      };
       sendAuthPayloadToParent(authPayloadWithVehicles, redirectUri, () =>
         handleNavigation(authPayloadWithVehicles)
       );
@@ -127,7 +126,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
   };
 
   const handleShare = async () => {
-    setLoadingState(true, "Sharing vehicles", true);
+    setLoadingState(true, 'Sharing vehicles', true);
 
     await initializeIfNeeded(user.subOrganizationId);
 
@@ -171,19 +170,19 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
             await setVehiclePermissionsBulk(bulkVehiclePermissions);
           }
 
-          sendJwtAfterPermissions((authPayload: any) => {
-            setComponentData({ action: "shared", vehicles: selectedVehicles });
+          sendJwtAfterPermissions(() => {
+            setComponentData({ action: 'shared', vehicles: selectedVehicles });
             setUiState(UiStates.VEHICLES_SHARED_SUCCESS);
             setSelectedVehicles([]);
           });
           setLoadingState(false);
         } catch (error) {
-          setError("Could not share vehicles");
+          setError('Could not share vehicles');
           setLoadingState(false);
-          console.error("Error sharing vehicles:", error);
+          console.error('Error sharing vehicles:', error);
         }
       } else {
-        setError("No vehicles selected");
+        setError('No vehicles selected');
         setLoadingState(false);
       }
     }
@@ -236,8 +235,8 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
                   {vehicles
                     .filter((vehicle) => !vehicle.shared)
                     .every((vehicle) => selectedVehicles.includes(vehicle))
-                    ? "Deselect All"
-                    : "Select All"}
+                    ? 'Deselect All'
+                    : 'Select All'}
                 </button>
               </div>
               {vehicles.map((vehicle: Vehicle) => (
@@ -277,7 +276,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
                 <PrimaryButton
                   onClick={() => {
                     setVehiclesLoading(true);
-                    fetchVehicles("previous");
+                    fetchVehicles('previous');
                   }}
                   width="w-[214px]"
                 >
@@ -303,7 +302,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
       {/* Render buttons */}
       <div
         className={`grid grid-flow-col auto-cols-fr gap-4 ${
-          canShare ? "justify-between" : "justify-center"
+          canShare ? 'justify-between' : 'justify-center'
         } w-full max-w-[440px] pt-4`}
       >
         {(noVehicles || allShared) && (
@@ -322,10 +321,10 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
               disabled={selectedVehicles.length === 0}
             >
               {selectedVehicles.length === 0
-                ? "Share selected cars"
+                ? 'Share selected cars'
                 : selectedVehicles.length === 1
-                ? "Share 1 car selected"
-                : `Share ${selectedVehicles.length} cars selected`}
+                  ? 'Share 1 car selected'
+                  : `Share ${selectedVehicles.length} cars selected`}
             </PrimaryButton>
           </>
         )}

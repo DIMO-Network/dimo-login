@@ -1,11 +1,8 @@
-// sessionService.ts
+import { UserObject } from '@models/user';
+import { getJWTFromCookies, getUserFromLocalStorage } from './storageService';
+import { isTokenExpired } from './tokenService';
+import { UiStates } from '@context/types/UIManagerContext';
 
-import { UiStates } from "../context/UIManagerContext";
-import { UserObject } from "../models/user";
-import { getJWTFromCookies, getUserFromLocalStorage } from "./storageService";
-import { isTokenExpired } from "./tokenService";
-
-// Define types for the function parameters
 type InitializeSessionParams = {
   clientId: string | null;
   setJwt: (jwt: string) => void;
@@ -24,7 +21,7 @@ export function initializeSession({
   setUserInitialized,
 }: InitializeSessionParams): void {
   if (!clientId) {
-    console.error("Client ID is missing. Cannot initialize session.");
+    console.error('Client ID is missing. Cannot initialize session.');
     setUserInitialized(true);
     return;
   }
