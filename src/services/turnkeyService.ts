@@ -1,6 +1,4 @@
-/**
- * turnkeyService.ts
- *
+/***
  * This service handles all actions dependent on turnkey
  * using the Turnkey Client Libraries, or custom Dimo SDK's such as the transactions SDK
  *
@@ -106,10 +104,6 @@ export const initializePasskey = async (
   await kernelSigner.passkeyToSession(subOrganizationId, stamper);
 };
 
-export const openSessionWithPasskey = async (): Promise<void> => {
-  return await kernelSigner.openSessionWithPasskey();
-};
-
 export const initializeIfNeeded = async (
   subOrganizationId: string
 ): Promise<void> => {
@@ -125,9 +119,7 @@ export const signChallenge = async (
 ): Promise<`0x${string}`> => {
   //This is triggering a turnkey API request to sign a raw payload
   //Notes on signature, turnkey api returns an ecdsa signature, which the kernel client is handling
-  const signature = await kernelSigner.signChallenge(challenge);
-
-  return signature;
+  return await kernelSigner.signChallenge(challenge);
 };
 
 // Helper function to generate IPFS sources for one or more vehicles
@@ -237,10 +229,6 @@ export function getSacdValue(
   >
 ): bigint {
   return sacdPermissionValue(sacdPerms);
-}
-
-export function getSacdDescription(args: VehcilePermissionDescription): string {
-  return sacdDescription(args);
 }
 
 export function getSacdPermissionArray(permissionsObject: bigint): string[] {

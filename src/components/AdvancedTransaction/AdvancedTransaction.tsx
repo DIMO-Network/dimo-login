@@ -15,7 +15,8 @@ import { sendTxnResponseToParent } from '@utils/txnUtils';
 import { sendErrorToParent } from '@utils/errorUtils';
 import { TransactionData } from '@dimo-network/transactions';
 import { sendMessageToReferrer } from '@utils/messageHandler';
-import { UiStates, useUIManager } from '@context/UIManagerContext';
+import { useUIManager } from '@context/UIManagerContext';
+import { UiStates } from '@context/types/UIManagerContext';
 
 const AdvancedTransaction: React.FC = () => {
   const { redirectUri } = useDevCredentials();

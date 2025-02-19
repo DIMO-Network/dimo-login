@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 
 import { initializeSession } from './services/sessionService';
 import { PasskeyGeneration } from './components/Auth/PasskeyGeneration';
-import { useAuthContext } from './context/AuthContext';
+import { useAuthContext } from '@context/AuthContext';
 import { useDevCredentials } from './context/DevCredentialsContext'; // Import DevCredentialsContext
-import { UiStates, useUIManager } from './context/UIManagerContext';
+import { useUIManager } from './context/UIManagerContext';
 
 import AdvancedTransaction from './components/AdvancedTransaction/AdvancedTransaction';
 import CancelledTransaction from './components/AdvancedTransaction/CancelledTransaction';
@@ -19,6 +19,7 @@ import VehicleManager from './components/Vehicles/VehicleManager';
 import ManageVehicle from './components/Vehicles/ManageVehicle';
 
 import './App.css';
+import { UiStates } from '@context/types/UIManagerContext';
 
 const App = () => {
   const { setJwt, setUser, setUserInitialized, userInitialized } =

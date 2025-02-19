@@ -8,7 +8,7 @@ import { PrimaryButton } from '@components/Shared/PrimaryButton';
 import { setEmailGranted } from '@services/storageService';
 import { useAuthContext } from '@context/AuthContext';
 import { useDevCredentials } from '@context/DevCredentialsContext';
-import { UiStates, useUIManager } from '@context/UIManagerContext';
+import { useUIManager } from '@context/UIManagerContext';
 
 import ErrorMessage from '@components/Shared/ErrorMessage';
 import { submitCodeExchange } from '@services/authService';
@@ -18,6 +18,7 @@ import { AppleIcon, GoogleIcon } from '@components/Icons';
 import { isValidEmail } from '@utils/emailUtils';
 import { getForceEmail } from '@stores/AuthStateStore';
 import { getAppUrl } from '@utils/urlHelpers';
+import { UiStates } from '@context/types/UIManagerContext';
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;

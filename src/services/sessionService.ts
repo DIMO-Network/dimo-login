@@ -1,11 +1,8 @@
-// sessionService.ts
-
-import { UiStates } from '@context/UIManagerContext';
 import { UserObject } from '@models/user';
 import { getJWTFromCookies, getUserFromLocalStorage } from './storageService';
 import { isTokenExpired } from './tokenService';
+import { UiStates } from '@context/types/UIManagerContext';
 
-// Define types for the function parameters
 type InitializeSessionParams = {
   clientId: string | null;
   setJwt: (jwt: string) => void;

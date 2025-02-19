@@ -3,10 +3,10 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
-import { AuthProvider } from './context/AuthContext';
-import { DevCredentialsProvider } from './context/DevCredentialsContext';
-import { sendMessageToReferrer } from './utils/messageHandler';
-import { UIManagerProvider } from './context/UIManagerContext';
+import { AuthProvider } from '@context/AuthContext';
+import { DevCredentialsProvider } from '@context/DevCredentialsContext';
+import { sendMessageToReferrer } from '@utils/messageHandler';
+import { UIManagerProvider } from '@context/UIManagerContext';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement

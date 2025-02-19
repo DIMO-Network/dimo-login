@@ -1,5 +1,3 @@
-// Define types for user properties
-
 import { UserObject } from '@models/user';
 
 // Utility function to store JWT in cookies for a given clientId

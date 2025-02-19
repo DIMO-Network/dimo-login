@@ -20,9 +20,10 @@ import { useDevCredentials } from '@context/DevCredentialsContext';
 import { getPermsValue } from '@services/permissionsService';
 import PrimaryButton from '../Shared/PrimaryButton';
 import { backToThirdParty } from '@utils/messageHandler';
-import { UiStates, useUIManager } from '@context/UIManagerContext';
+import { useUIManager } from '@context/UIManagerContext';
 import Loader from '../Shared/Loader';
 import { EmptyState } from './EmptyState';
+import { UiStates } from '@context/types/UIManagerContext';
 
 interface SelectVehiclesProps {
   vehicleTokenIds: string[] | undefined; // Adjust the type based on your data

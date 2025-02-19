@@ -1,5 +1,4 @@
 /**
- * DevCredentialsContext.tsx
  *
  * This file provides the DevCredentialsContext and DevCredentialsProvider, which manage global
  * state for developer credentials (clientId, apiKey, redirectUri) in the application. These credentials
@@ -9,26 +8,20 @@
 
 import React, {
   createContext,
-  useContext,
   ReactNode,
-  useState,
+  useContext,
   useEffect,
+  useState,
 } from 'react';
 
 import { isValidClientId } from '@services/identityService';
 import { createKernelSigner } from '@services/turnkeyService';
-import { UiStates, useUIManager } from './UIManagerContext';
+import { useUIManager } from './UIManagerContext';
 import { setEmailGranted } from '@services/storageService';
 import { isStandalone } from '@utils/isStandalone';
 import { setForceEmail } from '@stores/AuthStateStore';
-
-interface DevCredentialsContextProps {
-  clientId: string;
-  apiKey: string;
-  redirectUri: string;
-  invalidCredentials: boolean;
-  devLicenseAlias: string;
-}
+import { UiStates } from '@context/types/UIManagerContext';
+import { DevCredentialsContextProps } from '@context/types/DevCredentialsContext';
 
 const DevCredentialsContext = createContext<
   DevCredentialsContextProps | undefined
@@ -39,7 +32,7 @@ export const DevCredentialsProvider = ({
   children,
 }: {
   children: ReactNode;
-}): JSX.Element => {
+}): React.JSX.Element => {
   const [clientId, setClientId] = useState<string>('');
   const [apiKey, setApiKey] = useState<string>('');
   const [redirectUri, setRedirectUri] = useState<string>('');

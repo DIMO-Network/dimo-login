@@ -1,6 +1,4 @@
-/**
- * authService.ts
- *
+/***
  * This service handles all authentication-related API requests. Primarily through the dimo Auth API
  *
  * Functions:
@@ -75,13 +73,12 @@ export const submitWeb3Challenge = async ({
   signature,
 }: SubmitChallengeParams): Promise<SubmitChallengeResult> => {
   try {
-    // Construct the body using URLSearchParams for form-urlencoded
     const formBody = new URLSearchParams({
       client_id: clientId,
       state: state,
-      grant_type: 'authorization_code', // Fixed value
+      grant_type: 'authorization_code',
       domain: domain,
-      signature: signature, // The 0x-prefixed signature obtained from Step 2
+      signature: signature,
     });
 
     const response = await fetch(
@@ -91,7 +88,7 @@ export const submitWeb3Challenge = async ({
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: formBody, // Send the form-encoded body
+        body: formBody,
       }
     );
 
@@ -120,11 +117,10 @@ export const submitCodeExchange = async ({
   redirectUri,
 }: SubmitCodeExchangeParams): Promise<SubmitChallengeResult> => {
   try {
-    // Construct the body using URLSearchParams for form-urlencoded
     const formBody = new URLSearchParams({
       client_id: clientId,
       code,
-      grant_type: 'authorization_code', // Fixed value
+      grant_type: 'authorization_code',
       redirect_uri: redirectUri,
     });
 
@@ -133,7 +129,7 @@ export const submitCodeExchange = async ({
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: formBody, // Send the form-encoded body
+      body: formBody,
     });
 
     if (!response.ok) {

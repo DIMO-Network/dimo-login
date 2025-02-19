@@ -13,7 +13,6 @@ const GRAPHQL_ENDPOINT =
   process.env.REACT_APP_DIMO_IDENTITY_URL ||
   'https://identity-api.dev.dimo.zone/query';
 
-// Function to fetch vehicles and transform data
 //TODO: Convert to Object Params
 export const fetchVehiclesWithTransformation = async (
   ownerAddress: string,
@@ -68,7 +67,6 @@ export const fetchVehiclesWithTransformation = async (
   const compatibleVehicles: Vehicle[] = [];
   const incompatibleVehicles: Vehicle[] = [];
 
-  // Process vehicles
   data.data.vehicles.nodes.forEach((vehicle: any) => {
     const tokenIdMatch =
       !vehicleTokenIds ||

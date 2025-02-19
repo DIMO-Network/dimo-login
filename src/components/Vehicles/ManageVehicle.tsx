@@ -4,7 +4,7 @@ import Card from '../Shared/Card';
 import Header from '../Shared/Header';
 import PrimaryButton from '../Shared/PrimaryButton';
 import { useDevCredentials } from '@context/DevCredentialsContext';
-import { UiStates, useUIManager } from '@context/UIManagerContext';
+import { useUIManager } from '@context/UIManagerContext';
 import { useAuthContext } from '@context/AuthContext';
 import { SetVehiclePermissions } from '@dimo-network/transactions';
 import {
@@ -14,6 +14,7 @@ import {
 } from '@services/turnkeyService';
 import { getPermsValue } from '@services/permissionsService';
 import { extendByYear, parseExpirationDate } from '@utils/dateUtils';
+import { UiStates } from '@context/types/UIManagerContext';
 
 const ManageVehicle: React.FC = () => {
   const { clientId } = useDevCredentials();

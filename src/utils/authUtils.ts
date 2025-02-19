@@ -16,7 +16,8 @@ import {
 import { UserObject } from '@models/user';
 import { backToThirdParty, sendMessageToReferrer } from './messageHandler';
 import { GenerateChallengeParams, SubmitChallengeParams } from '@models/web3';
-import { UiStates } from '@context/UIManagerContext';
+
+import { UiStates } from '@context/types/UIManagerContext';
 
 export function buildAuthPayload(
   clientId: string,

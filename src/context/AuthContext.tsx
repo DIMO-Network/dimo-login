@@ -1,6 +1,4 @@
-/**
- * AuthContext.tsx
- *
+/***
  * This file provides the AuthContext and AuthProvider, which manage global authentication
  * state in the application. It can be used to store and access the user's authentication
  * status, user data, and login/logout functions across the entire application.
@@ -15,13 +13,11 @@
  * Wrap the application or a part of it with the AuthProvider to make the authentication
  * state available across the app. Use the useAuthContext hook to access the authentication
  * state and functions.
-
  */
 
-import React, { createContext, useContext, ReactNode, useState } from 'react';
-
+import React, { createContext, ReactNode, useContext, useState } from 'react';
 import { authenticateUser } from '@utils/authUtils';
-import { createAccount, sendOtp, verifyOtp } from '@services/accountsService'; // Import the service functions
+import { createAccount, sendOtp, verifyOtp } from '@services/accountsService';
 import { CreateAccountParams } from '@models/account';
 import { createPasskey } from '@services/turnkeyService';
 import { CredentialResult, OtpResult, UserResult } from '@models/resultTypes';
@@ -29,22 +25,7 @@ import { useDevCredentials } from './DevCredentialsContext';
 import { UserObject } from '@models/user';
 import { useUIManager } from './UIManagerContext';
 
-interface AuthContextProps {
-  createAccountWithPasskey: (email: string) => Promise<UserResult>;
-  sendOtp: (email: string) => Promise<OtpResult>;
-  verifyOtp: (email: string, otp: string) => Promise<CredentialResult>;
-  authenticateUser: (
-    email: string,
-    credentialBundle: string,
-    entryState: string
-  ) => Promise<void>;
-  user: UserObject;
-  setUser: React.Dispatch<React.SetStateAction<UserObject>>;
-  jwt: string;
-  setJwt: React.Dispatch<React.SetStateAction<string>>;
-  userInitialized: boolean;
-  setUserInitialized: React.Dispatch<React.SetStateAction<boolean>>;
-}
+import { AuthContextProps } from '@context/types/AuthContext';
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
@@ -63,7 +44,7 @@ export const AuthProvider = ({
   children,
 }: {
   children: ReactNode;
-}): JSX.Element => {
+}): React.JSX.Element => {
   const [user, setUser] = useState<UserObject>(defaultUser);
   const [otpId, setOtpId] = useState<string>('');
   const [jwt, setJwt] = useState<string>('');
