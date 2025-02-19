@@ -1,15 +1,14 @@
 // src/types/resultTypes.ts
 
-import { UserObject } from "./user";
+import { UserObject } from './user';
 
 type SubmitChallengeResponse = {
   access_token: string;
 };
 
-
 type SubmitCodeExchangeResponse = {
   access_token: string;
-}
+};
 
 type GenerateChallengeResponse = {
   challenge: string;
@@ -17,7 +16,6 @@ type GenerateChallengeResponse = {
 };
 
 export type PasskeyCreationResult = [attestation: any, challenge: string];
-
 
 // Generalized Result Type
 export type Result<T> =

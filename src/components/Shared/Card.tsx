@@ -1,3 +1,5 @@
+import React from 'react';
+
 interface CardProps {
   width: string;
   height: string;
@@ -8,7 +10,7 @@ interface CardProps {
 export const Card: React.FC<CardProps> = ({
   width,
   height,
-  className = "",
+  className = '',
   children,
 }) => (
   <div

@@ -1,21 +1,21 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
 
-import Card from "../Shared/Card";
-import PrimaryButton from "../Shared/PrimaryButton";
-import Header from "../Shared/Header";
-import ErrorMessage from "../Shared/ErrorMessage";
-import { useDevCredentials } from "../../context/DevCredentialsContext";
-import { useAuthContext } from "../../context/AuthContext";
+import Card from '../Shared/Card';
+import PrimaryButton from '../Shared/PrimaryButton';
+import Header from '../Shared/Header';
+import ErrorMessage from '../Shared/ErrorMessage';
+import { useDevCredentials } from '../../context/DevCredentialsContext';
+import { useAuthContext } from '../../context/AuthContext';
 import {
   executeAdvancedTransaction,
   initializeIfNeeded,
-} from "../../services/turnkeyService";
-import ErrorScreen from "../Shared/ErrorScreen";
-import { sendTxnResponseToParent } from "../../utils/txnUtils";
-import { sendErrorToParent } from "../../utils/errorUtils";
-import { TransactionData } from "@dimo-network/transactions";
-import { sendMessageToReferrer } from "../../utils/messageHandler";
-import { UiStates, useUIManager } from "../../context/UIManagerContext";
+} from '../../services/turnkeyService';
+import ErrorScreen from '../Shared/ErrorScreen';
+import { sendTxnResponseToParent } from '../../utils/txnUtils';
+import { sendErrorToParent } from '../../utils/errorUtils';
+import { TransactionData } from '@dimo-network/transactions';
+import { sendMessageToReferrer } from '../../utils/messageHandler';
+import { UiStates, useUIManager } from '../../context/UIManagerContext';
 
 const AdvancedTransaction: React.FC = () => {
   const { redirectUri } = useDevCredentials();
@@ -29,7 +29,7 @@ const AdvancedTransaction: React.FC = () => {
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const transactionDataFromUrl = urlParams.get("transactionData");
+    const transactionDataFromUrl = urlParams.get('transactionData');
 
     if (transactionDataFromUrl != null) {
       try {
@@ -39,18 +39,18 @@ const AdvancedTransaction: React.FC = () => {
 
         setTransactionData(parsedTransactionData);
       } catch (error) {
-        console.error("Failed to parse transactionData:", error);
+        console.error('Failed to parse transactionData:', error);
       }
     } else {
-      sendMessageToReferrer({ eventType: "EXECUTE_ADVANCED_TRANSACTION" }); //Requests Data from SDK
+      sendMessageToReferrer({ eventType: 'EXECUTE_ADVANCED_TRANSACTION' }); //Requests Data from SDK
 
       const handleMessage = (event: MessageEvent) => {
         const { eventType, transactionData } = event.data;
-        if (eventType === "EXECUTE_ADVANCED_TRANSACTION") {
+        if (eventType === 'EXECUTE_ADVANCED_TRANSACTION') {
           setTransactionData(transactionData);
         }
       };
-      window.addEventListener("message", handleMessage);
+      window.addEventListener('message', handleMessage);
     }
   }, []);
 
@@ -64,18 +64,17 @@ const AdvancedTransaction: React.FC = () => {
   }
 
   const onApprove = async () => {
-    setLoadingState(true, "Executing Transaction", true);
+    setLoadingState(true, 'Executing Transaction', true);
     //Ensure Passkey
 
     await initializeIfNeeded(user.subOrganizationId);
 
     try {
       const receipt = await executeAdvancedTransaction(
-        transactionData.address,
         transactionData.abi,
         transactionData.functionName,
         transactionData.args,
-        transactionData.value
+        transactionData.value as bigint
       );
 
       //Send transaction hash to developer, and show user successful txn
@@ -86,7 +85,7 @@ const AdvancedTransaction: React.FC = () => {
       });
     } catch (e) {
       console.log(e);
-      setError("Could not execute transaction, please try again");
+      setError('Could not execute transaction, please try again');
       setLoadingState(false);
     }
   };

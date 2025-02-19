@@ -1,16 +1,16 @@
-import React, { useEffect, useState, type FC } from "react";
+import React, { useEffect, useState, type FC } from 'react';
 
-import { Card } from "../Shared/Card";
-import { Header } from "../Shared/Header";
-import { PrimaryButton } from "../Shared/PrimaryButton";
+import { Card } from '../Shared/Card';
+import { Header } from '../Shared/Header';
+import { PrimaryButton } from '../Shared/PrimaryButton';
 import {
   DevicesIcon,
   FingerprintIcon,
   IconProps,
   SecurityIcon,
-} from "../Icons";
-import { useAuthContext } from "../../context/AuthContext";
-import { UiStates, useUIManager } from "../../context/UIManagerContext";
+} from '../Icons';
+import { useAuthContext } from '../../context/AuthContext';
+import { UiStates, useUIManager } from '../../context/UIManagerContext';
 
 interface PasskeyBenefitProps {
   Icon: FC<IconProps>;
@@ -21,20 +21,20 @@ interface PasskeyBenefitProps {
 const PASSKEY_BENEFITS: PasskeyBenefitProps[] = [
   {
     Icon: FingerprintIcon,
-    title: "No need to remember a password",
+    title: 'No need to remember a password',
     description:
-      "Passkeys are digital signatures that use Face ID or biometrics.",
+      'Passkeys are digital signatures that use Face ID or biometrics.',
   },
   {
     Icon: SecurityIcon,
-    title: "Advanced protection",
+    title: 'Advanced protection',
     description:
-      "Passkeys offer phishing-resistant technology to keep you safe.",
+      'Passkeys offer phishing-resistant technology to keep you safe.',
   },
   {
     Icon: DevicesIcon,
-    title: "Seamless authentication",
-    description: "Sign in and approve requests in an instant.",
+    title: 'Seamless authentication',
+    description: 'Sign in and approve requests in an instant.',
   },
 ];
 
@@ -70,7 +70,7 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
         await handleOtpSend(email);
       }
     } else {
-      console.error("Account creation failed"); // Handle account creation failure
+      console.error('Account creation failed'); // Handle account creation failure
     }
   };
 
@@ -84,7 +84,7 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
     ) {
       authenticateUser(
         componentData.emailValidated,
-        "credentialBundle",
+        'credentialBundle',
         entryState
       );
     }

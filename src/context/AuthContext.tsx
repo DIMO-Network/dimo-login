@@ -18,16 +18,16 @@
 
  */
 
-import React, { createContext, useContext, ReactNode, useState } from "react";
+import React, { createContext, useContext, ReactNode, useState } from 'react';
 
-import { authenticateUser } from "../utils/authUtils";
-import { createAccount, sendOtp, verifyOtp } from "../services/accountsService"; // Import the service functions
-import { CreateAccountParams } from "../models/account";
-import { createPasskey } from "../services/turnkeyService";
-import { CredentialResult, OtpResult, UserResult } from "../models/resultTypes";
-import { useDevCredentials } from "./DevCredentialsContext";
-import { UserObject } from "../models/user";
-import { useUIManager } from "./UIManagerContext";
+import { authenticateUser } from '../utils/authUtils';
+import { createAccount, sendOtp, verifyOtp } from '../services/accountsService'; // Import the service functions
+import { CreateAccountParams } from '../models/account';
+import { createPasskey } from '../services/turnkeyService';
+import { CredentialResult, OtpResult, UserResult } from '../models/resultTypes';
+import { useDevCredentials } from './DevCredentialsContext';
+import { UserObject } from '../models/user';
+import { useUIManager } from './UIManagerContext';
 
 interface AuthContextProps {
   createAccountWithPasskey: (email: string) => Promise<UserResult>;
@@ -50,11 +50,11 @@ const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
 //This will be set on account creation partially, and completed on wallet connection
 const defaultUser: UserObject = {
-  email: "",
-  smartContractAddress: "",
-  subOrganizationId: "",
+  email: '',
+  smartContractAddress: '',
+  subOrganizationId: '',
   hasPasskey: false,
-  walletAddress: "",
+  walletAddress: '',
   emailVerified: false,
 };
 
@@ -65,8 +65,8 @@ export const AuthProvider = ({
   children: ReactNode;
 }): JSX.Element => {
   const [user, setUser] = useState<UserObject>(defaultUser);
-  const [otpId, setOtpId] = useState<string>("");
-  const [jwt, setJwt] = useState<string>("");
+  const [otpId, setOtpId] = useState<string>('');
+  const [jwt, setJwt] = useState<string>('');
   const [userInitialized, setUserInitialized] = useState<boolean>(false);
   const { clientId, apiKey, redirectUri } = useDevCredentials();
   const { setLoadingState, error, setError, setUiState } = useUIManager();
@@ -74,12 +74,12 @@ export const AuthProvider = ({
   const createAccountWithPasskey = async (
     email: string
   ): Promise<UserResult> => {
-    setLoadingState(true, "Creating account", true);
+    setLoadingState(true, 'Creating account', true);
     setError(null);
     if (!apiKey) {
       return {
         success: false,
-        error: "API key is required for account creation",
+        error: 'API key is required for account creation',
       };
     }
 
@@ -101,11 +101,11 @@ export const AuthProvider = ({
         setUser(account.data.user); // Store the user object in the context
         return { success: true, data: { user: account.data.user } };
       } else {
-        throw new Error("Failed to create account");
+        throw new Error('Failed to create account');
       }
     } catch (error) {
       setError(
-        "Failed to create account, please try again or contact support."
+        'Failed to create account, please try again or contact support.'
       );
       return { success: false, error: error as string };
     } finally {
@@ -114,13 +114,13 @@ export const AuthProvider = ({
   };
 
   const handleSendOtp = async (email: string): Promise<OtpResult> => {
-    setLoadingState(true, "Sending OTP", true);
+    setLoadingState(true, 'Sending OTP', true);
     setError(null);
 
     if (!apiKey) {
       return {
         success: false,
-        error: "API key is to send an OTP",
+        error: 'API key is to send an OTP',
       };
     }
 
@@ -131,19 +131,19 @@ export const AuthProvider = ({
         // If sending OTP fails, attempt account creation and retry OTP
         const accountCreation = await createAccountWithPasskey(email);
         if (!accountCreation.success)
-          throw new Error("Account creation failed during OTP setup.");
+          throw new Error('Account creation failed during OTP setup.');
 
         // Retry sending OTP after successful account creation
         otpResult = await sendOtp(email, apiKey);
         if (!otpResult.success)
-          throw new Error("Failed to send OTP after account creation.");
+          throw new Error('Failed to send OTP after account creation.');
       }
 
       setOtpId(otpResult.data.otpId);
       console.log(`OTP sent to ${email}, OTP ID: ${otpResult.data.otpId}`);
       return { success: true, data: { otpId: otpResult.data.otpId } };
     } catch (err) {
-      setError("Failed to send OTP");
+      setError('Failed to send OTP');
       console.error(err);
       return { success: false, error: error as string };
     } finally {
@@ -155,7 +155,7 @@ export const AuthProvider = ({
     email: string,
     otp: string
   ): Promise<CredentialResult> => {
-    setLoadingState(true, "Verifying OTP", true);
+    setLoadingState(true, 'Verifying OTP', true);
     setError(null);
     try {
       const result = await verifyOtp(email, otp, otpId);
@@ -166,10 +166,10 @@ export const AuthProvider = ({
           data: { credentialBundle: result.data.credentialBundle },
         };
       } else {
-        throw new Error("Invalid OTP");
+        throw new Error('Invalid OTP');
       }
     } catch (err) {
-      setError("Invalid code. Try again.");
+      setError('Invalid code. Try again.');
       console.error(err);
       return { success: false, error: err as string };
     } finally {
@@ -182,17 +182,17 @@ export const AuthProvider = ({
     credentialBundle: string,
     entryState: string
   ) => {
-    console.log("Here");
-    setLoadingState(true, "Authenticating User");
+    console.log('Here');
+    setLoadingState(true, 'Authenticating User');
     setError(null);
 
     try {
       if (!user || !user.subOrganizationId) {
-        throw new Error("User does not exist");
+        throw new Error('User does not exist');
       }
 
       if (!clientId || !redirectUri) {
-        throw new Error("Developer credentials not found");
+        throw new Error('Developer credentials not found');
       }
 
       await authenticateUser(
@@ -208,7 +208,7 @@ export const AuthProvider = ({
     } catch (error: unknown) {
       console.error(error);
       setError(
-        "Could not authenticate user, please verify your passkey and try again."
+        'Could not authenticate user, please verify your passkey and try again.'
       );
     } finally {
       setLoadingState(false);
@@ -239,7 +239,7 @@ export const AuthProvider = ({
 export const useAuthContext = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error("useAuthContext must be used within an AuthProvider");
+    throw new Error('useAuthContext must be used within an AuthProvider');
   }
   return context;
 };

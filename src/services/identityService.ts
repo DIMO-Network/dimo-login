@@ -6,12 +6,12 @@
  * Specific Responsibilities include: Getting vehicles and their SACD permissions
  */
 
-import { Vehicle, VehicleResponse } from "../models/vehicle";
-import { formatDate } from "../utils/dateUtils";
+import { Vehicle, VehicleResponse } from '../models/vehicle';
+import { formatDate } from '../utils/dateUtils';
 
 const GRAPHQL_ENDPOINT =
   process.env.REACT_APP_DIMO_IDENTITY_URL ||
-  "https://identity-api.dev.dimo.zone/query";
+  'https://identity-api.dev.dimo.zone/query';
 
 // Function to fetch vehicles and transform data
 //TODO: Convert to Object Params
@@ -26,10 +26,10 @@ export const fetchVehiclesWithTransformation = async (
   const query = `
   {
     vehicles(filterBy: { owner: "${ownerAddress}" }, ${
-    direction === "next"
-      ? `first: 100 ${cursor ? `, after: "${cursor}"` : ""}`
-      : `last: 100 ${cursor ? `, before: "${cursor}"` : ""}`
-  }) {
+      direction === 'next'
+        ? `first: 100 ${cursor ? `, after: "${cursor}"` : ''}`
+        : `last: 100 ${cursor ? `, before: "${cursor}"` : ''}`
+    }) {
       nodes {
         tokenId
         imageURI
@@ -56,9 +56,9 @@ export const fetchVehiclesWithTransformation = async (
 `;
 
   const response = await fetch(GRAPHQL_ENDPOINT, {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({ query }),
   });
@@ -90,7 +90,7 @@ export const fetchVehiclesWithTransformation = async (
       tokenId: vehicle.tokenId,
       imageURI: vehicle.imageURI,
       shared: Boolean(sacdForGrantee), // True if a matching sacd exists
-      expiresAt: sacdForGrantee ? formatDate(sacdForGrantee.expiresAt) : "",
+      expiresAt: sacdForGrantee ? formatDate(sacdForGrantee.expiresAt) : '',
       make: vehicle.definition.make,
       model: vehicle.definition.model,
       year: vehicle.definition.year,
@@ -109,8 +109,8 @@ export const fetchVehiclesWithTransformation = async (
   return {
     hasNextPage: data.data.vehicles.pageInfo.hasNextPage,
     hasPreviousPage: data.data.vehicles.pageInfo.hasPreviousPage,
-    startCursor: data.data.vehicles.pageInfo.startCursor || "",
-    endCursor: data.data.vehicles.pageInfo.endCursor || "",
+    startCursor: data.data.vehicles.pageInfo.startCursor || '',
+    endCursor: data.data.vehicles.pageInfo.endCursor || '',
     compatibleVehicles: compatibleVehicles.sort(
       (a: any, b: any) => Number(a.shared) - Number(b.shared)
     ),
@@ -138,9 +138,9 @@ export const isValidClientId = async (
   }`;
 
   const apiResponse = await fetch(GRAPHQL_ENDPOINT!, {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({ query }),
   });
@@ -149,8 +149,8 @@ export const isValidClientId = async (
 
   // Check if data is not null
   if (!response || !response.data || !response.data.developerLicense) {
-    console.error("No data found in the response.");
-    return { isValid: false, alias: "" };
+    console.error('No data found in the response.');
+    return { isValid: false, alias: '' };
   }
 
   // Access the redirectURIs from the response
@@ -166,7 +166,7 @@ export const isValidClientId = async (
 
     return { isValid: exists, alias: alias || clientId };
   } else {
-    console.error("No redirect URIs found.");
-    return { isValid: false, alias: "" };
+    console.error('No redirect URIs found.');
+    return { isValid: false, alias: '' };
   }
 };

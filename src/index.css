@@ -7,25 +7,24 @@
     /* Large Screens should have some top padding + grayish background, but requires a min height as well */
     .lg-h-screen {
       padding-top: 10rem; /* Equivalent to pt-40 */
-      background-color: #F7F7F7;
+      background-color: #f7f7f7;
     }
   }
 }
-
-
 
 /* Default Font */
 @font-face {
   font-family: 'Universal Sans Display';
   src: url('../public/fonts/Universal-Sans-Display-425.woff2') format('woff2');
-  font-weight: 400; 
+  font-weight: 400;
   font-style: normal;
 }
 
 @font-face {
   font-family: 'Universal Sans Display';
-  src: url('../public/fonts/Universal-Sans-Display-425Italic.woff2') format('woff2');
-  font-weight: 400; 
+  src: url('../public/fonts/Universal-Sans-Display-425Italic.woff2')
+    format('woff2');
+  font-weight: 400;
   font-style: italic;
 }
 
@@ -33,14 +32,15 @@
 @font-face {
   font-family: 'Universal Sans Display';
   src: url('../public/fonts/Universal-Sans-Display-525.woff2') format('woff2');
-  font-weight: 500; 
+  font-weight: 500;
   font-style: normal;
 }
 
 @font-face {
   font-family: 'Universal Sans Display';
-  src: url('../public/fonts/Universal-Sans-Display-525Italic.woff2') format('woff2');
-  font-weight: 500; 
+  src: url('../public/fonts/Universal-Sans-Display-525Italic.woff2')
+    format('woff2');
+  font-weight: 500;
   font-style: italic;
 }
 
@@ -48,24 +48,34 @@
 @font-face {
   font-family: 'Universal Sans Display';
   src: url('../public/fonts/Universal-Sans-Display-900.woff2') format('woff2');
-  font-weight: 900;  
+  font-weight: 900;
   font-style: normal;
 }
 
 @font-face {
   font-family: 'Universal Sans Display';
-  src: url('../public/fonts/Universal-Sans-Display-900Italic.woff2') format('woff2');
-  font-weight: 900; 
+  src: url('../public/fonts/Universal-Sans-Display-900Italic.woff2')
+    format('woff2');
+  font-weight: 900;
   font-style: italic;
 }
 /* // */
 
-
-
 body {
   margin: 0;
-  font-family: 'Universal Sans Display', -apple-system, BlinkMacSystemFont, 'Universal Sans Display', 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+  font-family:
+    'Universal Sans Display',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Universal Sans Display',
+    'Segoe UI',
+    'Roboto',
+    'Oxygen',
+    'Ubuntu',
+    'Cantarell',
+    'Fira Sans',
+    'Droid Sans',
+    'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

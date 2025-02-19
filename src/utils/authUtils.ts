@@ -1,13 +1,13 @@
 import {
   generateChallenge,
   submitWeb3Challenge,
-} from "../services/authService";
+} from '../services/authService';
 import {
   getSmartContractAddress,
   getWalletAddress,
   initializePasskey,
   signChallenge,
-} from "../services/turnkeyService";
+} from '../services/turnkeyService';
 import {
   clearSessionData,
   getEmailGranted,
@@ -15,11 +15,11 @@ import {
   getUserFromLocalStorage,
   storeJWTInCookies,
   storeUserInLocalStorage,
-} from "../services/storageService";
-import { UserObject } from "../models/user";
-import { backToThirdParty, sendMessageToReferrer } from "./messageHandler";
-import { GenerateChallengeParams, SubmitChallengeParams } from "../models/web3";
-import { UiStates } from "../context/UIManagerContext";
+} from '../services/storageService';
+import { UserObject } from '../models/user';
+import { backToThirdParty, sendMessageToReferrer } from './messageHandler';
+import { GenerateChallengeParams, SubmitChallengeParams } from '../models/web3';
+import { UiStates } from '../context/UIManagerContext';
 
 export function buildAuthPayload(
   clientId: string,
@@ -36,12 +36,12 @@ export function buildAuthPayload(
   const emailGranted = getEmailGranted(clientId);
 
   if (!token) {
-    throw new Error("JWT is missing. Ensure the user is authenticated.");
+    throw new Error('JWT is missing. Ensure the user is authenticated.');
   }
 
   if (!user || !user.smartContractAddress) {
     throw new Error(
-      "User object or walletAddress is missing in local storage."
+      'User object or walletAddress is missing in local storage.'
     );
   }
 
@@ -53,7 +53,12 @@ export function buildAuthPayload(
 }
 
 export function sendAuthPayloadToParent(
-  payload: { token: string; email?: string; walletAddress: string, sharedVehicles?: bigint[] | string[] },
+  payload: {
+    token: string;
+    email?: string;
+    walletAddress: string;
+    sharedVehicles?: bigint[] | string[];
+  },
   redirectUri: string,
   onSuccess: (payload: {
     token: string;
@@ -62,9 +67,9 @@ export function sendAuthPayloadToParent(
   }) => void
 ) {
   sendMessageToReferrer({
-    eventType: "authResponse",
+    eventType: 'authResponse',
     ...payload,
-    authType: window.opener ? "popup" : "embed",
+    authType: window.opener ? 'popup' : 'embed',
   }); //TODO: authType to be deprecated soon, only kept for backwards compatibility
 
   onSuccess(payload);
@@ -76,9 +81,9 @@ export function logout(
   setUiState: (step: UiStates) => void
 ) {
   clearSessionData(clientId);
-  sendMessageToReferrer({ eventType: "logout" });
+  sendMessageToReferrer({ eventType: 'logout' });
 
-  const payload = { logout: "true" };
+  const payload = { logout: 'true' };
 
   backToThirdParty(payload, redirectUri, () => {
     setUiState(UiStates.EMAIL_INPUT);
@@ -100,28 +105,28 @@ export async function authenticateUser(
   console.log(`Authenticating user with email: ${email}`);
 
   if (!subOrganizationId) {
-    throw new Error("Could not authenticate user, account not deployed");
+    throw new Error('Could not authenticate user, account not deployed');
   }
 
   if (subOrganizationId) {
-    console.log("Debugging Account Creation");
+    console.log('Debugging Account Creation');
     await initializePasskey(subOrganizationId);
 
-    console.log("Passkey Initialized");
+    console.log('Passkey Initialized');
 
     const smartContractAddress = getSmartContractAddress();
     const walletAddress = getWalletAddress();
 
     if (!smartContractAddress || !walletAddress) {
       throw new Error(
-        "Could not authenticate user, wallet address does not exist"
+        'Could not authenticate user, wallet address does not exist'
       );
     }
 
     const generateChallengeParams: GenerateChallengeParams = {
       clientId,
       domain: redirectUri,
-      scope: "openid email",
+      scope: 'openid email',
       address: smartContractAddress, //We want this address to be recovered after signing
     };
 
@@ -144,7 +149,7 @@ export async function authenticateUser(
         const jwt = await submitWeb3Challenge(web3ChallengeSubmission);
 
         if (!jwt.success) {
-          throw new Error("Failed to submit web3 challenge");
+          throw new Error('Failed to submit web3 challenge');
         }
 
         const userProperties: UserObject = {
