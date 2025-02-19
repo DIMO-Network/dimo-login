@@ -1,31 +1,31 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 
-import { initializeSession } from "./services/sessionService";
-import { PasskeyGeneration } from "./components/Auth/PasskeyGeneration";
-import { useAuthContext } from "./context/AuthContext";
-import { useDevCredentials } from "./context/DevCredentialsContext"; // Import DevCredentialsContext
-import { UiStates, useUIManager } from "./context/UIManagerContext";
+import { initializeSession } from './services/sessionService';
+import { PasskeyGeneration } from './components/Auth/PasskeyGeneration';
+import { useAuthContext } from './context/AuthContext';
+import { useDevCredentials } from './context/DevCredentialsContext'; // Import DevCredentialsContext
+import { UiStates, useUIManager } from './context/UIManagerContext';
 
-import AdvancedTransaction from "./components/AdvancedTransaction/AdvancedTransaction";
-import CancelledTransaction from "./components/AdvancedTransaction/CancelledTransaction";
-import EmailInput from "./components/Auth/EmailInput";
-import ErrorScreen from "./components/Shared/ErrorScreen";
-import LoadingScreen from "./components/Shared/LoadingScreen";
-import OtpInput from "./components/Auth/OtpInput";
-import SuccessfulPermissions from "./components/Vehicles/SuccessfulPermissions";
-import SuccessfulTransaction from "./components/AdvancedTransaction/SuccessfulTransaction";
-import SuccessPage from "./components/Auth/SuccessPage";
-import VehicleManager from "./components/Vehicles/VehicleManager";
-import ManageVehicle from "./components/Vehicles/ManageVehicle";
+import AdvancedTransaction from './components/AdvancedTransaction/AdvancedTransaction';
+import CancelledTransaction from './components/AdvancedTransaction/CancelledTransaction';
+import EmailInput from './components/Auth/EmailInput';
+import ErrorScreen from './components/Shared/ErrorScreen';
+import LoadingScreen from './components/Shared/LoadingScreen';
+import OtpInput from './components/Auth/OtpInput';
+import SuccessfulPermissions from './components/Vehicles/SuccessfulPermissions';
+import SuccessfulTransaction from './components/AdvancedTransaction/SuccessfulTransaction';
+import SuccessPage from './components/Auth/SuccessPage';
+import VehicleManager from './components/Vehicles/VehicleManager';
+import ManageVehicle from './components/Vehicles/ManageVehicle';
 
-import "./App.css";
+import './App.css';
 
 const App = () => {
   const { setJwt, setUser, setUserInitialized, userInitialized } =
     useAuthContext(); // Get loading state from AuthContext
   const { clientId, apiKey, redirectUri, invalidCredentials } =
     useDevCredentials(); // Get loading state and credentials from DevCredentialsContext
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState('');
   const { uiState, setUiState, isLoading } = useUIManager();
 
   useEffect(() => {
@@ -41,13 +41,10 @@ const App = () => {
     }
   }, [clientId]);
 
-  // If either credentials or auth is loading, show the loader
-
-  // Loading state
   if (isLoading || !userInitialized) {
     return <LoadingScreen />;
   }
-  // Error screens
+
   if (invalidCredentials) {
     return (
       <ErrorScreen

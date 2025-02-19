@@ -18,17 +18,16 @@ export const getParamFromUrlOrState = (
 
 export const getAppUrl = () => {
   const urlParams = new URLSearchParams(window.location.search);
-  const state = urlParams.get("state");
+  const state = urlParams.get('state');
 
   try {
-    const referrer =
-      state
-        ? JSON.parse(decodeURIComponent(state))?.referrer
-        : document.referrer;
+    const referrer = state
+      ? JSON.parse(decodeURIComponent(state))?.referrer
+      : document.referrer;
 
-    return new URL(referrer || "https://dimo.org");
+    return new URL(referrer || 'https://dimo.org');
   } catch (error) {
-    console.error("Failed to parse appUrl state:", error);
-    return new URL("https://dimo.org");
+    console.error('Failed to parse appUrl state:', error);
+    return new URL('https://dimo.org');
   }
 };

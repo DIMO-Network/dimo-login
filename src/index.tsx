@@ -1,15 +1,15 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
-import "./index.css";
-import App from "./App";
-import reportWebVitals from "./reportWebVitals";
-import { AuthProvider } from "./context/AuthContext";
-import { DevCredentialsProvider } from "./context/DevCredentialsContext";
-import { sendMessageToReferrer } from "./utils/messageHandler";
-import { UIManagerProvider } from "./context/UIManagerContext";
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import './index.css';
+import App from './App';
+import reportWebVitals from './reportWebVitals';
+import { AuthProvider } from './context/AuthContext';
+import { DevCredentialsProvider } from './context/DevCredentialsContext';
+import { sendMessageToReferrer } from './utils/messageHandler';
+import { UIManagerProvider } from './context/UIManagerContext';
 
 const root = ReactDOM.createRoot(
-  document.getElementById("root") as HTMLElement
+  document.getElementById('root') as HTMLElement
 );
 root.render(
   <React.StrictMode>
@@ -31,6 +31,6 @@ reportWebVitals();
 //Send a READY event to the developer's app, ready to receive credentials
 window.onload = () => {
   setTimeout(() => {
-    sendMessageToReferrer({ eventType: "READY" });
+    sendMessageToReferrer({ eventType: 'READY' });
   }, 500);
 };

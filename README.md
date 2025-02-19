@@ -2,8 +2,8 @@
 
 This app goes through the DIMO authorization flow
 
-
 ## Conventions
+
 - React Components, Context files are named with PascalCase
 - Other files are named with camelCase
 - React Classes/Contexts are named with PascalCase

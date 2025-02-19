@@ -1,8 +1,8 @@
-import React, { type FC } from "react";
+import React, { type FC } from 'react';
 
-import { IconProps } from ".";
+import { IconProps } from '.';
 
-export const FingerprintIcon: FC<IconProps> = ({ className = "" }) => {
+export const FingerprintIcon: FC<IconProps> = ({ className = '' }) => {
   return (
     <svg
       className={className}

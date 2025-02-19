@@ -1,11 +1,11 @@
-import React, { useState } from "react";
-import { useAuthContext } from "../../context/AuthContext"; // Use the auth context
-import ErrorMessage from "../Shared/ErrorMessage";
-import PrimaryButton from "../Shared/PrimaryButton";
-import SecondaryButton from "../Shared/SecondaryButton";
-import Card from "../Shared/Card";
-import Header from "../Shared/Header";
-import { useUIManager } from "../../context/UIManagerContext";
+import React, { useState } from 'react';
+import { useAuthContext } from '../../context/AuthContext'; // Use the auth context
+import ErrorMessage from '../Shared/ErrorMessage';
+import PrimaryButton from '../Shared/PrimaryButton';
+import SecondaryButton from '../Shared/SecondaryButton';
+import Card from '../Shared/Card';
+import Header from '../Shared/Header';
+import { useUIManager } from '../../context/UIManagerContext';
 
 interface OtpInputProps {
   email: string;
@@ -14,7 +14,7 @@ interface OtpInputProps {
 const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
   const { verifyOtp, authenticateUser, sendOtp } = useAuthContext(); // Get verifyOtp from the context
   const { entryState, error } = useUIManager();
-  const [otpArray, setOtpArray] = useState(Array(6).fill("")); // Array of 6 empty strings
+  const [otpArray, setOtpArray] = useState(Array(6).fill('')); // Array of 6 empty strings
 
   // Function to handle change for each input
   const handleChange = (
@@ -25,7 +25,7 @@ const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
 
     // Detect paste event for the full OTP
     if (value.length === 6) {
-      const newOtpArray = value.split("").slice(0, 6); // Only stake the first 6 characters
+      const newOtpArray = value.split('').slice(0, 6); // Only stake the first 6 characters
       setOtpArray(newOtpArray);
 
       // Move focus to the last input
@@ -48,7 +48,7 @@ const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
   const handleSubmit = async () => {
     if (otpArray) {
       // Verify OTP using the auth context
-      const otp = otpArray.join("");
+      const otp = otpArray.join('');
       const result = await verifyOtp(email, otp);
 
       if (result.success && result.data.credentialBundle) {
@@ -59,8 +59,8 @@ const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
 
   const handleBackspace = (id: string, index: number) => {
     const value =
-      (document?.getElementById(id) as HTMLInputElement).value || "";
-    if (value === "") {
+      (document?.getElementById(id) as HTMLInputElement).value || '';
+    if (value === '') {
       if (index > 0) {
         document?.getElementById(`otp-input-${index - 1}`)?.focus();
       }
@@ -71,7 +71,7 @@ const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
     e: React.KeyboardEvent<HTMLInputElement>,
     index: number
   ) => {
-    if (e.key === "Enter") {
+    if (e.key === 'Enter') {
       handleSubmit();
     }
 
@@ -79,7 +79,7 @@ const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
       key,
       currentTarget: { id },
     } = e;
-    if (key === "Backspace") {
+    if (key === 'Backspace') {
       setTimeout(() => handleBackspace(id, index), 100);
     }
   };
@@ -92,10 +92,11 @@ const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
     >
       <Header
         title="Please enter your OTP Code"
-        subtitle={email || "moiz@gmail.com"}
+        subtitle={email || 'moiz@gmail.com'}
       />
       <p className="max-w-[440px] tracking-tight text-center text-sm">
-        A code was just sent to {email}, which will expire in 5 minutes. Check your spam if you don't see it, and resend.
+        A code was just sent to {email}, which will expire in 5 minutes. Check
+        your spam if you don't see it, and resend.
       </p>
 
       {error && <ErrorMessage message={error} />}
@@ -112,7 +113,7 @@ const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
               onKeyDown={(e) => handleKeyDown(e, index)}
               maxLength={6}
               className={`w-10 h-10 lg:w-12 lg:h-12 border rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                error ? "border-[#E80303]" : "border-gray-300"
+                error ? 'border-[#E80303]' : 'border-gray-300'
               }`}
             />
           ))}

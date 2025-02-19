@@ -1,19 +1,19 @@
 // src/components/SuccessPage.tsx
-import React from "react";
-import Card from "../Shared/Card";
-import Header from "../Shared/Header";
-import PrimaryButton from "../Shared/PrimaryButton";
-import { useDevCredentials } from "../../context/DevCredentialsContext";
-import { UiStates, useUIManager } from "../../context/UIManagerContext";
-import { useAuthContext } from "../../context/AuthContext";
-import { SetVehiclePermissions } from "@dimo-network/transactions";
+import React from 'react';
+import Card from '../Shared/Card';
+import Header from '../Shared/Header';
+import PrimaryButton from '../Shared/PrimaryButton';
+import { useDevCredentials } from '../../context/DevCredentialsContext';
+import { UiStates, useUIManager } from '../../context/UIManagerContext';
+import { useAuthContext } from '../../context/AuthContext';
+import { SetVehiclePermissions } from '@dimo-network/transactions';
 import {
   generateIpfsSources,
   initializeIfNeeded,
   setVehiclePermissions,
-} from "../../services/turnkeyService";
-import { getPermsValue } from "../../services/permissionsService";
-import { extendByYear, parseExpirationDate } from "../../utils/dateUtils";
+} from '../../services/turnkeyService';
+import { getPermsValue } from '../../services/permissionsService';
+import { extendByYear, parseExpirationDate } from '../../utils/dateUtils';
 
 const ManageVehicle: React.FC = () => {
   const { clientId } = useDevCredentials();
@@ -27,23 +27,23 @@ const ManageVehicle: React.FC = () => {
   } = useUIManager();
 
   const handlePermissionUpdate = async (
-    actionType: "revoke" | "extend",
+    actionType: 'revoke' | 'extend',
     expirationDate: string
   ) => {
     const loadingMessage =
-      actionType === "revoke" ? "Revoking vehicles" : "Extending vehicles";
-    const newAction = actionType === "revoke" ? "revoked" : "extended";
+      actionType === 'revoke' ? 'Revoking vehicles' : 'Extending vehicles';
+    const newAction = actionType === 'revoke' ? 'revoked' : 'extended';
 
     setLoadingState(true, loadingMessage, true);
 
     await initializeIfNeeded(user.subOrganizationId);
 
     const perms = getPermsValue(
-      permissionTemplateId ? permissionTemplateId : "1"
+      permissionTemplateId ? permissionTemplateId : '1'
     );
 
     const expiration =
-      actionType == "revoke" ? BigInt(0) : parseExpirationDate(expirationDate);
+      actionType == 'revoke' ? BigInt(0) : parseExpirationDate(expirationDate);
 
     const sources = await generateIpfsSources(perms, clientId, expiration);
 
@@ -67,13 +67,13 @@ const ManageVehicle: React.FC = () => {
   };
 
   const handleRevoke = async () => {
-    const expirationDate = "0"; // Use current expiration for revoking
-    await handlePermissionUpdate("revoke", expirationDate);
+    const expirationDate = '0'; // Use current expiration for revoking
+    await handlePermissionUpdate('revoke', expirationDate);
   };
 
   const handleExtend = async () => {
     const extendedExpirationDate = extendByYear(vehicle.expiresAt); // Extend expiration by 1 year
-    await handlePermissionUpdate("extend", extendedExpirationDate);
+    await handlePermissionUpdate('extend', extendedExpirationDate);
   };
 
   return (
@@ -85,10 +85,10 @@ const ManageVehicle: React.FC = () => {
 
       <div className="flex justify-center pt-8">
         <img
-          style={{ height: "80px", width: "80px" }}
+          style={{ height: '80px', width: '80px' }}
           className="rounded-full object-cover"
           src={
-            "https://assets.dimo.xyz/ipfs/QmaaxazmGtNM6srcRmLyNdjCp8EAmvaTDYSo1k2CXVRTaY"
+            'https://assets.dimo.xyz/ipfs/QmaaxazmGtNM6srcRmLyNdjCp8EAmvaTDYSo1k2CXVRTaY'
           }
           alt={`${vehicle.make} ${vehicle.model}`}
         />
