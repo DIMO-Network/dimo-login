@@ -132,9 +132,9 @@ export const signChallenge = async (
 
 // Helper function to generate IPFS sources for one or more vehicles
 export const generateIpfsSources = async (
-  permissions: BigInt,
+  permissions: bigint,
   clientId: string,
-  expiration: BigInt
+  expiration: bigint
 ): Promise<string> => {
   // Bulk vehicles
   const ipfsRes = await kernelSigner.signAndUploadSACDAgreement({
@@ -203,7 +203,7 @@ export async function executeAdvancedTransaction(
   abi: any,
   functionName: string,
   args: any[],
-  value?: BigInt
+  value?: bigint
 ): Promise<`0x${string}`> {
   const payload: TransactionData = {
     address,

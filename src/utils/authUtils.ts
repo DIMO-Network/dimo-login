@@ -53,7 +53,7 @@ export function buildAuthPayload(
 }
 
 export function sendAuthPayloadToParent(
-  payload: { token: string; email?: string; walletAddress: string, sharedVehicles?: BigInt[] | string[] },
+  payload: { token: string; email?: string; walletAddress: string, sharedVehicles?: bigint[] | string[] },
   redirectUri: string,
   onSuccess: (payload: {
     token: string;

@@ -32,7 +32,7 @@ interface SelectVehiclesProps {
   vehicleTokenIds: string[] | undefined; // Adjust the type based on your data
   permissionTemplateId: string; // Adjust the type if necessary
   vehicleMakes: string[] | undefined; // Adjust the type if necessary
-  expirationDate: BigInt;
+  expirationDate: bigint;
 }
 
 const SelectVehicles: React.FC<SelectVehiclesProps> = ({

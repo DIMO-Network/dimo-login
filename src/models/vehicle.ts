@@ -1,5 +1,5 @@
 export interface Vehicle {
-  tokenId: BigInt;
+  tokenId: bigint;
   imageURI: string;
   make: string;
   model: string;

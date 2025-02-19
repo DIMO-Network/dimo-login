@@ -37,7 +37,7 @@ const VehicleManager: React.FC = () => {
     useState<SACDTemplate | null>(null);
 
   const [isExpanded, setIsExpanded] = useState<boolean | undefined>(false);
-  const [expirationDate, setExpirationDate] = useState<BigInt>(
+  const [expirationDate, setExpirationDate] = useState<bigint>(
     getDefaultExpirationDate()
   );
 
