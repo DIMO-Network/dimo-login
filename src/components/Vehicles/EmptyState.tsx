@@ -2,7 +2,7 @@ import React, { type FC } from 'react';
 
 import { GooglePlayButton, AppStoreButton } from 'react-mobile-app-button';
 
-import VehicleThumbnail from '../../assets/images/vehicle-thumbnail.png';
+import VehicleThumbnail from '@assets/images/vehicle-thumbnail.png';
 
 export const EmptyState: FC = () => {
   const APK_URL =

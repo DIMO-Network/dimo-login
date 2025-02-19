@@ -1,7 +1,7 @@
 import React from 'react';
 
-import { Vehicle } from '../../models/vehicle';
-import { UiStates, useUIManager } from '../../context/UIManagerContext';
+import { Vehicle } from '@models/vehicle';
+import { UiStates, useUIManager } from '@context/UIManagerContext';
 
 interface VehicleCardProps {
   vehicle: Vehicle;

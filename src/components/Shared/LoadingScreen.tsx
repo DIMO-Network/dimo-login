@@ -1,4 +1,3 @@
-// components/Shared/LoadingScreen.js
 import React from 'react';
 import Logo from './Logo';
 import Loader from './Loader';

@@ -15,12 +15,12 @@ import React, {
   useEffect,
 } from 'react';
 
-import { isValidClientId } from '../services/identityService';
-import { createKernelSigner } from '../services/turnkeyService';
+import { isValidClientId } from '@services/identityService';
+import { createKernelSigner } from '@services/turnkeyService';
 import { UiStates, useUIManager } from './UIManagerContext';
-import { setEmailGranted } from '../services/storageService';
-import { isStandalone } from '../utils/isStandalone';
-import { setForceEmail } from '../stores/AuthStateStore';
+import { setEmailGranted } from '@services/storageService';
+import { isStandalone } from '@utils/isStandalone';
+import { setForceEmail } from '@stores/AuthStateStore';
 
 interface DevCredentialsContextProps {
   clientId: string;

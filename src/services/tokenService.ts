@@ -1,7 +1,6 @@
 function base64UrlDecode(base64Url: string): string {
   const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-  const decodedData = atob(base64);
-  return decodedData;
+  return atob(base64);
 }
 
 interface JWTPayload {

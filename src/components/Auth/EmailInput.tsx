@@ -1,24 +1,23 @@
-// components/Auth/EmailInput.tsx
 import React, { useEffect, useState } from 'react';
 
-import { Card } from '../Shared/Card';
-import { Checkbox } from '../Shared/Checkbox';
-import { fetchUserDetails } from '../../services/accountsService';
-import { Header } from '../Shared/Header';
-import { PrimaryButton } from '../Shared/PrimaryButton';
-import { setEmailGranted } from '../../services/storageService';
-import { useAuthContext } from '../../context/AuthContext';
-import { useDevCredentials } from '../../context/DevCredentialsContext';
-import { UiStates, useUIManager } from '../../context/UIManagerContext';
+import { Card } from '@components/Shared/Card';
+import { Checkbox } from '@components/Shared/Checkbox';
+import { fetchUserDetails } from '@services/accountsService';
+import { Header } from '@components/Shared/Header';
+import { PrimaryButton } from '@components/Shared/PrimaryButton';
+import { setEmailGranted } from '@services/storageService';
+import { useAuthContext } from '@context/AuthContext';
+import { useDevCredentials } from '@context/DevCredentialsContext';
+import { UiStates, useUIManager } from '@context/UIManagerContext';
 
-import ErrorMessage from '../Shared/ErrorMessage';
-import { submitCodeExchange } from '../../services/authService';
-import { decodeJwt } from '../../utils/jwtUtils';
-import LoadingScreen from '../Shared/LoadingScreen';
-import { AppleIcon, GoogleIcon } from '../Icons';
-import { isValidEmail } from '../../utils/emailUtils';
-import { getForceEmail } from '../../stores/AuthStateStore';
-import { getAppUrl } from '../../utils/urlHelpers';
+import ErrorMessage from '@components/Shared/ErrorMessage';
+import { submitCodeExchange } from '@services/authService';
+import { decodeJwt } from '@utils/jwtUtils';
+import LoadingScreen from '@components/Shared/LoadingScreen';
+import { AppleIcon, GoogleIcon } from '@components/Icons';
+import { isValidEmail } from '@utils/emailUtils';
+import { getForceEmail } from '@stores/AuthStateStore';
+import { getAppUrl } from '@utils/urlHelpers';
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;

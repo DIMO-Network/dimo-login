@@ -1,4 +1,3 @@
-// components/Shared/SecondaryButton.tsx
 import React, { ReactNode } from 'react';
 
 interface SecondaryButtonProps {

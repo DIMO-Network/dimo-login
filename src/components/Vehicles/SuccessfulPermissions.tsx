@@ -1,16 +1,15 @@
-// src/components/SuccessPage.tsx
 import React from 'react';
 import Card from '../Shared/Card';
 import Header from '../Shared/Header';
 import PrimaryButton from '../Shared/PrimaryButton';
-import { useDevCredentials } from '../../context/DevCredentialsContext';
-import { useUIManager } from '../../context/UIManagerContext';
-import { buildAuthPayload } from '../../utils/authUtils';
-import { useAuthContext } from '../../context/AuthContext';
-import { backToThirdParty } from '../../utils/messageHandler';
-import { Vehicle } from '../../models/vehicle';
+import { useDevCredentials } from '@context/DevCredentialsContext';
+import { useUIManager } from '@context/UIManagerContext';
+import { buildAuthPayload } from '@utils/authUtils';
+import { useAuthContext } from '@context/AuthContext';
+import { backToThirdParty } from '@utils/messageHandler';
+import { Vehicle } from '@models/vehicle';
 import VehicleCard from './VehicleCard';
-import { isEmbed } from '../../utils/isEmbed';
+import { isEmbed } from '@utils/isEmbed';
 
 const SuccessfulPermissions: React.FC = () => {
   const { redirectUri, devLicenseAlias, clientId } = useDevCredentials();

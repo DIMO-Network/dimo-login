@@ -5,25 +5,22 @@ import {
   SetVehiclePermissionsBulk,
 } from '@dimo-network/transactions';
 
-import { fetchVehiclesWithTransformation } from '../../services/identityService';
+import { fetchVehiclesWithTransformation } from '@services/identityService';
 import VehicleCard from './VehicleCard';
-import { useAuthContext } from '../../context/AuthContext';
-import { Vehicle } from '../../models/vehicle';
+import { useAuthContext } from '@context/AuthContext';
+import { Vehicle } from '@models/vehicle';
 import {
   generateIpfsSources,
   initializeIfNeeded,
   setVehiclePermissions,
   setVehiclePermissionsBulk,
-} from '../../services/turnkeyService';
-import {
-  buildAuthPayload,
-  sendAuthPayloadToParent,
-} from '../../utils/authUtils';
-import { useDevCredentials } from '../../context/DevCredentialsContext';
-import { getPermsValue } from '../../services/permissionsService';
+} from '@services/turnkeyService';
+import { buildAuthPayload, sendAuthPayloadToParent } from '@utils/authUtils';
+import { useDevCredentials } from '@context/DevCredentialsContext';
+import { getPermsValue } from '@services/permissionsService';
 import PrimaryButton from '../Shared/PrimaryButton';
-import { backToThirdParty } from '../../utils/messageHandler';
-import { UiStates, useUIManager } from '../../context/UIManagerContext';
+import { backToThirdParty } from '@utils/messageHandler';
+import { UiStates, useUIManager } from '@context/UIManagerContext';
 import Loader from '../Shared/Loader';
 import { EmptyState } from './EmptyState';
 

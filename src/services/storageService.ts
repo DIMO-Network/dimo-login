@@ -1,6 +1,6 @@
 // Define types for user properties
 
-import { UserObject } from '../models/user';
+import { UserObject } from '@models/user';
 
 // Utility function to store JWT in cookies for a given clientId
 export const storeJWTInCookies = (clientId: string, jwt: string): void => {

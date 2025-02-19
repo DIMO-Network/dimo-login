@@ -4,18 +4,18 @@ import Card from '../Shared/Card';
 import PrimaryButton from '../Shared/PrimaryButton';
 import Header from '../Shared/Header';
 import ErrorMessage from '../Shared/ErrorMessage';
-import { useDevCredentials } from '../../context/DevCredentialsContext';
-import { useAuthContext } from '../../context/AuthContext';
+import { useDevCredentials } from '@context/DevCredentialsContext';
+import { useAuthContext } from '@context/AuthContext';
 import {
   executeAdvancedTransaction,
   initializeIfNeeded,
-} from '../../services/turnkeyService';
+} from '@services/turnkeyService';
 import ErrorScreen from '../Shared/ErrorScreen';
-import { sendTxnResponseToParent } from '../../utils/txnUtils';
-import { sendErrorToParent } from '../../utils/errorUtils';
+import { sendTxnResponseToParent } from '@utils/txnUtils';
+import { sendErrorToParent } from '@utils/errorUtils';
 import { TransactionData } from '@dimo-network/transactions';
-import { sendMessageToReferrer } from '../../utils/messageHandler';
-import { UiStates, useUIManager } from '../../context/UIManagerContext';
+import { sendMessageToReferrer } from '@utils/messageHandler';
+import { UiStates, useUIManager } from '@context/UIManagerContext';
 
 const AdvancedTransaction: React.FC = () => {
   const { redirectUri } = useDevCredentials();

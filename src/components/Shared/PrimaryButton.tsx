@@ -1,4 +1,3 @@
-// components/Shared/PrimaryButton.tsx
 import React, { ReactNode } from 'react';
 
 interface PrimaryButtonProps {

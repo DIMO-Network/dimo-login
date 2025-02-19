@@ -7,14 +7,14 @@
  *
  */
 
-import { CreateAccountParams } from '../models/account';
+import { CreateAccountParams } from '@models/account';
 import {
   CredentialResult,
   OtpResult,
   SimpleResult,
   UserResult,
-} from '../models/resultTypes';
-import { generateTargetPublicKey } from '../utils/cryptoUtils';
+} from '@models/resultTypes';
+import { generateTargetPublicKey } from '@utils/cryptoUtils';
 
 const DIMO_ACCOUNTS_BASE_URL =
   process.env.REACT_APP_DIMO_ACCOUNTS_URL ||

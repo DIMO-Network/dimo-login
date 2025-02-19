@@ -5,12 +5,12 @@ import {
   getSacdValue,
 } from './turnkeyService';
 import { VehcilePermissionDescription } from '@dimo-network/transactions/dist/core/types/args';
-import { formatBigIntAsReadableDate } from '../utils/dateUtils';
-import { FetchPermissionsParams } from '../models/permissions';
+import { formatBigIntAsReadableDate } from '@utils/dateUtils';
+import { FetchPermissionsParams } from '@models/permissions';
 
 //Helper functions that communicate with the transactions service
 export function getPermsValue(permissionTemplateId: string): bigint {
-  const newPermissions = getSacdValue({
+  return getSacdValue({
     NONLOCATION_TELEMETRY: true,
     COMMANDS: permissionTemplateId == '1',
     CURRENT_LOCATION: true,
@@ -18,8 +18,6 @@ export function getPermsValue(permissionTemplateId: string): bigint {
     CREDENTIALS: true,
     STREAMS: true,
   });
-
-  return newPermissions;
 }
 
 export function getPermissionArray(perms: bigint): string[] {

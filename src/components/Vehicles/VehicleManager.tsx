@@ -1,23 +1,23 @@
 import React, { useEffect, useState } from 'react';
 
-import { useAuthContext } from '../../context/AuthContext';
-import { useDevCredentials } from '../../context/DevCredentialsContext';
-import { fetchPermissionsFromId } from '../../services/permissionsService';
+import { useAuthContext } from '@context/AuthContext';
+import { useDevCredentials } from '@context/DevCredentialsContext';
+import { fetchPermissionsFromId } from '@services/permissionsService';
 import Card from '../Shared/Card';
 import Header from '../Shared/Header';
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/solid';
 import ErrorMessage from '../Shared/ErrorMessage';
-import { sendMessageToReferrer } from '../../utils/messageHandler';
-import { isStandalone } from '../../utils/isStandalone';
-import { useUIManager } from '../../context/UIManagerContext';
+import { sendMessageToReferrer } from '@utils/messageHandler';
+import { isStandalone } from '@utils/isStandalone';
+import { useUIManager } from '@context/UIManagerContext';
 import { SACDTemplate } from '@dimo-network/transactions/dist/core/types/dimo';
 import {
   getDefaultExpirationDate,
   parseExpirationDate,
-} from '../../utils/dateUtils';
-import { FetchPermissionsParams } from '../../models/permissions';
+} from '@utils/dateUtils';
+import { FetchPermissionsParams } from '@models/permissions';
 import SelectVehicles from './SelectVehicles';
-import { getAppUrl, getParamFromUrlOrState } from '../../utils/urlHelpers';
+import { getAppUrl, getParamFromUrlOrState } from '@utils/urlHelpers';
 
 const VehicleManager: React.FC = () => {
   const { user } = useAuthContext();

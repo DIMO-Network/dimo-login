@@ -1,14 +1,13 @@
-// src/components/SuccessPage.tsx
 import React from 'react';
 import Card from '../Shared/Card';
 import Header from '../Shared/Header';
 import PrimaryButton from '../Shared/PrimaryButton';
-import { useDevCredentials } from '../../context/DevCredentialsContext';
+import { useDevCredentials } from '@context/DevCredentialsContext';
 import ErrorScreen from '../Shared/ErrorScreen';
-import { useUIManager } from '../../context/UIManagerContext';
-import { backToThirdParty } from '../../utils/messageHandler';
-import { isEmbed } from '../../utils/isEmbed';
-import { useAuthContext } from '../../context/AuthContext';
+import { useUIManager } from '@context/UIManagerContext';
+import { backToThirdParty } from '@utils/messageHandler';
+import { isEmbed } from '@utils/isEmbed';
+import { useAuthContext } from '@context/AuthContext';
 
 const SuccessfulTransaction: React.FC = () => {
   const { redirectUri, devLicenseAlias } = useDevCredentials();

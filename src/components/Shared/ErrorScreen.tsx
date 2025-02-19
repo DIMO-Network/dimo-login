@@ -1,4 +1,3 @@
-// components/Shared/ErrorScreen.js
 import React from 'react';
 import Logo from './Logo';
 

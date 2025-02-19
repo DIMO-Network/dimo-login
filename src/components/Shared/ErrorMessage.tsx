@@ -1,4 +1,3 @@
-// components/Shared/ErrorMessage.tsx
 import React from 'react';
 
 interface ErrorMessageProps {

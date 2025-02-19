@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { useAuthContext } from '../../context/AuthContext'; // Use the auth context
+import { useAuthContext } from '@context/AuthContext';
 import ErrorMessage from '../Shared/ErrorMessage';
 import PrimaryButton from '../Shared/PrimaryButton';
 import SecondaryButton from '../Shared/SecondaryButton';
 import Card from '../Shared/Card';
 import Header from '../Shared/Header';
-import { useUIManager } from '../../context/UIManagerContext';
+import { useUIManager } from '@context/UIManagerContext';
 
 interface OtpInputProps {
   email: string;

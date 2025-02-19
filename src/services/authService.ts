@@ -14,12 +14,12 @@
 import {
   GenerateChallengeResult,
   SubmitChallengeResult,
-} from '../models/resultTypes';
+} from '@models/resultTypes';
 import {
   GenerateChallengeParams,
   SubmitChallengeParams,
   SubmitCodeExchangeParams,
-} from '../models/web3';
+} from '@models/web3';
 
 const DIMO_AUTH_BASE_URL = process.env.REACT_APP_DIMO_AUTH_URL;
 

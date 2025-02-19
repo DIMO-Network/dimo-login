@@ -3,17 +3,17 @@ import React from 'react';
 import Card from '../Shared/Card';
 import Header from '../Shared/Header';
 import PrimaryButton from '../Shared/PrimaryButton';
-import { useDevCredentials } from '../../context/DevCredentialsContext';
-import { UiStates, useUIManager } from '../../context/UIManagerContext';
-import { useAuthContext } from '../../context/AuthContext';
+import { useDevCredentials } from '@context/DevCredentialsContext';
+import { UiStates, useUIManager } from '@context/UIManagerContext';
+import { useAuthContext } from '@context/AuthContext';
 import { SetVehiclePermissions } from '@dimo-network/transactions';
 import {
   generateIpfsSources,
   initializeIfNeeded,
   setVehiclePermissions,
-} from '../../services/turnkeyService';
-import { getPermsValue } from '../../services/permissionsService';
-import { extendByYear, parseExpirationDate } from '../../utils/dateUtils';
+} from '@services/turnkeyService';
+import { getPermsValue } from '@services/permissionsService';
+import { extendByYear, parseExpirationDate } from '@utils/dateUtils';
 
 const ManageVehicle: React.FC = () => {
   const { clientId } = useDevCredentials();

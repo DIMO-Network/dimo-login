@@ -9,8 +9,8 @@ import {
   IconProps,
   SecurityIcon,
 } from '../Icons';
-import { useAuthContext } from '../../context/AuthContext';
-import { UiStates, useUIManager } from '../../context/UIManagerContext';
+import { useAuthContext } from '@context/AuthContext';
+import { UiStates, useUIManager } from '@context/UIManagerContext';
 
 interface PasskeyBenefitProps {
   Icon: FC<IconProps>;

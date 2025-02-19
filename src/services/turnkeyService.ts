@@ -19,9 +19,9 @@ import {
 } from '@dimo-network/transactions';
 import { getWebAuthnAttestation } from '@turnkey/http';
 import { WebauthnStamper } from '@turnkey/webauthn-stamper';
-import { base64UrlEncode, generateRandomBuffer } from '../utils/cryptoUtils';
+import { base64UrlEncode, generateRandomBuffer } from '@utils/cryptoUtils';
 import { VehcilePermissionDescription } from '@dimo-network/transactions/dist/core/types/args';
-import { PasskeyCreationResult } from '../models/resultTypes';
+import { PasskeyCreationResult } from '@models/resultTypes';
 
 const stamper = new WebauthnStamper({
   rpId:

@@ -6,8 +6,8 @@
  * Specific Responsibilities include: Getting vehicles and their SACD permissions
  */
 
-import { Vehicle, VehicleResponse } from '../models/vehicle';
-import { formatDate } from '../utils/dateUtils';
+import { Vehicle, VehicleResponse } from '@models/vehicle';
+import { formatDate } from '@utils/dateUtils';
 
 const GRAPHQL_ENDPOINT =
   process.env.REACT_APP_DIMO_IDENTITY_URL ||

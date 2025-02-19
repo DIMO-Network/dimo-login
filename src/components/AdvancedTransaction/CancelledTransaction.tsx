@@ -1,4 +1,3 @@
-// src/components/SuccessPage.tsx
 import React from 'react';
 import Card from '../Shared/Card';
 import Header from '../Shared/Header';
