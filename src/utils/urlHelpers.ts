@@ -34,9 +34,17 @@ export const getAppUrl = () => {
 
 export const getRedirectUriWithUtm = (redirectUri: string, utm: string) => {
   const url = new URL(redirectUri);
-  const utmParams = new URLSearchParams(utm);
-  utmParams.forEach((value, key) => {
-    url.searchParams.set(key, value);
-  });
+
+  // Ensure UTM is a valid query string or key-value pair
+  if (utm.includes("=")) {
+    const utmParams = new URLSearchParams(utm);
+    utmParams.forEach((value, key) => {
+      url.searchParams.set(key, value);
+    });
+  } else if (utm.trim()) {
+    // If `utm` is a single value, append it as `utm` parameter
+    url.searchParams.set("utm", utm);
+  }
+
   return url;
 };
