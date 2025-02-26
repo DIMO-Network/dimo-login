@@ -22,7 +22,6 @@ import {
 import { useDevCredentials } from "../../context/DevCredentialsContext";
 import { getPermsValue } from "../../services/permissionsService";
 import PrimaryButton from "../Shared/PrimaryButton";
-import ErrorMessage from "../Shared/ErrorMessage";
 import { backToThirdParty } from "../../utils/messageHandler";
 import { UiStates, useUIManager } from "../../context/UIManagerContext";
 import Loader from "../Shared/Loader";
@@ -42,7 +41,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
   expirationDate,
 }) => {
   const { user, jwt } = useAuthContext();
-  const { clientId, redirectUri, devLicenseAlias } = useDevCredentials();
+  const { clientId, redirectUri, utm, devLicenseAlias } = useDevCredentials();
   const { setUiState, setComponentData, setLoadingState, error, setError } =
     useUIManager();
 
@@ -121,7 +120,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
 
   const handleContinue = () => {
     sendJwtAfterPermissions((authPayload: any) => {
-      backToThirdParty(authPayload, redirectUri);
+      backToThirdParty(authPayload, redirectUri, utm);
       setUiState(UiStates.TRANSACTION_CANCELLED);
     });
   };
