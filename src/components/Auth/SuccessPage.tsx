@@ -16,14 +16,14 @@ import { backToThirdParty } from "../../utils/messageHandler";
 
 const SuccessPage: React.FC = () => {
   const { user, jwt } = useAuthContext(); // Should be set on session init
-  const { redirectUri, clientId, devLicenseAlias } = useDevCredentials();
+  const { redirectUri, utm, clientId, devLicenseAlias } = useDevCredentials();
   const { setUiState } = useUIManager();
 
   const sendJwtAfterPermissions = () => {
     if (jwt && redirectUri && clientId) {
       const authPayload = buildAuthPayload(clientId, jwt, user);
       sendAuthPayloadToParent(authPayload, redirectUri, (payload) => {
-        backToThirdParty(payload, redirectUri);        
+        backToThirdParty(payload, redirectUri, utm);
       });
     }
   };
@@ -34,7 +34,7 @@ const SuccessPage: React.FC = () => {
 
   const handleLogout = () => {
     if (redirectUri && clientId) {
-      logout(clientId, redirectUri, setUiState);
+      logout(clientId, redirectUri, utm, setUiState);
     }
   };
 

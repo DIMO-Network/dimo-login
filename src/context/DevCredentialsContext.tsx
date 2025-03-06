@@ -15,12 +15,13 @@ import React, {
   useEffect,
 } from "react";
 
-import { isValidClientId } from "../services/identityService";
 import { createKernelSigner } from "../services/turnkeyService";
-import { UiStates, useUIManager } from "./UIManagerContext";
-import { setEmailGranted } from "../services/storageService";
+import { CredentialParams } from "../types";
 import { isStandalone } from "../utils/isStandalone";
+import { isValidClientId } from "../services/identityService";
+import { setEmailGranted } from "../services/storageService";
 import { setForceEmail } from "../stores/AuthStateStore";
+import { UiStates, useUIManager } from "./UIManagerContext";
 
 interface DevCredentialsContextProps {
   altTitle: boolean;
@@ -29,6 +30,7 @@ interface DevCredentialsContextProps {
   devLicenseAlias: string;
   invalidCredentials: boolean;
   redirectUri: string;
+  utm: string;
 }
 
 const DevCredentialsContext = createContext<
@@ -44,6 +46,7 @@ export const DevCredentialsProvider = ({
   const [clientId, setClientId] = useState<string>("");
   const [apiKey, setApiKey] = useState<string>("");
   const [redirectUri, setRedirectUri] = useState<string>("");
+  const [utm, setUtm] = useState<string>("");
   const [invalidCredentials, setInvalidCredentials] = useState<boolean>(false);
   const [devLicenseAlias, setDevLicenseAlias] = useState<string>(""); // Alias will only be set if credentials are valid, defaults to client ID if not alias
   const [altTitle, setAltTitle] = useState<boolean>(false);
@@ -60,6 +63,7 @@ export const DevCredentialsProvider = ({
     const forceEmailFromUrl = urlParams.get("forceEmail");
     const altTitleFromUrl = urlParams.get("altTitle") === "true";
     const stateFromUrl = urlParams.get("state");
+    const utmFromUrl = urlParams.get("utm");
 
     if (stateFromUrl) {
       //SSO Purpose
@@ -75,6 +79,7 @@ export const DevCredentialsProvider = ({
           clientId: state.clientId,
           apiKey: "api key",
           redirectUri: state.redirectUri,
+          utm: state.utm,
         });
         setAltTitle(state.altTitle);
       }
@@ -94,6 +99,7 @@ export const DevCredentialsProvider = ({
         clientId: clientIdFromUrl,
         apiKey: "api key",
         redirectUri: redirectUriFromUrl,
+        utm: utmFromUrl,
       });
       setAltTitle(altTitleFromUrl);
     } else {
@@ -147,15 +153,13 @@ export const DevCredentialsProvider = ({
     clientId,
     apiKey,
     redirectUri,
-  }: {
-    clientId: string;
-    apiKey: string;
-    redirectUri: string;
-  }) => {
+    utm,
+  }: CredentialParams) => {
     setClientId(clientId);
     setApiKey(apiKey);
     setRedirectUri(redirectUri);
     setLoadingState(false);
+    if (utm) setUtm(utm);
   };
 
   return (
@@ -167,6 +171,7 @@ export const DevCredentialsProvider = ({
         devLicenseAlias,
         invalidCredentials,
         redirectUri,
+        utm,
       }}
     >
       {children}
