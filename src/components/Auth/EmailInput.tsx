@@ -191,16 +191,22 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
         link={`${appUrl.protocol}//${appUrl.host}`}
       />
       {error && <ErrorMessage message={error} />}
-      <div className="flex justify-center items-center text-sm mb-4">
-        <Checkbox
-          onChange={() => {
-            setEmailPermissionGranted(!emailPermissionGranted);
-          }}
-          name="share-email"
-          id="share-email"
-          className="mr-2"
-        />
-        I agree to share my email with {devLicenseAlias}
+      <div className="flex justify-center items-center">
+        <label
+          htmlFor="share-email"
+          className="flex justify-center items-center text-sm mb-4 cursor-pointer"
+        >
+          <Checkbox
+            onChange={() => {
+              setEmailPermissionGranted(!emailPermissionGranted);
+            }}
+            name="share-email"
+            id="share-email"
+            className="mr-2"
+            checked={emailPermissionGranted}
+          />
+          I agree to share my email with {devLicenseAlias}
+        </label>
       </div>
       <div
         onKeyDown={handleKeyDown} // Listen for key presses
