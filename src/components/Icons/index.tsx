@@ -7,3 +7,4 @@ export * from "./SecurityIcon";
 export * from "./DevicesIcon";
 export * from "./GoogleIcon"
 export * from "./AppleIcon"
+export * from "./PlusIcon"
