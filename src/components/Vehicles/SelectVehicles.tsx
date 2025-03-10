@@ -26,6 +26,7 @@ import { backToThirdParty } from "../../utils/messageHandler";
 import { UiStates, useUIManager } from "../../context/UIManagerContext";
 import Loader from "../Shared/Loader";
 import { EmptyState } from "./EmptyState";
+import { PlusIcon } from "../Icons";
 
 interface SelectVehiclesProps {
   vehicleTokenIds: string[] | undefined; // Adjust the type based on your data
@@ -42,8 +43,14 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
 }) => {
   const { user, jwt } = useAuthContext();
   const { clientId, redirectUri, utm, devLicenseAlias } = useDevCredentials();
-  const { setUiState, setComponentData, setLoadingState, error, setError } =
-    useUIManager();
+  const {
+    setUiState,
+    setComponentData,
+    setLoadingState,
+    componentData,
+    error,
+    setError,
+  } = useUIManager();
 
   const [vehiclesLoading, setVehiclesLoading] = useState(true);
 
@@ -58,7 +65,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
   const [startCursor, setStartCursor] = useState("");
 
   //Data from Developer
-  const [selectedVehicles, setSelectedVehicles] = useState<Vehicle[]>([]); // Array for multiple selected vehicles
+  const [selectedVehicles, setSelectedVehicles] = useState<Vehicle[]>([]); // Array for multiple selected vehicles)
 
   const fetchVehicles = async (direction = "next") => {
     try {
@@ -81,6 +88,16 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
       setHasPreviousPage(transformedVehicles.hasPreviousPage);
       setHasNextPage(transformedVehicles.hasNextPage);
       setError(null);
+
+      if (componentData && componentData.preSelectedVehicles) {
+        const matchedVehicle = transformedVehicles.compatibleVehicles.find(
+          (vehicle) =>
+            vehicle.tokenId.toString() === componentData.preSelectedVehicles[0]
+        );
+        if (matchedVehicle) {
+          handleVehicleSelect(matchedVehicle);
+        }
+      }
       // Set isExpanded based on vehicles length
     } catch (error) {
       setVehiclesLoading(false);
@@ -110,8 +127,10 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
       const authPayload = buildAuthPayload(clientId, jwt, user);
       const authPayloadWithVehicles = {
         ...authPayload,
-        sharedVehicles: selectedVehicles.map((vehicle: Vehicle) => vehicle.tokenId)
-      }
+        sharedVehicles: selectedVehicles.map(
+          (vehicle: Vehicle) => vehicle.tokenId
+        ),
+      };
       sendAuthPayloadToParent(authPayloadWithVehicles, redirectUri, () =>
         handleNavigation(authPayloadWithVehicles)
       );
@@ -237,6 +256,25 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
                     .every((vehicle) => selectedVehicles.includes(vehicle))
                     ? "Deselect All"
                     : "Select All"}
+                </button>
+              </div>
+
+              <div>
+                <button
+                  className="flex items-center justify-center p-4 border border-gray-300 rounded-2xl w-full hover:bg-gray-50 transition"
+                  onClick={() => {
+                    /* Trigger Add Car Flow */
+                    setUiState(UiStates.ADD_VEHICLE, { setBack: true });
+                  }}
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="w-6 h-6 border border-gray-400 rounded-full flex items-center justify-center text-black font-bold">
+                      <PlusIcon />
+                    </div>
+                    <span className="text-black font-medium">
+                      Connect compatible car
+                    </span>
+                  </div>
                 </button>
               </div>
               {vehicles.map((vehicle: Vehicle) => (

@@ -19,6 +19,11 @@ import VehicleManager from "./components/Vehicles/VehicleManager";
 import ManageVehicle from "./components/Vehicles/ManageVehicle";
 
 import "./App.css";
+import { MintVehicle } from "./components/Vehicles/MintVehicle";
+import { AddVehicle } from "./components/Vehicles/AddVehicle";
+import { CompatibilityCheck } from "./components/Vehicles/CompatibilityCheck";
+import { ConnectDevice } from "./components/Connections/ConnectDevice";
+import { ConnectSmartCar } from "./components/Connections/ConnectSmartcar";
 
 const App = () => {
   const { setJwt, setUser, setUserInitialized, userInitialized } =
@@ -80,6 +85,19 @@ const App = () => {
       {uiState === UiStates.VEHICLES_SHARED_SUCCESS && (
         <SuccessfulPermissions />
       )}
+
+      {uiState === UiStates.ADD_VEHICLE && <AddVehicle />}
+
+      {uiState === UiStates.COMPATIBILITY_CHECK && <CompatibilityCheck />}
+
+      {uiState === UiStates.MINT_VEHICLE && <MintVehicle />}
+
+      {uiState === UiStates.CONNECT_DEVICE && <ConnectDevice />}
+
+      {uiState === UiStates.CONNECT_TESLA && <ConnectDevice />}
+
+      {uiState === UiStates.CONNECT_SMARTCAR && <ConnectSmartCar />}
+
       {uiState === UiStates.TRANSACTION_CANCELLED && <CancelledTransaction />}
       {uiState === UiStates.SUCCESS && <SuccessPage />}
     </div>
