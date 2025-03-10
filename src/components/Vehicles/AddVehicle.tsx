@@ -14,7 +14,6 @@ const countryList = Object.values(countries.getNames("en"));
 const countryCodes = countries.getAlpha2Codes(); // { United States: "US", Canada: "CA", ... }
 let countryMapping: Record<string, string> = {}; // Define type properly
 
-
 Object.entries(countryCodes).forEach(([code, _], index) => {
   const countryName = countryList[index]; // Get the corresponding country name
 
@@ -22,7 +21,6 @@ Object.entries(countryCodes).forEach(([code, _], index) => {
     countryMapping[countryName] = code; // Map country name -> country code
   }
 });
-
 
 export const AddVehicle: FC = () => {
   const appUrl = getAppUrl();
@@ -122,6 +120,20 @@ export const AddVehicle: FC = () => {
               placeholder="1N6AD0EVXCC459517"
               onChange={(e) => setVinNumber(e.target.value)}
             />
+
+            {/* Country of Location */}
+            <label className="block mt-4 text-sm">Country of location</label>
+            <select
+              className="w-full mt-1 p-2 border rounded-md bg-white text-gray-900"
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+            >
+              {countryList.map((countryName, index) => (
+                <option key={index} value={countryName}>
+                  {countryName}
+                </option>
+              ))}
+            </select>
           </div>
         )}
 

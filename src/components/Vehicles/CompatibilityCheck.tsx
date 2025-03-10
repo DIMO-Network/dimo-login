@@ -7,6 +7,7 @@ import { getAppUrl } from "../../utils/urlHelpers";
 import Loader from "../Shared/Loader";
 import { AuthProvider } from "../../utils/authUrls";
 import {
+  formatVehicleString,
   getDeviceDefinitionIdFromVin,
   searchDeviceDefinition,
 } from "../../services/deviceDefinitionsService";
@@ -17,6 +18,7 @@ export const CompatibilityCheck: FC = () => {
   const { jwt } = useAuthContext();
   const [isCompatible, setIsCompatible] = useState<boolean>(false); // `null` means loading
   const [isChecking, setIsChecking] = useState<boolean>(true);
+  const [vehicleString, setVehicleString] = useState<string>("");
   const [connectionType, setConnectionType] = useState<AuthProvider>("connect");
   const appUrl = getAppUrl();
 
@@ -34,11 +36,11 @@ export const CompatibilityCheck: FC = () => {
     try {
       let result;
 
-      if (componentData.vin && componentData.country) {
+      if (componentData.vinNumber && componentData.country) {
         // Fetch using VIN if available
         result = await getDeviceDefinitionIdFromVin(
           {
-            vin: componentData.vin,
+            vin: componentData.vinNumber,
             countryCode: componentData.country, // Assuming ISO 3166-1 alpha-3 format
           },
           jwt
@@ -80,16 +82,28 @@ export const CompatibilityCheck: FC = () => {
 
   // Function to process API response and update state
   const processDeviceDefinitionResponse = (result: any) => {
-    if (result.success && result.data) {
-      const isTesla =
-        "deviceDefinitionId" in result.data
-          ? result.data.deviceDefinitionId.includes("tesla")
-          : result.data.make === "Tesla";
-
-      updateCompatibilityState(true, isTesla ? "tesla" : "connect");
-    } else {
-      updateCompatibilityState(false);
+    if (!result.success || !result.data) {
+      return updateCompatibilityState(false);
     }
+
+    const isTesla =
+      "deviceDefinitionId" in result.data
+        ? result.data.deviceDefinitionId.includes("tesla")
+        : result.data.make === "Tesla";
+
+    // Determine vehicle string, with fallback
+    const vehicleString = (() => {
+      try {
+        return formatVehicleString(result.data.deviceDefinitionId);
+      } catch {
+        return formatVehicleString(
+          `${result.data.year} ${result.data.make} ${result.data.model}`
+        );
+      }
+    })();
+
+    setVehicleString(vehicleString);
+    updateCompatibilityState(true, isTesla ? "tesla" : "connect");
   };
 
   useEffect(() => {
@@ -98,6 +112,7 @@ export const CompatibilityCheck: FC = () => {
       setIsCompatible(false);
       return;
     }
+    console.log(componentData);
     fetchDeviceDefinition();
   }, [componentData]);
 
@@ -112,8 +127,8 @@ export const CompatibilityCheck: FC = () => {
           isChecking
             ? "Checking Compatibility..."
             : isCompatible
-            ? `Your ${componentData.modelYear} ${componentData.makeModel} is Supported`
-            : `Your ${componentData.modelYear} ${componentData.makeModel} is Not Supported`
+            ? `Your ${vehicleString} is Supported`
+            : `Your ${vehicleString} is Not Supported`
         }
         subtitle={appUrl.hostname}
       />
