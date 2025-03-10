@@ -44,7 +44,7 @@ export const ConnectTesla: FC = () => {
         ].map((permission) => (
           <div
             key={permission.name}
-            className="flex justify-between items-center p-4 border border-gray-300 rounded-lg w-full"
+            className="flex justify-between items-center p-4 border border-gray-200 rounded-2xl w-full"
           >
             <span className="text-black font-medium">{permission.name}</span>
             <span
