@@ -50,7 +50,7 @@ export const CompatibilityCheck: FC = () => {
         result = await searchDeviceDefinition({
           query: `${componentData.makeModel} ${componentData.modelYear}`,
           makeSlug: componentData.makeModel.split(" ")[0],
-          modelSlug: componentData.makeModel.split(" ")[1],
+          modelSlug: componentData.makeModel.split(" ").length < 3 ? componentData.makeModel.split(" ")[1] : null, 
           year: componentData.modelYear,
         });
       } else {
