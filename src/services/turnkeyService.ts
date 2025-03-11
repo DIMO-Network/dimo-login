@@ -10,7 +10,6 @@
 import {
   ContractType,
   KernelSigner,
-  MintVehicleWithDeviceDefinition,
   newKernelConfig,
   sacdDescription,
   sacdPermissionArray,
@@ -26,10 +25,7 @@ import { VehcilePermissionDescription } from "@dimo-network/transactions/dist/co
 import { PasskeyCreationResult } from "../models/resultTypes";
 
 const stamper = new WebauthnStamper({
-  rpId:
-    process.env.REACT_APP_ENVIRONMENT == "prod"
-      ? "dimo.org"
-      : window.location.hostname,
+  rpId: process.env.REACT_APP_RPCID_URL as string,
 });
 
 let kernelSigner: KernelSigner;
@@ -54,6 +50,14 @@ export const createKernelSigner = (
   return kernelSigner;
 };
 
+export const getKernelSigner = (): KernelSigner => {
+  return kernelSigner;
+};
+
+export const getKernelSignerClient = async () => {
+  return await kernelSigner.getActiveClient()
+}
+
 export const getSmartContractAddress = (): `0x${string}` | undefined => {
   return kernelSigner.kernelAddress;
 };
@@ -62,9 +66,17 @@ export const getWalletAddress = (): `0x${string}` | undefined => {
   return kernelSigner.walletAddress;
 };
 
-export const createPasskey = async (email: string): Promise<PasskeyCreationResult> => {
+export const createPasskey = async (
+  email: string
+): Promise<PasskeyCreationResult> => {
   const challenge = generateRandomBuffer();
   const authenticatorUserId = generateRandomBuffer();
+
+  let authenticatorName = `${email} @ DIMO`;
+
+  if (process.env.REACT_APP_ENVIRONMENT !== "prod") {
+    authenticatorName += ` preview`;
+  }  
 
   // An example of possible options can be found here:
   // https://www.w3.org/TR/webauthn-2/#sctn-sample-registration
@@ -72,9 +84,7 @@ export const createPasskey = async (email: string): Promise<PasskeyCreationResul
     publicKey: {
       rp: {
         id:
-          process.env.REACT_APP_ENVIRONMENT == "prod"
-            ? "dimo.org"
-            : window.location.hostname,
+          process.env.REACT_APP_RPCID_URL, //localhost, or dimo.org
         name: "Dimo Passkey Wallet",
       },
       challenge,
@@ -86,8 +96,8 @@ export const createPasskey = async (email: string): Promise<PasskeyCreationResul
       ],
       user: {
         id: authenticatorUserId,
-        name: email,
-        displayName: email,
+        name: authenticatorName,
+        displayName: authenticatorName,
       },
       authenticatorSelection: {
         requireResidentKey: true,
@@ -117,6 +127,7 @@ export const initializeIfNeeded = async (
     await kernelSigner.getActiveClient();
   } catch (e) {
     await initializePasskey(subOrganizationId);
+    console.log(kernelSigner.walletAddress);
   }
 };
 
