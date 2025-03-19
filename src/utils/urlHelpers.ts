@@ -35,6 +35,8 @@ export const getAppUrl = () => {
 export const getRedirectUriWithUtm = (redirectUri: string, utm: string) => {
   const url = new URL(redirectUri);
 
+  //TODO:IF UTM CHECK
+
   // Ensure UTM is a valid query string or key-value pair
   if (utm.includes("=")) {
     const utmParams = new URLSearchParams(utm);

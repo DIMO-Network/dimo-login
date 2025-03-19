@@ -223,3 +223,4 @@ export const payloadToMintResponse: MintVehicleNft = {
 		"owner": "0x60A7D007007c459dFE16665Caec415C810ffff6b"
 	}
 }
+

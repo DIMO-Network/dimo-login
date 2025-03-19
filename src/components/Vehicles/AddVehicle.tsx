@@ -11,7 +11,7 @@ import { UiStates, useUIManager } from "../../context/UIManagerContext";
 // Register English country names
 countries.registerLocale(enLocale);
 const countryList = Object.values(countries.getNames("en"));
-const countryCodes = countries.getAlpha2Codes(); // { United States: "US", Canada: "CA", ... }
+const countryCodes = countries.getAlpha3Codes(); // { United States: "US", Canada: "CA", ... }
 let countryMapping: Record<string, string> = {}; // Define type properly
 
 Object.entries(countryCodes).forEach(([code, _], index) => {
