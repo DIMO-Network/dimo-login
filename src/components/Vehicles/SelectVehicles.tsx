@@ -26,7 +26,7 @@ import { backToThirdParty } from "../../utils/messageHandler";
 import { UiStates, useUIManager } from "../../context/UIManagerContext";
 import Loader from "../Shared/Loader";
 import { EmptyState } from "./EmptyState";
-import { PlusIcon } from "../Icons";
+import { ConnectCarButton } from "../Shared/ConnectCarButton";
 
 interface SelectVehiclesProps {
   vehicleTokenIds: string[] | undefined; // Adjust the type based on your data
@@ -260,22 +260,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
               </div>
 
               <div>
-                <button
-                  className="flex items-center justify-center p-4 border border-gray-300 rounded-2xl w-full hover:bg-gray-50 transition"
-                  onClick={() => {
-                    /* Trigger Add Car Flow */
-                    setUiState(UiStates.ADD_VEHICLE, { setBack: true });
-                  }}
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="w-6 h-6 border border-gray-400 rounded-full flex items-center justify-center text-black font-bold">
-                      <PlusIcon />
-                    </div>
-                    <span className="text-black font-medium">
-                      Connect compatible car
-                    </span>
-                  </div>
-                </button>
+                <ConnectCarButton />
               </div>
               {vehicles.map((vehicle: Vehicle) => (
                 <VehicleCard
