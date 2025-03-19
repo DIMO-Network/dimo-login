@@ -1,6 +1,16 @@
+import {
+  mintVehicleWithDeviceDefinition,
+  mintVehicleWithDeviceDefinitionFromAccount,
+} from "@dimo-network/transactions/dist/core/actions/mintVehicleWithDeviceDefinition";
 import { MintVehicleResult } from "../models/resultTypes";
 import { MintVehicleVariables } from "../models/vehicle";
-import { getKernelSigner } from "./turnkeyService";
+import {
+  generateIpfsSources,
+  getKernelSigner,
+  getKernelSignerClient,
+} from "./turnkeyService";
+import { MintVehicleWithDeviceDefinition } from "@dimo-network/transactions";
+import { hexToDecimal } from "../utils/hexUtils";
 
 const DIMO_DRIVER_BASE_URL = "TBD"; //
 
@@ -17,55 +27,43 @@ export const mintVehicle = async ({
   try {
     const expiration = BigInt(2933125200);
 
-    const kernelSigner = await getKernelSigner();
-    const ipfsRes = await kernelSigner.signAndUploadSACDAgreement({
-      driverID: owner,
-      appID: owner,
-      appName: "dimo-driver", //TODO: Should be a constant, if we're assuming the same appName (however feels like this should be provided by the developer)
-      expiration: expiration,
-      permissions: permissions,
-      grantee: owner as `0x${string}`,
-      attachments: [],
-      grantor: kernelSigner.smartContractAddress!,
-    });
-    if (!ipfsRes.success) {
-      throw new Error("Failed to upload SACD agreement");
-    }
-
-    const response = await fetch(`${DIMO_DRIVER_BASE_URL}/mint-vehicle`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const ipfsRes = await generateIpfsSources(permissions, owner, expiration);
+    console.log(make, model);
+    const args: MintVehicleWithDeviceDefinition = {
+      owner: "0x60A7D007007c459dFE16665Caec415C810ffff6b",
+      manufacturerNode: BigInt(manufacturerNode),
+      deviceDefinitionID: deviceDefinitionID,
+      attributeInfo: [
+        { attribute: "Make", info: make },
+        { attribute: "Model", info: model },
+        { attribute: "Year", info: year },
+        { attribute: "ImageURI", info: imageURI },
+      ],
+      sacdInput: {
+        grantee: "0x8E58b98d569B0679713273c5105499C249e9bC84",
+        permissions,
+        expiration,
+        source: ipfsRes,
       },
-      body: JSON.stringify({
-        owner: owner,
-        manufacturerNode: manufacturerNode,
-        deviceDefinitionID: deviceDefinitionID,
-        attributeInfo: [
-          { attribute: "Make", info: make },
-          { attribute: "Model", info: model },
-          { attribute: "Year", info: year },
-          { attribute: "ImageURI", info: imageURI },
-        ],
-        sacdInput: {
-          grantee: owner,
-          permissions: permissions.toString(),
-          expiration: expiration,
-          source: `ipfs://${ipfsRes.cid}`,
-        },
-      }),
-    });
+    };
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      return {
-        success: false,
-        error: errorData.message || "Failed to generate challenge",
-      };
-    }
+    console.log(args);
 
-    const data = await response.json();
-    return { success: true, data: data };
+    const kernelSigner = await getKernelSigner();
+    const res = await kernelSigner.mintVehicleWithDeviceDefinition(args);
+
+    console.log(res);
+    const userOperationHash = res.userOpHash;
+    const logs = res.logs;
+    const vehicleAttributeSet = logs[3];
+    const vehicleHexData = vehicleAttributeSet.data;
+    const vehicleIdHex = vehicleHexData.substring(2, 66);
+    const vehicleIdDecimal = hexToDecimal(vehicleIdHex);
+
+    return {
+      success: true,
+      data: { userOperationHash, tokenId: vehicleIdDecimal },
+    };
   } catch (error) {
     console.error("Error generating challenge:", error);
     return {
