@@ -14,7 +14,8 @@ import {
 import { useAuthContext } from "../../context/AuthContext";
 
 export const CompatibilityCheck: FC = () => {
-  const { componentData, goBack, setUiState } = useUIManager(); // Access the manage function from the context
+  const { componentData, goBack, setUiState, setComponentData } =
+    useUIManager(); // Access the manage function from the context
   const { jwt } = useAuthContext();
   const [isCompatible, setIsCompatible] = useState<boolean>(false); // `null` means loading
   const [isChecking, setIsChecking] = useState<boolean>(true);
@@ -50,7 +51,10 @@ export const CompatibilityCheck: FC = () => {
         result = await searchDeviceDefinition({
           query: `${componentData.makeModel} ${componentData.modelYear}`,
           makeSlug: componentData.makeModel.split(" ")[0],
-          modelSlug: componentData.makeModel.split(" ").length < 3 ? componentData.makeModel.split(" ")[1] : null, 
+          modelSlug:
+            componentData.makeModel.split(" ").length < 3
+              ? componentData.makeModel.split(" ")[1]
+              : null,
           year: componentData.modelYear,
         });
       } else {
@@ -103,6 +107,28 @@ export const CompatibilityCheck: FC = () => {
     })();
 
     setVehicleString(vehicleString);
+    //Update Component Data based on the result
+    const prevMake = componentData.makeModel.split(" ")[0];
+    const prevModel =
+      componentData.makeModel.split(" ").length < 3
+        ? componentData.makeModel.split(" ")[1]
+        : null;
+
+    const newComponentData = {
+      vehicleToAdd: {
+        make: result.data.make || prevMake,
+        model: result.data.model || prevModel,
+        year: result.data.year || componentData.modelYear,
+        deviceDefinitionId: result.data.id || result.data.deviceDefinitionId,
+        vin: componentData.vinNumber,
+        country: componentData.country
+      },
+    };
+
+    if (!componentData.vehicleToAdd) {
+      //Overrites old state, since we don't need it anymore
+      setComponentData(newComponentData);
+    }
     updateCompatibilityState(true, isTesla ? "tesla" : "connect");
   };
 
@@ -112,8 +138,10 @@ export const CompatibilityCheck: FC = () => {
       setIsCompatible(false);
       return;
     }
-    console.log(componentData);
-    fetchDeviceDefinition();
+    if (!componentData.vehicleToAdd) {
+      //We've already fetched the device definition
+      fetchDeviceDefinition();
+    }
   }, [componentData]);
 
   return (

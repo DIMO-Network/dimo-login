@@ -1,109 +1,114 @@
 import { useEffect, type FC } from "react";
 
-import { GooglePlayButton, AppStoreButton } from "react-mobile-app-button";
-
 import VehicleThumbnail from "../../assets/images/vehicle-thumbnail.png";
-import { mintVehicle } from "../../services/dimoDriverService";
 import { UiStates, useUIManager } from "../../context/UIManagerContext";
-import { useDevCredentials } from "../../context/DevCredentialsContext";
 import { useAuthContext } from "../../context/AuthContext";
-import { initializeIfNeeded } from "../../services/turnkeyService";
-import { exchangeAuthCode } from "../../services/smartcarService";
-import { MintVehicleResult } from "../../models/resultTypes";
+import {
+  generateIpfsSources,
+  getKernelSigner,
+  initializeIfNeeded,
+} from "../../services/turnkeyService";
+import { SimpleResult } from "../../models/resultTypes";
+import {
+  getPayloadToSign,
+  mintVehicleWithSignature,
+} from "../../services/dimoDevicesService";
+import { IntegrationNft, MintVehicleNft } from "../../models/typedData";
+import { SAMPLE_B64_IMAGE } from "../../utils/constants";
 
 export const MintVehicle: FC = () => {
-  const {
-    componentData,
-    setError,
-    setLoadingState,
-    setUiState,
-    setComponentData,
-  } = useUIManager();
-  const { clientId, redirectUri } = useDevCredentials(); // Get loading state and credentials from DevCredentialsContext
-  const { user } = useAuthContext();
+  const { componentData, setError, setLoadingState, setUiState } =
+    useUIManager();
+  const { user, jwt } = useAuthContext();
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const authCode = urlParams.get("code");
-    const encodedState = urlParams.get("state");
-
-    if (!authCode || !encodedState) {
-      setError("OAuth failed: Missing authorization code or state.");
-      return;
-    }
-
-    const state = JSON.parse(encodedState);
-
-    const processOauth = async () => {
+    const processMint = async () => {
       try {
-        setLoadingState(true, "Creating vehicle");
-        // 1️⃣ Exchange the authorization code for an access token
+        setLoadingState(true, "Minting vehicle");
 
-        console.log(state);
-        //Mint
-        const mintedVehicle = await handleMint(
-          state.make.split(" ")[0],
-          state.make.split(" ")[1],
-          "2024"
+        const { integrationID, userDeviceID } = componentData;
+
+        if (!componentData || !integrationID || !userDeviceID) {
+          return console.error("Error creating vehicle:");
+        }
+
+        const payloadToSign = await getPayloadToSign(
+          {
+            userDeviceID,
+            integrationID,
+          },
+          jwt
         );
 
-        if (mintedVehicle.success) {
-          console.log(mintedVehicle.data.tokenId);
-          setComponentData({
-            preSelectedVehicles: [mintedVehicle.data.tokenId],
-          });
+        if (!payloadToSign.success || !payloadToSign.data)
+          return console.error("Error creating vehicle:");
 
+        //Sign payload using txn SDK
+        const signature = await handleSign(payloadToSign.data);
+
+        //Use signed payload + id's to send signed payload for minting
+        if (!signature) {
+          return console.error("Could not sign payload");
+        }
+
+        console.log(signature);
+
+        const mintedVehicle = await handleMint(signature, userDeviceID);
+        console.log(mintedVehicle);
+        if (mintedVehicle.success) {
           setTimeout(() => {
             setLoadingState(false);
             setUiState(UiStates.VEHICLE_MANAGER);
-          }, 10000);
-        }
-        //Create Synthetic
-        //Register Integration
-        //Pair
-        if (true || state.provider == "smartcar") {
-          //TODO: Remove true
-          //Pairing
-          //Exchange Code
-          // const tokenResponse = await exchangeAuthCode(
-          //   authCode,
-          //   redirectUri,
-          // );
-          // if (!tokenResponse.success) {
-          //   throw new Error(tokenResponse.error);
-          // }
-          // const accessToken = tokenResponse.data?.access_token;
-          // console.log(accessToken);
+          }, 5000);
         }
       } catch (error) {
-        console.error("OAuth processing error:", error);
+        console.error("Mint processing error:", error);
         setError("Something went wrong while processing your vehicle.");
       } finally {
+        // setLoadingState(false);
         // setIsProcessing(false);
       }
     };
 
-    processOauth();
-  }, []);
+    processMint();
+  }, [componentData]);
+
+  const handleSign = async (nft: IntegrationNft | MintVehicleNft) => {
+    await initializeIfNeeded(user.subOrganizationId);
+    const kernelSigner = getKernelSigner();
+    const resp = await kernelSigner.signTypedData(nft);
+    return resp;
+  };
 
   const handleMint = async (
-    make: string,
-    model: string,
-    year: string
-  ): Promise<MintVehicleResult> => {
+    signature: string,
+    userDeviceID: string
+  ): Promise<SimpleResult> => {
     await initializeIfNeeded(user.subOrganizationId);
-    console.log(componentData);
-    const res = await mintVehicle({
-      owner: clientId as `0x${string}`,
-      permissions: BigInt(0),
-      manufacturerNode: 131,
-      deviceDefinitionID: "toyota_4runner_2024",
-      make,
-      model,
-      year,
-      imageURI: VehicleThumbnail,
-    });
-    return res;
+    const expiration = 2933125200; //Placeholder for sacd input
+    const permissions = 0; //Placeholder for sacd input
+    const owner = user.smartContractAddress;
+    const ipfsRes = await generateIpfsSources(
+      BigInt(0),
+      owner,
+      BigInt(expiration)
+    );
+
+    return await mintVehicleWithSignature(
+      {
+        imageData: SAMPLE_B64_IMAGE,
+        imageDataTransparent: SAMPLE_B64_IMAGE,
+        sacdInput: {
+          expiration,
+          permissions,
+          source: ipfsRes,
+          grantee: "0xAb5801a7D398351b8bE11C439e05C5b3259aec9B", //Placeholder grantee, we don't actually grant permissions upon mint
+        },
+        signature,
+      },
+      userDeviceID,
+      jwt
+    );
   };
 
   return (

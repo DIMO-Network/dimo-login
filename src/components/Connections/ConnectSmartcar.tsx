@@ -28,9 +28,9 @@ export const ConnectSmartCar: FC = () => {
       utm: urlParams.getAll("utm"),
       vehicleMakes: urlParams.getAll("vehicleMakes"),
       vehicles: urlParams.getAll("vehicles"),
-      make: componentData.makeModel, // Optional for Smartcar
-      year: componentData.modelYear,
-      countryCode: componentData.country, // Optional for Smartcar
+      // make: componentData.makeModel, // Optional for Smartcar
+      // year: componentData.modelYear,
+      // countryCode: componentData.country, // Optional for Smartcar
     });
 
     window.location.href = authUrl;
