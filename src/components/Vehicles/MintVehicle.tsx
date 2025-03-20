@@ -12,19 +12,25 @@ import { SimpleResult } from "../../models/resultTypes";
 import {
   getPayloadToSign,
   mintVehicleWithSignature,
+  waitForTokenId,
 } from "../../services/dimoDevicesService";
 import { IntegrationNft, MintVehicleNft } from "../../models/typedData";
 import { SAMPLE_B64_IMAGE } from "../../utils/constants";
 
 export const MintVehicle: FC = () => {
-  const { componentData, setError, setLoadingState, setUiState } =
-    useUIManager();
+  const {
+    componentData,
+    setError,
+    setLoadingState,
+    setUiState,
+    setComponentData,
+  } = useUIManager();
   const { user, jwt } = useAuthContext();
 
   useEffect(() => {
     const processMint = async () => {
       try {
-        setLoadingState(true, "Minting vehicle");
+        setLoadingState(true, "Minting vehicle", true);
 
         const { integrationID, userDeviceID } = componentData;
 
@@ -51,19 +57,25 @@ export const MintVehicle: FC = () => {
           return console.error("Could not sign payload");
         }
 
-        console.log(signature);
-
         const mintedVehicle = await handleMint(signature, userDeviceID);
-        console.log(mintedVehicle);
-        if (mintedVehicle.success) {
-          setTimeout(() => {
-            setLoadingState(false);
-            setUiState(UiStates.VEHICLE_MANAGER);
-          }, 5000);
+
+        if (!mintedVehicle.success) {
+          return console.error("Could not mint vehicle");
+        }
+
+        //Poll for Token ID
+        const tokenId = await waitForTokenId(userDeviceID, jwt);
+
+        if (tokenId) {
+          setComponentData({
+            ...componentData,
+            preSelectedVehicles: [tokenId.toString()],
+          });
+          setLoadingState(false);
+          setUiState(UiStates.VEHICLE_MANAGER);
         }
       } catch (error) {
         console.error("Mint processing error:", error);
-        setError("Something went wrong while processing your vehicle.");
       } finally {
         // setLoadingState(false);
         // setIsProcessing(false);

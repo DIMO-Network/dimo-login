@@ -190,6 +190,7 @@ export const ConnectTesla: FC = () => {
     userDeviceId: string,
     integrationId: string
   ) => {
+    //Note: Not currently polling, relying on manual input - due to inability to test this, and to prevent race conditions
     const interval = setInterval(async () => {
       console.log("Polling Virtual Key Status...");
       const integrationInfo = await checkIntegrationInfo(
