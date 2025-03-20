@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 
 import {
   SetVehiclePermissions,
@@ -67,6 +67,9 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
   //Data from Developer
   const [selectedVehicles, setSelectedVehicles] = useState<Vehicle[]>([]); // Array for multiple selected vehicles)
 
+  const hasFetched = useRef(false);
+
+
   const fetchVehicles = async (direction = "next") => {
     try {
       const cursor = direction === "next" ? endCursor : startCursor;
@@ -98,7 +101,6 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
           handleVehicleSelect(matchedVehicle);
         }
       }
-      // Set isExpanded based on vehicles length
     } catch (error) {
       setVehiclesLoading(false);
       setError("Could not fetch vehicles");
@@ -107,7 +109,9 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
   };
 
   useEffect(() => {
-    // Run both fetches in parallel
+    if (hasFetched.current) return; // Prevents re-execution, which happens in dev due to strict mode
+    hasFetched.current = true;
+      
     Promise.all([fetchVehicles()]);
   }, []);
 
@@ -140,7 +144,6 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
   const handleContinue = () => {
     sendJwtAfterPermissions((authPayload: any) => {
       backToThirdParty(authPayload, redirectUri, utm);
-      setUiState(UiStates.TRANSACTION_CANCELLED);
     });
   };
 
@@ -220,6 +223,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
   };
 
   const noVehicles = vehicles.length === 0 && incompatibleVehicles.length === 0;
+  const noCompatibleVehicles = vehicles.length === 0 && incompatibleVehicles.length > 0;
   const allShared = vehicles.length > 0 && vehicles.every((v) => v.shared);
   const canShare = vehicles.some((v) => !v.shared);
 
@@ -328,7 +332,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
           canShare ? "justify-between" : "justify-center"
         } w-full max-w-[440px] pt-4`}
       >
-        {(noVehicles || allShared) && (
+        {(noVehicles || allShared || noCompatibleVehicles) && (
           <PrimaryButton onClick={handleContinue}>Continue</PrimaryButton>
         )}
         {canShare && (
