@@ -25,6 +25,7 @@ import {
   payloadToMintResponse,
   vehicleCreationResponse,
 } from "../utils/mockedResponses";
+import { pollForCondition } from "../utils/pollingUtils";
 
 const DEVICES_ENDPOINT =
   process.env.REACT_APP_DEVICES_API_URL ||
@@ -273,4 +274,42 @@ export const checkIntegrationInfo = async (
       error: "An error occurred while getting integration info",
     };
   }
+};
+
+
+export const waitForTokenId = async (deviceId: string, jwt: string): Promise<number | null> => {
+  let foundTokenId: number | null = null;
+
+  const fetchTokenId = async (): Promise<boolean> => {
+    try {
+      const response = await fetch(`${DEVICES_ENDPOINT}/user/devices/me`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${jwt}`,
+        },
+      });
+
+      if (!response.ok) {
+        console.error("Failed to fetch devices:", await response.text());
+        return false;
+      }
+
+      const data: { userDevices: { id: string; nft?: { tokenId?: number } }[] } = await response.json();
+      const matchingDevice = data.userDevices.find((device) => device.id === deviceId);
+
+      if (matchingDevice?.nft?.tokenId) {
+        foundTokenId = matchingDevice.nft.tokenId; // Store the tokenId
+        return true; // Signal the polling function to stop
+      }
+
+      return false; // Continue polling
+    } catch (error) {
+      console.error("Error fetching devices:", error);
+      return false;
+    }
+  };
+
+  const success = await pollForCondition(fetchTokenId);
+  return success ? foundTokenId : null; // Return the stored tokenId or null if not found
 };
