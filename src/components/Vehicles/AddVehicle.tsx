@@ -46,7 +46,11 @@ export const AddVehicle: FC = () => {
 
   return (
     <Card width="w-full max-w-[600px]" height="h-full max-h-[600px]">
-      <Header title={`Add a new car`} subtitle={appUrl.hostname} />
+      <Header
+        title={`Add a new car`}
+        subtitle={appUrl.hostname}
+        link={`${appUrl.protocol}//${appUrl.host}`}
+      />
 
       <div className="w-full max-w-md mx-auto p-4 bg-white rounded-lg">
         {/* Toggle Buttons */}
@@ -75,7 +79,8 @@ export const AddVehicle: FC = () => {
             <label className="block text-sm">Make and model</label>
             <input
               type="text"
-              className="w-full mt-1 p-2 border rounded-md text-gray-600"
+              className="w-full mt-1 p-2 border rounded-md text-[#080808] border-gray-300 
+             focus:border-[#080808] focus:ring-[#080808] focus:outline-none"
               placeholder="Ford Bronco"
               value={makeModel}
               onChange={(e) => setMakeModel(e.target.value)}
@@ -113,10 +118,10 @@ export const AddVehicle: FC = () => {
 
         {tab == 1 && (
           <div className="mt-4">
-            <label className="block text-sm">VIN Number</label>
+            <label className="block text-sm text-[#000000]">VIN Number</label>
             <input
               type="text"
-              className="w-full mt-1 p-2 border rounded-md text-gray-600"
+              className="w-full mt-1 p-2 border rounded-md text-[#080808] focus:border-[#080808] focus:ring-[#080808] focus:outline-none"
               placeholder="1N6AD0EVXCC459517"
               onChange={(e) => setVinNumber(e.target.value)}
             />

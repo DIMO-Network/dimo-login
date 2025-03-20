@@ -159,9 +159,10 @@ export const CompatibilityCheck: FC = () => {
             : `Your ${vehicleString} is Not Supported`
         }
         subtitle={appUrl.hostname}
+        link={`${appUrl.protocol}//${appUrl.host}`}
       />
 
-      <div className="flex justify-center pt-2">
+      <div className="flex justify-center pt-5 py-5">
         <img
           style={{ height: "80px", width: "80px" }}
           className="rounded-full object-cover"
@@ -173,7 +174,6 @@ export const CompatibilityCheck: FC = () => {
 
       {isChecking ? (
         <div>
-          <p className="text-gray-500">Checking compatibility...</p>
           <Loader />
         </div>
       ) : isCompatible ? (

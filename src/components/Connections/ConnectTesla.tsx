@@ -275,6 +275,7 @@ export const ConnectTesla: FC = () => {
             : "Setup Complete"
         }
         subtitle={appUrl.hostname}
+        link={`${appUrl.protocol}//${appUrl.host}`}
       />
 
       {/* Render different components based on the step */}
@@ -305,11 +306,11 @@ export const ConnectTesla: FC = () => {
                       key={permission.name}
                       className="flex justify-between items-center p-4 border border-gray-200 rounded-2xl w-full"
                     >
-                      <span className="text-black font-medium">
+                      <span className="text-black font-normal">
                         {permission.name}
                       </span>
                       <span
-                        className={`px-3 py-1 text-sm font-medium rounded-full ${
+                        className={`px-3 py-1 text-sm font-normal rounded-full ${
                           permission.type === "required"
                             ? "bg-[#E80303] text-white"
                             : "bg-[#E4E4E7] text-[#3F3F46]"
@@ -385,7 +386,7 @@ export const ConnectTesla: FC = () => {
             : step === "virtual-key"
             ? "Setup Virtual Key"
             : step === "polling-virtual-key"
-            ? "I've added my virtual key!"
+            ? "I've added my Virtual Key!"
             : "Done"}
         </PrimaryButton>
       </div>
