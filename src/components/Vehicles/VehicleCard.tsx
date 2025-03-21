@@ -34,7 +34,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
       } rounded-2xl cursor-pointer transition ${
         vehicle.shared || incompatible
           ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-          : "hover:bg-gray-50 border-black cursor-pointer"
+          : "hover:bg-gray-50 cursor-pointer"
       } ${isSelected && "border-black"}`}
     >
       {/* Custom Checkbox */}
