@@ -16,3 +16,14 @@ export interface VehicleResponse {
   hasPreviousPage: boolean;
   startCursor: string;  
 }
+
+export interface MintVehicleVariables  {
+  owner: `0x${string}`;
+  manufacturerNode: number;
+  deviceDefinitionID: string;
+  make: string;
+  model: string;
+  year: string;
+  imageURI: string;
+  permissions: BigInt;
+};

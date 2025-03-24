@@ -65,14 +65,20 @@ export const DevCredentialsProvider = ({
     const stateFromUrl = urlParams.get("state");
     const utmFromUrl = urlParams.get("utm");
 
-    if (stateFromUrl) {
-      //SSO Purpose
-      //So, the SSO will add state to the URL, which is useful for the redirect mode where we've lost state
-      //However, in popup mode, we can still get data, from the SDK directly by requesting it
+    // ✅ Handle state from URL (e.g., for SSO / OAuth Redirects)
+    const processStateFromUrl = () => {
+      if (!stateFromUrl) return;
+
       const state = JSON.parse(stateFromUrl);
 
+      //We have to set this in state param, since we lose it for SSO
+      //We could do this setting in Email Input, however since we're already parsing state here, it feels more natural to put it here
+      //This sets email granted property to true/false in storage
+      //Then when we build the auth payload, it should be retrievable
+      setEmailGranted(state.clientId, state.emailPermissionGranted || false);
+
       if (isStandalone()) {
-        //We'll be getting these variables via a message anyway
+        // ✅ If standalone, use state params instead of waiting for SDK
         setUiState(state.entryState || UiStates.EMAIL_INPUT);
         setEntryState(state.entryState || UiStates.EMAIL_INPUT);
         setCredentials({
@@ -83,15 +89,12 @@ export const DevCredentialsProvider = ({
         });
         setAltTitle(state.altTitle);
       }
+    };
 
-      //We have to set this in state param, since we lose it for SSO
-      //We could do this setting in Email Input, however since we're already parsing state here, it feels more natural to put it here
-      //This sets email granted property to true/false in storage
-      //Then when we build the auth payload, it should be retrievable
-      setEmailGranted(state.clientId, state.emailPermissionGranted || false);
-    }
+    // ✅ Handle initialization from URL params (popup mode)
+    const processUrlParams = () => {
+      if (!clientIdFromUrl || !redirectUriFromUrl) return false;
 
-    if (clientIdFromUrl && redirectUriFromUrl) {
       setUiState(entryStateFromUrl || UiStates.EMAIL_INPUT);
       setEntryState(entryStateFromUrl || UiStates.EMAIL_INPUT);
       setForceEmail(forceEmailFromUrl === "true");
@@ -102,28 +105,40 @@ export const DevCredentialsProvider = ({
         utm: utmFromUrl,
       });
       setAltTitle(altTitleFromUrl);
-    } else {
-      const handleMessage = (event: MessageEvent) => {
-        const {
-          altTitle,
-          apiKey,
-          clientId,
-          entryState,
-          eventType,
-          forceEmail,
-          redirectUri,
-        } = event.data;
-        if (eventType === "AUTH_INIT") {
-          console.log({ data: event.data });
-          setUiState(entryState || UiStates.EMAIL_INPUT); //Try to go to the state specified, but if no session it will go to email input
-          setEntryState(entryState || UiStates.EMAIL_INPUT);
-          setForceEmail(forceEmail);
-          setCredentials({ clientId, apiKey, redirectUri });
-          setAltTitle(altTitle);
-        }
-      };
-      window.addEventListener("message", handleMessage);
 
+      return true;
+    };
+
+    // ✅ Handle message events from SDK (popup mode)
+    const handleMessage = (event: MessageEvent) => {
+      const {
+        altTitle,
+        eventType,
+        clientId,
+        apiKey,
+        redirectUri,
+        entryState,
+        forceEmail,
+      } = event.data;
+
+      if (eventType === "AUTH_INIT") {
+        console.log("Received AUTH_INIT message", event);
+        const finalEntryState = stateFromUrl
+          ? JSON.parse(stateFromUrl).entryState
+          : entryState || UiStates.EMAIL_INPUT;
+
+        setUiState(finalEntryState);
+        setEntryState(finalEntryState);
+        setForceEmail(forceEmail);
+        setCredentials({ clientId, apiKey, redirectUri });
+        setAltTitle(altTitle);
+      }
+    };
+
+    processStateFromUrl();
+
+    if (!processUrlParams()) {
+      window.addEventListener("message", handleMessage);
       return () => {
         window.removeEventListener("message", handleMessage);
       };

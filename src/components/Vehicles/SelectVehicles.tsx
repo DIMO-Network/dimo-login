@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 
 import {
   SetVehiclePermissions,
@@ -26,6 +26,7 @@ import { backToThirdParty } from "../../utils/messageHandler";
 import { UiStates, useUIManager } from "../../context/UIManagerContext";
 import Loader from "../Shared/Loader";
 import { EmptyState } from "./EmptyState";
+import { ConnectCarButton } from "../Shared/ConnectCarButton";
 
 interface SelectVehiclesProps {
   vehicleTokenIds: string[] | undefined; // Adjust the type based on your data
@@ -42,8 +43,14 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
 }) => {
   const { user, jwt } = useAuthContext();
   const { clientId, redirectUri, utm, devLicenseAlias } = useDevCredentials();
-  const { setUiState, setComponentData, setLoadingState, error, setError } =
-    useUIManager();
+  const {
+    setUiState,
+    setComponentData,
+    setLoadingState,
+    componentData,
+    error,
+    setError,
+  } = useUIManager();
 
   const [vehiclesLoading, setVehiclesLoading] = useState(true);
 
@@ -58,7 +65,10 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
   const [startCursor, setStartCursor] = useState("");
 
   //Data from Developer
-  const [selectedVehicles, setSelectedVehicles] = useState<Vehicle[]>([]); // Array for multiple selected vehicles
+  const [selectedVehicles, setSelectedVehicles] = useState<Vehicle[]>([]); // Array for multiple selected vehicles)
+
+  const hasFetched = useRef(false);
+
 
   const fetchVehicles = async (direction = "next") => {
     try {
@@ -81,7 +91,16 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
       setHasPreviousPage(transformedVehicles.hasPreviousPage);
       setHasNextPage(transformedVehicles.hasNextPage);
       setError(null);
-      // Set isExpanded based on vehicles length
+
+      if (componentData && componentData.preSelectedVehicles) {
+        const matchedVehicle = transformedVehicles.compatibleVehicles.find(
+          (vehicle) =>
+            vehicle.tokenId.toString() === componentData.preSelectedVehicles[0]
+        );
+        if (matchedVehicle) {
+          handleVehicleSelect(matchedVehicle);
+        }
+      }
     } catch (error) {
       setVehiclesLoading(false);
       setError("Could not fetch vehicles");
@@ -90,7 +109,9 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
   };
 
   useEffect(() => {
-    // Run both fetches in parallel
+    if (hasFetched.current) return; // Prevents re-execution, which happens in dev due to strict mode
+    hasFetched.current = true;
+      
     Promise.all([fetchVehicles()]);
   }, []);
 
@@ -110,8 +131,10 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
       const authPayload = buildAuthPayload(clientId, jwt, user);
       const authPayloadWithVehicles = {
         ...authPayload,
-        sharedVehicles: selectedVehicles.map((vehicle: Vehicle) => vehicle.tokenId)
-      }
+        sharedVehicles: selectedVehicles.map(
+          (vehicle: Vehicle) => vehicle.tokenId
+        ),
+      };
       sendAuthPayloadToParent(authPayloadWithVehicles, redirectUri, () =>
         handleNavigation(authPayloadWithVehicles)
       );
@@ -121,7 +144,6 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
   const handleContinue = () => {
     sendJwtAfterPermissions((authPayload: any) => {
       backToThirdParty(authPayload, redirectUri, utm);
-      setUiState(UiStates.TRANSACTION_CANCELLED);
     });
   };
 
@@ -201,6 +223,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
   };
 
   const noVehicles = vehicles.length === 0 && incompatibleVehicles.length === 0;
+  const noCompatibleVehicles = vehicles.length === 0 && incompatibleVehicles.length > 0;
   const allShared = vehicles.length > 0 && vehicles.every((v) => v.shared);
   const canShare = vehicles.some((v) => !v.shared);
 
@@ -238,6 +261,10 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
                     ? "Deselect All"
                     : "Select All"}
                 </button>
+              </div>
+
+              <div>
+                <ConnectCarButton />
               </div>
               {vehicles.map((vehicle: Vehicle) => (
                 <VehicleCard
@@ -305,7 +332,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
           canShare ? "justify-between" : "justify-center"
         } w-full max-w-[440px] pt-4`}
       >
-        {(noVehicles || allShared) && (
+        {(noVehicles || allShared || noCompatibleVehicles) && (
           <PrimaryButton onClick={handleContinue}>Continue</PrimaryButton>
         )}
         {canShare && (

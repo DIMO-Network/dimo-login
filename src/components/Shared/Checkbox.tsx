@@ -8,12 +8,10 @@ interface CheckboxProps {
   onChange: React.ChangeEventHandler<HTMLInputElement>;
   height?: string;
   width?: string;
+  checked?: boolean;
 }
 
-export const Checkbox: FC<CheckboxProps> = forwardRef<
-  HTMLInputElement,
-  CheckboxProps
->(
+export const Checkbox: FC<CheckboxProps> = forwardRef<HTMLInputElement, CheckboxProps>(
   (
     {
       onChange,
@@ -23,6 +21,7 @@ export const Checkbox: FC<CheckboxProps> = forwardRef<
       className = "",
       height = "h-5",
       width = "w-5",
+      checked,
     },
     ref
   ) => {
@@ -31,7 +30,7 @@ export const Checkbox: FC<CheckboxProps> = forwardRef<
         className={`${className} ${height} ${width} group grid size-4 grid-cols-1 items-center`}
       >
         <input
-          defaultChecked={defaultChecked}
+          {...(checked !== undefined ? { checked } : { defaultChecked })}
           id={id}
           name={name}
           onChange={onChange}
