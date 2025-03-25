@@ -69,7 +69,6 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
 
   const hasFetched = useRef(false);
 
-
   const fetchVehicles = async (direction = "next") => {
     try {
       const cursor = direction === "next" ? endCursor : startCursor;
@@ -111,7 +110,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
   useEffect(() => {
     if (hasFetched.current) return; // Prevents re-execution, which happens in dev due to strict mode
     hasFetched.current = true;
-      
+
     Promise.all([fetchVehicles()]);
   }, []);
 
@@ -283,6 +282,11 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
           {incompatibleVehicles && incompatibleVehicles.length > 0 && (
             <>
               <h2 className="text-lg">Incompatible</h2>
+              {noCompatibleVehicles && (
+                <div>
+                  <ConnectCarButton />
+                </div>
+              )}
               {incompatibleVehicles.map((vehicle: Vehicle) => (
                 <VehicleCard
                   key={vehicle.tokenId.toString()}
