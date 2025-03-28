@@ -7,6 +7,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { DevCredentialsProvider } from "./context/DevCredentialsContext";
 import { sendMessageToReferrer } from "./utils/messageHandler";
 import { UIManagerProvider } from "./context/UIManagerContext";
+import { GlobalOraclesProvider } from "./context/OraclesContext";
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
@@ -16,7 +17,9 @@ root.render(
     <UIManagerProvider>
       <DevCredentialsProvider>
         <AuthProvider>
-          <App />
+          <GlobalOraclesProvider>
+            <App />
+          </GlobalOraclesProvider>
         </AuthProvider>
       </DevCredentialsProvider>
     </UIManagerProvider>

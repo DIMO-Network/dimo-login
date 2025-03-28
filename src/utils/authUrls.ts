@@ -9,6 +9,7 @@ interface AuthUrlParams {
   referrer?: string;
   utm?: string[];
   vehicleMakes?: string[];
+  onboarding?: string[];
   vehicles?: string[];
   permissionTemplateId?: string | null;
   expirationDate?: string | null;
@@ -63,6 +64,7 @@ function getSmartcarAuthUrl(params: AuthUrlParams): string {
     referrer: params.referrer || document.referrer,
     utm: params.utm || [],
     vehicleMakes: params.vehicleMakes || [],
+    onboarding: params.onboarding || [],
     vehicles: params.vehicles || [],
     provider: params.provider,
     // make: params.make,
@@ -93,6 +95,7 @@ function getTeslaAuthUrl(params: AuthUrlParams): string {
     referrer: params.referrer || document.referrer,
     utm: params.utm || [],
     vehicleMakes: params.vehicleMakes || [],
+    onboarding: params.onboarding || [],
     vehicles: params.vehicles || [],
     vehicleToAdd: params.vehicleToAdd
   };
@@ -134,6 +137,7 @@ function getEmailAuthUrl(params: AuthUrlParams): string {
     referrer: params.referrer || document.referrer,
     utm: params.utm || [],
     vehicleMakes: params.vehicleMakes || [],
+    onboarding: params.onboarding || [],
     vehicles: params.vehicles || [],
   };
 
