@@ -18,10 +18,12 @@ import {
 import { FetchPermissionsParams } from "../../models/permissions";
 import SelectVehicles from "./SelectVehicles";
 import { getAppUrl, getParamFromUrlOrState } from "../../utils/urlHelpers";
+import { useOracles } from "../../context/OraclesContext";
 
 const VehicleManager: React.FC = () => {
   const { user, jwt } = useAuthContext();
   const { clientId, redirectUri, devLicenseAlias } = useDevCredentials();
+  const { setOnboardingEnabled } = useOracles();
   const { setComponentData, error, setError } = useUIManager();
 
   //Data from SDK
@@ -67,6 +69,12 @@ const VehicleManager: React.FC = () => {
       decodedState
     );
 
+    const onboarding = getParamFromUrlOrState(
+      "onboarding",
+      urlParams,
+      decodedState
+    );
+
     if (permissionTemplateId) {
       setPermissionTemplateId(permissionTemplateId as string);
     }
@@ -84,6 +92,10 @@ const VehicleManager: React.FC = () => {
     if (expirationDate) {
       setExpirationDate(parseExpirationDate(expirationDate as string));
     }
+
+    if (onboarding && onboarding.length > 0) {
+      setOnboardingEnabled(true);
+    }
   };
 
   const handleEmbedPopupMode = () => {
@@ -96,6 +108,7 @@ const VehicleManager: React.FC = () => {
         vehicles: vehiclesFromMessage,
         vehicleMakes: vehicleMakesFromMessage,
         expirationDate: expirationDateFromMessage,
+        onboarding,
       } = event.data;
 
       console.log(event.data);
@@ -107,6 +120,8 @@ const VehicleManager: React.FC = () => {
         if (vehicleMakesFromMessage) setVehicleMakes(vehicleMakesFromMessage);
         if (expirationDateFromMessage)
           setExpirationDate(parseExpirationDate(expirationDateFromMessage));
+        if (onboarding && onboarding.length > 0)
+          setOnboardingEnabled(true);
       }
     };
 
