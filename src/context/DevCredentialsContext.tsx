@@ -24,6 +24,7 @@ import { setForceEmail } from "../stores/AuthStateStore";
 import { UiStates, useUIManager } from "./UIManagerContext";
 
 interface DevCredentialsContextProps {
+  altTitle: boolean;
   apiKey: string;
   clientId: string;
   devLicenseAlias: string;
@@ -48,6 +49,7 @@ export const DevCredentialsProvider = ({
   const [utm, setUtm] = useState<string>("");
   const [invalidCredentials, setInvalidCredentials] = useState<boolean>(false);
   const [devLicenseAlias, setDevLicenseAlias] = useState<string>(""); // Alias will only be set if credentials are valid, defaults to client ID if not alias
+  const [altTitle, setAltTitle] = useState<boolean>(false);
   const { setUiState, setEntryState, setLoadingState } = useUIManager();
 
   // Example of using postMessage to receive credentials (as described previously)
@@ -59,6 +61,7 @@ export const DevCredentialsProvider = ({
     const redirectUriFromUrl = urlParams.get("redirectUri");
     const entryStateFromUrl = urlParams.get("entryState") as UiStates;
     const forceEmailFromUrl = urlParams.get("forceEmail");
+    const altTitleFromUrl = urlParams.get("altTitle") === "true";
     const stateFromUrl = urlParams.get("state");
     const utmFromUrl = urlParams.get("utm");
 
@@ -84,6 +87,7 @@ export const DevCredentialsProvider = ({
           redirectUri: state.redirectUri,
           utm: state.utm,
         });
+        setAltTitle(state.altTitle);
       }
     };
 
@@ -100,6 +104,7 @@ export const DevCredentialsProvider = ({
         redirectUri: redirectUriFromUrl,
         utm: utmFromUrl,
       });
+      setAltTitle(altTitleFromUrl);
 
       return true;
     };
@@ -107,6 +112,7 @@ export const DevCredentialsProvider = ({
     // ✅ Handle message events from SDK (popup mode)
     const handleMessage = (event: MessageEvent) => {
       const {
+        altTitle,
         eventType,
         clientId,
         apiKey,
@@ -125,6 +131,7 @@ export const DevCredentialsProvider = ({
         setEntryState(finalEntryState);
         setForceEmail(forceEmail);
         setCredentials({ clientId, apiKey, redirectUri });
+        setAltTitle(altTitle);
       }
     };
 
@@ -173,6 +180,7 @@ export const DevCredentialsProvider = ({
   return (
     <DevCredentialsContext.Provider
       value={{
+        altTitle,
         apiKey,
         clientId,
         devLicenseAlias,

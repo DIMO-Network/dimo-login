@@ -1,24 +1,25 @@
 // components/Auth/EmailInput.tsx
 import React, { useEffect, useState } from "react";
 
+import { AppleIcon, GoogleIcon } from "../Icons";
 import { Card } from "../Shared/Card";
 import { Checkbox } from "../Shared/Checkbox";
+import { decodeJwt } from "../../utils/jwtUtils";
 import { fetchUserDetails } from "../../services/accountsService";
+import { getAppUrl } from "../../utils/urlHelpers";
+import { getForceEmail } from "../../stores/AuthStateStore";
+import { getSignInTitle } from "../../utils/txnUtils";
 import { Header } from "../Shared/Header";
+import { isValidEmail } from "../../utils/emailUtils";
 import { PrimaryButton } from "../Shared/PrimaryButton";
 import { setEmailGranted } from "../../services/storageService";
+import { submitCodeExchange } from "../../services/authService";
+import { UiStates, useUIManager } from "../../context/UIManagerContext";
 import { useAuthContext } from "../../context/AuthContext";
 import { useDevCredentials } from "../../context/DevCredentialsContext";
-import { UiStates, useUIManager } from "../../context/UIManagerContext";
 
 import ErrorMessage from "../Shared/ErrorMessage";
-import { submitCodeExchange } from "../../services/authService";
-import { decodeJwt } from "../../utils/jwtUtils";
 import LoadingScreen from "../Shared/LoadingScreen";
-import { AppleIcon, GoogleIcon } from "../Icons";
-import { isValidEmail } from "../../utils/emailUtils";
-import { getForceEmail } from "../../stores/AuthStateStore";
-import { getAppUrl } from "../../utils/urlHelpers";
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;
@@ -29,7 +30,8 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   const { authenticateUser, setUser } = useAuthContext();
 
   // 2️⃣ Developer Credentials
-  const { clientId, devLicenseAlias, redirectUri } = useDevCredentials();
+  const { clientId, devLicenseAlias, redirectUri, altTitle } =
+    useDevCredentials();
 
   // 3️⃣ UI State Management
   const { setUiState, entryState, error, setError, setComponentData } =
@@ -107,6 +109,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       redirectUri,
       referrer: document.referrer, // Pass referrer to state
       utm: urlParams.getAll("utm"),
+      altTitle,
       vehicleMakes: urlParams.getAll("vehicleMakes"),
       vehicles: urlParams.getAll("vehicles"),
     };
@@ -186,7 +189,9 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       className="flex flex-col gap-6"
     >
       <Header
-        title="Enter an email to sign in with DIMO on"
+        title={getSignInTitle(devLicenseAlias, {
+          altTitle: Boolean(altTitle),
+        })}
         subtitle={appUrl.hostname}
         link={`${appUrl.protocol}//${appUrl.host}`}
       />
