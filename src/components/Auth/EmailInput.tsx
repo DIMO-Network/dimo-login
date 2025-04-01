@@ -19,6 +19,7 @@ import { AppleIcon, GoogleIcon } from "../Icons";
 import { isValidEmail } from "../../utils/emailUtils";
 import { getForceEmail } from "../../stores/AuthStateStore";
 import { getAppUrl } from "../../utils/urlHelpers";
+import { AuthProvider, constructAuthUrl } from "../../utils/authUrls";
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;
@@ -90,38 +91,26 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     }
   };
 
-  const handleAuth = (provider: string) => {
+  const handleAuth = (provider: AuthProvider) => {
     if (forceEmail && !emailPermissionGranted) {
       setError("Email sharing is required to proceed. Please check the box.");
       return;
     }
 
     const urlParams = new URLSearchParams(window.location.search);
-
-    const stateParams = {
+    const authUrl = constructAuthUrl({
+      provider,
       clientId,
-      emailPermissionGranted,
-      entryState,
+      redirectUri,
+      entryState: UiStates.CONNECT_TESLA,
       expirationDate: urlParams.get("expirationDate"),
       permissionTemplateId: urlParams.get("permissionTemplateId"),
-      redirectUri,
-      referrer: document.referrer, // Pass referrer to state
       utm: urlParams.getAll("utm"),
       vehicleMakes: urlParams.getAll("vehicleMakes"),
       vehicles: urlParams.getAll("vehicles"),
-    };
+    });
 
-    const serializedState = JSON.stringify(stateParams);
-    const encodedState = encodeURIComponent(serializedState);
-
-    const dimoRedirectUri =
-      process.env.REACT_APP_ENVIRONMENT == "prod"
-        ? "https://login.dimo.org"
-        : "https://login.dev.dimo.org";
-
-    const url = `${process.env.REACT_APP_DIMO_AUTH_URL}/auth/${provider}?client_id=login-with-dimo&redirect_uri=${dimoRedirectUri}&response_type=code&scope=openid%20email&state=${encodedState}`;
-
-    window.location.href = url;
+    window.location.href = authUrl;
   };
 
   const handleGoogleAuth = () => handleAuth("google");
