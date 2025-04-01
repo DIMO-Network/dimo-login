@@ -9,9 +9,12 @@ import { AuthProvider } from "../../utils/authUrls";
 import {
   formatVehicleString,
   getDeviceDefinitionIdFromVin,
-  searchDeviceDefinition,
 } from "../../services/deviceDefinitionsService";
 import { useAuthContext } from "../../context/AuthContext";
+import {
+  MakeModelYearEntry,
+  makeModelYearMapping,
+} from "../../utils/tablelandUtils";
 
 export const CompatibilityCheck: FC = () => {
   const { componentData, goBack, setUiState, setComponentData } =
@@ -33,45 +36,6 @@ export const CompatibilityCheck: FC = () => {
     }
   };
 
-  const fetchDeviceDefinition = async () => {
-    try {
-      let result;
-
-      if (componentData.vinNumber && componentData.country) {
-        // Fetch using VIN if available
-        result = await getDeviceDefinitionIdFromVin(
-          {
-            vin: componentData.vinNumber,
-            countryCode: componentData.country, // Assuming ISO 3166-1 alpha-3 format
-          },
-          jwt
-        );
-      } else if (componentData.makeModel && componentData.modelYear) {
-        // Fetch using Make/Model/Year if VIN is not available
-        result = await searchDeviceDefinition({
-          query: `${componentData.makeModel} ${componentData.modelYear}`,
-          makeSlug: componentData.makeModel.split(" ")[0],
-          modelSlug:
-            componentData.makeModel.split(" ").length < 3
-              ? componentData.makeModel.split(" ")[1]
-              : null,
-          year: componentData.modelYear,
-        });
-      } else {
-        console.error(
-          "Missing required data: Provide either VIN & country or Make/Model/Year."
-        );
-        return updateCompatibilityState(false);
-      }
-
-      // Handle the API response
-      processDeviceDefinitionResponse(result);
-    } catch (error) {
-      console.error("Unexpected error:", error);
-      updateCompatibilityState(false);
-    }
-  };
-
   // Centralized state update function
   const updateCompatibilityState = (
     isCompatible: boolean,
@@ -84,52 +48,102 @@ export const CompatibilityCheck: FC = () => {
     }
   };
 
-  // Function to process API response and update state
+  const fetchDeviceDefinition = async () => {
+    try {
+      const vin = componentData.vinNumber;
+      const country = componentData.country;
+      const makeModel = componentData.makeModel;
+      const year = componentData.modelYear;
+
+      let result;
+
+      if (vin && country) {
+        result = await getDeviceDefinitionIdFromVin(
+          { vin, countryCode: country },
+          jwt
+        );
+      } else if (makeModel && year) {
+        const key = `${makeModel} ${year}`;
+        const mapping = makeModelYearMapping[key];
+
+        if (!mapping) {
+          console.warn("Vehicle not supported in local mapping");
+          setVehicleString(key);
+          return updateCompatibilityState(false);
+        }
+
+        result = buildLocalMappingResponse(key, makeModel, year, mapping);
+      } else {
+        console.error("Missing required data.");
+        return updateCompatibilityState(false);
+      }
+
+      processDeviceDefinitionResponse(result);
+    } catch (error) {
+      console.error("Unexpected error:", error);
+      updateCompatibilityState(false);
+    }
+  };
+
+  const buildLocalMappingResponse = (
+    name: string,
+    makeModel: string,
+    year: number,
+    mapping: MakeModelYearEntry
+  ) => {
+    const [make, ...modelParts] = makeModel.split(" ");
+    return {
+      success: true,
+      data: {
+        id: mapping.id,
+        legacy_ksuid: mapping.ksuid,
+        name,
+        make,
+        model: modelParts.join(" "),
+        year,
+        imageUrl: mapping.imageURI || undefined,
+      },
+    };
+  };
+
   const processDeviceDefinitionResponse = (result: any) => {
     if (!result.success || !result.data) {
       return updateCompatibilityState(false);
     }
 
+    const data = result.data;
+
     const isTesla =
-      "deviceDefinitionId" in result.data
-        ? result.data.deviceDefinitionId.includes("tesla")
-        : result.data.make === "Tesla";
+      "deviceDefinitionId" in data
+        ? data.deviceDefinitionId.includes("tesla")
+        : data.make === "Tesla";
 
-    // Determine vehicle string, with fallback
-    const vehicleString = (() => {
-      try {
-        return formatVehicleString(result.data.deviceDefinitionId);
-      } catch {
-        return formatVehicleString(
-          `${result.data.year} ${result.data.make} ${result.data.model}`
-        );
-      }
-    })();
-
-    setVehicleString(vehicleString);
-    //Update Component Data based on the result
-    const prevMake = componentData.makeModel.split(" ")[0];
-    const prevModel =
-      componentData.makeModel.split(" ").length < 3
-        ? componentData.makeModel.split(" ")[1]
-        : null;
-
-    const newComponentData = {
-      vehicleToAdd: {
-        make: result.data.make || prevMake,
-        model: result.data.model || prevModel,
-        year: result.data.year || componentData.modelYear,
-        deviceDefinitionId: result.data.id || result.data.deviceDefinitionId,
-        vin: componentData.vinNumber,
-        country: componentData.country
-      },
-    };
+    const displayName = safeFormatVehicleString(data);
+    setVehicleString(displayName);
 
     if (!componentData.vehicleToAdd) {
-      //Overrites old state, since we don't need it anymore
-      setComponentData(newComponentData);
+      setComponentData({
+        vehicleToAdd: {
+          make: data.make ?? componentData.makeModel.split(" ")[0],
+          model:
+            data.model ?? componentData.makeModel.split(" ").slice(1).join(" "),
+          year: data.year ?? componentData.modelYear,
+          deviceDefinitionId: data.id ?? (data as any).deviceDefinitionId,
+          vin: componentData.vinNumber,
+          country: componentData.country,
+        },
+      });
     }
+
     updateCompatibilityState(true, isTesla ? "tesla" : "connect");
+  };
+
+  const safeFormatVehicleString = (data: any): string => {
+    try {
+      return formatVehicleString(data.deviceDefinitionId);
+    } catch {
+      return formatVehicleString(`${data.year} ${data.make} ${data.model}`);
+    }
   };
 
   useEffect(() => {
