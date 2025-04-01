@@ -20,6 +20,8 @@ import { isValidEmail } from "../../utils/emailUtils";
 import { getForceEmail } from "../../stores/AuthStateStore";
 import { getAppUrl } from "../../utils/urlHelpers";
 import { AuthProvider, constructAuthUrl } from "../../utils/authUrls";
+import { getSignInTitle } from "../../utils/uiUtils";
+import { useOracles } from "../../context/OraclesContext";
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;
@@ -33,8 +35,17 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   const { clientId, devLicenseAlias, redirectUri } = useDevCredentials();
 
   // 3️⃣ UI State Management
-  const { setUiState, entryState, error, setError, setComponentData } =
-    useUIManager();
+  const {
+    setUiState,
+    entryState,
+    error,
+    setError,
+    setComponentData,
+    altTitle,
+  } = useUIManager();
+
+  //Oracle Management
+  const { onboardingEnabled } = useOracles();
 
   // 4️⃣ Local State Variables
   const [email, setEmail] = useState(""); // User Input (primary)
@@ -108,6 +119,8 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       utm: urlParams.getAll("utm"),
       vehicleMakes: urlParams.getAll("vehicleMakes"),
       vehicles: urlParams.getAll("vehicles"),
+      onboarding: onboardingEnabled ? ["tesla"] : [], //TODO: Should have full onboarding array here
+      altTitle,
     });
 
     window.location.href = authUrl;
@@ -175,7 +188,9 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       className="flex flex-col gap-6"
     >
       <Header
-        title="Enter an email to sign in with DIMO on"
+        title={getSignInTitle(devLicenseAlias, {
+          altTitle: Boolean(altTitle),
+        })}
         subtitle={appUrl.hostname}
         link={`${appUrl.protocol}//${appUrl.host}`}
       />

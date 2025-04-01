@@ -10,6 +10,7 @@ interface AuthUrlParams {
   clientId?: string;
   redirectUri: string;
   emailPermissionGranted?: boolean;
+  altTitle?: boolean;
   entryState?: string;
   referrer?: string;
   utm?: string[];
@@ -44,6 +45,26 @@ export function constructAuthUrl(params: AuthUrlParams): string {
   }
 }
 
+function buildStateParams(params: AuthUrlParams): Record<string, any> {
+  return {
+    clientId: params.clientId,
+    emailPermissionGranted: params.emailPermissionGranted,
+    entryState: params.entryState,
+    expirationDate: params.expirationDate,
+    permissionTemplateId: params.permissionTemplateId,
+    redirectUri: params.redirectUri,
+    referrer: params.referrer ?? document.referrer,
+    utm: params.utm ?? [],
+    vehicleMakes: params.vehicleMakes ?? [],
+    onboarding: params.onboarding ?? [],
+    vehicles: params.vehicles ?? [],
+    vehicleToAdd: params.vehicleToAdd,
+    altTitle: params.altTitle,
+    testMode: params.testMode,
+    provider: params.provider,
+  };
+}
+
 function encodeState(state: object): string {
   return btoa(JSON.stringify(state)); // Base64 encode state to avoid long URL issues
 }
@@ -61,22 +82,7 @@ function getSmartcarAuthUrl(params: AuthUrlParams): string {
     url += `&mode=simulated`;
   }
 
-  const stateParams = {
-    clientId: params.clientId,
-    emailPermissionGranted: params.emailPermissionGranted,
-    entryState: params.entryState,
-    expirationDate: params.expirationDate,
-    permissionTemplateId: params.permissionTemplateId,
-    redirectUri: params.redirectUri,
-    referrer: params.referrer || document.referrer,
-    utm: params.utm || [],
-    vehicleMakes: params.vehicleMakes || [],
-    onboarding: params.onboarding || [],
-    vehicles: params.vehicles || [],
-    provider: params.provider,
-    // make: params.make,
-    // year: params.year,
-  };
+  const stateParams = buildStateParams(params);
 
   url += `&state=${encodeURIComponent(JSON.stringify(stateParams))}`;
 
@@ -92,20 +98,7 @@ function getSmartcarAuthUrl(params: AuthUrlParams): string {
 }
 
 function getTeslaAuthUrl(params: AuthUrlParams): string {
-  const stateParams = {
-    clientId: params.clientId,
-    emailPermissionGranted: params.emailPermissionGranted,
-    entryState: params.entryState,
-    expirationDate: params.expirationDate,
-    permissionTemplateId: params.permissionTemplateId,
-    redirectUri: params.redirectUri, //The Developer Apps Redirect URI
-    referrer: params.referrer || document.referrer,
-    utm: params.utm || [],
-    vehicleMakes: params.vehicleMakes || [],
-    onboarding: params.onboarding || [],
-    vehicles: params.vehicles || [],
-    vehicleToAdd: params.vehicleToAdd,
-  };
+  const stateParams = buildStateParams(params);
 
   const scope = [
     "openid",
@@ -134,19 +127,7 @@ function getTeslaAuthUrl(params: AuthUrlParams): string {
 }
 
 function getEmailAuthUrl(params: AuthUrlParams): string {
-  const stateParams = {
-    clientId: params.clientId,
-    emailPermissionGranted: params.emailPermissionGranted,
-    entryState: params.entryState,
-    expirationDate: params.expirationDate,
-    permissionTemplateId: params.permissionTemplateId,
-    redirectUri: params.redirectUri,
-    referrer: params.referrer || document.referrer,
-    utm: params.utm || [],
-    vehicleMakes: params.vehicleMakes || [],
-    onboarding: params.onboarding || [],
-    vehicles: params.vehicles || [],
-  };
+  const stateParams = buildStateParams(params);
 
   const dimoRedirectUri =
     process.env.REACT_APP_ENVIRONMENT == "prod"

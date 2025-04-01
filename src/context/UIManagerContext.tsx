@@ -25,6 +25,8 @@ interface UIManagerContextProps {
   ) => void;
   error: string | null;
   setError: React.Dispatch<React.SetStateAction<string | null>>;
+  altTitle: boolean;
+  setAltTitle: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export enum UiStates {
@@ -58,6 +60,7 @@ export const UIManagerProvider = ({ children }: { children: ReactNode }) => {
   const [componentData, setComponentData] = useState<any | null>(null); // Initial component data
   const [isLoading, setLoadingState, loadingMessage] = useLoading(false);
   const [error, setError] = useState<string | null>(null);
+  const [altTitle, setAltTitle] = useState<boolean>(false);
 
   const handleUiState = (
     value: UiStates,
@@ -103,6 +106,8 @@ export const UIManagerProvider = ({ children }: { children: ReactNode }) => {
         setLoadingState,
         error,
         setError,
+        altTitle,
+        setAltTitle,
       }}
     >
       {children}
