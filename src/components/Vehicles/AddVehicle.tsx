@@ -29,7 +29,7 @@ export const AddVehicle: FC = () => {
 
   const [tab, setTab] = useState(0);
   const [makeModel, setMakeModel] = useState("");
-  const [modelYear, setModelYear] = useState(2025);
+  const [modelYear, setModelYear] = useState("");
   const [vinNumber, setVinNumber] = useState("");
   const [country, setCountry] = useState("United States of America");
 
@@ -45,7 +45,7 @@ export const AddVehicle: FC = () => {
   };
 
   return (
-    <Card width="w-full max-w-[600px]" height="h-full max-h-[600px]">
+    <Card width="w-full max-w-[600px]" height="h-full max-h-[500px]">
       <Header
         title={`Add a new car`}
         subtitle={appUrl.hostname}
@@ -93,6 +93,9 @@ export const AddVehicle: FC = () => {
               value={modelYear}
               onChange={(e: any) => setModelYear(e.target.value)}
             >
+              <option value="" disabled hidden>
+                Select
+              </option>
               {Array.from({ length: 2025 - 1900 + 1 }, (_, i) => (
                 <option key={2025 - i} value={2025 - i}>
                   {2025 - i}
