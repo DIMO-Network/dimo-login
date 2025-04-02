@@ -169,8 +169,8 @@ export const CompatibilityCheck: FC = () => {
           isChecking
             ? "Checking Compatibility..."
             : isCompatible
-            ? `Your ${vehicleString} is Supported`
-            : `Your ${vehicleString} is Not Supported`
+            ? `Your ${vehicleString} is supported!`
+            : `Your ${vehicleString} isn't supported`
         }
         subtitle={appUrl.hostname}
         link={`${appUrl.protocol}//${appUrl.host}`}
