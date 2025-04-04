@@ -50,9 +50,8 @@ const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
       // Verify OTP using the auth context
       const otp = otpArray.join("");
       const result = await verifyOtp(email, otp);
-
       if (result.success && result.data.credentialBundle) {
-        authenticateUser(email, result.data.credentialBundle, entryState);
+        authenticateUser(email);
       }
     }
   };

@@ -1,12 +1,8 @@
-import { SACDTemplate } from "@dimo-network/transactions/dist/core/types/dimo";
-import {
-  getSacdDescription,
-  getSacdPermissionArray,
-  getSacdValue,
-} from "./turnkeyService";
-import { VehcilePermissionDescription } from "@dimo-network/transactions/dist/core/types/args";
-import { formatBigIntAsReadableDate } from "../utils/dateUtils";
-import { FetchPermissionsParams } from "../models/permissions";
+import {SACDTemplate} from "@dimo-network/transactions/dist/core/types/dimo";
+import {getSacdDescription, getSacdPermissionArray, getSacdValue,} from "./turnkeyService";
+import {VehcilePermissionDescription} from "@dimo-network/transactions/dist/core/types/args";
+import {formatBigIntAsReadableDate} from "../utils/dateUtils";
+import {FetchPermissionsParams} from "../models/permissions";
 
 //Helper functions that communicate with the transactions service
 export function getPermsValue(permissionTemplateId: string): bigint {
@@ -60,7 +56,7 @@ export async function fetchPermissionsFromId({
     expirationDate
   )}.\n\nDetails:\n- This grant provides the grantee with access to specific vehicle data and control functions as specified above.\n- Created by DIMO Platform, version 1.0 of this contract template.\n\nBy signing, both parties agree to these terms and the specified access scope.`;
 
-  const template: SACDTemplate = {
+  return {
     specVersion: "1.0",
     id: templateId,
     type: "org.dimo.permission.grant.v1",
@@ -80,6 +76,4 @@ export async function fetchPermissionsFromId({
       description,
     },
   };
-
-  return template;
 }
