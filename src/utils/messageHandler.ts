@@ -1,9 +1,9 @@
-import { isStandalone } from "./isStandalone";
-import { getAppUrl, getRedirectUriWithUtm } from "./urlHelpers";
+import { isStandalone } from './isStandalone';
+import { getAppUrl, getRedirectUriWithUtm } from './urlHelpers';
 
 export function sendMessageToReferrer(data: object) {
   if (isStandalone()) {
-    console.warn("Not opened in popup or iframe, use url based creds");
+    console.warn('Not opened in popup or iframe, use url based creds');
     return;
   }
 
@@ -11,17 +11,17 @@ export function sendMessageToReferrer(data: object) {
 
   const referrer = window.opener || window.parent;
 
-  console.log("Referrer", referrer);
-  console.log("Parent", parentOrigin);
+  console.log('Referrer', referrer);
+  console.log('Parent', parentOrigin);
 
   if (referrer) {
     referrer.postMessage(
-      { ...data, mode: window.opener ? "popup" : "embed" },
-      parentOrigin
+      { ...data, mode: window.opener ? 'popup' : 'embed' },
+      parentOrigin,
     );
-    console.log("Message sent to developer app");
+    console.log('Message sent to developer app');
   } else {
-    console.warn("No referrer found");
+    console.warn('No referrer found');
   }
 }
 
@@ -29,11 +29,11 @@ export function backToThirdParty(
   payload: Record<string, string | number | boolean>,
   redirectUri: string,
   utm: string,
-  handleEmbed?: () => void
+  handleEmbed?: () => void,
 ) {
   if (isStandalone()) {
     // Redirect with payload in query params
-    const redirectUriWithUtm = getRedirectUriWithUtm(redirectUri, utm || "");
+    const redirectUriWithUtm = getRedirectUriWithUtm(redirectUri, utm || '');
     Object.entries(payload).forEach(([key, value]) => {
       redirectUriWithUtm.searchParams.set(key, String(value));
     });
@@ -52,6 +52,6 @@ export function backToThirdParty(
   if (handleEmbed) {
     handleEmbed();
   } else {
-    console.warn("Embedded mode detected. No action provided.");
+    console.warn('Embedded mode detected. No action provided.');
   }
 }

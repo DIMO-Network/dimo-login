@@ -1,35 +1,31 @@
-import { useEffect, useState, type FC } from "react";
-import PrimaryButton from "../Shared/PrimaryButton";
-import { UiStates, useUIManager } from "../../context/UIManagerContext";
-import Card from "../Shared/Card";
-import Header from "../Shared/Header";
-import { getAppUrl } from "../../utils/urlHelpers";
-import Loader from "../Shared/Loader";
-import { AuthProvider } from "../../utils/authUrls";
+import { useEffect, useState, type FC } from 'react';
+import PrimaryButton from '../Shared/PrimaryButton';
+import { UiStates, useUIManager } from '../../context/UIManagerContext';
+import Card from '../Shared/Card';
+import Header from '../Shared/Header';
+import { getAppUrl } from '../../utils/urlHelpers';
+import Loader from '../Shared/Loader';
+import { AuthProvider } from '../../utils/authUrls';
 import {
   formatVehicleString,
   getDeviceDefinitionIdFromVin,
-} from "../../services/deviceDefinitionsService";
-import { useAuthContext } from "../../context/AuthContext";
-import {
-  MakeModelYearEntry,
-  makeModelYearMapping,
-} from "../../utils/tablelandUtils";
+} from '../../services/deviceDefinitionsService';
+import { useAuthContext } from '../../context/AuthContext';
+import { MakeModelYearEntry, makeModelYearMapping } from '../../utils/tablelandUtils';
 
 export const CompatibilityCheck: FC = () => {
-  const { componentData, goBack, setUiState, setComponentData } =
-    useUIManager(); // Access the manage function from the context
+  const { componentData, goBack, setUiState, setComponentData } = useUIManager(); // Access the manage function from the context
   const { jwt } = useAuthContext();
   const [isCompatible, setIsCompatible] = useState<boolean>(false); // `null` means loading
   const [isChecking, setIsChecking] = useState<boolean>(true);
-  const [vehicleString, setVehicleString] = useState<string>("");
-  const [connectionType, setConnectionType] = useState<AuthProvider>("connect");
+  const [vehicleString, setVehicleString] = useState<string>('');
+  const [connectionType, setConnectionType] = useState<AuthProvider>('connect');
   const appUrl = getAppUrl();
 
   const handleContinue = () => {
-    if (connectionType == "tesla") {
+    if (connectionType === 'tesla') {
       setUiState(UiStates.CONNECT_TESLA, { setBack: true });
-    } else if (connectionType == "smartcar") {
+    } else if (connectionType === 'smartcar') {
       setUiState(UiStates.CONNECT_SMARTCAR, { setBack: true });
     } else {
       setUiState(UiStates.CONNECT_DEVICE, { setBack: true });
@@ -39,7 +35,7 @@ export const CompatibilityCheck: FC = () => {
   // Centralized state update function
   const updateCompatibilityState = (
     isCompatible: boolean,
-    connectionType: "tesla" | "connect" | null = null
+    connectionType: 'tesla' | 'connect' | null = null,
   ) => {
     setIsChecking(false);
     setIsCompatible(isCompatible);
@@ -58,29 +54,26 @@ export const CompatibilityCheck: FC = () => {
       let result;
 
       if (vin && country) {
-        result = await getDeviceDefinitionIdFromVin(
-          { vin, countryCode: country },
-          jwt
-        );
+        result = await getDeviceDefinitionIdFromVin({ vin, countryCode: country }, jwt);
       } else if (makeModel && year) {
         const key = `${makeModel} ${year}`;
         const mapping = makeModelYearMapping[key];
 
         if (!mapping) {
-          console.warn("Vehicle not supported in local mapping");
+          console.warn('Vehicle not supported in local mapping');
           setVehicleString(key);
           return updateCompatibilityState(false);
         }
 
         result = buildLocalMappingResponse(key, makeModel, year, mapping);
       } else {
-        console.error("Missing required data.");
+        console.error('Missing required data.');
         return updateCompatibilityState(false);
       }
 
       processDeviceDefinitionResponse(result);
     } catch (error) {
-      console.error("Unexpected error:", error);
+      console.error('Unexpected error:', error);
       updateCompatibilityState(false);
     }
   };
@@ -89,9 +82,9 @@ export const CompatibilityCheck: FC = () => {
     name: string,
     makeModel: string,
     year: number,
-    mapping: MakeModelYearEntry
+    mapping: MakeModelYearEntry,
   ) => {
-    const [make, ...modelParts] = makeModel.split(" ");
+    const [make, ...modelParts] = makeModel.split(' ');
     return {
       success: true,
       data: {
@@ -99,7 +92,7 @@ export const CompatibilityCheck: FC = () => {
         legacy_ksuid: mapping.ksuid,
         name,
         make,
-        model: modelParts.join(" "),
+        model: modelParts.join(' '),
         year,
         imageUrl: mapping.imageURI || undefined,
       },
@@ -114,9 +107,9 @@ export const CompatibilityCheck: FC = () => {
     const data = result.data;
 
     const isTesla =
-      "deviceDefinitionId" in data
-        ? data.deviceDefinitionId.includes("tesla")
-        : data.make === "Tesla";
+      'deviceDefinitionId' in data
+        ? data.deviceDefinitionId.includes('tesla')
+        : data.make === 'Tesla';
 
     const displayName = safeFormatVehicleString(data);
     setVehicleString(displayName);
@@ -124,9 +117,8 @@ export const CompatibilityCheck: FC = () => {
     if (!componentData.vehicleToAdd) {
       setComponentData({
         vehicleToAdd: {
-          make: data.make ?? componentData.makeModel.split(" ")[0],
-          model:
-            data.model ?? componentData.makeModel.split(" ").slice(1).join(" "),
+          make: data.make ?? componentData.makeModel.split(' ')[0],
+          model: data.model ?? componentData.makeModel.split(' ').slice(1).join(' '),
           year: data.year ?? componentData.modelYear,
           deviceDefinitionId: data.id ?? (data as any).deviceDefinitionId,
           vin: componentData.vinNumber,
@@ -135,7 +127,7 @@ export const CompatibilityCheck: FC = () => {
       });
     }
 
-    updateCompatibilityState(true, isTesla ? "tesla" : "connect");
+    updateCompatibilityState(true, isTesla ? 'tesla' : 'connect');
   };
 
   const safeFormatVehicleString = (data: any): string => {
@@ -167,10 +159,10 @@ export const CompatibilityCheck: FC = () => {
       <Header
         title={
           isChecking
-            ? "Checking Compatibility..."
+            ? 'Checking Compatibility...'
             : isCompatible
-            ? `Your ${vehicleString} is supported!`
-            : `Your ${vehicleString} isn't supported`
+              ? `Your ${vehicleString} is supported!`
+              : `Your ${vehicleString} isn't supported`
         }
         subtitle={appUrl.hostname}
         link={`${appUrl.protocol}//${appUrl.host}`}
@@ -178,10 +170,11 @@ export const CompatibilityCheck: FC = () => {
 
       <div className="flex justify-center pt-5 py-5">
         <img
-          style={{ height: "80px", width: "80px" }}
+          alt={'vehicle-nft-image'}
+          style={{ height: '80px', width: '80px' }}
           className="rounded-full object-cover"
           src={
-            "https://assets.dimo.xyz/ipfs/QmaaxazmGtNM6srcRmLyNdjCp8EAmvaTDYSo1k2CXVRTaY"
+            'https://assets.dimo.xyz/ipfs/QmaaxazmGtNM6srcRmLyNdjCp8EAmvaTDYSo1k2CXVRTaY'
           }
         />
       </div>

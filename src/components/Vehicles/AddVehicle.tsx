@@ -1,18 +1,18 @@
-import { useState, type FC } from "react";
+import { useState, type FC } from 'react';
 
-import Card from "../Shared/Card";
-import Header from "../Shared/Header";
-import { getAppUrl } from "../../utils/urlHelpers";
+import Card from '../Shared/Card';
+import Header from '../Shared/Header';
+import { getAppUrl } from '../../utils/urlHelpers';
 
-import countries from "i18n-iso-countries"; // Install using npm install i18n-iso-countries
-import enLocale from "i18n-iso-countries/langs/en.json";
-import { UiStates, useUIManager } from "../../context/UIManagerContext";
-import { supportedMakeModels } from "../../utils/tablelandUtils";
-import { AutoCompleteInput } from "../Shared/AutoCompleteInput";
+import countries from 'i18n-iso-countries'; // Install using npm install i18n-iso-countries
+import enLocale from 'i18n-iso-countries/langs/en.json';
+import { UiStates, useUIManager } from '../../context/UIManagerContext';
+import { supportedMakeModels } from '../../utils/tablelandUtils';
+import { AutoCompleteInput } from '../Shared/AutoCompleteInput';
 
 // Register English country names
 countries.registerLocale(enLocale);
-const countryList = Object.values(countries.getNames("en"));
+const countryList = Object.values(countries.getNames('en'));
 const countryCodes = countries.getAlpha3Codes(); // { United States: "US", Canada: "CA", ... }
 let countryMapping: Record<string, string> = {}; // Define type properly
 
@@ -30,10 +30,10 @@ export const AddVehicle: FC = () => {
   const { setComponentData, setUiState } = useUIManager(); // Access the manage function from the context
 
   const [tab, setTab] = useState(0);
-  const [makeModel, setMakeModel] = useState("");
-  const [modelYear, setModelYear] = useState("");
-  const [vinNumber, setVinNumber] = useState("");
-  const [country, setCountry] = useState("United States of America");
+  const [makeModel, setMakeModel] = useState('');
+  const [modelYear, setModelYear] = useState('');
+  const [vinNumber, setVinNumber] = useState('');
+  const [country, setCountry] = useState('United States of America');
 
   const handleSubmit = () => {
     setComponentData({
@@ -59,7 +59,7 @@ export const AddVehicle: FC = () => {
         <div className="flex w-full border rounded-full bg-gray-200">
           <button
             className={`flex-1 py-2 rounded-full ${
-              tab === 0 ? "bg-white text-black" : "bg-gray-200 text-gray-600"
+              tab === 0 ? 'bg-white text-black' : 'bg-gray-200 text-gray-600'
             }`}
             onClick={() => setTab(0)}
           >
@@ -67,7 +67,7 @@ export const AddVehicle: FC = () => {
           </button>
           <button
             className={`flex-1 py-2 rounded-full ${
-              tab === 1 ? "bg-white text-black" : "bg-gray-200 text-gray-600"
+              tab === 1 ? 'bg-white text-black' : 'bg-gray-200 text-gray-600'
             }`}
             onClick={() => setTab(1)}
           >
@@ -75,7 +75,7 @@ export const AddVehicle: FC = () => {
           </button>
         </div>
 
-        {tab == 0 && (
+        {tab === 0 && (
           <div className="mt-4">
             {/* Make and Model */}
             <label className="block text-sm">Make and model</label>
@@ -120,7 +120,7 @@ export const AddVehicle: FC = () => {
           </div>
         )}
 
-        {tab == 1 && (
+        {tab === 1 && (
           <div className="mt-4">
             <label className="block text-sm text-[#000000]">VIN Number</label>
             <input
@@ -149,8 +149,8 @@ export const AddVehicle: FC = () => {
         {/* Submit Button */}
         <button
           disabled={
-            (tab == 0 && !(makeModel && country && modelYear)) ||
-            (tab == 1 && !vinNumber)
+            (tab === 0 && !(makeModel && country && modelYear)) ||
+            (tab === 1 && !vinNumber)
           }
           className="w-full mt-6 p-3 rounded-full bg-black disabled:bg-[#A1A1AA] text-white"
           onClick={handleSubmit}

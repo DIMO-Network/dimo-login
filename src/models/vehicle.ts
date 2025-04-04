@@ -5,7 +5,7 @@ export interface Vehicle {
   model: string;
   year: number;
   shared: boolean;
-  expiresAt:string;
+  expiresAt: string;
 }
 
 export interface VehicleResponse {
@@ -14,10 +14,10 @@ export interface VehicleResponse {
   hasNextPage: boolean;
   endCursor: string;
   hasPreviousPage: boolean;
-  startCursor: string;  
+  startCursor: string;
 }
 
-export interface MintVehicleVariables  {
+export interface MintVehicleVariables {
   owner: `0x${string}`;
   manufacturerNode: number;
   deviceDefinitionID: string;
@@ -26,4 +26,4 @@ export interface MintVehicleVariables  {
   year: string;
   imageURI: string;
   permissions: BigInt;
-};
+}

@@ -1,7 +1,7 @@
 // components/Shared/LoadingScreen.js
-import React from "react";
-import Logo from "./Logo";
-import Loader from "./Loader";
+import React from 'react';
+import Logo from './Logo';
+import Loader from './Loader';
 
 const LoadingScreen = () => (
   <div className="flex h-screen pt-2 justify-center bg-white lg-h-screen">

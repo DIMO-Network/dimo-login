@@ -1,20 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
 const useLoading = (
-  initialLoadingState: boolean
+  initialLoadingState: boolean,
 ): [boolean, (loading: boolean, message?: string) => void, string] => {
   const [isLoading, setIsLoading] = useState(initialLoadingState);
   const [isLongProcess, setIsLongProcess] = useState<boolean>(false);
-  const [message, setMessage] = useState<string>("");
+  const [message, setMessage] = useState<string>('');
 
   const handleSetLoading = (
     loading: boolean,
     message?: string,
-    isLongProcess?: boolean
+    isLongProcess?: boolean,
   ) => {
     setIsLoading(loading);
     setIsLongProcess(isLongProcess || false);
-    setMessage(loading && message ? message : "");
+    setMessage(loading && message ? message : '');
   };
 
   useEffect(() => {
@@ -25,11 +25,11 @@ const useLoading = (
 
     if (isLoading) {
       timeoutIdStillWorking = setTimeout(() => {
-        setMessage("Still working…");
+        setMessage('Still working…');
       }, 5000);
 
       timeoutIdAlmostThere = setTimeout(() => {
-        setMessage("Hang tight, almost there");
+        setMessage('Hang tight, almost there');
       }, 8000);
     }
 

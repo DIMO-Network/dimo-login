@@ -1,4 +1,4 @@
-import React, { forwardRef, type FC } from "react";
+import React, { forwardRef, type FC } from 'react';
 
 interface CheckboxProps {
   className?: string;
@@ -18,12 +18,12 @@ export const Checkbox: FC<CheckboxProps> = forwardRef<HTMLInputElement, Checkbox
       name,
       id,
       defaultChecked = false,
-      className = "",
-      height = "h-5",
-      width = "w-5",
+      className = '',
+      height = 'h-5',
+      width = 'w-5',
       checked,
     },
-    ref
+    ref,
   ) => {
     return (
       <div
@@ -60,7 +60,7 @@ export const Checkbox: FC<CheckboxProps> = forwardRef<HTMLInputElement, Checkbox
         </svg>
       </div>
     );
-  }
+  },
 );
 
 export default Checkbox;

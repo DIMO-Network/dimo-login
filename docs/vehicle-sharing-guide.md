@@ -49,11 +49,13 @@ Example: `https://login.dimo.org/?clientId=0xeAa35540a94e3ebdf80448Ae7c9dE5F42Ca
 ## 🔗 Step 3: Go Through the Flow
 
 Once the flow is launched:
+
 - The vehicle should appear in the UI
 - Select it and proceed through the permission flow, as shown here: https://www.loom.com/share/408201d1a85f4f96a0b79534f99ebab8
 
 ## ✅ Notes
+
 - Sharing only works with minted vehicles assigned to the current user
 - If the vehicle isn’t appearing, check:
-    - The wallet address matches the one used to mint
+  - The wallet address matches the one used to mint
 - The flow can be tested in popup or redirect mode

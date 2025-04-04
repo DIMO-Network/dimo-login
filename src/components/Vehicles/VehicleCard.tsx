@@ -1,7 +1,7 @@
-import React from "react";
+import React from 'react';
 
-import { Vehicle } from "../../models/vehicle";
-import { UiStates, useUIManager } from "../../context/UIManagerContext";
+import { Vehicle } from '../../models/vehicle';
+import { UiStates, useUIManager } from '../../context/UIManagerContext';
 
 interface VehicleCardProps {
   vehicle: Vehicle;
@@ -30,12 +30,12 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
   return (
     <div
       className={`flex items-center p-4 ${
-        !disabled && "border"
+        !disabled && 'border'
       } rounded-2xl cursor-pointer transition ${
         vehicle.shared || incompatible
-          ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-          : "hover:bg-gray-50 cursor-pointer"
-      } ${isSelected && "border-black"}`}
+          ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+          : 'hover:bg-gray-50 cursor-pointer'
+      } ${isSelected && 'border-black'}`}
     >
       {/* Custom Checkbox */}
       {!disabled && !incompatible && (
@@ -64,7 +64,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
       <img
         className="h-[48px] w-[48px] rounded-full object-cover mr-4"
         src={
-          "https://assets.dimo.xyz/ipfs/QmaaxazmGtNM6srcRmLyNdjCp8EAmvaTDYSo1k2CXVRTaY"
+          'https://assets.dimo.xyz/ipfs/QmaaxazmGtNM6srcRmLyNdjCp8EAmvaTDYSo1k2CXVRTaY'
         }
         alt={`${vehicle.make} ${vehicle.model}`}
       />
@@ -81,9 +81,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
           ID: {vehicle.tokenId.toString()}
         </div>
         {vehicle.shared && (
-          <div className="text-sm text-gray-500">
-            Shared Until: {vehicle.expiresAt}
-          </div>
+          <div className="text-sm text-gray-500">Shared Until: {vehicle.expiresAt}</div>
         )}
       </label>
 
@@ -93,9 +91,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
           onClick={handleManageClick}
           className="flex justify-center items-center w-6 h-6 border border-gray-300 rounded-full cursor-pointer hover:border-gray-400 hover:bg-gray-100 hover:scale-105 transition duration-200"
         >
-          <span className="text-black font-semibold text-xs mt-[-5px]">
-            ...
-          </span>
+          <span className="text-black font-semibold text-xs mt-[-5px]">...</span>
         </div>
       )}
     </div>

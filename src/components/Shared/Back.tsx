@@ -1,5 +1,5 @@
-import { ChevronLeftIcon } from "@heroicons/react/24/solid";
-import { useUIManager } from "../../context/UIManagerContext";
+import { ChevronLeftIcon } from '@heroicons/react/24/solid';
+import { useUIManager } from '../../context/UIManagerContext';
 
 export const Back = () => {
   const { goBack, prevUiStates } = useUIManager();

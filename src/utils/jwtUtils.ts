@@ -4,7 +4,10 @@
 // Function to decode a base64 string (handles URL-safe base64)
 const base64Decode = (str: string): string => {
   // Replace URL-safe characters and add padding if necessary
-  const paddedStr = str.replace(/-/g, '+').replace(/_/g, '/').padEnd(str.length + (4 - (str.length % 4)) % 4, '=');
+  const paddedStr = str
+    .replace(/-/g, '+')
+    .replace(/_/g, '/')
+    .padEnd(str.length + ((4 - (str.length % 4)) % 4), '=');
   return atob(paddedStr); // Decode base64
 };
 
@@ -36,4 +39,3 @@ export const decodeJwt = (jwtToken: string): Record<string, any> | null => {
 // } else {
 //   console.error('Failed to decode the JWT');
 // }
-

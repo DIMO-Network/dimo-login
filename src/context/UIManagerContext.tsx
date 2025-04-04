@@ -1,6 +1,6 @@
-import React, { createContext, ReactNode, useContext, useState } from "react";
+import React, { createContext, ReactNode, useContext, useState } from 'react';
 
-import useLoading from "../hooks/useLoading";
+import useLoading from '../hooks/useLoading';
 
 interface UiStateOptionProps {
   setBack: boolean;
@@ -18,11 +18,7 @@ interface UIManagerContextProps {
   setComponentData: React.Dispatch<React.SetStateAction<any>>;
   isLoading: boolean;
   loadingMessage: string;
-  setLoadingState: (
-    loading: boolean,
-    message?: string,
-    isLongProcess?: boolean
-  ) => void;
+  setLoadingState: (loading: boolean, message?: string, isLongProcess?: boolean) => void;
   error: string | null;
   setError: React.Dispatch<React.SetStateAction<string | null>>;
   altTitle: boolean;
@@ -30,28 +26,26 @@ interface UIManagerContextProps {
 }
 
 export enum UiStates {
-  EMAIL_INPUT = "EMAIL_INPUT",
-  OTP_INPUT = "OTP_INPUT",
-  PASSKEY_GENERATOR = "PASSKEY_GENERATOR",
-  VEHICLE_MANAGER = "VEHICLE_MANAGER",
-  SELECT_VEHICLES = "SELECT_VEHICLES",
-  MANAGE_VEHICLE = "MANAGE_VEHICLE",
-  ADVANCED_TRANSACTION = "ADVANCED_TRANSACTION",
-  TRANSACTION_SUCCESS = "TRANSACTION_SUCCESS",
-  TRANSACTION_CANCELLED = "TRANSACTION_CANCELLED",
-  VEHICLES_SHARED_SUCCESS = "VEHICLES_SHARED_SUCCESS",
-  ADD_VEHICLE = "ADD_VEHICLE",
-  COMPATIBILITY_CHECK = "COMPATIBILITY_CHECK",
-  MINT_VEHICLE = "MINT_VEHICLE",
-  CONNECT_DEVICE = "CONNECT_DEVICE",
-  CONNECT_TESLA = "CONNECT_TESLA",
-  CONNECT_SMARTCAR = "CONNECT_SMARTCAR", //TBD: DEPRECATE
-  SUCCESS = "SUCCESS",
+  EMAIL_INPUT = 'EMAIL_INPUT',
+  OTP_INPUT = 'OTP_INPUT',
+  PASSKEY_GENERATOR = 'PASSKEY_GENERATOR',
+  VEHICLE_MANAGER = 'VEHICLE_MANAGER',
+  SELECT_VEHICLES = 'SELECT_VEHICLES',
+  MANAGE_VEHICLE = 'MANAGE_VEHICLE',
+  ADVANCED_TRANSACTION = 'ADVANCED_TRANSACTION',
+  TRANSACTION_SUCCESS = 'TRANSACTION_SUCCESS',
+  TRANSACTION_CANCELLED = 'TRANSACTION_CANCELLED',
+  VEHICLES_SHARED_SUCCESS = 'VEHICLES_SHARED_SUCCESS',
+  ADD_VEHICLE = 'ADD_VEHICLE',
+  COMPATIBILITY_CHECK = 'COMPATIBILITY_CHECK',
+  MINT_VEHICLE = 'MINT_VEHICLE',
+  CONNECT_DEVICE = 'CONNECT_DEVICE',
+  CONNECT_TESLA = 'CONNECT_TESLA',
+  CONNECT_SMARTCAR = 'CONNECT_SMARTCAR', //TBD: DEPRECATE
+  SUCCESS = 'SUCCESS',
 }
 
-const UIManagerContext = createContext<UIManagerContextProps | undefined>(
-  undefined
-);
+const UIManagerContext = createContext<UIManagerContextProps | undefined>(undefined);
 
 export const UIManagerProvider = ({ children }: { children: ReactNode }) => {
   const [uiState, setUiState] = useState<UiStates>(UiStates.EMAIL_INPUT); // Initial UI state
@@ -64,7 +58,7 @@ export const UIManagerProvider = ({ children }: { children: ReactNode }) => {
 
   const handleUiState = (
     value: UiStates,
-    options: UiStateOptionProps = { setBack: false }
+    options: UiStateOptionProps = { setBack: false },
   ) => {
     const { setBack, removeCurrent } = options;
     const defaultValue = [value];
@@ -118,7 +112,7 @@ export const UIManagerProvider = ({ children }: { children: ReactNode }) => {
 export const useUIManager = () => {
   const context = useContext(UIManagerContext);
   if (!context) {
-    throw new Error("useUIManager must be used within a UIManagerProvider");
+    throw new Error('useUIManager must be used within a UIManagerProvider');
   }
   return context;
 };

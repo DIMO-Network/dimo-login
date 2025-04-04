@@ -1,4 +1,4 @@
-#  🚗 Dimo[LIWD] Web App
+# 🚗 Dimo[LIWD] Web App
 
 This is the DIMO front-end application that powers developer login, vehicle sharing, onboarding, and advanced vehicle flows. The app is tightly integrated with the [Login with DIMO SDK](https://github.com/DIMO-Network/dimo-login-button) and serves as the UI target for popup and redirect flows.
 
@@ -6,11 +6,12 @@ This is the DIMO front-end application that powers developer login, vehicle shar
 
 ### Dependencies
 
-While mainly light on dependencies, we use an external web3 dependency (turnkey/http), an internal DIMO dependency (transactions SDK), and then some UI packages. 
+While mainly light on dependencies, we use an external web3 dependency (turnkey/http), an internal DIMO dependency (transactions SDK), and then some UI packages.
 
 For best results, monitor whether there have been updates to any of these dependencies, as they can cause issues
 
 Install
+
 ```
 npm install
 ```
@@ -47,6 +48,7 @@ REACT_APP_RPCID_URL=localhost
 ```
 
 🗂️ Folder Structure Overview
+
 ```
 src/
 ├── assets/images           # Logos, thumbnails, icons
@@ -69,7 +71,6 @@ src/
 
 ## 🧠 Architecture Overview
 
-
 ### State Management
 
 The app uses both local component state and global React Contexts:
@@ -89,6 +90,7 @@ As this app initially started with just 2 view, there was no need for router-bas
 We don’t use React Router. Instead, the app uses a uiState enum to render views conditionally:
 
 `App.tsx`
+
 ```
 {uiState === UiStates.OTP_INPUT && <OtpInput email={email} />}
 {uiState === UiStates.VEHICLE_MANAGER && <VehicleManager />}
@@ -98,7 +100,9 @@ We don’t use React Router. Instead, the app uses a uiState enum to render view
 The current `uiState` is stored in UIManagerContext and updated as the user progresses through a flow, through a state setter.
 
 ### SDK Integration
+
 The app receives incoming data from the Login with DIMO SDK, either:
+
 - via postMessage (popup mode)
 - or via query params (redirect mode)
 
@@ -109,14 +113,16 @@ In addition, the app is also responsible for returning back to the parent app. T
 ## ⚙️ Dev Tips
 
 ### Parsing SDK Payload
+
 - Most of this logic can be found in DevCredentialsContext, it covers the various ways we receive data, either as properties within the state URL Param, through messages, or through the url params themselves
 
 ### Utilizing the URL
+
 - To test app changes, instead of relying on the SDK to drill props, you can simply update the redirect URI params to mimic the states that the SDK would initialize
 - This can be done by configuring the entryState, params etc in the URL
 
-
 ## Conventions
+
 - React Components, Context files are named with PascalCase
 - Other files are named with camelCase
 - React Classes/Contexts are named with PascalCase
@@ -124,5 +130,5 @@ In addition, the app is also responsible for returning back to the parent app. T
 - Positional Params are used for any functions that take 3 or less inputs, object params used otherwise
 
 ## Related Docs
-- Guides/Docs to walk through common things tbd
 
+- Guides/Docs to walk through common things tbd

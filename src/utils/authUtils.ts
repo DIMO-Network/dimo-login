@@ -1,13 +1,10 @@
-import {
-  generateChallenge,
-  submitWeb3Challenge,
-} from "../services/authService";
+import { generateChallenge, submitWeb3Challenge } from '../services/authService';
 import {
   getSmartContractAddress,
   getWalletAddress,
   initializePasskey,
   signChallenge,
-} from "../services/turnkeyService";
+} from '../services/turnkeyService';
 import {
   clearSessionData,
   getEmailGranted,
@@ -15,16 +12,16 @@ import {
   getUserFromLocalStorage,
   storeJWTInCookies,
   storeUserInLocalStorage,
-} from "../services/storageService";
-import { UserObject } from "../models/user";
-import { backToThirdParty, sendMessageToReferrer } from "./messageHandler";
-import { GenerateChallengeParams, SubmitChallengeParams } from "../models/web3";
-import { UiStates } from "../context/UIManagerContext";
+} from '../services/storageService';
+import { UserObject } from '../models/user';
+import { backToThirdParty, sendMessageToReferrer } from './messageHandler';
+import { GenerateChallengeParams, SubmitChallengeParams } from '../models/web3';
+import { UiStates } from '../context/UIManagerContext';
 
 export function buildAuthPayload(
   clientId: string,
   jwt: string,
-  userObj: UserObject
+  userObj: UserObject,
 ): {
   token: string;
   email?: string;
@@ -36,13 +33,11 @@ export function buildAuthPayload(
   const emailGranted = getEmailGranted(clientId);
 
   if (!token) {
-    throw new Error("JWT is missing. Ensure the user is authenticated.");
+    throw new Error('JWT is missing. Ensure the user is authenticated.');
   }
 
   if (!user || !user.smartContractAddress) {
-    throw new Error(
-      "User object or walletAddress is missing in local storage."
-    );
+    throw new Error('User object or walletAddress is missing in local storage.');
   }
 
   return {
@@ -53,18 +48,19 @@ export function buildAuthPayload(
 }
 
 export function sendAuthPayloadToParent(
-  payload: { token: string; email?: string; walletAddress: string, sharedVehicles?: BigInt[] | string[] },
-  redirectUri: string,
-  onSuccess: (payload: {
+  payload: {
     token: string;
     email?: string;
     walletAddress: string;
-  }) => void
+    sharedVehicles?: BigInt[] | string[];
+  },
+  redirectUri: string,
+  onSuccess: (payload: { token: string; email?: string; walletAddress: string }) => void,
 ) {
   sendMessageToReferrer({
-    eventType: "authResponse",
+    eventType: 'authResponse',
     ...payload,
-    authType: window.opener ? "popup" : "embed",
+    authType: window.opener ? 'popup' : 'embed',
   }); //TODO: authType to be deprecated soon, only kept for backwards compatibility
 
   onSuccess(payload);
@@ -74,12 +70,12 @@ export function logout(
   clientId: string,
   redirectUri: string,
   utm: string,
-  setUiState: (step: UiStates) => void
+  setUiState: (step: UiStates) => void,
 ) {
   clearSessionData(clientId);
-  sendMessageToReferrer({ eventType: "logout" });
+  sendMessageToReferrer({ eventType: 'logout' });
 
-  const payload = { logout: "true" };
+  const payload = { logout: 'true' };
 
   backToThirdParty(payload, redirectUri, utm, () => {
     setUiState(UiStates.EMAIL_INPUT);
@@ -97,33 +93,31 @@ export async function authenticateUser(
   entryState: string,
   setJwt: (jwt: string) => void,
   setUiState: (step: UiStates) => void,
-  setUser: (user: UserObject) => void
+  setUser: (user: UserObject) => void,
 ) {
   console.log(`Authenticating user with email: ${email}`);
 
   if (!subOrganizationId) {
-    throw new Error("Could not authenticate user, account not deployed");
+    throw new Error('Could not authenticate user, account not deployed');
   }
 
   if (subOrganizationId) {
-    console.log("Debugging Account Creation");
+    console.log('Debugging Account Creation');
     await initializePasskey(subOrganizationId);
 
-    console.log("Passkey Initialized");
+    console.log('Passkey Initialized');
 
     const smartContractAddress = getSmartContractAddress();
     const walletAddress = getWalletAddress();
 
     if (!smartContractAddress || !walletAddress) {
-      throw new Error(
-        "Could not authenticate user, wallet address does not exist"
-      );
+      throw new Error('Could not authenticate user, wallet address does not exist');
     }
 
     const generateChallengeParams: GenerateChallengeParams = {
       clientId,
       domain: redirectUri,
-      scope: "openid email",
+      scope: 'openid email',
       address: smartContractAddress, //We want this address to be recovered after signing
     };
 
@@ -146,7 +140,7 @@ export async function authenticateUser(
         const jwt = await submitWeb3Challenge(web3ChallengeSubmission);
 
         if (!jwt.success) {
-          throw new Error("Failed to submit web3 challenge");
+          throw new Error('Failed to submit web3 challenge');
         }
 
         const userProperties: UserObject = {
@@ -169,7 +163,7 @@ export async function authenticateUser(
           const authPayload = buildAuthPayload(
             clientId,
             jwt.data.access_token,
-            userProperties
+            userProperties,
           );
           sendAuthPayloadToParent(authPayload, redirectUri, (payload) => {
             backToThirdParty(payload, redirectUri, utm);
