@@ -40,14 +40,8 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
 }) => {
   const { user, jwt } = useAuthContext();
   const { clientId, redirectUri, utm, devLicenseAlias } = useDevCredentials();
-  const {
-    setUiState,
-    setComponentData,
-    setLoadingState,
-    componentData,
-    error,
-    setError,
-  } = useUIManager();
+  const { setUiState, setComponentData, setLoadingState, componentData, setError } =
+    useUIManager();
 
   const [vehiclesLoading, setVehiclesLoading] = useState(true);
 

@@ -75,7 +75,7 @@ export const AddVehicle: FC = () => {
           </button>
         </div>
 
-        {tab == 0 && (
+        {tab === 0 && (
           <div className="mt-4">
             {/* Make and Model */}
             <label className="block text-sm">Make and model</label>
@@ -120,7 +120,7 @@ export const AddVehicle: FC = () => {
           </div>
         )}
 
-        {tab == 1 && (
+        {tab === 1 && (
           <div className="mt-4">
             <label className="block text-sm text-[#000000]">VIN Number</label>
             <input
@@ -149,7 +149,8 @@ export const AddVehicle: FC = () => {
         {/* Submit Button */}
         <button
           disabled={
-            (tab == 0 && !(makeModel && country && modelYear)) || (tab == 1 && !vinNumber)
+            (tab === 0 && !(makeModel && country && modelYear)) ||
+            (tab === 1 && !vinNumber)
           }
           className="w-full mt-6 p-3 rounded-full bg-black disabled:bg-[#A1A1AA] text-white"
           onClick={handleSubmit}

@@ -69,7 +69,6 @@ const AdvancedTransaction: React.FC = () => {
 
     try {
       const receipt = await executeAdvancedTransaction(
-        transactionData.address,
         transactionData.abi,
         transactionData.functionName,
         transactionData.args,

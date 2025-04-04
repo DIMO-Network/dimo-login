@@ -60,10 +60,6 @@ function buildStateParams(params: AuthUrlParams): Record<string, any> {
   };
 }
 
-function encodeState(state: object): string {
-  return btoa(JSON.stringify(state)); // Base64 encode state to avoid long URL issues
-}
-
 function getSmartcarAuthUrl(params: AuthUrlParams): string {
   let url = `https://connect.smartcar.com/oauth/authorize`;
   url += `?response_type=code`;
@@ -73,7 +69,7 @@ function getSmartcarAuthUrl(params: AuthUrlParams): string {
   url += `&approval_prompt=force`; // Force login
   url += `&single_select=true`; // User can only select one car
 
-  if (process.env.REACT_APP_ENVIRONMENT != 'prod') {
+  if (process.env.REACT_APP_ENVIRONMENT !== 'prod') {
     url += `&mode=simulated`;
   }
 
@@ -122,7 +118,7 @@ function getEmailAuthUrl(params: AuthUrlParams): string {
   const stateParams = buildStateParams(params);
 
   const dimoRedirectUri =
-    process.env.REACT_APP_ENVIRONMENT == 'prod'
+    process.env.REACT_APP_ENVIRONMENT === 'prod'
       ? 'https://login.dimo.org'
       : 'https://login.dev.dimo.org';
 

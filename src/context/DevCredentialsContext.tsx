@@ -7,7 +7,7 @@
  *
  */
 
-import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
+import React, { createContext, useContext, ReactNode, useState, useEffect, ReactElement } from 'react';
 
 import { createKernelSigner } from '../services/turnkeyService';
 import { CredentialParams } from '../types';
@@ -35,7 +35,7 @@ export const DevCredentialsProvider = ({
   children,
 }: {
   children: ReactNode;
-}): JSX.Element => {
+}): ReactElement => {
   const [clientId, setClientId] = useState<string>('');
   const [apiKey, setApiKey] = useState<string>('');
   const [redirectUri, setRedirectUri] = useState<string>('');

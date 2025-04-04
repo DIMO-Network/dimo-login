@@ -1,4 +1,3 @@
-// src/components/SuccessPage.tsx
 import React from 'react';
 import Card from '../Shared/Card';
 import Header from '../Shared/Header';
@@ -23,7 +22,6 @@ const ManageVehicle: React.FC = () => {
     setUiState,
     setComponentData,
     setLoadingState,
-    goBack,
   } = useUIManager();
 
   const handlePermissionUpdate = async (
@@ -41,7 +39,7 @@ const ManageVehicle: React.FC = () => {
     const perms = getPermsValue(permissionTemplateId ? permissionTemplateId : '1');
 
     const expiration =
-      actionType == 'revoke' ? BigInt(0) : parseExpirationDate(expirationDate);
+      actionType === 'revoke' ? BigInt(0) : parseExpirationDate(expirationDate);
 
     const sources = await generateIpfsSources(perms, clientId, expiration);
 
@@ -96,7 +94,6 @@ const ManageVehicle: React.FC = () => {
         <p>Shared until {vehicle.expiresAt}</p>
       </div>
 
-      {/* Render buttons */}
       <div className="flex pt-8 justify-center gap-2">
         <button
           onClick={handleRevoke}

@@ -1,4 +1,3 @@
-// src/components/SuccessPage.tsx
 import React from 'react';
 import Card from '../Shared/Card';
 import Header from '../Shared/Header';
@@ -27,7 +26,7 @@ const SuccessfulTransaction: React.FC = () => {
   const handleView = () => {
     if (componentData.transactionHash) {
       const scanBaseUrl =
-        process.env.REACT_APP_ENVIRONMENT == 'prod'
+        process.env.REACT_APP_ENVIRONMENT === 'prod'
           ? 'https://polygonscan.com'
           : 'https://amoy.polygonscan.com';
 

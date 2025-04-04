@@ -23,9 +23,9 @@ export const CompatibilityCheck: FC = () => {
   const appUrl = getAppUrl();
 
   const handleContinue = () => {
-    if (connectionType == 'tesla') {
+    if (connectionType === 'tesla') {
       setUiState(UiStates.CONNECT_TESLA, { setBack: true });
-    } else if (connectionType == 'smartcar') {
+    } else if (connectionType === 'smartcar') {
       setUiState(UiStates.CONNECT_SMARTCAR, { setBack: true });
     } else {
       setUiState(UiStates.CONNECT_DEVICE, { setBack: true });
@@ -170,6 +170,7 @@ export const CompatibilityCheck: FC = () => {
 
       <div className="flex justify-center pt-5 py-5">
         <img
+          alt={'vehicle-nft-image'}
           style={{ height: '80px', width: '80px' }}
           className="rounded-full object-cover"
           src={

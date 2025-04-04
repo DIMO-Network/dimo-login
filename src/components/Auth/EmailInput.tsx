@@ -1,4 +1,3 @@
-// components/Auth/EmailInput.tsx
 import React, { useEffect, useState } from 'react';
 
 import { Card } from '../Shared/Card';
@@ -28,27 +27,22 @@ interface EmailInputProps {
 }
 
 const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
-  // 1️⃣ Authentication & User Context
   const { authenticateUser, setUser } = useAuthContext();
 
-  // 2️⃣ Developer Credentials
   const { clientId, devLicenseAlias, redirectUri } = useDevCredentials();
 
-  // 3️⃣ UI State Management
   const { setUiState, entryState, error, setError, setComponentData, altTitle } =
     useUIManager();
 
   //Oracle Management
   const { onboardingEnabled } = useOracles();
 
-  // 4️⃣ Local State Variables
   const [email, setEmail] = useState(''); // User Input (primary)
   const [isSSO, setIsSSO] = useState(false); // Derived from auth flow
   const [triggerAuth, setTriggerAuth] = useState(false); // Controls authentication flow
   const [emailPermissionGranted, setEmailPermissionGranted] = useState(false); // User consent tracking
   const [tokenExchanged, setTokenExchanged] = useState(false); // Token tracking
 
-  // 5️⃣ Derived Values
   const forceEmail = getForceEmail();
 
   const appUrl = getAppUrl();
@@ -139,7 +133,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
         setIsSSO(true);
         try {
           const dimoRedirectUri =
-            process.env.REACT_APP_ENVIRONMENT == 'prod'
+            process.env.REACT_APP_ENVIRONMENT === 'prod'
               ? 'https://login.dimo.org'
               : 'https://login.dev.dimo.org';
           const result = await submitCodeExchange({

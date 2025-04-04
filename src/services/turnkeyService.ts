@@ -16,13 +16,12 @@ import {
   sacdPermissionValue,
   SetVehiclePermissions,
   SetVehiclePermissionsBulk,
-  TransactionData,
 } from '@dimo-network/transactions';
 import { getWebAuthnAttestation } from '@turnkey/http';
 import { WebauthnStamper } from '@turnkey/webauthn-stamper';
-import { base64UrlEncode, generateRandomBuffer } from '../utils/cryptoUtils';
+import { base64UrlEncode, generateRandomBuffer } from "../utils/cryptoUtils";
 import { VehcilePermissionDescription } from '@dimo-network/transactions/dist/core/types/args';
-import { PasskeyCreationResult } from '../models/resultTypes';
+import { PasskeyCreationResult } from "../models/resultTypes";
 
 const stamper = new WebauthnStamper({
   rpId: process.env.REACT_APP_RPCID_URL as string,
@@ -111,10 +110,6 @@ export const initializePasskey = async (subOrganizationId: string): Promise<void
   await kernelSigner.passkeyToSession(subOrganizationId, stamper);
 };
 
-export const openSessionWithPasskey = async (): Promise<void> => {
-  return await kernelSigner.openSessionWithPasskey();
-};
-
 export const initializeIfNeeded = async (subOrganizationId: string): Promise<void> => {
   try {
     await kernelSigner.getActiveClient();
@@ -201,20 +196,11 @@ export async function setVehiclePermissionsBulk({
 }
 
 export async function executeAdvancedTransaction(
-  address: `0x${string}`,
   abi: any,
   functionName: string,
   args: any[],
   value?: BigInt,
 ): Promise<`0x${string}`> {
-  const payload: TransactionData = {
-    address,
-    value,
-    abi,
-    functionName,
-    args,
-  };
-
   const response = await kernelSigner.executeTransaction({
     requireSignature: false,
     data: [

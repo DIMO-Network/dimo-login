@@ -20,8 +20,7 @@ import {
   SimpleResult,
   SubmitAuthCodeResult,
 } from '../models/resultTypes';
-import { MintVehicleNft, TypedDataResponse } from '../models/typedData';
-import { payloadToMintResponse, vehicleCreationResponse } from '../utils/mockedResponses';
+import { TypedDataResponse } from '../models/typedData';
 import { pollForCondition } from '../utils/pollingUtils';
 
 const DEVICES_ENDPOINT =

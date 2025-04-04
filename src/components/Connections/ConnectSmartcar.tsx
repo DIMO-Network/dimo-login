@@ -6,13 +6,12 @@ import { UiStates, useUIManager } from '../../context/UIManagerContext';
 import Card from '../Shared/Card';
 import Header from '../Shared/Header';
 import { getAppUrl } from '../../utils/urlHelpers';
-import { IOS_URL, SHOP_DIMO_URL } from '../../utils/constants';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { constructAuthUrl } from '../../utils/authUrls';
 
 export const ConnectSmartCar: FC = () => {
   const { componentData } = useUIManager(); // Access the manage function from the context
-  const { devLicenseAlias, clientId, redirectUri } = useDevCredentials();
+  const { devLicenseAlias, clientId } = useDevCredentials();
   const appUrl = getAppUrl();
 
   const handleConnect = () => {

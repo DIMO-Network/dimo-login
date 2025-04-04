@@ -18,8 +18,7 @@ import { IntegrationNft, MintVehicleNft } from '../../models/typedData';
 import { SAMPLE_B64_IMAGE } from '../../utils/constants';
 
 export const MintVehicle: FC = () => {
-  const { componentData, setError, setLoadingState, setUiState, setComponentData } =
-    useUIManager();
+  const { componentData, setLoadingState, setUiState, setComponentData } = useUIManager();
   const { user, jwt } = useAuthContext();
 
   useEffect(() => {

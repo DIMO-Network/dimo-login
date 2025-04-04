@@ -11,10 +11,8 @@ import { CreateAccountParams } from '../models/account';
 import {
   CredentialResult,
   OtpResult,
-  SimpleResult,
   UserResult,
 } from '../models/resultTypes';
-import { UserObject } from '../models/user';
 import { generateTargetPublicKey } from '../utils/cryptoUtils';
 
 const DIMO_ACCOUNTS_BASE_URL =
@@ -94,34 +92,6 @@ export const verifyOtp = async (
   };
 };
 
-export const verifyEmail = async (
-  email: string,
-  encodedChallenge: string,
-  attestation: object,
-): Promise<SimpleResult> => {
-  // Call Turnkey's OTP verification API/SDK
-  //Endpoint: PUT /api/auth/otp
-  const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account/verify-email`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      email,
-      encodedChallenge,
-      attestation,
-    }),
-  });
-
-  // Handle response failure cases first
-  if (!response.ok) {
-    throw new Error('Failed to send OTP');
-  }
-
-  //   // Return success with OTP ID
-  return { success: true, data: null };
-};
-
 // Function to create an account
 export const createAccount = async ({
   email,
@@ -161,22 +131,6 @@ export const createAccount = async ({
   };
 
   return { success: true, data: { user: userResponse } };
-};
-
-// Function to deploy an account
-export const deployAccount = async (email: string): Promise<SimpleResult> => {
-  const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account/deploy`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ email }),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to deploy account');
-  }
-  return { success: true, data: null };
 };
 
 // src/services/authService.ts

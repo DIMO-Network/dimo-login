@@ -12,7 +12,7 @@ import { FetchPermissionsParams } from '../models/permissions';
 export function getPermsValue(permissionTemplateId: string): bigint {
   const newPermissions = getSacdValue({
     NONLOCATION_TELEMETRY: true,
-    COMMANDS: permissionTemplateId == '1',
+    COMMANDS: permissionTemplateId === '1',
     CURRENT_LOCATION: true,
     ALLTIME_LOCATION: true,
     CREDENTIALS: true,
