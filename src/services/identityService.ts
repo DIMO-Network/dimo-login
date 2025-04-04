@@ -162,7 +162,7 @@ export const fetchDeveloperLicenseByClientId = async (
   return response.developerLicense;
 };
 
-export const checkDeveloperLicenseParams = (developerLicense: DeveloperLicense, redirectUri: string) => {
+export const checkIfRedirectUriIsValid = (developerLicense: DeveloperLicense, redirectUri: string) => {
   const { redirectURIs } = developerLicense;
   const mappedRedirectUris = redirectURIs.nodes?.map((it: {uri: string}) => it.uri);
   return mappedRedirectUris.includes(redirectUri);

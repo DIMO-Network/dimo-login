@@ -9,7 +9,7 @@ import React, {
 import { createKernelSigner } from "../services/turnkeyService";
 import { CredentialParams } from "../types";
 import { isStandalone } from "../utils/isStandalone";
-import {checkDeveloperLicenseParams, fetchDeveloperLicenseByClientId} from "../services/identityService";
+import {checkIfRedirectUriIsValid, fetchDeveloperLicenseByClientId} from "../services/identityService";
 import { setEmailGranted } from "../services/storageService";
 import { setForceEmail } from "../stores/AuthStateStore";
 import { UiStates, useUIManager } from "./UIManagerContext";
@@ -146,7 +146,7 @@ export const DevCredentialsProvider = ({
       if (clientId && redirectUri) {
         try {
           const license = await fetchDeveloperLicenseByClientId(clientId);
-          const isValid = checkDeveloperLicenseParams(license, redirectUri);
+          const isValid = checkIfRedirectUriIsValid(license, redirectUri);
           if (!isValid) {
             return setInvalidCredentials(true);
           }
@@ -158,7 +158,6 @@ export const DevCredentialsProvider = ({
         }
       }
     };
-
     validateCredentials();
   }, [clientId, redirectUri]);
 
