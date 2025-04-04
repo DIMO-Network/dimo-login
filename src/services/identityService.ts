@@ -8,6 +8,7 @@
 
 import {Vehicle, VehicleResponse} from "../models/vehicle";
 import {formatDate} from "../utils/dateUtils";
+import {DeveloperLicense} from "../models/DeveloperLicense";
 
 const GRAPHQL_ENDPOINT =
   process.env.REACT_APP_DIMO_IDENTITY_URL ||
@@ -120,10 +121,6 @@ export const fetchVehiclesWithTransformation = async (
   };
 };
 
-type DeveloperLicense = {
-  alias: string;
-  redirectURIs: { nodes: {uri:string}[] }
-}
 const fetchDeveloperLicense = async (clientId: string): Promise<{developerLicense: DeveloperLicense}> => {
   const query = `{
     developerLicense(by: { clientId: "${clientId}" }) {
@@ -156,9 +153,6 @@ export const fetchDeveloperLicenseByClientId = async (
   clientId: string,
 ): Promise<DeveloperLicense> => {
   const response = await fetchDeveloperLicense(clientId);
-  if (!response.developerLicense) {
-    throw new Error('Could not retrieve the developer license')
-  }
   return response.developerLicense;
 };
 

@@ -146,10 +146,9 @@ export const DevCredentialsProvider = ({
       if (clientId && redirectUri) {
         try {
           const license = await fetchDeveloperLicenseByClientId(clientId);
+          if (!license) { return setInvalidCredentials(true); }
           const isValid = checkIfRedirectUriIsValid(license, redirectUri);
-          if (!isValid) {
-            return setInvalidCredentials(true);
-          }
+          if (!isValid) { return setInvalidCredentials(true); }
           setDevLicenseAlias(license.alias);
           createKernelSigner(clientId, clientId, redirectUri);
           setLoadingState(false);
