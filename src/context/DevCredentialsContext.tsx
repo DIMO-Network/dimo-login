@@ -6,7 +6,6 @@ import React, {
   useEffect,
   ReactElement,
 } from "react";
-
 import { createKernelSigner } from "../services/turnkeyService";
 import { CredentialParams } from "../types";
 import { isStandalone } from "../utils/isStandalone";
@@ -43,7 +42,6 @@ export const DevCredentialsProvider = ({
 
   const extractParametersFromUrl = () => {
     const urlParams = new URLSearchParams(window.location.search);
-
     const clientId = urlParams.get("clientId");
     const redirectUri = urlParams.get("redirectUri");
     const entryState = urlParams.get("entryState") as UiStates;
@@ -51,7 +49,6 @@ export const DevCredentialsProvider = ({
     const state = urlParams.get("state");
     const utm = urlParams.get("utm");
     const altTitle = urlParams.get("altTitle") === "true";
-
     return {
       clientId,
       redirectUri,
@@ -63,7 +60,7 @@ export const DevCredentialsProvider = ({
     }
   }
 
-  const setStateFromUrl = () => {
+  const setStateFromUrlParams = () => {
     const {clientId, redirectUri, entryState, forceEmail, altTitle} = extractParametersFromUrl();
     if (!clientId || !redirectUri) return false;
     setUiState(entryState || UiStates.EMAIL_INPUT);
@@ -76,7 +73,6 @@ export const DevCredentialsProvider = ({
       utm: utm,
     });
     setAltTitle(altTitle);
-
     return true;
   };
 
@@ -136,8 +132,8 @@ export const DevCredentialsProvider = ({
   useEffect(() => {
     setLoadingState(true, "Waiting for credentials...");
     setStateFromOAuthRedirect();
-    const didExtractFromUrl = setStateFromUrl();
-    if (!didExtractFromUrl) {
+    const successFromUrlParams = setStateFromUrlParams();
+    if (!successFromUrlParams) {
       window.addEventListener("message", setStateFromOriginMessage);
       return () => {
         window.removeEventListener("message", setStateFromOriginMessage);
