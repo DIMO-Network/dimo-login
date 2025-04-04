@@ -1,18 +1,11 @@
-import {
-  mintVehicleWithDeviceDefinition,
-  mintVehicleWithDeviceDefinitionFromAccount,
-} from "@dimo-network/transactions/dist/core/actions/mintVehicleWithDeviceDefinition";
 import { MintVehicleResult } from "../models/resultTypes";
 import { MintVehicleVariables } from "../models/vehicle";
 import {
   generateIpfsSources,
   getKernelSigner,
-  getKernelSignerClient,
 } from "./turnkeyService";
 import { MintVehicleWithDeviceDefinition } from "@dimo-network/transactions";
 import { hexToDecimal } from "../utils/hexUtils";
-
-const DIMO_DRIVER_BASE_URL = "TBD"; //
 
 export const mintVehicle = async ({
   owner,

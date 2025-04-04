@@ -84,8 +84,6 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
     ) {
       authenticateUser(
         componentData.emailValidated,
-        "credentialBundle",
-        entryState
       );
     }
   }, [triggerAuth]);

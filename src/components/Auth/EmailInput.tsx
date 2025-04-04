@@ -1,40 +1,34 @@
-// components/Auth/EmailInput.tsx
-import React, { useEffect, useState } from "react";
+import React, {useEffect, useState} from "react";
 
-import { Card } from "../Shared/Card";
-import { Checkbox } from "../Shared/Checkbox";
-import { fetchUserDetails } from "../../services/accountsService";
-import { Header } from "../Shared/Header";
-import { PrimaryButton } from "../Shared/PrimaryButton";
-import { setEmailGranted } from "../../services/storageService";
-import { useAuthContext } from "../../context/AuthContext";
-import { useDevCredentials } from "../../context/DevCredentialsContext";
-import { UiStates, useUIManager } from "../../context/UIManagerContext";
+import {Card} from "../Shared/Card";
+import {Checkbox} from "../Shared/Checkbox";
+import {fetchUserDetails} from "../../services/accountsService";
+import {Header} from "../Shared/Header";
+import {PrimaryButton} from "../Shared/PrimaryButton";
+import {setEmailGranted} from "../../services/storageService";
+import {useAuthContext} from "../../context/AuthContext";
+import {useDevCredentials} from "../../context/DevCredentialsContext";
+import {UiStates, useUIManager} from "../../context/UIManagerContext";
 
 import ErrorMessage from "../Shared/ErrorMessage";
-import { submitCodeExchange } from "../../services/authService";
-import { decodeJwt } from "../../utils/jwtUtils";
+import {submitCodeExchange} from "../../services/authService";
+import {decodeJwt} from "../../utils/jwtUtils";
 import LoadingScreen from "../Shared/LoadingScreen";
-import { AppleIcon, GoogleIcon } from "../Icons";
-import { isValidEmail } from "../../utils/emailUtils";
-import { getForceEmail } from "../../stores/AuthStateStore";
-import { getAppUrl } from "../../utils/urlHelpers";
-import { AuthProvider, constructAuthUrl } from "../../utils/authUrls";
-import { getSignInTitle } from "../../utils/uiUtils";
-import { useOracles } from "../../context/OraclesContext";
+import {AppleIcon, GoogleIcon} from "../Icons";
+import {isValidEmail} from "../../utils/emailUtils";
+import {getForceEmail} from "../../stores/AuthStateStore";
+import {getAppUrl} from "../../utils/urlHelpers";
+import {AuthProvider, constructAuthUrl} from "../../utils/authUrls";
+import {getSignInTitle} from "../../utils/uiUtils";
+import {useOracles} from "../../context/OraclesContext";
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;
 }
 
 const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
-  // 1️⃣ Authentication & User Context
   const { authenticateUser, setUser } = useAuthContext();
-
-  // 2️⃣ Developer Credentials
   const { clientId, devLicenseAlias, redirectUri } = useDevCredentials();
-
-  // 3️⃣ UI State Management
   const {
     setUiState,
     entryState,
@@ -43,28 +37,18 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     setComponentData,
     altTitle,
   } = useUIManager();
-
-  //Oracle Management
   const { onboardingEnabled } = useOracles();
-
-  // 4️⃣ Local State Variables
-  const [email, setEmail] = useState(""); // User Input (primary)
-  const [isSSO, setIsSSO] = useState(false); // Derived from auth flow
-  const [triggerAuth, setTriggerAuth] = useState(false); // Controls authentication flow
-  const [emailPermissionGranted, setEmailPermissionGranted] = useState(false); // User consent tracking
-  const [tokenExchanged, setTokenExchanged] = useState(false); // Token tracking
-
-  // 5️⃣ Derived Values
+  const [email, setEmail] = useState("");
+  const [isSSO, setIsSSO] = useState(false);
+  const [triggerAuth, setTriggerAuth] = useState(false);
+  const [emailPermissionGranted, setEmailPermissionGranted] = useState(false);
+  const [tokenExchanged, setTokenExchanged] = useState(false);
   const forceEmail = getForceEmail();
-
   const appUrl = getAppUrl();
 
   const processEmailSubmission = async (email: string) => {
     if (!email || !clientId) return;
-
-    onSubmit(email); // Trigger any on-submit actions
-
-    // Check if the user exists and authenticate if they do
+    onSubmit(email);
     const userExistsResult = await fetchUserDetails(email); //TODO: This should be in Auth Context, so that user is set by auth context
     if (userExistsResult.success && userExistsResult.data.user) {
       setUser(userExistsResult.data.user); // Sets initial user from API Response
@@ -102,14 +86,14 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     }
   };
 
-  const handleAuth = (provider: AuthProvider) => {
+  const handleProviderAuth = (provider: AuthProvider) => {
     if (forceEmail && !emailPermissionGranted) {
       setError("Email sharing is required to proceed. Please check the box.");
       return;
     }
 
     const urlParams = new URLSearchParams(window.location.search);
-    const authUrl = constructAuthUrl({
+    window.location.href = constructAuthUrl({
       provider,
       clientId,
       redirectUri,
@@ -122,17 +106,12 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       onboarding: onboardingEnabled ? ["tesla"] : [], //TODO: Should have full onboarding array here
       altTitle,
     });
-
-    window.location.href = authUrl;
   };
-
-  const handleGoogleAuth = () => handleAuth("google");
-  const handleAppleAuth = () => handleAuth("apple");
 
   useEffect(() => {
     // Only authenticate if `user` is set and authentication hasn't been triggered
     if (triggerAuth) {
-      authenticateUser(email, "credentialBundle", entryState);
+      authenticateUser(email);
     }
   }, [triggerAuth]);
 
@@ -189,7 +168,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     >
       <Header
         title={getSignInTitle(devLicenseAlias, {
-          altTitle: Boolean(altTitle),
+          useAltTitle: altTitle
         })}
         subtitle={appUrl.hostname}
         link={`${appUrl.protocol}//${appUrl.host}`}
@@ -213,7 +192,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
         </label>
       </div>
       <div
-        onKeyDown={handleKeyDown} // Listen for key presses
+        onKeyDown={handleKeyDown}
         className="frame9 flex flex-col items-center gap-[10px]"
       >
         <input
@@ -226,11 +205,9 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
         <PrimaryButton onClick={handleSubmit} width="w-full lg:w-[440px]">
           Continue
         </PrimaryButton>
-
-        {/* Flex wrap is only applied on smaller screens, ensuring buttons stay side by side when possible */}
         <div className="flex flex-wrap sm:flex-nowrap justify-center gap-3 w-full">
           <button
-            onClick={handleGoogleAuth}
+            onClick={() => handleProviderAuth('google')}
             className="flex items-center justify-center gap-2 w-full sm:max-w-[210px] h-[40px] rounded-full border border-gray-300 bg-white text-black text-sm hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400"
           >
             <GoogleIcon />
@@ -238,7 +215,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
           </button>
 
           <button
-            onClick={handleAppleAuth}
+            onClick={() => handleProviderAuth('apple')}
             className="flex items-center justify-center gap-2 w-full sm:max-w-[210px] h-[40px] rounded-full border border-gray-300 bg-white text-black text-sm hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400"
           >
             <AppleIcon />

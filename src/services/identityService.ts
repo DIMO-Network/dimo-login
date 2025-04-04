@@ -6,8 +6,8 @@
  * Specific Responsibilities include: Getting vehicles and their SACD permissions
  */
 
-import { Vehicle, VehicleResponse } from "../models/vehicle";
-import { formatDate } from "../utils/dateUtils";
+import {Vehicle, VehicleResponse} from "../models/vehicle";
+import {formatDate} from "../utils/dateUtils";
 
 const GRAPHQL_ENDPOINT =
   process.env.REACT_APP_DIMO_IDENTITY_URL ||
@@ -120,10 +120,11 @@ export const fetchVehiclesWithTransformation = async (
   };
 };
 
-export const isValidClientId = async (
-  clientId: string,
-  redirectUri: string
-): Promise<{ isValid: boolean; alias: string }> => {
+type DeveloperLicense = {
+  alias: string;
+  redirectURIs: { nodes: {uri:string}[] }
+}
+const fetchDeveloperLicense = async (clientId: string): Promise<{developerLicense: DeveloperLicense}> => {
   const query = `{
     developerLicense(by: { clientId: "${clientId}" }) {
       owner
@@ -144,29 +145,25 @@ export const isValidClientId = async (
     },
     body: JSON.stringify({ query }),
   });
-
   const response = await apiResponse.json();
-
-  // Check if data is not null
-  if (!response || !response.data || !response.data.developerLicense) {
-    console.error("No data found in the response.");
-    return { isValid: false, alias: "" };
+  if (!response.data) {
+    throw new Error('received not-ok response from API');
   }
+  return response.data;
+}
 
-  // Access the redirectURIs from the response
-  const { redirectURIs, alias } = response.data.developerLicense;
-
-  // Check if redirectURIs exist and contains nodes
-  if (redirectURIs && redirectURIs.nodes) {
-    // Extract the URIs from the nodes
-    const uris = redirectURIs.nodes.map((node: { uri: any }) => node.uri);
-
-    // Verify if the redirectUri exists in the list
-    const exists = uris.includes(redirectUri);
-
-    return { isValid: exists, alias: alias || clientId };
-  } else {
-    console.error("No redirect URIs found.");
-    return { isValid: false, alias: "" };
+export const fetchDeveloperLicenseByClientId = async (
+  clientId: string,
+): Promise<DeveloperLicense> => {
+  const response = await fetchDeveloperLicense(clientId);
+  if (!response.developerLicense) {
+    throw new Error('Could not retrieve the developer license')
   }
+  return response.developerLicense;
 };
+
+export const checkDeveloperLicenseParams = (developerLicense: DeveloperLicense, redirectUri: string) => {
+  const { redirectURIs } = developerLicense;
+  const mappedRedirectUris = redirectURIs.nodes?.map((it: {uri: string}) => it.uri);
+  return mappedRedirectUris.includes(redirectUri);
+}

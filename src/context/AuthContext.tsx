@@ -1,33 +1,14 @@
-/**
- * AuthContext.tsx
- * 
- * This file provides the AuthContext and AuthProvider, which manage global authentication 
- * state in the application. It can be used to store and access the user's authentication 
- * status, user data, and login/logout functions across the entire application.
- * 
- * Context:
- * - sendOtp method (to be used by OtpInput component)
- * - verifyOtp method (to be used by OtpInput component)
- * - authenticateUser method (to be used by OtpInput component)
- * - loading (to be used by email and otp input)
- * 
- * Usage:
- * Wrap the application or a part of it with the AuthProvider to make the authentication 
- * state available across the app. Use the useAuthContext hook to access the authentication 
- * state and functions.
-
- */
-
-import React, { createContext, useContext, ReactNode, useState } from "react";
-
-import { authenticateUser } from "../utils/authUtils";
-import { createAccount, sendOtp, verifyOtp } from "../services/accountsService"; // Import the service functions
+import React, { createContext, useContext, ReactNode, useState, ReactElement } from "react";
+import {authenticateUser, buildAuthPayload, sendAuthPayloadToParent} from "../utils/authUtils";
+import { createAccount, sendOtp, verifyOtp } from "../services/accountsService";
 import { CreateAccountParams } from "../models/account";
 import { createPasskey } from "../services/turnkeyService";
 import { CredentialResult, OtpResult, UserResult } from "../models/resultTypes";
 import { useDevCredentials } from "./DevCredentialsContext";
 import { UserObject } from "../models/user";
-import { useUIManager } from "./UIManagerContext";
+import {UiStates, useUIManager} from "./UIManagerContext";
+import {storeJWTInCookies, storeUserInLocalStorage} from "../services/storageService";
+import {backToThirdParty} from "../utils/messageHandler";
 
 interface AuthContextProps {
   createAccountWithPasskey: (email: string) => Promise<UserResult>;
@@ -35,8 +16,6 @@ interface AuthContextProps {
   verifyOtp: (email: string, otp: string) => Promise<CredentialResult>;
   authenticateUser: (
     email: string,
-    credentialBundle: string,
-    entryState: string
   ) => Promise<void>;
   user: UserObject;
   setUser: React.Dispatch<React.SetStateAction<UserObject>>;
@@ -48,7 +27,6 @@ interface AuthContextProps {
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
-//This will be set on account creation partially, and completed on wallet connection
 const defaultUser: UserObject = {
   email: "",
   smartContractAddress: "",
@@ -58,18 +36,17 @@ const defaultUser: UserObject = {
   emailVerified: false,
 };
 
-// AuthProvider component to provide the context
 export const AuthProvider = ({
   children,
 }: {
   children: ReactNode;
-}): JSX.Element => {
+}): ReactElement => {
   const [user, setUser] = useState<UserObject>(defaultUser);
   const [otpId, setOtpId] = useState<string>("");
   const [jwt, setJwt] = useState<string>("");
   const [userInitialized, setUserInitialized] = useState<boolean>(false);
   const { clientId, apiKey, redirectUri, utm } = useDevCredentials();
-  const { setLoadingState, error, setError, setUiState } = useUIManager();
+  const { setLoadingState, error, setError, setUiState, entryState } = useUIManager();
 
   const createAccountWithPasskey = async (
     email: string
@@ -177,35 +154,55 @@ export const AuthProvider = ({
     }
   };
 
+  const persistAccountData = (account: UserObject, accessToken: string) => {
+    storeJWTInCookies(clientId, accessToken);
+    storeUserInLocalStorage(clientId, account);
+  }
+
+  const handleSuccessfulAuthentication = (account: UserObject, accessToken: string) => {
+    if (entryState === UiStates.EMAIL_INPUT) {
+      const authPayload = buildAuthPayload(
+        clientId,
+        accessToken,
+        account
+      );
+      sendAuthPayloadToParent(authPayload, redirectUri, (payload) => {
+        backToThirdParty(payload, redirectUri, utm);
+        setUiState(UiStates.SUCCESS); //For Embed Mode
+      });
+    } else if (entryState === UiStates.VEHICLE_MANAGER) {
+      //Note: If the user is unauthenticated but the vehicle manager is the entry state, the payload will be sent to parent in the vehicle manager, after vehicles are shared
+      setUiState(UiStates.VEHICLE_MANAGER); //Move to vehicle manager
+    } else if (entryState === UiStates.ADVANCED_TRANSACTION) {
+      setUiState(UiStates.ADVANCED_TRANSACTION);
+    }
+  }
+
   const handleAuthenticateUser = async (
     email: string,
-    credentialBundle: string,
-    entryState: string
   ) => {
-    console.log("Here");
     setLoadingState(true, "Authenticating User");
     setError(null);
-
     try {
       if (!user || !user.subOrganizationId) {
-        throw new Error("User does not exist");
+        throw new Error("No user has been set in state yet.");
       }
 
       if (!clientId || !redirectUri) {
-        throw new Error("Developer credentials not found");
+        throw new Error("Developer license credentials have not been set.");
       }
 
-      await authenticateUser(
+      const {account, accessToken} = await authenticateUser({
         email,
         clientId,
         redirectUri,
         utm,
-        user.subOrganizationId,
-        entryState,
-        setJwt,
-        setUiState,
-        setUser
-      );
+        subOrganizationId: user.subOrganizationId,
+      });
+      setJwt(accessToken);
+      setUser(account);
+      persistAccountData(account, accessToken);
+      handleSuccessfulAuthentication(account, accessToken);
     } catch (error: unknown) {
       console.error(error);
       setError(
