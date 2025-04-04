@@ -13,12 +13,10 @@ import {
   getEmailGranted,
   getJWTFromCookies,
   getUserFromLocalStorage,
-  storeJWTInCookies,
-  storeUserInLocalStorage,
 } from "../services/storageService";
 import { UserObject } from "../models/user";
 import { backToThirdParty, sendMessageToReferrer } from "./messageHandler";
-import { GenerateChallengeParams, SubmitChallengeParams } from "../models/web3";
+import { GenerateChallengeParams } from "../models/web3";
 import { UiStates } from "../context/UIManagerContext";
 
 export function buildAuthPayload(

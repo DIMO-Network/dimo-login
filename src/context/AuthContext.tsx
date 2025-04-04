@@ -160,6 +160,9 @@ export const AuthProvider = ({
   }
 
   const handleSuccessfulAuthentication = (account: UserObject, accessToken: string) => {
+    setJwt(accessToken);
+    setUser(account);
+    persistAccountData(account, accessToken);
     if (entryState === UiStates.EMAIL_INPUT) {
       const authPayload = buildAuthPayload(
         clientId,
@@ -187,11 +190,9 @@ export const AuthProvider = ({
       if (!user || !user.subOrganizationId) {
         throw new Error("No user has been set in state yet.");
       }
-
       if (!clientId || !redirectUri) {
         throw new Error("Developer license credentials have not been set.");
       }
-
       const {account, accessToken} = await authenticateUser({
         email,
         clientId,
@@ -199,9 +200,6 @@ export const AuthProvider = ({
         utm,
         subOrganizationId: user.subOrganizationId,
       });
-      setJwt(accessToken);
-      setUser(account);
-      persistAccountData(account, accessToken);
       handleSuccessfulAuthentication(account, accessToken);
     } catch (error: unknown) {
       console.error(error);

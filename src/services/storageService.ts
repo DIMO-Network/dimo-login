@@ -1,8 +1,5 @@
-// Define types for user properties
-
 import { UserObject } from "../models/user";
 
-// Utility function to store JWT in cookies for a given clientId
 export const storeJWTInCookies = (clientId: string, jwt: string): void => {
   const expirationDate = new Date();
   expirationDate.setFullYear(expirationDate.getFullYear() + 10); // Set expiration to 10 years in the future
@@ -10,7 +7,6 @@ export const storeJWTInCookies = (clientId: string, jwt: string): void => {
   document.cookie = `auth_token_${clientId}=${jwt}; expires=${expirationDate.toUTCString()}; path=/; SameSite=None; Secure`;
 };
 
-// Utility function to store user properties in localStorage for a given clientId
 export const storeUserInLocalStorage = (
   clientId: string,
   userProperties: UserObject
