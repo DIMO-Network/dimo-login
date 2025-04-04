@@ -72,8 +72,6 @@ const App = () => {
     );
   }
 
-  console.log('ui state', uiState);
-
   return (
     <div className="flex h-screen pt-2 justify-center bg-white lg-h-screen">
       {uiState === UiStates.EMAIL_INPUT && <EmailInput onSubmit={setEmail} />}

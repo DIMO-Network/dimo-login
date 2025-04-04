@@ -1,13 +1,13 @@
 import { HEADERS } from "../enums";
 
 interface IOptions {
-  useAltTitle?: boolean;
+  altTitle?: boolean;
 }
 
 export const getSignInTitle = (
   alias: string,
-  { useAltTitle = false }: IOptions = {}
+  options?: IOptions
 ) => {
-  const titleBaseText = useAltTitle ? HEADERS.ALT : HEADERS.DEFAULT;
+  const titleBaseText = options?.altTitle ? HEADERS.ALT : HEADERS.DEFAULT;
   return titleBaseText.replace("%s", alias);
 };

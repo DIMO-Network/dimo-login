@@ -168,7 +168,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     >
       <Header
         title={getSignInTitle(devLicenseAlias, {
-          useAltTitle: altTitle
+          altTitle
         })}
         subtitle={appUrl.hostname}
         link={`${appUrl.protocol}//${appUrl.host}`}

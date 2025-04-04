@@ -154,15 +154,7 @@ export const AuthProvider = ({
     }
   };
 
-  const persistAccountData = (account: UserObject, accessToken: string) => {
-    storeJWTInCookies(clientId, accessToken);
-    storeUserInLocalStorage(clientId, account);
-  }
-
-  const handleSuccessfulAuthentication = (account: UserObject, accessToken: string) => {
-    setJwt(accessToken);
-    setUser(account);
-    persistAccountData(account, accessToken);
+  const updateUiState = (account: UserObject, accessToken: string) => {
     if (entryState === UiStates.EMAIL_INPUT) {
       const authPayload = buildAuthPayload(
         clientId,
@@ -179,6 +171,13 @@ export const AuthProvider = ({
     } else if (entryState === UiStates.ADVANCED_TRANSACTION) {
       setUiState(UiStates.ADVANCED_TRANSACTION);
     }
+  }
+
+  const storeAccountData = (account: UserObject, accessToken: string) => {
+    setJwt(accessToken);
+    setUser(account);
+    storeJWTInCookies(clientId, accessToken);
+    storeUserInLocalStorage(clientId, account);
   }
 
   const handleAuthenticateUser = async (
@@ -200,7 +199,8 @@ export const AuthProvider = ({
         utm,
         subOrganizationId: user.subOrganizationId,
       });
-      handleSuccessfulAuthentication(account, accessToken);
+      storeAccountData(account, accessToken);
+      updateUiState(account, accessToken);
     } catch (error: unknown) {
       console.error(error);
       setError(
