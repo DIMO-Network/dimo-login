@@ -36,7 +36,6 @@ export interface TypedDataResponse {
   error?: string;
 }
 
-
 export type NftTypeElements = Array<{
   name: string;
   type: string;

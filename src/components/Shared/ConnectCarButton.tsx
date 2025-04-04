@@ -1,7 +1,7 @@
-import { useState, type FC } from "react";
-import { PlusIcon } from "../Icons/PlusIcon";
-import { UiStates, useUIManager } from "../../context/UIManagerContext";
-import { useOracles } from "../../context/OraclesContext";
+import { useState, type FC } from 'react';
+import { PlusIcon } from '../Icons/PlusIcon';
+import { UiStates, useUIManager } from '../../context/UIManagerContext';
+import { useOracles } from '../../context/OraclesContext';
 
 export const ConnectCarButton: FC = () => {
   const { setUiState } = useUIManager();

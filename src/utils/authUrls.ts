@@ -1,9 +1,4 @@
-export type AuthProvider =
-  | "smartcar"
-  | "tesla"
-  | "google"
-  | "apple"
-  | "connect";
+export type AuthProvider = 'smartcar' | 'tesla' | 'google' | 'apple' | 'connect';
 
 interface AuthUrlParams {
   provider: AuthProvider;
@@ -32,13 +27,13 @@ interface AuthUrlParams {
 
 export function constructAuthUrl(params: AuthUrlParams): string {
   switch (params.provider) {
-    case "smartcar":
+    case 'smartcar':
       return getSmartcarAuthUrl(params);
-    case "tesla":
+    case 'tesla':
       return getTeslaAuthUrl(params);
-    case "google":
+    case 'google':
       return getEmailAuthUrl(params);
-    case "apple":
+    case 'apple':
       return getEmailAuthUrl(params);
     default:
       throw new Error(`Unsupported provider: ${params.provider}`);
@@ -74,11 +69,11 @@ function getSmartcarAuthUrl(params: AuthUrlParams): string {
   url += `?response_type=code`;
   url += `&client_id=${process.env.REACT_APP_SMARTCAR_CLIENT_ID}`; //TODO: Remove Hardcode
   url += `&redirect_uri=${encodeURIComponent(params.redirectUri)}`;
-  url += `&scope=${encodeURIComponent("required:read_vehicle_info")}`;
+  url += `&scope=${encodeURIComponent('required:read_vehicle_info')}`;
   url += `&approval_prompt=force`; // Force login
   url += `&single_select=true`; // User can only select one car
 
-  if (process.env.REACT_APP_ENVIRONMENT != "prod") {
+  if (process.env.REACT_APP_ENVIRONMENT != 'prod') {
     url += `&mode=simulated`;
   }
 
@@ -101,46 +96,40 @@ function getTeslaAuthUrl(params: AuthUrlParams): string {
   const stateParams = buildStateParams(params);
 
   const scope = [
-    "openid",
-    "offline_access",
-    "user_data",
-    "vehicle_device_data",
-    "vehicle_cmds",
-    "vehicle_charging_cmds",
-    "vehicle_location",
-  ].join(" ");
+    'openid',
+    'offline_access',
+    'user_data',
+    'vehicle_device_data',
+    'vehicle_cmds',
+    'vehicle_charging_cmds',
+    'vehicle_location',
+  ].join(' ');
 
   console.log(scope);
 
   return `https://auth.tesla.com/oauth2/v3/authorize
     ?client_id=${process.env.REACT_APP_TESLA_CLIENT_ID}
     &redirect_uri=${encodeURIComponent(
-      process.env.REACT_APP_TESLA_REDIRECT_URI as string
+      process.env.REACT_APP_TESLA_REDIRECT_URI as string,
     )}
     &prompt_missing_scopes=true
     &response_type=code
     &scope=${encodeURIComponent(scope)}
-    &state=${encodeURIComponent(JSON.stringify(stateParams))}`.replace(
-    /\s+/g,
-    ""
-  );
+    &state=${encodeURIComponent(JSON.stringify(stateParams))}`.replace(/\s+/g, '');
 }
 
 function getEmailAuthUrl(params: AuthUrlParams): string {
   const stateParams = buildStateParams(params);
 
   const dimoRedirectUri =
-    process.env.REACT_APP_ENVIRONMENT == "prod"
-      ? "https://login.dimo.org"
-      : "https://login.dev.dimo.org";
+    process.env.REACT_APP_ENVIRONMENT == 'prod'
+      ? 'https://login.dimo.org'
+      : 'https://login.dev.dimo.org';
 
   return `${process.env.REACT_APP_DIMO_AUTH_URL}/auth/${params.provider}
     ?client_id=login-with-dimo
     &redirect_uri=${dimoRedirectUri}
     &response_type=code
     &scope=openid%20email
-    &state=${encodeURIComponent(JSON.stringify(stateParams))}`.replace(
-    /\s+/g,
-    ""
-  );
+    &state=${encodeURIComponent(JSON.stringify(stateParams))}`.replace(/\s+/g, '');
 }

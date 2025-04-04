@@ -1,16 +1,11 @@
-import React, { useEffect, useState, type FC } from "react";
+import React, { useEffect, useState, type FC } from 'react';
 
-import { Card } from "../Shared/Card";
-import { Header } from "../Shared/Header";
-import { PrimaryButton } from "../Shared/PrimaryButton";
-import {
-  DevicesIcon,
-  FingerprintIcon,
-  IconProps,
-  SecurityIcon,
-} from "../Icons";
-import { useAuthContext } from "../../context/AuthContext";
-import { UiStates, useUIManager } from "../../context/UIManagerContext";
+import { Card } from '../Shared/Card';
+import { Header } from '../Shared/Header';
+import { PrimaryButton } from '../Shared/PrimaryButton';
+import { DevicesIcon, FingerprintIcon, IconProps, SecurityIcon } from '../Icons';
+import { useAuthContext } from '../../context/AuthContext';
+import { UiStates, useUIManager } from '../../context/UIManagerContext';
 
 interface PasskeyBenefitProps {
   Icon: FC<IconProps>;
@@ -21,20 +16,18 @@ interface PasskeyBenefitProps {
 const PASSKEY_BENEFITS: PasskeyBenefitProps[] = [
   {
     Icon: FingerprintIcon,
-    title: "No need to remember a password",
-    description:
-      "Passkeys are digital signatures that use Face ID or biometrics.",
+    title: 'No need to remember a password',
+    description: 'Passkeys are digital signatures that use Face ID or biometrics.',
   },
   {
     Icon: SecurityIcon,
-    title: "Advanced protection",
-    description:
-      "Passkeys offer phishing-resistant technology to keep you safe.",
+    title: 'Advanced protection',
+    description: 'Passkeys offer phishing-resistant technology to keep you safe.',
   },
   {
     Icon: DevicesIcon,
-    title: "Seamless authentication",
-    description: "Sign in and approve requests in an instant.",
+    title: 'Seamless authentication',
+    description: 'Sign in and approve requests in an instant.',
   },
 ];
 
@@ -43,8 +36,7 @@ interface PasskeyGenerationProps {
 }
 
 export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
-  const { createAccountWithPasskey, sendOtp, authenticateUser, user } =
-    useAuthContext();
+  const { createAccountWithPasskey, sendOtp, authenticateUser, user } = useAuthContext();
   const { setUiState, componentData, entryState } = useUIManager();
   const [triggerAuth, setTriggerAuth] = useState(false);
 
@@ -70,23 +62,14 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
         await handleOtpSend(email);
       }
     } else {
-      console.error("Account creation failed"); // Handle account creation failure
+      console.error('Account creation failed'); // Handle account creation failure
     }
   };
 
   useEffect(() => {
     // Only authenticate if `user` is set and authentication hasn't been triggered
-    if (
-      user &&
-      user.subOrganizationId &&
-      componentData &&
-      componentData.emailValidated
-    ) {
-      authenticateUser(
-        componentData.emailValidated,
-        "credentialBundle",
-        entryState
-      );
+    if (user && user.subOrganizationId && componentData && componentData.emailValidated) {
+      authenticateUser(componentData.emailValidated, 'credentialBundle', entryState);
     }
   }, [triggerAuth]);
 
@@ -120,9 +103,7 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
             DIMO uses passkeys to keep your account and data secure.
           </p>
         </div>
-        <div className="passkey-benefits">
-          {PASSKEY_BENEFITS.map(renderBenefit)}
-        </div>
+        <div className="passkey-benefits">{PASSKEY_BENEFITS.map(renderBenefit)}</div>
         <div className="actions">
           <PrimaryButton onClick={handlePasskeyGeneration} width="w-full">
             Add a passkey
