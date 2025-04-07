@@ -287,7 +287,7 @@ export const ConnectTesla: FC = () => {
                   {/* Permissions Text */}
                   <div className="w-full text-gray-600 text-sm text-center">
                     {devLicenseAlias} requires access to your car’s data to
-                    offer you charging incentives.
+                    offer you charging&nbsp;incentives.
                   </div>
 
                   {/* Permissions List */}
