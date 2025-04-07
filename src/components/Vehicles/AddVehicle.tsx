@@ -9,6 +9,7 @@ import enLocale from "i18n-iso-countries/langs/en.json";
 import { UiStates, useUIManager } from "../../context/UIManagerContext";
 import { supportedMakeModels } from "../../utils/tablelandUtils";
 import { AutoCompleteInput } from "../Shared/AutoCompleteInput";
+import { Select } from "../Shared/Select";
 
 // Register English country names
 countries.registerLocale(enLocale);
@@ -93,34 +94,24 @@ export const AddVehicle: FC = () => {
 
               {/* Model Year */}
               <label className="block mt-4 text-sm">Model year</label>
-              <select
-                className="w-full mt-1 p-2 border rounded-md bg-white text-gray-900"
+              <Select
+                options={Array.from({ length: 2026 - 1900 + 1 }, (_, i) =>
+                  (2026 - i).toString()
+                )}
                 value={modelYear}
-                onChange={(e: any) => setModelYear(e.target.value)}
-              >
-                <option value="" disabled hidden>
-                  Select
-                </option>
-                {Array.from({ length: 2026 - 1900 + 1 }, (_, i) => (
-                  <option key={2026 - i} value={2026 - i}>
-                    {2026 - i}
-                  </option>
-                ))}
-              </select>
+                onChange={(e) => setModelYear(e.target.value)}
+                className="w-full mt-1"
+                includeEmptyOption
+              />
 
               {/* Country of Location */}
               <label className="block mt-4 text-sm">Country of location</label>
-              <select
-                className="w-full mt-1 p-2 border rounded-md bg-white text-gray-900"
+              <Select
+                options={countryList}
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
-              >
-                {countryList.map((countryName, index) => (
-                  <option key={index} value={countryName}>
-                    {countryName}
-                  </option>
-                ))}
-              </select>
+                className="w-full mt-1"
+              />
             </div>
           )}
 
@@ -136,25 +127,20 @@ export const AddVehicle: FC = () => {
 
               {/* Country of Location */}
               <label className="block mt-4 text-sm">Country of location</label>
-              <select
-                className="w-full mt-1 p-2 border rounded-md bg-white text-gray-900"
+              <Select
+                options={countryList}
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
-              >
-                {countryList.map((countryName, index) => (
-                  <option key={index} value={countryName}>
-                    {countryName}
-                  </option>
-                ))}
-              </select>
+                className="w-full mt-1"
+              />
             </div>
           )}
 
           {/* Submit Button */}
           <button
             disabled={
-              (tab == 0 && !(makeModel && country && modelYear)) ||
-              (tab == 1 && !vinNumber)
+              (tab === 0 && !(makeModel && country && modelYear)) ||
+              (tab === 1 && !vinNumber)
             }
             className="w-full mt-6 p-3 rounded-full bg-black disabled:bg-[#A1A1AA] text-white"
             onClick={handleSubmit}
