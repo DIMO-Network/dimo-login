@@ -331,18 +331,18 @@ export const ConnectTesla: FC = () => {
                 <>
                   {/* Virtual Key Step */}
 
-                  <div className="w-full text-gray-600 text-sm text-center">
+                  <div className="w-full text-gray-600 text-sm">
                     {devLicenseAlias} requires access to your car’s data to
                     offer you charging incentives.
                   </div>
 
-                  <div className="w-full text-gray-600 text-sm text-center mt-2">
+                  <div className="w-full text-gray-600 text-sm mt-2">
                     The virtual key provides end-to-end encryption, enables more
                     frequent data updates, and allows for remote commands from
                     your phone.
                   </div>
 
-                  <div className="w-full text-gray-600 text-sm text-center mt-2">
+                  <div className="w-full text-gray-600 text-sm mt-2">
                     This can be removed at any time in your Tesla app.{" "}
                     <a
                       href="https://www.tesla.com/support"
