@@ -356,10 +356,10 @@ export const ConnectTesla: FC = () => {
 
             case "polling-virtual-key":
               return (
-                <>
+                <div className="py-10">
                   {/* Virtual Key Step */}
                   <Loader />
-                </>
+                </div>
               );
 
             case "minting":
