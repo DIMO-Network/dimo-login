@@ -1,12 +1,11 @@
 // components/Shared/PrimaryButton.tsx
-import React, { ReactNode } from "react";
+import React, { ReactNode } from 'react';
 
 interface PrimaryButtonProps {
   onClick: () => void;
   children: ReactNode;
   width?: string; // Optional width prop
-  disabled?: boolean
-
+  disabled?: boolean;
 }
 
 export const PrimaryButton: React.FC<PrimaryButtonProps> = ({

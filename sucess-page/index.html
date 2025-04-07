@@ -1,109 +1,109 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>JWT Decoder</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #f4f4f4;
-        }
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: #f4f4f4;
+      }
 
-        .container {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            width: 400px;
-            max-width: 100%;
-        }
+      .container {
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        width: 400px;
+        max-width: 100%;
+      }
 
-        h1 {
-            font-size: 24px;
-            margin-bottom: 15px;
-            text-align: center;
-        }
+      h1 {
+        font-size: 24px;
+        margin-bottom: 15px;
+        text-align: center;
+      }
 
-        pre {
-            background-color: #f4f4f4;
-            padding: 10px;
-            border-radius: 5px;
-            font-size: 14px;
-            word-wrap: break-word;
-            white-space: pre-wrap;
-        }
+      pre {
+        background-color: #f4f4f4;
+        padding: 10px;
+        border-radius: 5px;
+        font-size: 14px;
+        word-wrap: break-word;
+        white-space: pre-wrap;
+      }
 
-        .error {
-            color: red;
-            font-size: 14px;
-        }
+      .error {
+        color: red;
+        font-size: 14px;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        <h1>JWT Decoder</h1>
-        <div id="content">
-            <p id="error-message" class="error"></p>
-            <h3>Decoded JWT Content</h3>
-            <pre id="jwt-content"></pre>
-        </div>
+      <h1>JWT Decoder</h1>
+      <div id="content">
+        <p id="error-message" class="error"></p>
+        <h3>Decoded JWT Content</h3>
+        <pre id="jwt-content"></pre>
+      </div>
     </div>
 
     <script>
-        // Function to get the 'token' parameter from the URL
-        function getUrlParameter(name) {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get(name);
+      // Function to get the 'token' parameter from the URL
+      function getUrlParameter(name) {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get(name);
+      }
+
+      // Function to decode base64url
+      function base64UrlDecode(base64Url) {
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const decodedData = atob(base64);
+        return decodedData;
+      }
+
+      // Function to decode JWT
+      function decodeJWT(token) {
+        try {
+          const parts = token.split('.');
+          if (parts.length !== 3) {
+            throw new Error('Invalid JWT format');
+          }
+
+          // Decode the payload (second part of the JWT)
+          const payload = base64UrlDecode(parts[1]);
+          return JSON.parse(payload);
+        } catch (e) {
+          throw new Error('Error decoding JWT: ' + e.message);
         }
+      }
 
-        // Function to decode base64url
-        function base64UrlDecode(base64Url) {
-            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            const decodedData = atob(base64);
-            return decodedData;
+      // Get the token from the URL
+      const token = getUrlParameter('token');
+      const jwtContentElement = document.getElementById('jwt-content');
+      const errorMessageElement = document.getElementById('error-message');
+
+      if (token) {
+        try {
+          const decodedContent = decodeJWT(token);
+          jwtContentElement.textContent = JSON.stringify(decodedContent, null, 2);
+          errorMessageElement.textContent = '';
+        } catch (error) {
+          errorMessageElement.textContent = error.message;
+          jwtContentElement.textContent = '';
         }
-
-        // Function to decode JWT
-        function decodeJWT(token) {
-            try {
-                const parts = token.split('.');
-                if (parts.length !== 3) {
-                    throw new Error('Invalid JWT format');
-                }
-
-                // Decode the payload (second part of the JWT)
-                const payload = base64UrlDecode(parts[1]);
-                return JSON.parse(payload);
-            } catch (e) {
-                throw new Error('Error decoding JWT: ' + e.message);
-            }
-        }
-
-        // Get the token from the URL
-        const token = getUrlParameter('token');
-        const jwtContentElement = document.getElementById('jwt-content');
-        const errorMessageElement = document.getElementById('error-message');
-
-        if (token) {
-            try {
-                const decodedContent = decodeJWT(token);
-                jwtContentElement.textContent = JSON.stringify(decodedContent, null, 2);
-                errorMessageElement.textContent = '';
-            } catch (error) {
-                errorMessageElement.textContent = error.message;
-                jwtContentElement.textContent = '';
-            }
-        } else {
-            errorMessageElement.textContent = 'No token found in the URL.';
-            jwtContentElement.textContent = '';
-        }
+      } else {
+        errorMessageElement.textContent = 'No token found in the URL.';
+        jwtContentElement.textContent = '';
+      }
     </script>
-</body>
+  </body>
 </html>

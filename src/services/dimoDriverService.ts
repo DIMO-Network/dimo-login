@@ -1,18 +1,18 @@
 import {
   mintVehicleWithDeviceDefinition,
   mintVehicleWithDeviceDefinitionFromAccount,
-} from "@dimo-network/transactions/dist/core/actions/mintVehicleWithDeviceDefinition";
-import { MintVehicleResult } from "../models/resultTypes";
-import { MintVehicleVariables } from "../models/vehicle";
+} from '@dimo-network/transactions/dist/core/actions/mintVehicleWithDeviceDefinition';
+import { MintVehicleResult } from '../models/resultTypes';
+import { MintVehicleVariables } from '../models/vehicle';
 import {
   generateIpfsSources,
   getKernelSigner,
   getKernelSignerClient,
-} from "./turnkeyService";
-import { MintVehicleWithDeviceDefinition } from "@dimo-network/transactions";
-import { hexToDecimal } from "../utils/hexUtils";
+} from './turnkeyService';
+import { MintVehicleWithDeviceDefinition } from '@dimo-network/transactions';
+import { hexToDecimal } from '../utils/hexUtils';
 
-const DIMO_DRIVER_BASE_URL = "TBD"; //
+const DIMO_DRIVER_BASE_URL = 'TBD'; //
 
 export const mintVehicle = async ({
   owner,
@@ -30,17 +30,17 @@ export const mintVehicle = async ({
     const ipfsRes = await generateIpfsSources(permissions, owner, expiration);
     console.log(make, model);
     const args: MintVehicleWithDeviceDefinition = {
-      owner: "0x60A7D007007c459dFE16665Caec415C810ffff6b",
+      owner: '0x60A7D007007c459dFE16665Caec415C810ffff6b',
       manufacturerNode: BigInt(manufacturerNode),
       deviceDefinitionID: deviceDefinitionID,
       attributeInfo: [
-        { attribute: "Make", info: make },
-        { attribute: "Model", info: model },
-        { attribute: "Year", info: year },
-        { attribute: "ImageURI", info: imageURI },
+        { attribute: 'Make', info: make },
+        { attribute: 'Model', info: model },
+        { attribute: 'Year', info: year },
+        { attribute: 'ImageURI', info: imageURI },
       ],
       sacdInput: {
-        grantee: "0x8E58b98d569B0679713273c5105499C249e9bC84",
+        grantee: '0x8E58b98d569B0679713273c5105499C249e9bC84',
         permissions,
         expiration,
         source: ipfsRes,
@@ -65,10 +65,10 @@ export const mintVehicle = async ({
       data: { userOperationHash, tokenId: vehicleIdDecimal },
     };
   } catch (error) {
-    console.error("Error generating challenge:", error);
+    console.error('Error generating challenge:', error);
     return {
       success: false,
-      error: "An error occurred while generating challenge",
+      error: 'An error occurred while generating challenge',
     };
   }
 };

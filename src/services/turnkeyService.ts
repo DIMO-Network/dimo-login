@@ -16,12 +16,11 @@ import {
   sacdPermissionValue,
   SetVehiclePermissions,
   SetVehiclePermissionsBulk,
-  TransactionData,
-} from "@dimo-network/transactions";
-import { getWebAuthnAttestation } from "@turnkey/http";
-import { WebauthnStamper } from "@turnkey/webauthn-stamper";
+} from '@dimo-network/transactions';
+import { getWebAuthnAttestation } from '@turnkey/http';
+import { WebauthnStamper } from '@turnkey/webauthn-stamper';
 import { base64UrlEncode, generateRandomBuffer } from "../utils/cryptoUtils";
-import { VehcilePermissionDescription } from "@dimo-network/transactions/dist/core/types/args";
+import { VehcilePermissionDescription } from '@dimo-network/transactions/dist/core/types/args';
 import { PasskeyCreationResult } from "../models/resultTypes";
 
 const stamper = new WebauthnStamper({
@@ -33,7 +32,7 @@ let kernelSigner: KernelSigner;
 export const createKernelSigner = (
   clientId: string,
   domain: string,
-  redirectUri: string
+  redirectUri: string,
 ): KernelSigner => {
   const kernelSignerConfig = newKernelConfig({
     rpcUrl: process.env.REACT_APP_POLYGON_RPC_URL!,
@@ -55,8 +54,8 @@ export const getKernelSigner = (): KernelSigner => {
 };
 
 export const getKernelSignerClient = async () => {
-  return await kernelSigner.getActiveClient()
-}
+  return await kernelSigner.getActiveClient();
+};
 
 export const getSmartContractAddress = (): `0x${string}` | undefined => {
   return kernelSigner.kernelAddress;
@@ -66,31 +65,28 @@ export const getWalletAddress = (): `0x${string}` | undefined => {
   return kernelSigner.walletAddress;
 };
 
-export const createPasskey = async (
-  email: string
-): Promise<PasskeyCreationResult> => {
+export const createPasskey = async (email: string): Promise<PasskeyCreationResult> => {
   const challenge = generateRandomBuffer();
   const authenticatorUserId = generateRandomBuffer();
 
   let authenticatorName = `${email} @ DIMO`;
 
-  if (process.env.REACT_APP_ENVIRONMENT !== "prod") {
+  if (process.env.REACT_APP_ENVIRONMENT !== 'prod') {
     authenticatorName += ` preview`;
-  }  
+  }
 
   // An example of possible options can be found here:
   // https://www.w3.org/TR/webauthn-2/#sctn-sample-registration
   const attestation = await getWebAuthnAttestation({
     publicKey: {
       rp: {
-        id:
-          process.env.REACT_APP_RPCID_URL, //localhost, or dimo.org
-        name: "Dimo Passkey Wallet",
+        id: process.env.REACT_APP_RPCID_URL, //localhost, or dimo.org
+        name: 'Dimo Passkey Wallet',
       },
       challenge,
       pubKeyCredParams: [
         {
-          type: "public-key",
+          type: 'public-key',
           alg: -7,
         },
       ],
@@ -101,8 +97,8 @@ export const createPasskey = async (
       },
       authenticatorSelection: {
         requireResidentKey: true,
-        residentKey: "required",
-        userVerification: "preferred",
+        residentKey: 'required',
+        userVerification: 'preferred',
       },
     },
   });
@@ -110,19 +106,11 @@ export const createPasskey = async (
   return [attestation, base64UrlEncode(challenge)];
 };
 
-export const initializePasskey = async (
-  subOrganizationId: string
-): Promise<void> => {
+export const initializePasskey = async (subOrganizationId: string): Promise<void> => {
   await kernelSigner.passkeyToSession(subOrganizationId, stamper);
 };
 
-export const openSessionWithPasskey = async (): Promise<void> => {
-  return await kernelSigner.openSessionWithPasskey();
-};
-
-export const initializeIfNeeded = async (
-  subOrganizationId: string
-): Promise<void> => {
+export const initializeIfNeeded = async (subOrganizationId: string): Promise<void> => {
   try {
     await kernelSigner.getActiveClient();
   } catch (e) {
@@ -131,9 +119,7 @@ export const initializeIfNeeded = async (
   }
 };
 
-export const signChallenge = async (
-  challenge: string
-): Promise<`0x${string}`> => {
+export const signChallenge = async (challenge: string): Promise<`0x${string}`> => {
   //This is triggering a turnkey API request to sign a raw payload
   //Notes on signature, turnkey api returns an ecdsa signature, which the kernel client is handling
   const signature = await kernelSigner.signChallenge(challenge);
@@ -145,13 +131,13 @@ export const signChallenge = async (
 export const generateIpfsSources = async (
   permissions: BigInt,
   clientId: string,
-  expiration: BigInt
+  expiration: BigInt,
 ): Promise<string> => {
   // Bulk vehicles
   const ipfsRes = await kernelSigner.signAndUploadSACDAgreement({
     driverID: clientId,
     appID: clientId,
-    appName: "dimo-login", //TODO: Should be a constant, if we're assuming the same appName (however feels like this should be provided by the developer)
+    appName: 'dimo-login', //TODO: Should be a constant, if we're assuming the same appName (however feels like this should be provided by the developer)
     expiration: expiration,
     permissions: permissions,
     grantee: clientId as `0x${string}`,
@@ -179,9 +165,9 @@ export async function setVehiclePermissions({
       expiration,
       source,
     });
-    console.log("Vehicle permissions set successfully");
+    console.log('Vehicle permissions set successfully');
   } catch (error) {
-    console.error("Error setting vehicle permissions:", error);
+    console.error('Error setting vehicle permissions:', error);
     throw error;
   }
 }
@@ -202,28 +188,19 @@ export async function setVehiclePermissionsBulk({
       expiration,
       source,
     });
-    console.log("Vehicle permissions set successfully");
+    console.log('Vehicle permissions set successfully');
   } catch (error) {
-    console.error("Error setting vehicle permissions:", error);
+    console.error('Error setting vehicle permissions:', error);
     throw error;
   }
 }
 
 export async function executeAdvancedTransaction(
-  address: `0x${string}`,
   abi: any,
   functionName: string,
   args: any[],
-  value?: BigInt
+  value?: BigInt,
 ): Promise<`0x${string}`> {
-  const payload: TransactionData = {
-    address,
-    value,
-    abi,
-    functionName,
-    args,
-  };
-
   const response = await kernelSigner.executeTransaction({
     requireSignature: false,
     data: [
@@ -244,17 +221,17 @@ export async function executeAdvancedTransaction(
 export function getSacdValue(
   sacdPerms: Partial<
     Record<
-      | "NONLOCATION_TELEMETRY"
-      | "COMMANDS"
-      | "CURRENT_LOCATION"
-      | "ALLTIME_LOCATION"
-      | "CREDENTIALS"
-      | "STREAMS"
-      | "RAW_DATA"
-      | "APPROXIMATE_LOCATION",
+      | 'NONLOCATION_TELEMETRY'
+      | 'COMMANDS'
+      | 'CURRENT_LOCATION'
+      | 'ALLTIME_LOCATION'
+      | 'CREDENTIALS'
+      | 'STREAMS'
+      | 'RAW_DATA'
+      | 'APPROXIMATE_LOCATION',
       boolean
     >
-  >
+  >,
 ): bigint {
   return sacdPermissionValue(sacdPerms);
 }
