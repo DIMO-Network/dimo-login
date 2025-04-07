@@ -112,7 +112,6 @@ export const ConnectTesla: FC = () => {
       }
 
       // ✅ Step 2: Create Vehicle
-      setLoadingState(true, "Creating vehicle...");
       const createdVehicle = await createVehicleFromDeviceDefinitionId(
         {
           countryCode: vehicleToAdd.country, //TODO: Update so not hardcoded
@@ -140,7 +139,6 @@ export const ConnectTesla: FC = () => {
       }
 
       // // ✅ Step 3: Register Integration
-      setLoadingState(true, "Registering Tesla integration...");
       const registeredIntegration = await registerIntegration(
         {
           userDeviceId,
@@ -156,7 +154,6 @@ export const ConnectTesla: FC = () => {
       }
 
       // // ✅ Step 4: Check Virtual Key Status
-      setLoadingState(true, "Checking virtual key...");
       const integrationInfo = await checkIntegrationInfo(
         {
           userDeviceId,
