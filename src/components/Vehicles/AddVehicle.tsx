@@ -46,6 +46,9 @@ export const AddVehicle: FC = () => {
     setUiState(UiStates.COMPATIBILITY_CHECK, { setBack: true });
   };
 
+  const getTabColor = (isActive: boolean) =>
+    isActive ? "bg-white text-black" : "bg-black text-white";
+
   return (
     <Card
       width="w-full max-w-[600px]"
@@ -59,28 +62,24 @@ export const AddVehicle: FC = () => {
           link={`${appUrl.protocol}//${appUrl.host}`}
         />
 
-        <div className="w-full max-w-md mx-auto p-4 bg-white rounded-lg">
+        <div className="w-full max-w-md mx-auto p-4 bg-white rounded-full">
           {/* Toggle Buttons */}
-          <div className="flex w-full border rounded-full bg-gray-200">
+          <div className="flex w-full border border-[#D4D4D8] rounded-full bg-black">
             <button
-              className={`flex-1 py-2 rounded-full ${
-                tab === 0 ? "bg-white text-black" : "bg-gray-200 text-gray-600"
-              }`}
+              className={`flex-1 py-2 rounded-full ${getTabColor(tab === 0)}`}
               onClick={() => setTab(0)}
             >
               Make, Model, Year
             </button>
             <button
-              className={`flex-1 py-2 rounded-full ${
-                tab === 1 ? "bg-white text-black" : "bg-gray-200 text-gray-600"
-              }`}
+              className={`flex-1 py-2 rounded-full ${getTabColor(tab === 1)}`}
               onClick={() => setTab(1)}
             >
               VIN Number
             </button>
           </div>
 
-          {tab == 0 && (
+          {tab === 0 && (
             <div className="mt-4">
               {/* Make and Model */}
               <label className="block text-sm">Make and model</label>
