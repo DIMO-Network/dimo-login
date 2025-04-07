@@ -5,7 +5,6 @@ import {
   SetVehiclePermissionsBulk,
 } from '@dimo-network/transactions';
 
-import { fetchVehiclesWithTransformation } from '../../services/identityService';
 import VehicleCard from './VehicleCard';
 import { useAuthContext } from '../../context/AuthContext';
 import { Vehicle } from '../../models/vehicle';
@@ -24,6 +23,7 @@ import { UiStates, useUIManager } from '../../context/UIManagerContext';
 import Loader from '../Shared/Loader';
 import { EmptyState } from './EmptyState';
 import { ConnectCarButton } from '../Shared/ConnectCarButton';
+import { fetchVehiclesWithTransformation } from '../../services/vehicleService';
 
 interface SelectVehiclesProps {
   vehicleTokenIds: string[] | undefined; // Adjust the type based on your data

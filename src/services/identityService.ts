@@ -6,26 +6,20 @@
  * Specific Responsibilities include: Getting vehicles and their SACD permissions
  */
 
-import { Vehicle, VehicleResponse } from '../models/vehicle';
-import { formatDate } from '../utils/dateUtils';
+import { apolloClient } from './apollo';
+import { gql } from '@apollo/client';
 
 const GRAPHQL_ENDPOINT =
   process.env.REACT_APP_DIMO_IDENTITY_URL || 'https://identity-api.dev.dimo.zone/query';
 
 type IFetchVehicleParams = {
   ownerAddress: string;
-  targetGrantee: string;
   cursor: string;
   direction: string;
-  filters?: {
-    vehicleTokenIds?: string[];
-    vehicleMakes?: string[];
-  };
 };
 
-const fetchVehicles = async (
-  params: Pick<IFetchVehicleParams, 'ownerAddress' | 'cursor' | 'direction'>,
-) => {
+export const fetchVehicles = async (params: IFetchVehicleParams) => {
+  console.log('actual fetchVehicles called');
   const { ownerAddress, direction, cursor } = params;
   const query = `
   {
@@ -38,6 +32,7 @@ const fetchVehicles = async (
         tokenId
         imageURI
         definition {
+          id
           make
           model
           year
@@ -69,65 +64,50 @@ const fetchVehicles = async (
   return await response.json();
 };
 
-export const fetchVehiclesWithTransformation = async (
-  params: IFetchVehicleParams,
-): Promise<VehicleResponse> => {
-  const {
-    ownerAddress,
-    targetGrantee,
-    cursor,
-    direction,
-    filters: { vehicleTokenIds, vehicleMakes } = {},
-  } = params;
-  const data = await fetchVehicles({ ownerAddress, cursor, direction });
-  const compatibleVehicles: Vehicle[] = [];
-  const incompatibleVehicles: Vehicle[] = [];
-
-  data.data.vehicles.nodes.forEach((vehicle: any) => {
-    const tokenIdMatch = vehicleTokenIds?.length
-      ? vehicleTokenIds.includes(vehicle.tokenId.toString())
-      : true;
-
-    const makeMatch = vehicleMakes?.length
-      ? vehicleMakes.some(
-          (make) => make.toUpperCase() === vehicle.definition.make.toUpperCase(),
-        )
-      : true;
-
-    const sacdForGrantee = vehicle.sacds.nodes.find(
-      (sacd: any) => sacd.grantee === targetGrantee,
-    );
-
-    const transformedVehicle = {
-      tokenId: vehicle.tokenId,
-      imageURI: vehicle.imageURI,
-      shared: Boolean(sacdForGrantee),
-      expiresAt: sacdForGrantee ? formatDate(sacdForGrantee.expiresAt) : '',
-      make: vehicle.definition.make,
-      model: vehicle.definition.model,
-      year: vehicle.definition.year,
-    };
-
-    // Add to compatible or incompatible based on the conditions
-    if (tokenIdMatch && makeMatch) {
-      compatibleVehicles.push(transformedVehicle);
-    } else {
-      incompatibleVehicles.push(transformedVehicle);
+const GET_DEVICE_DEFINITION_BY_ID = gql(`
+  query GetDeviceDefinitionById($id: String!) {
+    deviceDefinition(by:{id: $id}) {
+      attributes {
+        name
+        value
+      }
     }
-  });
+  }
+`);
 
-  return {
-    hasNextPage: data.data.vehicles.pageInfo.hasNextPage,
-    hasPreviousPage: data.data.vehicles.pageInfo.hasPreviousPage,
-    startCursor: data.data.vehicles.pageInfo.startCursor || '',
-    endCursor: data.data.vehicles.pageInfo.endCursor || '',
-    compatibleVehicles: compatibleVehicles.sort(
-      (a: any, b: any) => Number(a.shared) - Number(b.shared),
-    ),
-    incompatibleVehicles: incompatibleVehicles.sort(
-      (a: any, b: any) => Number(a.shared) - Number(b.shared),
-    ),
-  };
+type GetDeviceDefinitionByIdQueryResult = {
+  deviceDefinition: DeviceDefinition;
+};
+type DeviceDefinition = {
+  attributes?: { name: string; value: string }[] | null;
+};
+
+export const fetchDeviceDefinition = async (
+  deviceDefinitionId: string,
+): Promise<GetDeviceDefinitionByIdQueryResult> => {
+  const result = await apolloClient.query({
+    query: GET_DEVICE_DEFINITION_BY_ID,
+    variables: { id: deviceDefinitionId },
+  });
+  if (result.error) {
+    throw new Error(result.error.message);
+  }
+  return result.data;
+};
+
+const getPowertrainTypeFromDeviceDefinition = (deviceDefinition: DeviceDefinition) => {
+  const attribute = deviceDefinition.attributes?.find(
+    (it) => it.name === 'powertrain_type',
+  );
+  return attribute?.value;
+};
+
+export const getPowertrainTypeMatch = async (vehicle: any, powertrainTypes: string[]) => {
+  const queryResult = await fetchDeviceDefinition(vehicle.definition.id);
+  const powertrainType = getPowertrainTypeFromDeviceDefinition(
+    queryResult.deviceDefinition,
+  );
+  return !!(powertrainType && powertrainTypes.includes(powertrainType));
 };
 
 export const isValidClientId = async (

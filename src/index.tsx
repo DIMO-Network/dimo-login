@@ -8,19 +8,23 @@ import { DevCredentialsProvider } from './context/DevCredentialsContext';
 import { sendMessageToReferrer } from './utils/messageHandler';
 import { UIManagerProvider } from './context/UIManagerContext';
 import { GlobalOraclesProvider } from './context/OraclesContext';
+import { apolloClient } from './services/apollo';
+import { ApolloProvider } from '@apollo/client';
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(
   <React.StrictMode>
-    <UIManagerProvider>
-      <DevCredentialsProvider>
-        <AuthProvider>
-          <GlobalOraclesProvider>
-            <App />
-          </GlobalOraclesProvider>
-        </AuthProvider>
-      </DevCredentialsProvider>
-    </UIManagerProvider>
+    <ApolloProvider client={apolloClient}>
+      <UIManagerProvider>
+        <DevCredentialsProvider>
+          <AuthProvider>
+            <GlobalOraclesProvider>
+              <App />
+            </GlobalOraclesProvider>
+          </AuthProvider>
+        </DevCredentialsProvider>
+      </UIManagerProvider>
+    </ApolloProvider>
   </React.StrictMode>,
 );
 

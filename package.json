@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@apollo/client": "^3.13.6",
     "@dimo-network/transactions": "^0.1.77",
     "@heroicons/react": "^2.1.5",
     "@testing-library/jest-dom": "^5.17.0",
@@ -14,6 +15,7 @@
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.1",
     "buffer": "^6.0.3",
+    "graphql": "^16.10.0",
     "i18n-iso-countries": "^7.14.0",
     "jsonwebtoken": "^9.0.2",
     "react": "^18.3.1",

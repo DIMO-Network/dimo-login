@@ -1,44 +1,53 @@
-import { fetchVehiclesWithTransformation } from '../identityService';
+jest.mock('../identityService');
+
+import { fetchVehiclesWithTransformation } from '../vehicleService';
+import { fetchVehicles } from '../identityService';
 
 beforeEach(() => {
-  jest.spyOn(global, 'fetch').mockImplementation(
-    jest.fn(() =>
-      Promise.resolve({
-        json: () =>
-          Promise.resolve({
-            data: {
-              vehicles: {
-                pageInfo: {
-                  hasNextPage: false,
-                  hasPreviousPage: false,
-                  startCursor: '',
-                  endCursor: '',
-                },
-                nodes: [
-                  {
-                    tokenId: 1,
-                    definition: { make: 'Tesla', model: 'Model 3', year: 2019 },
-                    sacds: {
-                      nodes: [],
-                    },
-                  },
-                  {
-                    tokenId: 2,
-                    definition: { make: 'Ford', model: 'Bronco', year: 2023 },
-                    sacds: {
-                      nodes: [],
-                    },
-                  },
-                ],
+  (fetchVehicles as jest.Mock).mockImplementation(() => {
+    return Promise.resolve({
+      data: {
+        vehicles: {
+          pageInfo: {
+            hasNextPage: false,
+            hasPreviousPage: false,
+            startCursor: '',
+            endCursor: '',
+          },
+          nodes: [
+            {
+              tokenId: 1,
+              definition: {
+                id: 'tesla_model_3_2019',
+                make: 'Tesla',
+                model: 'Model 3',
+                year: 2019,
+              },
+              sacds: {
+                nodes: [],
               },
             },
-          }),
-      }),
-    ) as jest.Mock,
-  );
+            {
+              tokenId: 2,
+              definition: {
+                id: 'ford_bronco_2023',
+                make: 'Ford',
+                model: 'Bronco',
+                year: 2023,
+              },
+              sacds: {
+                nodes: [],
+              },
+            },
+          ],
+        },
+      },
+    });
+  });
 });
 
 afterEach(() => jest.restoreAllMocks());
+
 it('Returns all vehicles as compatible without filters', async () => {
   const data = await fetchVehiclesWithTransformation({
     ownerAddress: 'address',
@@ -47,6 +56,7 @@ it('Returns all vehicles as compatible without filters', async () => {
     direction: '',
     filters: {},
   });
+  expect(fetchVehicles).toHaveBeenCalled();
   expect(data.compatibleVehicles.length).toEqual(2);
   expect(data.incompatibleVehicles.length).toEqual(0);
 });
@@ -76,4 +86,3 @@ it('Only returns vehicles that match the make', async () => {
   expect(data.incompatibleVehicles.length).toEqual(1);
   expect(data.incompatibleVehicles[0].make).toEqual('Tesla');
 });
-export {};
