@@ -111,22 +111,24 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
     <Card
       width="w-full max-w-[600px]"
       height="h-fit"
-      className="flex flex-col gap-6 items-center"
+      className="flex flex-col items-center"
     >
-      <Header title="Add a passkey" />
-      <div className="flex flex-col gap-3 max-w-[440px]">
-        <div className="passkey-description">
-          <p className="text-sm">
-            DIMO uses passkeys to keep your account and data secure.
-          </p>
-        </div>
-        <div className="passkey-benefits">
-          {PASSKEY_BENEFITS.map(renderBenefit)}
-        </div>
-        <div className="actions">
-          <PrimaryButton onClick={handlePasskeyGeneration} width="w-full">
-            Add a passkey
-          </PrimaryButton>
+      <div className="flex flex-col gap-6 w-[440px]">
+        <Header title="Add a passkey" />
+        <div className="flex flex-col gap-3 w-full">
+          <div className="passkey-description">
+            <p className="text-sm">
+              DIMO uses passkeys to keep your account and data secure.
+            </p>
+          </div>
+          <div className="passkey-benefits">
+            {PASSKEY_BENEFITS.map(renderBenefit)}
+          </div>
+          <div className="actions">
+            <PrimaryButton onClick={handlePasskeyGeneration} width="w-full">
+              Add a passkey
+            </PrimaryButton>
+          </div>
         </div>
       </div>
     </Card>
