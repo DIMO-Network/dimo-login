@@ -185,83 +185,85 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     <Card
       width="w-full max-w-[600px]"
       height="h-fit"
-      className="flex flex-col gap-6"
+      className="flex flex-col items-center"
     >
-      <Header
-        title={getSignInTitle(devLicenseAlias, {
-          altTitle: Boolean(altTitle),
-        })}
-        subtitle={appUrl.hostname}
-        link={`${appUrl.protocol}//${appUrl.host}`}
-      />
-      {error && <ErrorMessage message={error} />}
-      <div className="flex justify-center items-center">
-        <label
-          htmlFor="share-email"
-          className="flex justify-center items-center text-sm mb-4 cursor-pointer"
-        >
-          <Checkbox
-            onChange={() => {
-              setEmailPermissionGranted(!emailPermissionGranted);
-            }}
-            name="share-email"
-            id="share-email"
-            className="mr-2"
-            checked={emailPermissionGranted}
-          />
-          I agree to share my email with {devLicenseAlias}
-        </label>
-      </div>
-      <div
-        onKeyDown={handleKeyDown} // Listen for key presses
-        className="frame9 flex flex-col items-center gap-[10px]"
-      >
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Enter your email"
-          className="p-2 border border-gray-300 rounded-md w-full lg:w-[440px]"
+      <div className="flex flex-col gap-6 w-[440px]">
+        <Header
+          title={getSignInTitle(devLicenseAlias, {
+            altTitle: Boolean(altTitle),
+          })}
+          subtitle={appUrl.hostname}
+          link={`${appUrl.protocol}//${appUrl.host}`}
         />
-        <PrimaryButton onClick={handleSubmit} width="w-full lg:w-[440px]">
-          Continue
-        </PrimaryButton>
-
-        {/* Flex wrap is only applied on smaller screens, ensuring buttons stay side by side when possible */}
-        <div className="flex flex-wrap sm:flex-nowrap justify-center gap-3 w-full">
-          <button
-            onClick={handleGoogleAuth}
-            className="flex items-center justify-center gap-2 w-full sm:max-w-[210px] h-[40px] rounded-full border border-gray-300 bg-white text-black text-sm hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400"
+        {error && <ErrorMessage message={error} />}
+        <div className="flex w-full justify-center items-center">
+          <label
+            htmlFor="share-email"
+            className="flex justify-center items-center text-sm mb-4 cursor-pointer"
           >
-            <GoogleIcon />
-            Sign in with Google
-          </button>
-
-          <button
-            onClick={handleAppleAuth}
-            className="flex items-center justify-center gap-2 w-full sm:max-w-[210px] h-[40px] rounded-full border border-gray-300 bg-white text-black text-sm hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400"
-          >
-            <AppleIcon />
-            Sign in with Apple
-          </button>
+            <Checkbox
+              onChange={() => {
+                setEmailPermissionGranted(!emailPermissionGranted);
+              }}
+              name="share-email"
+              id="share-email"
+              className="mr-2"
+              checked={emailPermissionGranted}
+            />
+            I agree to share my email with {devLicenseAlias}
+          </label>
         </div>
+        <div
+          onKeyDown={handleKeyDown} // Listen for key presses
+          className="frame9 flex flex-col items-center gap-[10px] w-full"
+        >
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Enter your email"
+            className="p-2 border border-gray-300 rounded-md w-full"
+          />
+          <PrimaryButton onClick={handleSubmit} width="w-full">
+            Continue
+          </PrimaryButton>
 
-        <p className="flex flex-wrap justify-center text-center text-xs text-gray-500">
-          By continuing you agree to our&nbsp;
-          <a
-            href="https://dimo.org/legal/privacy-policy"
-            className="underline whitespace-nowrap"
-          >
-            Privacy Policy
-          </a>
-          &nbsp;and&nbsp;
-          <a
-            href="https://dimo.org/legal/terms-of-use"
-            className="underline whitespace-nowrap"
-          >
-            Terms of Service
-          </a>
-        </p>
+          {/* Flex wrap is only applied on smaller screens, ensuring buttons stay side by side when possible */}
+          <div className="flex flex-wrap sm:flex-nowrap justify-between gap-3 w-full">
+            <button
+              onClick={handleGoogleAuth}
+              className="flex items-center justify-center gap-2 w-full sm:max-w-[210px] h-[40px] rounded-full border border-gray-300 bg-white text-black text-sm hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400"
+            >
+              <GoogleIcon />
+              Sign in with Google
+            </button>
+
+            <button
+              onClick={handleAppleAuth}
+              className="flex items-center justify-center gap-2 w-full sm:max-w-[210px] h-[40px] rounded-full border border-gray-300 bg-white text-black text-sm hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400"
+            >
+              <AppleIcon />
+              Sign in with Apple
+            </button>
+          </div>
+
+          <p className="flex flex-wrap justify-center text-center text-xs text-gray-500">
+            By continuing you agree to our&nbsp;
+            <a
+              href="https://dimo.org/legal/privacy-policy"
+              className="underline whitespace-nowrap"
+            >
+              Privacy Policy
+            </a>
+            &nbsp;and&nbsp;
+            <a
+              href="https://dimo.org/legal/terms-of-use"
+              className="underline whitespace-nowrap"
+            >
+              Terms of Service
+            </a>
+          </p>
+        </div>
       </div>
     </Card>
   );
