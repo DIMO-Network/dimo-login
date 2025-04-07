@@ -19,7 +19,6 @@ type IFetchVehicleParams = {
 };
 
 export const fetchVehicles = async (params: IFetchVehicleParams) => {
-  console.log('actual fetchVehicles called');
   const { ownerAddress, direction, cursor } = params;
   const query = `
   {
