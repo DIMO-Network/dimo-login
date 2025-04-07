@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { XMarkIcon } from "@heroicons/react/16/solid";
+import { XCircleIcon } from "@heroicons/react/16/solid";
 
 interface AutoCompleteInputProps {
   options: string[];
@@ -85,7 +85,7 @@ export const AutoCompleteInput: React.FC<AutoCompleteInputProps> = ({
             className="absolute inset-y-0 right-0 flex items-center pr-2 mt-1"
             onClick={() => onChange("")}
           >
-            <XMarkIcon className="size-4 text-gray-500" />
+            <XCircleIcon className="size-4 text-[#080808]" />
           </button>
         )}
       </div>
