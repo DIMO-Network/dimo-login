@@ -229,22 +229,17 @@ const VehicleManager: React.FC = () => {
           {error && <ErrorMessage message={error} />}
 
           <>
-            <div className="description w-fit w-full mt-2 text-sm mb-4 overflow-y-auto max-h-[356px]">
+            <div className="description w-fit w-full mt-2 text-sm overflow-y-auto">
               {permissionTemplate?.data.description
                 ? renderDescription(permissionTemplate?.data.description)
                 : "The developer is requesting access to view your vehicle data. Select the vehicles you’d like to share access to."}
             </div>
-            <div className="w-full w-full">
+            <div className="w-full">
               <button
-                className="bg-white w-[145px] text-[#09090B] font-medium border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500 flex items-center justify-between"
+                className="bg-white w-[145px] text-[#09090B] font-medium text-sm text-left underline decoration-[#D4D4D8]"
                 onClick={() => setIsExpanded(!isExpanded)}
               >
-                <span>{isExpanded ? "Show less" : "Show more"}</span>
-                {isExpanded ? (
-                  <ChevronUpIcon className="h-4 w-4 ml-2" />
-                ) : (
-                  <ChevronDownIcon className="h-4 w-4 ml-2" />
-                )}
+                {isExpanded ? "Show less" : "Show more"}
               </button>
             </div>
           </>
