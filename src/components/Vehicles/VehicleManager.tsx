@@ -9,7 +9,7 @@ import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/solid";
 import ErrorMessage from "../Shared/ErrorMessage";
 import { sendMessageToReferrer } from "../../utils/messageHandler";
 import { isStandalone } from "../../utils/isStandalone";
-import { UiStates, useUIManager } from "../../context/UIManagerContext";
+import { useUIManager } from "../../context/UIManagerContext";
 import { SACDTemplate } from "@dimo-network/transactions/dist/core/types/dimo";
 import {
   getDefaultExpirationDate,
@@ -21,8 +21,8 @@ import { getAppUrl, getParamFromUrlOrState } from "../../utils/urlHelpers";
 import { useOracles } from "../../context/OraclesContext";
 
 const VehicleManager: React.FC = () => {
-  const { user, jwt } = useAuthContext();
-  const { clientId, redirectUri, devLicenseAlias } = useDevCredentials();
+  const { user } = useAuthContext();
+  const { clientId, devLicenseAlias } = useDevCredentials();
   const { setOnboardingEnabled } = useOracles();
   const { setComponentData, error, setError } = useUIManager();
 
