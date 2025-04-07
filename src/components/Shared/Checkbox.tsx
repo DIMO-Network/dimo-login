@@ -9,6 +9,7 @@ interface CheckboxProps {
   height?: string;
   width?: string;
   checked?: boolean;
+  disabled?: boolean;
 }
 
 export const Checkbox: FC<CheckboxProps> = forwardRef<HTMLInputElement, CheckboxProps>(
