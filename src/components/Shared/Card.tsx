@@ -12,7 +12,7 @@ export const Card: React.FC<CardProps> = ({
   children,
 }) => (
   <div
-    className={`${width} ${height} pt-6 px-8 lg:px-4 pb-10 rounded-2xl bg-white ${className}`}
+    className={`${width} ${height} py-10 px-8 lg:px-4 rounded-2xl bg-white ${className}`}
   >
     {children}
   </div>
