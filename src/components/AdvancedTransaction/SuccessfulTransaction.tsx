@@ -12,7 +12,10 @@ import { useAuthContext } from "../../context/AuthContext";
 
 const SuccessfulTransaction: React.FC = () => {
   const { redirectUri, utm, devLicenseAlias } = useDevCredentials();
-  const { componentData } = useUIManager();
+  // const { componentData } = useUIManager();
+  const componentData = {
+    transactionHash: "0x123456789abcdef",
+  };
   const { jwt } = useAuthContext();
 
   if (!componentData.transactionHash) {
@@ -47,20 +50,26 @@ const SuccessfulTransaction: React.FC = () => {
   };
 
   return (
-    <Card width="w-full max-w-[600px]" height="h-full max-h-[308px]">
-      <Header title="Successful Transaction!" subtitle={""} />
-      <div className="space-y-4">
-        {!isEmbed() && (
+    <Card
+      width="w-full max-w-[600px]"
+      height="h-fit"
+      className="flex flex-col items-center"
+    >
+      <div className="flex flex-col gap-6 w-[440px]">
+        <Header title="Successful Transaction!" subtitle={""} />
+        <div className="space-y-4 w-full">
+          {!isEmbed() && (
+            <div className="flex justify-center">
+              <PrimaryButton onClick={handleBackToThirdParty} width="w-64">
+                Back to {devLicenseAlias}
+              </PrimaryButton>
+            </div>
+          )}
           <div className="flex justify-center">
-            <PrimaryButton onClick={handleBackToThirdParty} width="w-64">
-              Back to {devLicenseAlias}
+            <PrimaryButton onClick={handleView} width="w-32">
+              View Transaction
             </PrimaryButton>
           </div>
-        )}
-        <div className="flex justify-center">
-          <PrimaryButton onClick={handleView} width="w-32">
-            View Transaction
-          </PrimaryButton>
         </div>
       </div>
     </Card>
