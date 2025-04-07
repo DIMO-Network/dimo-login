@@ -12,16 +12,21 @@ import { formatDate } from '../utils/dateUtils';
 const GRAPHQL_ENDPOINT =
   process.env.REACT_APP_DIMO_IDENTITY_URL || 'https://identity-api.dev.dimo.zone/query';
 
-// Function to fetch vehicles and transform data
-//TODO: Convert to Object Params
-export const fetchVehiclesWithTransformation = async (
-  ownerAddress: string,
-  targetGrantee: string,
-  cursor: string,
-  direction: string,
-  vehicleTokenIds?: string[], // Array of tokenIds to filter by
-  vehicleMakes?: string[],
-): Promise<VehicleResponse> => {
+type IFetchVehicleParams = {
+  ownerAddress: string;
+  targetGrantee: string;
+  cursor: string;
+  direction: string;
+  filters?: {
+    vehicleTokenIds?: string[];
+    vehicleMakes?: string[];
+  };
+};
+
+const fetchVehicles = async (
+  params: Pick<IFetchVehicleParams, 'ownerAddress' | 'cursor' | 'direction'>,
+) => {
+  const { ownerAddress, direction, cursor } = params;
   const query = `
   {
     vehicles(filterBy: { owner: "${ownerAddress}" }, ${
@@ -61,25 +66,33 @@ export const fetchVehiclesWithTransformation = async (
     },
     body: JSON.stringify({ query }),
   });
+  return await response.json();
+};
 
-  const data = await response.json();
-
+export const fetchVehiclesWithTransformation = async (
+  params: IFetchVehicleParams,
+): Promise<VehicleResponse> => {
+  const {
+    ownerAddress,
+    targetGrantee,
+    cursor,
+    direction,
+    filters: { vehicleTokenIds, vehicleMakes } = {},
+  } = params;
+  const data = await fetchVehicles({ ownerAddress, cursor, direction });
   const compatibleVehicles: Vehicle[] = [];
   const incompatibleVehicles: Vehicle[] = [];
 
-  // Process vehicles
   data.data.vehicles.nodes.forEach((vehicle: any) => {
-    const tokenIdMatch =
-      !vehicleTokenIds ||
-      vehicleTokenIds.length === 0 ||
-      vehicleTokenIds.includes(vehicle.tokenId.toString());
+    const tokenIdMatch = vehicleTokenIds?.length
+      ? vehicleTokenIds.includes(vehicle.tokenId.toString())
+      : true;
 
-    const makeMatch =
-      !vehicleMakes ||
-      vehicleMakes.length === 0 ||
-      vehicleMakes.some(
-        (make) => make.toUpperCase() === vehicle.definition.make.toUpperCase(),
-      );
+    const makeMatch = vehicleMakes?.length
+      ? vehicleMakes.some(
+          (make) => make.toUpperCase() === vehicle.definition.make.toUpperCase(),
+        )
+      : true;
 
     const sacdForGrantee = vehicle.sacds.nodes.find(
       (sacd: any) => sacd.grantee === targetGrantee,
@@ -88,7 +101,7 @@ export const fetchVehiclesWithTransformation = async (
     const transformedVehicle = {
       tokenId: vehicle.tokenId,
       imageURI: vehicle.imageURI,
-      shared: Boolean(sacdForGrantee), // True if a matching sacd exists
+      shared: Boolean(sacdForGrantee),
       expiresAt: sacdForGrantee ? formatDate(sacdForGrantee.expiresAt) : '',
       make: vehicle.definition.make,
       model: vehicle.definition.model,
@@ -103,8 +116,6 @@ export const fetchVehiclesWithTransformation = async (
     }
   });
 
-  // Transform the data
-  //TODO: Add strict types
   return {
     hasNextPage: data.data.vehicles.pageInfo.hasNextPage,
     hasPreviousPage: data.data.vehicles.pageInfo.hasPreviousPage,

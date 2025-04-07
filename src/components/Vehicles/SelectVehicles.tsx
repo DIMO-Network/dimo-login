@@ -42,18 +42,13 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
   const { clientId, redirectUri, utm, devLicenseAlias } = useDevCredentials();
   const { setUiState, setComponentData, setLoadingState, componentData, setError } =
     useUIManager();
-
   const [vehiclesLoading, setVehiclesLoading] = useState(true);
-
-  //Data from API's
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [incompatibleVehicles, setIncompatibleVehicles] = useState<Vehicle[]>([]);
   const [hasNextPage, setHasNextPage] = useState(false);
   const [endCursor, setEndCursor] = useState('');
   const [hasPreviousPage, setHasPreviousPage] = useState(false);
   const [startCursor, setStartCursor] = useState('');
-
-  //Data from Developer
   const [selectedVehicles, setSelectedVehicles] = useState<Vehicle[]>([]); // Array for multiple selected vehicles)
 
   const hasFetched = useRef(false);
@@ -62,14 +57,16 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
     try {
       const cursor = direction === 'next' ? endCursor : startCursor;
 
-      const transformedVehicles = await fetchVehiclesWithTransformation(
-        user.smartContractAddress,
-        clientId,
+      const transformedVehicles = await fetchVehiclesWithTransformation({
+        ownerAddress: user.smartContractAddress,
+        targetGrantee: clientId,
         cursor,
         direction,
-        vehicleTokenIds,
-        vehicleMakes,
-      );
+        filters: {
+          vehicleTokenIds,
+          vehicleMakes,
+        },
+      });
 
       setVehiclesLoading(false);
       setVehicles(transformedVehicles.compatibleVehicles);
