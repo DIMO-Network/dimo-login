@@ -52,7 +52,6 @@ const VehicleManager: React.FC = () => {
     );
     const vehicles = getParamFromUrlOrState('vehicles', urlParams, decodedState);
     const vehicleMakes = getParamFromUrlOrState('vehicleMakes', urlParams, decodedState);
-
     const onboarding = getParamFromUrlOrState('onboarding', urlParams, decodedState);
 
     if (permissionTemplateId) {
@@ -88,8 +87,6 @@ const VehicleManager: React.FC = () => {
         expirationDate: expirationDateFromMessage,
         onboarding,
       } = event.data;
-
-      console.log(event.data);
 
       if (eventType === 'SHARE_VEHICLES_DATA') {
         if (permissionTemplateIdFromMessage)
