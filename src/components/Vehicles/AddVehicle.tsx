@@ -10,6 +10,7 @@ import { UiStates, useUIManager } from "../../context/UIManagerContext";
 import { supportedMakeModels } from "../../utils/tablelandUtils";
 import { AutoCompleteInput } from "../Shared/AutoCompleteInput";
 import { Select } from "../Shared/Select";
+import { Input } from "../Shared/Input";
 
 // Register English country names
 countries.registerLocale(enLocale);
@@ -118,11 +119,11 @@ export const AddVehicle: FC = () => {
           {tab == 1 && (
             <div className="mt-4">
               <label className="block text-sm text-[#000000]">VIN Number</label>
-              <input
+              <Input
                 type="text"
-                className="w-full mt-1 p-2 border rounded-md text-[#080808] focus:border-[#080808] focus:ring-[#080808] focus:outline-none"
                 placeholder="1N6AD0EVXCC459517"
-                onChange={(e) => setVinNumber(e.target.value)}
+                onChange={(vinNumber) => setVinNumber(vinNumber)}
+                value={vinNumber}
               />
 
               {/* Country of Location */}
