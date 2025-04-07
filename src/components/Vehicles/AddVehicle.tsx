@@ -62,7 +62,7 @@ export const AddVehicle: FC = () => {
           link={`${appUrl.protocol}//${appUrl.host}`}
         />
 
-        <div className="w-full max-w-md mx-auto p-4 bg-white rounded-full">
+        <div className="w-full max-w-md mx-auto bg-white rounded-full">
           {/* Toggle Buttons */}
           <div className="flex w-full border border-[#D4D4D8] rounded-full bg-black">
             <button
@@ -94,7 +94,7 @@ export const AddVehicle: FC = () => {
               {/* Model Year */}
               <label className="block mt-4 text-sm">Model year</label>
               <select
-                className="w-full mt-1 p-2 border rounded-md bg-gray-100 text-gray-900"
+                className="w-full mt-1 p-2 border rounded-md bg-white text-gray-900"
                 value={modelYear}
                 onChange={(e: any) => setModelYear(e.target.value)}
               >
