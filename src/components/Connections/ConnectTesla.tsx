@@ -260,135 +260,136 @@ export const ConnectTesla: FC = () => {
   return (
     <Card
       width="w-full max-w-[600px]"
-      height="h-fit max-h-[770px]"
-      className="flex flex-col gap-6 items-center text-center px-6"
+      height="h-fit"
+      className="flex flex-col items-center"
     >
-      {/* Header */}
-      <Header
-        title={
-          step === "permissions"
-            ? "Authorize your Tesla account"
-            : step === "virtual-key"
-            ? "Add Virtual Key"
-            : step === "polling-virtual-key"
-            ? "Waiting for Virtual Key"
-            : "Setup Complete"
-        }
-        subtitle={appUrl.hostname}
-        link={`${appUrl.protocol}//${appUrl.host}`}
-      />
+      <div className="flex flex-col gap-6 w-[440px]">
+        <Header
+          title={
+            step === "permissions"
+              ? "Authorize your Tesla account"
+              : step === "virtual-key"
+              ? "Add Virtual Key"
+              : step === "polling-virtual-key"
+              ? "Waiting for Virtual Key"
+              : "Setup Complete"
+          }
+          subtitle={appUrl.hostname}
+          link={`${appUrl.protocol}//${appUrl.host}`}
+        />
 
-      {/* Render different components based on the step */}
-      {(() => {
-        switch (step) {
-          case "permissions":
-            return (
-              <>
-                {/* Permissions Text */}
-                <div className="max-w-[480px] text-gray-600 text-sm text-center">
-                  {devLicenseAlias} requires access to your car’s data to offer
-                  you charging incentives.
-                </div>
+        {/* Render different components based on the step */}
+        {(() => {
+          switch (step) {
+            case "permissions":
+              return (
+                <>
+                  {/* Permissions Text */}
+                  <div className="w-full text-gray-600 text-sm text-center">
+                    {devLicenseAlias} requires access to your car’s data to
+                    offer you charging incentives.
+                  </div>
 
-                {/* Permissions List */}
-                <div className="flex flex-col gap-[10px] w-[80%]">
-                  {[
-                    { name: "Vehicle information", type: "required" },
-                    { name: "Vehicle location", type: "required" },
-                    { name: "Profile", type: "recommended" },
-                    { name: "Vehicle commands", type: "recommended" },
-                    {
-                      name: "Vehicle charging management",
-                      type: "recommended",
-                    },
-                  ].map((permission) => (
-                    <div
-                      key={permission.name}
-                      className="flex justify-between items-center p-4 border border-gray-200 rounded-2xl w-full"
-                    >
-                      <span className="text-black font-normal">
-                        {permission.name}
-                      </span>
-                      <span
-                        className={`px-3 py-1 text-sm font-normal rounded-full ${
-                          permission.type === "required"
-                            ? "bg-[#E80303] text-white"
-                            : "bg-[#E4E4E7] text-[#3F3F46]"
-                        }`}
+                  {/* Permissions List */}
+                  <div className="flex flex-col gap-[10px] w-full">
+                    {[
+                      { name: "Vehicle information", type: "required" },
+                      { name: "Vehicle location", type: "required" },
+                      { name: "Profile", type: "recommended" },
+                      { name: "Vehicle commands", type: "recommended" },
+                      {
+                        name: "Vehicle charging management",
+                        type: "recommended",
+                      },
+                    ].map((permission) => (
+                      <div
+                        key={permission.name}
+                        className="flex justify-between items-center p-4 border border-gray-200 rounded-2xl w-full"
                       >
-                        {permission.type === "required"
-                          ? "Required"
-                          : "Recommended"}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            );
+                        <span className="text-black font-normal">
+                          {permission.name}
+                        </span>
+                        <span
+                          className={`px-3 py-1 text-sm font-normal rounded-full ${
+                            permission.type === "required"
+                              ? "bg-[#E80303] text-white"
+                              : "bg-[#E4E4E7] text-[#3F3F46]"
+                          }`}
+                        >
+                          {permission.type === "required"
+                            ? "Required"
+                            : "Recommended"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              );
 
-          case "virtual-key":
-            return (
-              <>
-                {/* Virtual Key Step */}
+            case "virtual-key":
+              return (
+                <>
+                  {/* Virtual Key Step */}
 
-                <div className="max-w-[480px] text-gray-600 text-sm text-center">
-                  {devLicenseAlias} requires access to your car’s data to offer
-                  you charging incentives.
-                </div>
+                  <div className="w-full text-gray-600 text-sm text-center">
+                    {devLicenseAlias} requires access to your car’s data to
+                    offer you charging incentives.
+                  </div>
 
-                <div className="max-w-[480px] text-gray-600 text-sm text-center mt-2">
-                  The virtual key provides end-to-end encryption, enables more
-                  frequent data updates, and allows for remote commands from
-                  your phone.
-                </div>
+                  <div className="w-full text-gray-600 text-sm text-center mt-2">
+                    The virtual key provides end-to-end encryption, enables more
+                    frequent data updates, and allows for remote commands from
+                    your phone.
+                  </div>
 
-                <div className="max-w-[480px] text-gray-600 text-sm text-center mt-2">
-                  This can be removed at any time in your Tesla app.{" "}
-                  <a
-                    href="https://www.tesla.com/support"
-                    className="text-black font-medium underline"
-                  >
-                    Learn more.
-                  </a>
-                </div>
-              </>
-            );
+                  <div className="w-full text-gray-600 text-sm text-center mt-2">
+                    This can be removed at any time in your Tesla app.{" "}
+                    <a
+                      href="https://www.tesla.com/support"
+                      className="text-black font-medium underline"
+                    >
+                      Learn more.
+                    </a>
+                  </div>
+                </>
+              );
 
-          case "polling-virtual-key":
-            return (
-              <>
-                {/* Virtual Key Step */}
-                <Loader />
-              </>
-            );
+            case "polling-virtual-key":
+              return (
+                <>
+                  {/* Virtual Key Step */}
+                  <Loader />
+                </>
+              );
 
-          case "minting":
-            return (
-              <>
-                <div className="max-w-[480px] text-gray-600 text-sm text-center">
-                  Your Tesla is now connected! You can now access vehicle data
-                  and commands via {devLicenseAlias}.
-                </div>
-                <p className="text-lg font-medium text-black">All set! 🚀</p>
-              </>
-            );
+            case "minting":
+              return (
+                <>
+                  <div className="w-full text-gray-600 text-sm text-center">
+                    Your Tesla is now connected! You can now access vehicle data
+                    and commands via {devLicenseAlias}.
+                  </div>
+                  <p className="text-lg font-medium text-black">All set! 🚀</p>
+                </>
+              );
 
-          default:
-            return null;
-        }
-      })()}
+            default:
+              return null;
+          }
+        })()}
 
-      {/* Buttons */}
-      <div className="flex flex-col w-full max-w-[480px] px-4 space-y-3">
-        <PrimaryButton onClick={handleNextStep} width="w-full py-3">
-          {step === "permissions"
-            ? "Continue"
-            : step === "virtual-key"
-            ? "Setup Virtual Key"
-            : step === "polling-virtual-key"
-            ? "I've added my Virtual Key!"
-            : "Done"}
-        </PrimaryButton>
+        {/* Buttons */}
+        <div className="flex flex-col w-full space-y-3">
+          <PrimaryButton onClick={handleNextStep} width="w-full py-3">
+            {step === "permissions"
+              ? "Continue"
+              : step === "virtual-key"
+              ? "Setup Virtual Key"
+              : step === "polling-virtual-key"
+              ? "I've added my Virtual Key!"
+              : "Done"}
+          </PrimaryButton>
+        </div>
       </div>
     </Card>
   );
