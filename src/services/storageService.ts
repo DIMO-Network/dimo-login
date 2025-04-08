@@ -6,8 +6,14 @@ import { UserObject } from '../models/user';
 export const storeJWTInCookies = (clientId: string, jwt: string): void => {
   const expirationDate = new Date();
   expirationDate.setFullYear(expirationDate.getFullYear() + 10); // Set expiration to 10 years in the future
+  let cookieString = `auth_token_${clientId}=${jwt}; expires=${expirationDate.toUTCString()}; path=/`;
 
-  document.cookie = `auth_token_${clientId}=${jwt}; expires=${expirationDate.toUTCString()}; path=/; SameSite=None; Secure`;
+  // Only add Secure and SameSite=None if not on localhost
+  if (window.location.hostname !== 'localhost') {
+    cookieString += '; SameSite=None; Secure';
+  }
+
+  document.cookie = cookieString;
 };
 
 // Utility function to store user properties in localStorage for a given clientId

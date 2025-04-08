@@ -27,7 +27,7 @@ const VehicleManager: React.FC = () => {
   const [permissionTemplateId, setPermissionTemplateId] = useState<string | undefined>();
   const [vehicleTokenIds, setVehicleTokenIds] = useState<string[] | undefined>();
   const [vehicleMakes, setVehicleMakes] = useState<string[] | undefined>();
-
+  const [powertrainTypes, setPowertrainTypes] = useState<string[]>();
   const [permissionTemplate, setPermissionTemplate] = useState<SACDTemplate | null>(null);
 
   const [isExpanded, setIsExpanded] = useState<boolean | undefined>(false);
@@ -52,8 +52,12 @@ const VehicleManager: React.FC = () => {
     );
     const vehicles = getParamFromUrlOrState('vehicles', urlParams, decodedState);
     const vehicleMakes = getParamFromUrlOrState('vehicleMakes', urlParams, decodedState);
-
     const onboarding = getParamFromUrlOrState('onboarding', urlParams, decodedState);
+    const powertrainTypesFromUrl = getParamFromUrlOrState(
+      'powertrainTypes',
+      urlParams,
+      decodedState,
+    );
 
     if (permissionTemplateId) {
       setPermissionTemplateId(permissionTemplateId as string);
@@ -69,6 +73,14 @@ const VehicleManager: React.FC = () => {
 
     if (expirationDate) {
       setExpirationDate(parseExpirationDate(expirationDate as string));
+    }
+
+    if (powertrainTypesFromUrl) {
+      setPowertrainTypes(
+        Array.isArray(powertrainTypesFromUrl)
+          ? powertrainTypesFromUrl
+          : [powertrainTypesFromUrl],
+      );
     }
 
     if (onboarding && onboarding.length > 0) {
@@ -87,9 +99,8 @@ const VehicleManager: React.FC = () => {
         vehicleMakes: vehicleMakesFromMessage,
         expirationDate: expirationDateFromMessage,
         onboarding,
+        powertrainTypes: powertrainTypesFromMessage,
       } = event.data;
-
-      console.log(event.data);
 
       if (eventType === 'SHARE_VEHICLES_DATA') {
         if (permissionTemplateIdFromMessage)
@@ -98,6 +109,9 @@ const VehicleManager: React.FC = () => {
         if (vehicleMakesFromMessage) setVehicleMakes(vehicleMakesFromMessage);
         if (expirationDateFromMessage)
           setExpirationDate(parseExpirationDate(expirationDateFromMessage));
+        if (powertrainTypesFromMessage) {
+          setPowertrainTypes(powertrainTypesFromMessage);
+        }
         if (onboarding && onboarding.length > 0) setOnboardingEnabled(true);
       }
     };
@@ -224,6 +238,7 @@ const VehicleManager: React.FC = () => {
             vehicleMakes={vehicleMakes}
             permissionTemplateId={permissionTemplateId}
             expirationDate={expirationDate}
+            powertrainTypes={powertrainTypes}
           />
         )}
       </div>
