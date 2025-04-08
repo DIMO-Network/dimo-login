@@ -30,6 +30,7 @@ interface SelectVehiclesProps {
   permissionTemplateId: string; // Adjust the type if necessary
   vehicleMakes: string[] | undefined; // Adjust the type if necessary
   expirationDate: BigInt;
+  powertrainTypes?: string[];
 }
 
 const SelectVehicles: React.FC<SelectVehiclesProps> = ({
@@ -37,6 +38,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
   permissionTemplateId,
   vehicleMakes,
   expirationDate,
+  powertrainTypes,
 }) => {
   const { user, jwt } = useAuthContext();
   const { clientId, redirectUri, utm, devLicenseAlias } = useDevCredentials();
@@ -65,6 +67,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
         filters: {
           vehicleTokenIds,
           vehicleMakes,
+          powertrainTypes,
         },
       });
 

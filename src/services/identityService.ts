@@ -81,6 +81,7 @@ type DeviceDefinition = {
   attributes?: { name: string; value: string }[] | null;
 };
 
+// TODO - ensure that this only gets called once per device definition ID
 export const fetchDeviceDefinition = async (
   deviceDefinitionId: string,
 ): Promise<GetDeviceDefinitionByIdQueryResult> => {
@@ -101,12 +102,18 @@ const getPowertrainTypeFromDeviceDefinition = (deviceDefinition: DeviceDefinitio
   return attribute?.value;
 };
 
+const normalize = (value?: string) => value?.toUpperCase();
+
 export const getPowertrainTypeMatch = async (vehicle: any, powertrainTypes: string[]) => {
+  const normalizedPowertrainTypes = powertrainTypes.map(normalize);
   const queryResult = await fetchDeviceDefinition(vehicle.definition.id);
-  const powertrainType = getPowertrainTypeFromDeviceDefinition(
-    queryResult.deviceDefinition,
+  const normalizedPowertrainType = normalize(
+    getPowertrainTypeFromDeviceDefinition(queryResult.deviceDefinition),
   );
-  return !!(powertrainType && powertrainTypes.includes(powertrainType));
+  return !!(
+    normalizedPowertrainType &&
+    normalizedPowertrainTypes.includes(normalizedPowertrainType)
+  );
 };
 
 export const isValidClientId = async (
