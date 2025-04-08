@@ -99,6 +99,7 @@ const VehicleManager: React.FC = () => {
         vehicleMakes: vehicleMakesFromMessage,
         expirationDate: expirationDateFromMessage,
         onboarding,
+        powertrainTypes: powertrainTypesFromMessage,
       } = event.data;
 
       if (eventType === 'SHARE_VEHICLES_DATA') {
@@ -108,6 +109,9 @@ const VehicleManager: React.FC = () => {
         if (vehicleMakesFromMessage) setVehicleMakes(vehicleMakesFromMessage);
         if (expirationDateFromMessage)
           setExpirationDate(parseExpirationDate(expirationDateFromMessage));
+        if (powertrainTypesFromMessage) {
+          setPowertrainTypes(powertrainTypesFromMessage);
+        }
         if (onboarding && onboarding.length > 0) setOnboardingEnabled(true);
       }
     };
