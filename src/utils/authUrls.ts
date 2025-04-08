@@ -14,6 +14,7 @@ interface AuthUrlParams {
   vehicles?: string[];
   permissionTemplateId?: string | null;
   expirationDate?: string | null;
+  powertrainTypes?: string[];
   vehicleToAdd?: {
     make: string;
     model: string;

@@ -107,6 +107,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       utm: urlParams.getAll('utm'),
       vehicleMakes: urlParams.getAll('vehicleMakes'),
       vehicles: urlParams.getAll('vehicles'),
+      powertrainTypes: urlParams.getAll('powertrainTypes'),
       onboarding: onboardingEnabled ? ['tesla'] : [], //TODO: Should have full onboarding array here
       altTitle,
     });
