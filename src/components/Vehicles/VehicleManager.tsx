@@ -1,78 +1,62 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
 
-import { useAuthContext } from "../../context/AuthContext";
-import { useDevCredentials } from "../../context/DevCredentialsContext";
-import { fetchPermissionsFromId } from "../../services/permissionsService";
-import Card from "../Shared/Card";
-import Header from "../Shared/Header";
-import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/solid";
-import ErrorMessage from "../Shared/ErrorMessage";
-import { sendMessageToReferrer } from "../../utils/messageHandler";
-import { isStandalone } from "../../utils/isStandalone";
-import { UiStates, useUIManager } from "../../context/UIManagerContext";
-import { SACDTemplate } from "@dimo-network/transactions/dist/core/types/dimo";
-import {
-  getDefaultExpirationDate,
-  parseExpirationDate,
-} from "../../utils/dateUtils";
-import { FetchPermissionsParams } from "../../models/permissions";
-import SelectVehicles from "./SelectVehicles";
-import { getAppUrl, getParamFromUrlOrState } from "../../utils/urlHelpers";
-import { useOracles } from "../../context/OraclesContext";
+import { useAuthContext } from '../../context/AuthContext';
+import { useDevCredentials } from '../../context/DevCredentialsContext';
+import { fetchPermissionsFromId } from '../../services/permissionsService';
+import Card from '../Shared/Card';
+import Header from '../Shared/Header';
+import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/solid';
+import ErrorMessage from '../Shared/ErrorMessage';
+import { sendMessageToReferrer } from '../../utils/messageHandler';
+import { isStandalone } from '../../utils/isStandalone';
+import { useUIManager } from '../../context/UIManagerContext';
+import { SACDTemplate } from '@dimo-network/transactions/dist/core/types/dimo';
+import { getDefaultExpirationDate, parseExpirationDate } from '../../utils/dateUtils';
+import { FetchPermissionsParams } from '../../models/permissions';
+import SelectVehicles from './SelectVehicles';
+import { getAppUrl, getParamFromUrlOrState } from '../../utils/urlHelpers';
+import { useOracles } from '../../context/OraclesContext';
 
 const VehicleManager: React.FC = () => {
-  const { user, jwt } = useAuthContext();
-  const { clientId, redirectUri, devLicenseAlias } = useDevCredentials();
+  const { user } = useAuthContext();
+  const { clientId, devLicenseAlias } = useDevCredentials();
   const { setOnboardingEnabled } = useOracles();
   const { setComponentData, error, setError } = useUIManager();
 
   //Data from SDK
-  const [permissionTemplateId, setPermissionTemplateId] = useState<
-    string | undefined
-  >();
-  const [vehicleTokenIds, setVehicleTokenIds] = useState<
-    string[] | undefined
-  >();
+  const [permissionTemplateId, setPermissionTemplateId] = useState<string | undefined>();
+  const [vehicleTokenIds, setVehicleTokenIds] = useState<string[] | undefined>();
   const [vehicleMakes, setVehicleMakes] = useState<string[] | undefined>();
-
-  const [permissionTemplate, setPermissionTemplate] =
-    useState<SACDTemplate | null>(null);
+  const [powertrainTypes, setPowertrainTypes] = useState<string[]>();
+  const [permissionTemplate, setPermissionTemplate] = useState<SACDTemplate | null>(null);
 
   const [isExpanded, setIsExpanded] = useState<boolean | undefined>(false);
   const [expirationDate, setExpirationDate] = useState<BigInt>(
-    getDefaultExpirationDate()
+    getDefaultExpirationDate(),
   );
 
   const handleStandaloneMode = () => {
     const urlParams = new URLSearchParams(window.location.search);
-    const state = urlParams.get("state");
+    const state = urlParams.get('state');
     const decodedState = state ? JSON.parse(decodeURIComponent(state)) : {};
 
     const permissionTemplateId = getParamFromUrlOrState(
-      "permissionTemplateId",
+      'permissionTemplateId',
       urlParams,
-      decodedState
+      decodedState,
     );
     const expirationDate = getParamFromUrlOrState(
-      "expirationDate",
+      'expirationDate',
       urlParams,
-      decodedState
+      decodedState,
     );
-    const vehicles = getParamFromUrlOrState(
-      "vehicles",
+    const vehicles = getParamFromUrlOrState('vehicles', urlParams, decodedState);
+    const vehicleMakes = getParamFromUrlOrState('vehicleMakes', urlParams, decodedState);
+    const onboarding = getParamFromUrlOrState('onboarding', urlParams, decodedState);
+    const powertrainTypesFromUrl = getParamFromUrlOrState(
+      'powertrainTypes',
       urlParams,
-      decodedState
-    );
-    const vehicleMakes = getParamFromUrlOrState(
-      "vehicleMakes",
-      urlParams,
-      decodedState
-    );
-
-    const onboarding = getParamFromUrlOrState(
-      "onboarding",
-      urlParams,
-      decodedState
+      decodedState,
     );
 
     if (permissionTemplateId) {
@@ -84,13 +68,19 @@ const VehicleManager: React.FC = () => {
     }
 
     if (vehicleMakes) {
-      setVehicleMakes(
-        Array.isArray(vehicleMakes) ? vehicleMakes : [vehicleMakes]
-      );
+      setVehicleMakes(Array.isArray(vehicleMakes) ? vehicleMakes : [vehicleMakes]);
     }
 
     if (expirationDate) {
       setExpirationDate(parseExpirationDate(expirationDate as string));
+    }
+
+    if (powertrainTypesFromUrl) {
+      setPowertrainTypes(
+        Array.isArray(powertrainTypesFromUrl)
+          ? powertrainTypesFromUrl
+          : [powertrainTypesFromUrl],
+      );
     }
 
     if (onboarding && onboarding.length > 0) {
@@ -99,7 +89,7 @@ const VehicleManager: React.FC = () => {
   };
 
   const handleEmbedPopupMode = () => {
-    sendMessageToReferrer({ eventType: "SHARE_VEHICLES_DATA" });
+    sendMessageToReferrer({ eventType: 'SHARE_VEHICLES_DATA' });
 
     const handleMessage = (event: MessageEvent) => {
       const {
@@ -109,26 +99,27 @@ const VehicleManager: React.FC = () => {
         vehicleMakes: vehicleMakesFromMessage,
         expirationDate: expirationDateFromMessage,
         onboarding,
+        powertrainTypes: powertrainTypesFromMessage,
       } = event.data;
 
-      console.log(event.data);
-
-      if (eventType === "SHARE_VEHICLES_DATA") {
+      if (eventType === 'SHARE_VEHICLES_DATA') {
         if (permissionTemplateIdFromMessage)
           setPermissionTemplateId(permissionTemplateIdFromMessage);
         if (vehiclesFromMessage) setVehicleTokenIds(vehiclesFromMessage);
         if (vehicleMakesFromMessage) setVehicleMakes(vehicleMakesFromMessage);
         if (expirationDateFromMessage)
           setExpirationDate(parseExpirationDate(expirationDateFromMessage));
-        if (onboarding && onboarding.length > 0)
-          setOnboardingEnabled(true);
+        if (powertrainTypesFromMessage) {
+          setPowertrainTypes(powertrainTypesFromMessage);
+        }
+        if (onboarding && onboarding.length > 0) setOnboardingEnabled(true);
       }
     };
 
-    window.addEventListener("message", handleMessage);
+    window.addEventListener('message', handleMessage);
 
     return () => {
-      window.removeEventListener("message", handleMessage);
+      window.removeEventListener('message', handleMessage);
     };
   };
 
@@ -143,14 +134,12 @@ const VehicleManager: React.FC = () => {
           walletAddress: user.smartContractAddress,
           email: user.email,
         };
-        const permissionTemplate = await fetchPermissionsFromId(
-          permissionsParams
-        );
+        const permissionTemplate = await fetchPermissionsFromId(permissionsParams);
         setComponentData({ permissionTemplateId }); //So that manage vehicle has a permission template ID
         setPermissionTemplate(permissionTemplate as SACDTemplate);
       } catch (error) {
-        setError("Could not fetch permissions");
-        console.error("Error fetching permissions:", error);
+        setError('Could not fetch permissions');
+        console.error('Error fetching permissions:', error);
       }
     }
   };
@@ -165,15 +154,10 @@ const VehicleManager: React.FC = () => {
 
   useEffect(() => {
     Promise.all([fetchPermissions()]);
-  }, [
-    user.smartContractAddress,
-    clientId,
-    permissionTemplateId,
-    devLicenseAlias,
-  ]);
+  }, [user.smartContractAddress, clientId, permissionTemplateId, devLicenseAlias]);
 
   const renderDescription = (description: string) => {
-    const paragraphs = description.split("\n\n");
+    const paragraphs = description.split('\n\n');
 
     // Show only the first paragraph by default, and the rest will be shown when expanded
     const firstParagraph = paragraphs[0];
@@ -182,12 +166,12 @@ const VehicleManager: React.FC = () => {
       <div>
         {/* Render the first paragraph or the entire description based on the `isExpanded` state */}
         {isExpanded ? (
-          description.split("\n\n").map((paragraph, index) => (
+          description.split('\n\n').map((paragraph, index) => (
             <React.Fragment key={index}>
               {/* Check if the paragraph contains bullet points */}
-              {paragraph.includes("- ") ? (
+              {paragraph.includes('- ') ? (
                 <ul className="list-disc list-inside mb-4">
-                  {paragraph.split("\n-").map((line, i) =>
+                  {paragraph.split('\n-').map((line, i) =>
                     i === 0 ? (
                       <p key={i} className="mb-2">
                         {line.trim()}
@@ -196,7 +180,7 @@ const VehicleManager: React.FC = () => {
                       <li key={i} className="ml-4">
                         {line.trim()}
                       </li>
-                    )
+                    ),
                   )}
                 </ul>
               ) : (
@@ -231,14 +215,14 @@ const VehicleManager: React.FC = () => {
           <div className="description w-fit max-w-[440px] mt-2 text-sm mb-4 overflow-y-auto max-h-[356px]">
             {permissionTemplate?.data.description
               ? renderDescription(permissionTemplate?.data.description)
-              : "The developer is requesting access to view your vehicle data. Select the vehicles you’d like to share access to."}
+              : 'The developer is requesting access to view your vehicle data. Select the vehicles you’d like to share access to.'}
           </div>
           <div className="w-full max-w-[440px]">
             <button
               className="bg-white w-[145px] text-[#09090B] font-medium border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500 flex items-center justify-between"
               onClick={() => setIsExpanded(!isExpanded)}
             >
-              <span>{isExpanded ? "Show less" : "Show more"}</span>
+              <span>{isExpanded ? 'Show less' : 'Show more'}</span>
               {isExpanded ? (
                 <ChevronUpIcon className="h-4 w-4 ml-2" />
               ) : (
@@ -254,6 +238,7 @@ const VehicleManager: React.FC = () => {
             vehicleMakes={vehicleMakes}
             permissionTemplateId={permissionTemplateId}
             expirationDate={expirationDate}
+            powertrainTypes={powertrainTypes}
           />
         )}
       </div>

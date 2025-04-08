@@ -1,5 +1,5 @@
-import { Back } from "./Back";
-import Logo from "./Logo";
+import { Back } from './Back';
+import Logo from './Logo';
 
 interface HeaderProps {
   title: string;

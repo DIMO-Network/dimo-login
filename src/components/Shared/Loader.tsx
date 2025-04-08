@@ -1,6 +1,6 @@
 // src/components/Loader.tsx
-import React from "react";
-import { useUIManager } from "../../context/UIManagerContext";
+import React from 'react';
+import { useUIManager } from '../../context/UIManagerContext';
 
 const Loader: React.FC = () => {
   const { loadingMessage } = useUIManager();
