@@ -38,36 +38,38 @@ export const ConnectSmartCar: FC = () => {
   return (
     <Card
       width="w-full max-w-[600px]"
-      height="h-fit max-h-[770px]"
-      className="flex flex-col gap-6 items-center text-center px-6"
+      height="h-fit"
+      className="flex flex-col items-center"
     >
-      {/* Header */}
-      <Header
-        title={`Connect Data Source for ${componentData.modelYear} ${componentData.makeModel}`}
-        subtitle={appUrl.hostname}
-      />
-
-      {/* Text Wrapper - Restrict Width */}
-      <div className="max-w-[480px] text-gray-600 text-sm text-center">
-        At least one data source is required to connect to {devLicenseAlias}. Connecting
-        through your car's app is the easiest option and will take less than a minute.
-      </div>
-
-      {/* Adapter Image */}
-      <div className="flex justify-center pt-2">
-        <img
-          style={{ height: '120px', width: '120px' }}
-          className="rounded-full object-cover"
-          src={VehicleThumbnail}
-          alt="DIMO Adapter"
+      <div className="flex flex-col gap-6 w-[440px]">
+        {/* Header */}
+        <Header
+          title={`Connect Data Source for ${componentData.modelYear} ${componentData.makeModel}`}
+          subtitle={appUrl.hostname}
         />
-      </div>
 
-      {/* Buttons */}
-      <div className="flex flex-col w-full max-w-[480px] px-4 space-y-3">
-        <PrimaryButton onClick={handleConnect} width="w-full py-3">
-          Connect with Smartcar
-        </PrimaryButton>
+        {/* Text Wrapper - Restrict Width */}
+        <div className="w-full text-gray-600 text-sm text-center">
+          At least one data source is required to connect to {devLicenseAlias}. Connecting
+          through your car's app is the easiest option and will take less than a minute.
+        </div>
+
+        {/* Adapter Image */}
+        <div className="flex justify-center pt-2">
+          <img
+            style={{ height: '120px', width: '120px' }}
+            className="rounded-full object-cover"
+            src={VehicleThumbnail}
+            alt="DIMO Adapter"
+          />
+        </div>
+
+        {/* Buttons */}
+        <div className="flex flex-col w-full space-y-3">
+          <PrimaryButton onClick={handleConnect} width="w-full py-3">
+            Connect with Smartcar
+          </PrimaryButton>
+        </div>
       </div>
     </Card>
   );

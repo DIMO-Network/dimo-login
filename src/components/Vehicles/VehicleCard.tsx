@@ -2,6 +2,7 @@ import React from 'react';
 
 import { Vehicle } from '../../models/vehicle';
 import { UiStates, useUIManager } from '../../context/UIManagerContext';
+import { Checkbox } from '../Shared/Checkbox';
 
 interface VehicleCardProps {
   vehicle: Vehicle;
@@ -39,24 +40,24 @@ const VehicleCard: React.FC<VehicleCardProps> = ({
     >
       {/* Custom Checkbox */}
       {!disabled && !incompatible && (
-        <input
-          type="checkbox"
+        <Checkbox
           checked={isSelected || vehicle.shared}
           onChange={onSelect}
           id={`vehicle-${vehicle.tokenId.toString()}`}
-          disabled={vehicle.shared}
+          name={`vehicle-${vehicle.tokenId.toString()}`}
           className="mr-4 w-5 h-5 text-black border-gray-300 rounded focus:ring-0 focus:ring-offset-0 accent-black cursor-pointer"
+          disabled={vehicle.shared}
         />
       )}
 
       {incompatible && (
-        <input
-          type="checkbox"
+        <Checkbox
           checked={true}
           onChange={onSelect}
           id={`vehicle-${vehicle.tokenId.toString()}`}
+          name={`vehicle-${vehicle.tokenId.toString()}`}
+          className="mr-4 w-5 h-5 border-gray-300 rounded appearance-none cursor-pointer bg-[#3C3C432E] text-white before:content-['X'] before:text-center before:text-white before:block disabled:cursor-not-allowed disabled:opacity-50"
           disabled={true}
-          className={`mr-4 w-5 h-5 border-gray-300 rounded appearance-none cursor-pointer bg-[#3C3C432E] text-white before:content-['X'] before:text-center before:text-white before:block disabled:cursor-not-allowed disabled:opacity-50`}
         />
       )}
 

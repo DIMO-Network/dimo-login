@@ -11,15 +11,15 @@ export const ConnectCarButton: FC = () => {
 
   return (
     <button
-      className="flex items-center justify-center py-3 sm:py-4 px-4 border border-gray-300 rounded-xl w-full hover:bg-gray-50 transition"
+      className="flex pl-[52px] py-3 sm:py-4 px-4 border border-gray-300 rounded-xl w-full hover:bg-gray-50 transition"
       onClick={() => setUiState(UiStates.ADD_VEHICLE, { setBack: true })}
     >
-      <div className="flex items-center space-x-2">
-        <div className="w-5 h-5 border border-gray-400 rounded-full flex items-center justify-center text-black font-bold">
+      <div className="flex items-center space-x-4">
+        <div className="h-[48px] w-[48px] rounded-full border border-gray-400 flex items-center justify-center text-black font-bold">
           <PlusIcon />
         </div>
         <span className="text-black font-medium text-sm sm:text-base">
-          Connect compatible car
+          Add a compatible car
         </span>
       </div>
     </button>

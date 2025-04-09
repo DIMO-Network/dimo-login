@@ -1,7 +1,7 @@
-jest.mock('../identityService');
-
 import { fetchVehiclesWithTransformation } from '../vehicleService';
 import { fetchVehicles, getPowertrainTypeMatch } from '../identityService';
+
+jest.mock('../identityService');
 
 beforeEach(() => {
   (fetchVehicles as jest.Mock).mockImplementation(() => {
