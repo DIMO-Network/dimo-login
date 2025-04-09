@@ -1,4 +1,4 @@
-const Logo = () => (
+export const Logo = () => (
   <div className="flex justify-center h-[40px]">
     <svg
       width="71"
