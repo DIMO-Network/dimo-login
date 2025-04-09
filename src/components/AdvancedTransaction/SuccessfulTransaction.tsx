@@ -1,19 +1,19 @@
 import React from 'react';
-import Card from '../Shared/Card';
-import Header from '../Shared/Header';
-import PrimaryButton from '../Shared/PrimaryButton';
-import { useDevCredentials } from '../../context/DevCredentialsContext';
-import ErrorScreen from '../Shared/ErrorScreen';
+
 import { backToThirdParty } from '../../utils/messageHandler';
 import { isEmbed } from '../../utils/isEmbed';
 import { useAuthContext } from '../../context/AuthContext';
+import { useDevCredentials } from '../../context/DevCredentialsContext';
+import { useUIManager } from '../../context/UIManagerContext';
+
+import Card from '../Shared/Card';
+import ErrorScreen from '../Shared/ErrorScreen';
+import Header from '../Shared/Header';
+import PrimaryButton from '../Shared/PrimaryButton';
 
 const SuccessfulTransaction: React.FC = () => {
   const { redirectUri, utm, devLicenseAlias } = useDevCredentials();
-  // const { componentData } = useUIManager();
-  const componentData = {
-    transactionHash: '0x123456789abcdef',
-  };
+  const { componentData } = useUIManager();
   const { jwt } = useAuthContext();
 
   if (!componentData.transactionHash) {
