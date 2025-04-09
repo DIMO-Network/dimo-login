@@ -1,20 +1,20 @@
-import { useState, type FC } from "react";
+import { useState, type FC } from 'react';
 
-import Card from "../Shared/Card";
-import Header from "../Shared/Header";
-import { getAppUrl } from "../../utils/urlHelpers";
+import Card from '../Shared/Card';
+import Header from '../Shared/Header';
+import { getAppUrl } from '../../utils/urlHelpers';
 
-import countries from "i18n-iso-countries"; // Install using npm install i18n-iso-countries
-import enLocale from "i18n-iso-countries/langs/en.json";
-import { UiStates, useUIManager } from "../../context/UIManagerContext";
-import { supportedMakeModels } from "../../utils/tablelandUtils";
-import { AutoCompleteInput } from "../Shared/AutoCompleteInput";
-import { Select } from "../Shared/Select";
-import { Input } from "../Shared/Input";
+import countries from 'i18n-iso-countries'; // Install using npm install i18n-iso-countries
+import enLocale from 'i18n-iso-countries/langs/en.json';
+import { UiStates, useUIManager } from '../../context/UIManagerContext';
+import { supportedMakeModels } from '../../utils/tablelandUtils';
+import { AutoCompleteInput } from '../Shared/AutoCompleteInput';
+import { Select } from '../Shared/Select';
+import { Input } from '../Shared/Input';
 
 // Register English country names
 countries.registerLocale(enLocale);
-const countryList = Object.values(countries.getNames("en"));
+const countryList = Object.values(countries.getNames('en'));
 const countryCodes = countries.getAlpha3Codes(); // { United States: "US", Canada: "CA", ... }
 let countryMapping: Record<string, string> = {}; // Define type properly
 
@@ -32,10 +32,10 @@ export const AddVehicle: FC = () => {
   const { setComponentData, setUiState } = useUIManager(); // Access the manage function from the context
 
   const [tab, setTab] = useState(0);
-  const [makeModel, setMakeModel] = useState("");
-  const [modelYear, setModelYear] = useState("");
-  const [vinNumber, setVinNumber] = useState("");
-  const [country, setCountry] = useState("United States of America");
+  const [makeModel, setMakeModel] = useState('');
+  const [modelYear, setModelYear] = useState('');
+  const [vinNumber, setVinNumber] = useState('');
+  const [country, setCountry] = useState('United States of America');
 
   const handleSubmit = () => {
     setComponentData({
@@ -49,7 +49,7 @@ export const AddVehicle: FC = () => {
   };
 
   const getTabColor = (isActive: boolean) =>
-    isActive ? "bg-white text-black" : "bg-black text-white";
+    isActive ? 'bg-white text-black' : 'bg-black text-white';
 
   return (
     <Card
@@ -97,7 +97,7 @@ export const AddVehicle: FC = () => {
               <label className="block mt-4 text-sm">Model year</label>
               <Select
                 options={Array.from({ length: 2026 - 1900 + 1 }, (_, i) =>
-                  (2026 - i).toString()
+                  (2026 - i).toString(),
                 )}
                 value={modelYear}
                 onChange={(e) => setModelYear(e.target.value)}

@@ -1,33 +1,32 @@
-import { type FC } from "react";
+import { type FC } from 'react';
 
-import VehicleThumbnail from "../../assets/images/vehicle-thumbnail.png";
-import PrimaryButton from "../Shared/PrimaryButton";
-import { UiStates, useUIManager } from "../../context/UIManagerContext";
-import Card from "../Shared/Card";
-import Header from "../Shared/Header";
-import { getAppUrl } from "../../utils/urlHelpers";
-import { IOS_URL, SHOP_DIMO_URL } from "../../utils/constants";
-import { useDevCredentials } from "../../context/DevCredentialsContext";
-import { constructAuthUrl } from "../../utils/authUrls";
+import VehicleThumbnail from '../../assets/images/vehicle-thumbnail.png';
+import PrimaryButton from '../Shared/PrimaryButton';
+import { UiStates, useUIManager } from '../../context/UIManagerContext';
+import Card from '../Shared/Card';
+import Header from '../Shared/Header';
+import { getAppUrl } from '../../utils/urlHelpers';
+import { useDevCredentials } from '../../context/DevCredentialsContext';
+import { constructAuthUrl } from '../../utils/authUrls';
 
 export const ConnectSmartCar: FC = () => {
-  const { componentData } = useUIManager();
-  const { devLicenseAlias, clientId, redirectUri } = useDevCredentials();
+  const { componentData } = useUIManager(); // Access the manage function from the context
+  const { devLicenseAlias, clientId } = useDevCredentials();
   const appUrl = getAppUrl();
 
   const handleConnect = () => {
     const urlParams = new URLSearchParams(window.location.search);
 
     const authUrl = constructAuthUrl({
-      provider: "smartcar",
+      provider: 'smartcar',
       clientId,
-      redirectUri: "http://localhost:3000",
+      redirectUri: 'http://localhost:3000',
       entryState: UiStates.MINT_VEHICLE,
-      expirationDate: urlParams.get("expirationDate"),
-      permissionTemplateId: urlParams.get("permissionTemplateId"),
-      utm: urlParams.getAll("utm"),
-      vehicleMakes: urlParams.getAll("vehicleMakes"),
-      vehicles: urlParams.getAll("vehicles"),
+      expirationDate: urlParams.get('expirationDate'),
+      permissionTemplateId: urlParams.get('permissionTemplateId'),
+      utm: urlParams.getAll('utm'),
+      vehicleMakes: urlParams.getAll('vehicleMakes'),
+      vehicles: urlParams.getAll('vehicles'),
       // make: componentData.makeModel, // Optional for Smartcar
       // year: componentData.modelYear,
       // countryCode: componentData.country, // Optional for Smartcar
@@ -51,15 +50,14 @@ export const ConnectSmartCar: FC = () => {
 
         {/* Text Wrapper - Restrict Width */}
         <div className="w-full text-gray-600 text-sm text-center">
-          At least one data source is required to connect to {devLicenseAlias}.
-          Connecting through your car's app is the easiest option and will take
-          less than a minute.
+          At least one data source is required to connect to {devLicenseAlias}. Connecting
+          through your car's app is the easiest option and will take less than a minute.
         </div>
 
         {/* Adapter Image */}
         <div className="flex justify-center pt-2">
           <img
-            style={{ height: "120px", width: "120px" }}
+            style={{ height: '120px', width: '120px' }}
             className="rounded-full object-cover"
             src={VehicleThumbnail}
             alt="DIMO Adapter"

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { XCircleIcon } from "@heroicons/react/16/solid";
+import React, { useState, useEffect, useRef } from 'react';
+import { XCircleIcon } from '@heroicons/react/16/solid';
 
 interface AutoCompleteInputProps {
   options: string[];
@@ -13,7 +13,7 @@ export const AutoCompleteInput: React.FC<AutoCompleteInputProps> = ({
   options,
   value,
   onChange,
-  placeholder = "Type to search...",
+  placeholder = 'Type to search...',
   maxSuggestions = 5,
 }) => {
   const [filteredOptions, setFilteredOptions] = useState<string[]>([]);
@@ -22,7 +22,7 @@ export const AutoCompleteInput: React.FC<AutoCompleteInputProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (value.trim() === "") {
+    if (value.trim() === '') {
       setFilteredOptions([]);
       return;
     }
@@ -36,15 +36,13 @@ export const AutoCompleteInput: React.FC<AutoCompleteInputProps> = ({
   }, [value, options, maxSuggestions]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "ArrowDown") {
+    if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setHighlightedIndex((prev) =>
-        Math.min(prev + 1, filteredOptions.length - 1)
-      );
-    } else if (e.key === "ArrowUp") {
+      setHighlightedIndex((prev) => Math.min(prev + 1, filteredOptions.length - 1));
+    } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setHighlightedIndex((prev) => Math.max(prev - 1, 0));
-    } else if (e.key === "Enter") {
+    } else if (e.key === 'Enter') {
       e.preventDefault();
       if (highlightedIndex >= 0 && highlightedIndex < filteredOptions.length) {
         onChange(filteredOptions[highlightedIndex]);
@@ -53,7 +51,7 @@ export const AutoCompleteInput: React.FC<AutoCompleteInputProps> = ({
       }
       setFilteredOptions([]);
       setIsFocused(false); // hides dropdown
-    } else if (e.key === "Escape") {
+    } else if (e.key === 'Escape') {
       setFilteredOptions([]);
     } else if (!isFocused) {
       setIsFocused(true);
@@ -83,7 +81,7 @@ export const AutoCompleteInput: React.FC<AutoCompleteInputProps> = ({
           <button
             type="button"
             className="absolute inset-y-0 right-0 flex items-center pr-2 mt-1"
-            onClick={() => onChange("")}
+            onClick={() => onChange('')}
           >
             <XCircleIcon className="size-4 text-[#080808]" />
           </button>
@@ -95,7 +93,7 @@ export const AutoCompleteInput: React.FC<AutoCompleteInputProps> = ({
             <li
               key={option}
               className={`p-2 cursor-pointer ${
-                idx === highlightedIndex ? "bg-gray-100" : ""
+                idx === highlightedIndex ? 'bg-gray-100' : ''
               }`}
               onMouseDown={() => onChange(option)}
               onMouseEnter={() => setHighlightedIndex(idx)}

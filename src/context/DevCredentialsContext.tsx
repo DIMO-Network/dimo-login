@@ -13,15 +13,16 @@ import React, {
   ReactNode,
   useState,
   useEffect,
-} from "react";
+  ReactElement,
+} from 'react';
 
-import { createKernelSigner } from "../services/turnkeyService";
-import { CredentialParams } from "../types";
-import { isStandalone } from "../utils/isStandalone";
-import { isValidClientId } from "../services/identityService";
-import { setEmailGranted } from "../services/storageService";
-import { setForceEmail } from "../stores/AuthStateStore";
-import { UiStates, useUIManager } from "./UIManagerContext";
+import { createKernelSigner } from '../services/turnkeyService';
+import { CredentialParams } from '../types';
+import { isStandalone } from '../utils/isStandalone';
+import { isValidClientId } from '../services/identityService';
+import { setEmailGranted } from '../services/storageService';
+import { setForceEmail } from '../stores/AuthStateStore';
+import { UiStates, useUIManager } from './UIManagerContext';
 
 interface DevCredentialsContextProps {
   apiKey: string;
@@ -32,36 +33,36 @@ interface DevCredentialsContextProps {
   utm: string;
 }
 
-const DevCredentialsContext = createContext<
-  DevCredentialsContextProps | undefined
->(undefined);
+const DevCredentialsContext = createContext<DevCredentialsContextProps | undefined>(
+  undefined,
+);
 
 // Provider component for Dev Credentials
 export const DevCredentialsProvider = ({
   children,
 }: {
   children: ReactNode;
-}): JSX.Element => {
-  const [clientId, setClientId] = useState<string>("");
-  const [apiKey, setApiKey] = useState<string>("");
-  const [redirectUri, setRedirectUri] = useState<string>("");
-  const [utm, setUtm] = useState<string>("");
+}): ReactElement => {
+  const [clientId, setClientId] = useState<string>('');
+  const [apiKey, setApiKey] = useState<string>('');
+  const [redirectUri, setRedirectUri] = useState<string>('');
+  const [utm, setUtm] = useState<string>('');
   const [invalidCredentials, setInvalidCredentials] = useState<boolean>(false);
-  const [devLicenseAlias, setDevLicenseAlias] = useState<string>(""); // Alias will only be set if credentials are valid, defaults to client ID if not alias
+  const [devLicenseAlias, setDevLicenseAlias] = useState<string>(''); // Alias will only be set if credentials are valid, defaults to client ID if not alias
   const { setUiState, setEntryState, setLoadingState, setAltTitle } = useUIManager();
 
   // Example of using postMessage to receive credentials (as described previously)
   useEffect(() => {
-    setLoadingState(true, "Waiting for credentials...");
+    setLoadingState(true, 'Waiting for credentials...');
     const urlParams = new URLSearchParams(window.location.search);
 
-    const clientIdFromUrl = urlParams.get("clientId");
-    const redirectUriFromUrl = urlParams.get("redirectUri");
-    const entryStateFromUrl = urlParams.get("entryState") as UiStates;
-    const forceEmailFromUrl = urlParams.get("forceEmail");
-    const stateFromUrl = urlParams.get("state");
-    const utmFromUrl = urlParams.get("utm");
-    const altTitleFromUrl = urlParams.get("altTitle") === "true";
+    const clientIdFromUrl = urlParams.get('clientId');
+    const redirectUriFromUrl = urlParams.get('redirectUri');
+    const entryStateFromUrl = urlParams.get('entryState') as UiStates;
+    const forceEmailFromUrl = urlParams.get('forceEmail');
+    const stateFromUrl = urlParams.get('state');
+    const utmFromUrl = urlParams.get('utm');
+    const altTitleFromUrl = urlParams.get('altTitle') === 'true';
 
     // ✅ Handle state from URL (e.g., for SSO / OAuth Redirects)
     const processStateFromUrl = () => {
@@ -81,7 +82,7 @@ export const DevCredentialsProvider = ({
         setEntryState(state.entryState || UiStates.EMAIL_INPUT);
         setCredentials({
           clientId: state.clientId,
-          apiKey: "api key",
+          apiKey: 'api key',
           redirectUri: state.redirectUri,
           utm: state.utm,
         });
@@ -95,10 +96,10 @@ export const DevCredentialsProvider = ({
 
       setUiState(entryStateFromUrl || UiStates.EMAIL_INPUT);
       setEntryState(entryStateFromUrl || UiStates.EMAIL_INPUT);
-      setForceEmail(forceEmailFromUrl === "true");
+      setForceEmail(forceEmailFromUrl === 'true');
       setCredentials({
         clientId: clientIdFromUrl,
-        apiKey: "api key",
+        apiKey: 'api key',
         redirectUri: redirectUriFromUrl,
         utm: utmFromUrl,
       });
@@ -119,8 +120,8 @@ export const DevCredentialsProvider = ({
         altTitle,
       } = event.data;
 
-      if (eventType === "AUTH_INIT") {
-        console.log("Received AUTH_INIT message", event);
+      if (eventType === 'AUTH_INIT') {
+        console.log('Received AUTH_INIT message', event);
         const finalEntryState = stateFromUrl
           ? JSON.parse(stateFromUrl).entryState
           : entryState || UiStates.EMAIL_INPUT;
@@ -136,9 +137,9 @@ export const DevCredentialsProvider = ({
     processStateFromUrl();
 
     if (!processUrlParams()) {
-      window.addEventListener("message", handleMessage);
+      window.addEventListener('message', handleMessage);
       return () => {
-        window.removeEventListener("message", handleMessage);
+        window.removeEventListener('message', handleMessage);
       };
     }
   }, []);
@@ -153,7 +154,7 @@ export const DevCredentialsProvider = ({
           setLoadingState(false); // Credentials loaded
         } else {
           setInvalidCredentials(true);
-          console.error("Invalid client ID or redirect URI.");
+          console.error('Invalid client ID or redirect URI.');
           // Handle invalid case (e.g., show an error message, redirect, etc.)
         }
       }
@@ -162,12 +163,7 @@ export const DevCredentialsProvider = ({
     validateCredentials();
   }, [clientId, redirectUri]);
 
-  const setCredentials = ({
-    clientId,
-    apiKey,
-    redirectUri,
-    utm,
-  }: CredentialParams) => {
+  const setCredentials = ({ clientId, apiKey, redirectUri, utm }: CredentialParams) => {
     setClientId(clientId);
     setApiKey(apiKey);
     setRedirectUri(redirectUri);
@@ -195,9 +191,7 @@ export const DevCredentialsProvider = ({
 export const useDevCredentials = () => {
   const context = useContext(DevCredentialsContext);
   if (!context) {
-    throw new Error(
-      "useDevCredentials must be used within a DevCredentialsProvider"
-    );
+    throw new Error('useDevCredentials must be used within a DevCredentialsProvider');
   }
   return context;
 };

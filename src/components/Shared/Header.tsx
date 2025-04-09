@@ -1,5 +1,5 @@
-import { Back } from "./Back";
-import { Logo } from "./Logo";
+import { Back } from './Back';
+import { Logo } from './Logo';
 
 interface HeaderProps {
   title: string;
@@ -26,7 +26,7 @@ export const Header: React.FC<HeaderProps> = ({ title, subtitle, link }) => (
                 }&sz=16`}
                 alt="favicon"
                 className="inline-block ml-1 w-4 h-4"
-                onError={(e) => (e.currentTarget.style.display = "none")}
+                onError={(e) => (e.currentTarget.style.display = 'none')}
               />
               {subtitle}
             </a>

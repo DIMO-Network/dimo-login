@@ -1,41 +1,35 @@
-import { useEffect, type FC } from "react";
+import { useEffect, type FC } from 'react';
 
-import VehicleThumbnail from "../../assets/images/vehicle-thumbnail.png";
-import { UiStates, useUIManager } from "../../context/UIManagerContext";
-import { useAuthContext } from "../../context/AuthContext";
+import VehicleThumbnail from '../../assets/images/vehicle-thumbnail.png';
+import { UiStates, useUIManager } from '../../context/UIManagerContext';
+import { useAuthContext } from '../../context/AuthContext';
 import {
   generateIpfsSources,
   getKernelSigner,
   initializeIfNeeded,
-} from "../../services/turnkeyService";
-import { SimpleResult } from "../../models/resultTypes";
+} from '../../services/turnkeyService';
+import { SimpleResult } from '../../models/resultTypes';
 import {
   getPayloadToSign,
   mintVehicleWithSignature,
   waitForTokenId,
-} from "../../services/dimoDevicesService";
-import { IntegrationNft, MintVehicleNft } from "../../models/typedData";
-import { SAMPLE_B64_IMAGE } from "../../utils/constants";
+} from '../../services/dimoDevicesService';
+import { IntegrationNft, MintVehicleNft } from '../../models/typedData';
+import { SAMPLE_B64_IMAGE } from '../../utils/constants';
 
 export const MintVehicle: FC = () => {
-  const {
-    componentData,
-    setError,
-    setLoadingState,
-    setUiState,
-    setComponentData,
-  } = useUIManager();
+  const { componentData, setLoadingState, setUiState, setComponentData } = useUIManager();
   const { user, jwt } = useAuthContext();
 
   useEffect(() => {
     const processMint = async () => {
       try {
-        setLoadingState(true, "Creating vehicle...", true);
+        setLoadingState(true, 'Creating vehicle...', true);
 
         const { integrationID, userDeviceID } = componentData;
 
         if (!componentData || !integrationID || !userDeviceID) {
-          return console.error("Error creating vehicle:");
+          return console.error('Error creating vehicle:');
         }
 
         const payloadToSign = await getPayloadToSign(
@@ -43,24 +37,24 @@ export const MintVehicle: FC = () => {
             userDeviceID,
             integrationID,
           },
-          jwt
+          jwt,
         );
 
         if (!payloadToSign.success || !payloadToSign.data)
-          return console.error("Error creating vehicle:");
+          return console.error('Error creating vehicle:');
 
         //Sign payload using txn SDK
         const signature = await handleSign(payloadToSign.data);
 
         //Use signed payload + id's to send signed payload for minting
         if (!signature) {
-          return console.error("Could not sign payload");
+          return console.error('Could not sign payload');
         }
 
         const mintedVehicle = await handleMint(signature, userDeviceID);
 
         if (!mintedVehicle.success) {
-          return console.error("Could not mint vehicle");
+          return console.error('Could not mint vehicle');
         }
 
         //Poll for Token ID
@@ -75,7 +69,7 @@ export const MintVehicle: FC = () => {
           setUiState(UiStates.VEHICLE_MANAGER);
         }
       } catch (error) {
-        console.error("Mint processing error:", error);
+        console.error('Mint processing error:', error);
       } finally {
         // setLoadingState(false);
         // setIsProcessing(false);
@@ -94,17 +88,13 @@ export const MintVehicle: FC = () => {
 
   const handleMint = async (
     signature: string,
-    userDeviceID: string
+    userDeviceID: string,
   ): Promise<SimpleResult> => {
     await initializeIfNeeded(user.subOrganizationId);
     const expiration = 2933125200; //Placeholder for sacd input
     const permissions = 0; //Placeholder for sacd input
     const owner = user.smartContractAddress;
-    const ipfsRes = await generateIpfsSources(
-      BigInt(0),
-      owner,
-      BigInt(expiration)
-    );
+    const ipfsRes = await generateIpfsSources(BigInt(0), owner, BigInt(expiration));
 
     return await mintVehicleWithSignature(
       {
@@ -114,30 +104,26 @@ export const MintVehicle: FC = () => {
           expiration,
           permissions,
           source: ipfsRes,
-          grantee: "0xAb5801a7D398351b8bE11C439e05C5b3259aec9B", //Placeholder grantee, we don't actually grant permissions upon mint
+          grantee: '0xAb5801a7D398351b8bE11C439e05C5b3259aec9B', //Placeholder grantee, we don't actually grant permissions upon mint
         },
         signature,
       },
       userDeviceID,
-      jwt
+      jwt,
     );
   };
 
   return (
     <div className="flex flex-col items-center gap-6">
       <img
-        style={{ height: "40px", width: "40px" }}
+        style={{ height: '40px', width: '40px' }}
         className="rounded-full object-cover mr-4"
         src={VehicleThumbnail}
         alt="Vehicle Thumbnail"
       />
       <div className="flex flex-col items-center gap-2">
-        <h2 className="text-gray-500 text-xl font-medium">
-          No cars connected yet
-        </h2>
-        <p className="text-sm">
-          Connect your car in the DIMO app to share permissions.
-        </p>
+        <h2 className="text-gray-500 text-xl font-medium">No cars connected yet</h2>
+        <p className="text-sm">Connect your car in the DIMO app to share permissions.</p>
       </div>
       <div className="flex flex-col items-center gap-6">
         <p className="text-xl font-medium">Download the DIMO app now</p>

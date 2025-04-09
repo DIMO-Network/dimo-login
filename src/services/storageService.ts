@@ -1,19 +1,25 @@
 // Define types for user properties
 
-import { UserObject } from "../models/user";
+import { UserObject } from '../models/user';
 
 // Utility function to store JWT in cookies for a given clientId
 export const storeJWTInCookies = (clientId: string, jwt: string): void => {
   const expirationDate = new Date();
   expirationDate.setFullYear(expirationDate.getFullYear() + 10); // Set expiration to 10 years in the future
+  let cookieString = `auth_token_${clientId}=${jwt}; expires=${expirationDate.toUTCString()}; path=/`;
 
-  document.cookie = `auth_token_${clientId}=${jwt}; expires=${expirationDate.toUTCString()}; path=/; SameSite=None; Secure`;
+  // Only add Secure and SameSite=None if not on localhost
+  if (window.location.hostname !== 'localhost') {
+    cookieString += '; SameSite=None; Secure';
+  }
+
+  document.cookie = cookieString;
 };
 
 // Utility function to store user properties in localStorage for a given clientId
 export const storeUserInLocalStorage = (
   clientId: string,
-  userProperties: UserObject
+  userProperties: UserObject,
 ): void => {
   localStorage.setItem(`user_data_${clientId}`, JSON.stringify(userProperties));
 };
@@ -21,15 +27,13 @@ export const storeUserInLocalStorage = (
 // Utility function to get JWT from cookies for a given clientId
 export const getJWTFromCookies = (clientId: string): string | null => {
   const cookie = document.cookie
-    .split("; ")
+    .split('; ')
     .find((row) => row.startsWith(`auth_token_${clientId}=`));
-  return cookie ? cookie.split("=")[1] : null;
+  return cookie ? cookie.split('=')[1] : null;
 };
 
 // Utility function to get user properties from localStorage for a given clientId
-export const getUserFromLocalStorage = (
-  clientId: string
-): UserObject | null => {
+export const getUserFromLocalStorage = (clientId: string): UserObject | null => {
   const userData = localStorage.getItem(`user_data_${clientId}`);
   return userData ? JSON.parse(userData) : null;
 };

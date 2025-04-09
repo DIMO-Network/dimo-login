@@ -1,20 +1,18 @@
-// src/components/SuccessPage.tsx
-import React from "react";
-import Card from "../Shared/Card";
-import Header from "../Shared/Header";
-import PrimaryButton from "../Shared/PrimaryButton";
-import { useDevCredentials } from "../../context/DevCredentialsContext";
-import ErrorScreen from "../Shared/ErrorScreen";
-import { useUIManager } from "../../context/UIManagerContext";
-import { backToThirdParty } from "../../utils/messageHandler";
-import { isEmbed } from "../../utils/isEmbed";
-import { useAuthContext } from "../../context/AuthContext";
+import React from 'react';
+import Card from '../Shared/Card';
+import Header from '../Shared/Header';
+import PrimaryButton from '../Shared/PrimaryButton';
+import { useDevCredentials } from '../../context/DevCredentialsContext';
+import ErrorScreen from '../Shared/ErrorScreen';
+import { backToThirdParty } from '../../utils/messageHandler';
+import { isEmbed } from '../../utils/isEmbed';
+import { useAuthContext } from '../../context/AuthContext';
 
 const SuccessfulTransaction: React.FC = () => {
   const { redirectUri, utm, devLicenseAlias } = useDevCredentials();
   // const { componentData } = useUIManager();
   const componentData = {
-    transactionHash: "0x123456789abcdef",
+    transactionHash: '0x123456789abcdef',
   };
   const { jwt } = useAuthContext();
 
@@ -30,9 +28,9 @@ const SuccessfulTransaction: React.FC = () => {
   const handleView = () => {
     if (componentData.transactionHash) {
       const scanBaseUrl =
-        process.env.REACT_APP_ENVIRONMENT == "prod"
-          ? "https://polygonscan.com"
-          : "https://amoy.polygonscan.com";
+        process.env.REACT_APP_ENVIRONMENT === 'prod'
+          ? 'https://polygonscan.com'
+          : 'https://amoy.polygonscan.com';
 
       window.open(`${scanBaseUrl}/tx/${componentData.transactionHash}`);
     }
@@ -56,7 +54,7 @@ const SuccessfulTransaction: React.FC = () => {
       className="flex flex-col items-center"
     >
       <div className="flex flex-col gap-6 w-[440px]">
-        <Header title="Successful Transaction!" subtitle={""} />
+        <Header title="Successful Transaction!" subtitle={''} />
         <div className="space-y-4 w-full">
           {!isEmbed() && (
             <div className="flex justify-center">

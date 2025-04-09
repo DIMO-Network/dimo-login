@@ -1,5 +1,5 @@
-import React, { forwardRef } from "react";
-import { ChevronDownIcon } from "@heroicons/react/16/solid";
+import React, { forwardRef } from 'react';
+import { ChevronDownIcon } from '@heroicons/react/16/solid';
 
 interface SelectProps {
   options: string[];
@@ -17,14 +17,14 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     {
       options,
       value,
-      defaultValue = "",
-      id = "select",
-      name = "select",
-      className = "",
+      defaultValue = '',
+      id = 'select',
+      name = 'select',
+      className = '',
       onChange,
       includeEmptyOption = false,
     },
-    ref
+    ref,
   ) => {
     return (
       <div className={`mt-2 grid grid-cols-1 ${className}`}>
@@ -54,7 +54,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         />
       </div>
     );
-  }
+  },
 );
 
 export default Select;

@@ -1,5 +1,5 @@
-import React from "react";
-import { XCircleIcon } from "@heroicons/react/16/solid";
+import React from 'react';
+import { XCircleIcon } from '@heroicons/react/16/solid';
 
 interface InputProps {
   value: string;
@@ -11,8 +11,8 @@ interface InputProps {
 export const Input: React.FC<InputProps> = ({
   value,
   onChange,
-  placeholder = "",
-  type = "text",
+  placeholder = '',
+  type = 'text',
 }) => {
   return (
     <div className="relative w-full">
@@ -29,7 +29,7 @@ export const Input: React.FC<InputProps> = ({
           <button
             type="button"
             className="absolute inset-y-0 right-0 flex items-center pr-2 mt-1"
-            onClick={() => onChange("")}
+            onClick={() => onChange('')}
           >
             <XCircleIcon className="size-4 text-[#080808]" />
           </button>
