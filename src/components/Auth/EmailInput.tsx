@@ -9,7 +9,7 @@ import { setEmailGranted } from '../../services/storageService';
 import { useAuthContext } from '../../context/AuthContext';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { UiStates, useUIManager } from '../../context/UIManagerContext';
-
+import debounce from 'lodash/debounce';
 import ErrorMessage from '../Shared/ErrorMessage';
 import { submitCodeExchange } from '../../services/authService';
 import { decodeJwt } from '../../utils/jwtUtils';
@@ -37,25 +37,35 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     useUIManager();
   const { onboardingEnabled } = useOracles();
   const [email, setEmail] = useState('');
-  const [isDoingCodeExchange, setIsDoingCodeExchange] = useState(false);
   const [triggerAuth, setTriggerAuth] = useState(false);
   const [emailPermissionGranted, setEmailPermissionGranted] = useState(false);
-  const [tokenExchanged, setTokenExchanged] = useState(false);
+  const [codeExchangeState, setCodeExchangeState] = useState<{
+    isLoading: boolean;
+    error: string | null;
+    attempts: number;
+  }>({
+    isLoading: false,
+    error: null,
+    attempts: 0,
+  });
   const forceEmail = getForceEmail();
   const appUrl = getAppUrl();
 
-  const processEmailSubmission = async (email: string, caller: string) => {
-    if (!email || !clientId) return;
-    onSubmit(email);
-    const userExistsResult = await fetchUserDetails(email);
-    if (userExistsResult.success && userExistsResult.data.user) {
-      setUser(userExistsResult.data.user);
-      setTriggerAuth(true);
-      return true;
-    }
-    setUiState(UiStates.PASSKEY_GENERATOR, { setBack: true });
-    return false;
-  };
+  const processEmailSubmission = useCallback(
+    async (email: string) => {
+      if (!email || !clientId) return;
+      onSubmit(email);
+      const userExistsResult = await fetchUserDetails(email);
+      if (userExistsResult.success && userExistsResult.data.user) {
+        setUser(userExistsResult.data.user);
+        setTriggerAuth(true);
+        return true;
+      }
+      setUiState(UiStates.PASSKEY_GENERATOR, { setBack: true });
+      return false;
+    },
+    [clientId, onSubmit, setUiState, setUser],
+  );
 
   const handleEmailInputSubmit = async () => {
     if (!email || !isValidEmail(email)) {
@@ -67,7 +77,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       return;
     }
     setEmailGranted(clientId, emailPermissionGranted);
-    await processEmailSubmission(email, 'handleSubmit');
+    await processEmailSubmission(email);
   };
 
   const handleProviderAuth = (provider: AuthProvider) => {
@@ -103,24 +113,38 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   const handleCodeExchangeError = useCallback(
     (errorMsg: string) => {
       setError(`Error doing code exchange: ${errorMsg}`);
-      setIsDoingCodeExchange(false);
+      setCodeExchangeState((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: errorMsg,
+      }));
     },
     [setError],
   );
 
   const handleCodeExchangeSuccess = useCallback(
     async (email: string) => {
-      setTokenExchanged(true);
       setEmail(email);
       setComponentData({ emailValidated: email });
-      await processEmailSubmission(email, 'handleEmail');
+
+      // purposely not resetting the loading state here because the UI becomes weird
+      // if it causes problems, revisit resetting it
+      setCodeExchangeState((prev) => ({
+        ...prev,
+        error: null,
+      }));
+      await processEmailSubmission(email);
     },
     [processEmailSubmission, setComponentData],
   );
 
   const handleOAuthCodeExchange = useCallback(
     async (code: string) => {
-      setIsDoingCodeExchange(true);
+      setCodeExchangeState((prev) => ({
+        ...prev,
+        isLoading: true,
+        attempts: prev.attempts + 1,
+      }));
       try {
         const result = await submitCodeExchange({
           clientId: 'login-with-dimo',
@@ -135,67 +159,29 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
         if (!decodedJwt?.email) return handleCodeExchangeError('Failed to decode JWT');
         await handleCodeExchangeSuccess(decodedJwt.email);
       } catch (err: unknown) {
-        console.error(err);
         return handleCodeExchangeError((err as Error).message ?? 'unknown error');
       }
     },
     [handleCodeExchangeError, handleCodeExchangeSuccess],
   );
 
+  // TODO - test that this still works when we error
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const codeFromUrl = urlParams.get('code');
-    if (!codeFromUrl || isDoingCodeExchange) return;
-  }, []);
+    const callback = debounce(() => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const codeFromUrl = urlParams.get('code');
+      if (!codeFromUrl) return;
+      if (!codeExchangeState.attempts) {
+        handleOAuthCodeExchange(codeFromUrl);
+      }
+    }, 500);
+    callback();
+    return () => {
+      callback.cancel();
+    };
+  }, [codeExchangeState.attempts, handleOAuthCodeExchange]);
 
-  // useEffect(() => {
-  //   const urlParams = new URLSearchParams(window.location.search);
-  //   const codeFromUrl = urlParams.get('code');
-  //   if (!codeFromUrl || isDoingCodeExchange) return;
-  //   handleOAuthCodeExchange(codeFromUrl);
-  // }, [handleOAuthCodeExchange, isDoingCodeExchange]);
-
-  // useEffect(() => {
-  //   // const fetchData = async () => {
-  //   //   const urlParams = new URLSearchParams(window.location.search);
-  //   //   const codeFromUrl = urlParams.get('code');
-  //   //   if (codeFromUrl) {
-  //   //     setIsDoingCodeExchange(true);
-  //   //     try {
-  //   //       const result = await submitCodeExchange({
-  //   //         clientId: 'login-with-dimo',
-  //   //         redirectUri: getOAuthRedirectUri(),
-  //   //         code: codeFromUrl,
-  //   //       });
-  //   //       console.log('RESULT FROM CODE EXCHANGE', result);
-  //   //       if (!result.success) {
-  //   //         return setError(`Error doing OAuth code exchange: ${result.error}`);
-  //   //       }
-  //   //       const access_token = result.data.access_token;
-  //   //       const decodedJwt = decodeJwt(access_token);
-  //   //
-  //   //       if (decodedJwt) {
-  //   //         setTokenExchanged(true);
-  //   //         setEmail(decodedJwt.email);
-  //   //         setComponentData({ emailValidated: decodedJwt.email });
-  //   //         await processEmailSubmission(email, 'handleEmail');
-  //   //       }
-  //   //     } catch (error: unknown) {
-  //   //       return setError(
-  //   //         `Caught error doing OAuth code exchange: ${(error as Error).message ?? 'unknown error'}`,
-  //   //       );
-  //   //     }
-  //   //   } else {
-  //   //     setTokenExchanged(true);
-  //   //   }
-  //   // };
-  //
-  //   if (!tokenExchanged) {
-  //     fetchData();
-  //   }
-  // }, [tokenExchanged]);
-
-  if (isDoingCodeExchange) {
+  if (codeExchangeState.isLoading) {
     return <LoadingScreen />;
   }
 
