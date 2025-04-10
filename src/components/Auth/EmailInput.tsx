@@ -100,17 +100,23 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     }
   }, [triggerAuth]);
 
-  const handleCodeExchangeError = (errorMsg: string) => {
-    setError(`Error doing code exchange: ${errorMsg}`);
-    setIsDoingCodeExchange(false);
-  };
+  const handleCodeExchangeError = useCallback(
+    (errorMsg: string) => {
+      setError(`Error doing code exchange: ${errorMsg}`);
+      setIsDoingCodeExchange(false);
+    },
+    [setError],
+  );
 
-  const handleCodeExchangeSuccess = async (email: string) => {
-    setTokenExchanged(true);
-    setEmail(email);
-    setComponentData({ emailValidated: email });
-    await processEmailSubmission(email, 'handleEmail');
-  };
+  const handleCodeExchangeSuccess = useCallback(
+    async (email: string) => {
+      setTokenExchanged(true);
+      setEmail(email);
+      setComponentData({ emailValidated: email });
+      await processEmailSubmission(email, 'handleEmail');
+    },
+    [processEmailSubmission, setComponentData],
+  );
 
   const handleOAuthCodeExchange = useCallback(
     async (code: string) => {
@@ -135,6 +141,12 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     },
     [handleCodeExchangeError, handleCodeExchangeSuccess],
   );
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const codeFromUrl = urlParams.get('code');
+    if (!codeFromUrl || isDoingCodeExchange) return;
+  }, []);
 
   // useEffect(() => {
   //   const urlParams = new URLSearchParams(window.location.search);
