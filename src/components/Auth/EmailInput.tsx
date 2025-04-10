@@ -165,7 +165,6 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     [handleCodeExchangeError, handleCodeExchangeSuccess],
   );
 
-  // TODO - test that this still works when we error
   useEffect(() => {
     const callback = debounce(() => {
       const urlParams = new URLSearchParams(window.location.search);

@@ -116,7 +116,6 @@ function getTeslaAuthUrl(params: AuthUrlParams): string {
 }
 
 export const getOAuthRedirectUri = () => {
-  return 'http://127.0.0.1:3000';
   return process.env.REACT_APP_ENVIRONMENT === 'prod'
     ? 'https://login.dimo.org'
     : 'https://login.dev.dimo.org';
