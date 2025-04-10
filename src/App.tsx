@@ -45,13 +45,10 @@ const App = () => {
     }
   }, [clientId]);
 
-  // If either credentials or auth is loading, show the loader
-
-  // Loading state
   if (isLoading || !userInitialized) {
     return <LoadingScreen />;
   }
-  // Error screens
+
   if (invalidCredentials) {
     return (
       <ErrorScreen
