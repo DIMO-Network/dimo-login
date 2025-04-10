@@ -91,7 +91,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       provider,
       clientId,
       redirectUri,
-      entryState: UiStates.CONNECT_TESLA,
+      entryState: UiStates.EMAIL_INPUT,
       expirationDate: urlParams.get('expirationDate'),
       permissionTemplateId: urlParams.get('permissionTemplateId'),
       utm: urlParams.getAll('utm'),
