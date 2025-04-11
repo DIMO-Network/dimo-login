@@ -96,7 +96,7 @@ export async function fetchPermissionsFromId({
       },
       effectiveAt: currentTime.toISOString(),
       expiresAt: new Date(Number(expirationDate) * 1000).toISOString(),
-      attachments: ['bafybeig4z2vbake7eb7pw44sum3txqmpq6bkenkxtnxaxxfyn2z7z67zlm'],
+      attachments: [],
       description,
     },
   };
