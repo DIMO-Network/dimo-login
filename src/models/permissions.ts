@@ -5,4 +5,5 @@ export interface FetchPermissionsParams {
   email: string;
   devLicenseAlias: string;
   expirationDate: BigInt;
+  region?: string;
 }
