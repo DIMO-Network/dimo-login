@@ -22,6 +22,14 @@ export const ConnectTesla: FC = () => {
   const [step, setStep] = useState<
     'permissions' | 'minting' | 'virtual-key' | 'polling-virtual-key' | 'ready'
   >('permissions');
+  const [vehicleToAdd, setVehicleToAdd] = useState<{
+    make: string;
+    model: string;
+    year: string;
+    deviceDefinitionId: string;
+    vin?: string;
+    country: string;
+  }>();
   const { devLicenseAlias, clientId, redirectUri } = useDevCredentials();
   const { jwt } = useAuthContext();
   const appUrl = getAppUrl();
@@ -33,14 +41,15 @@ export const ConnectTesla: FC = () => {
 
     if (!stateFromUrl) return;
 
+    const state = JSON.parse(stateFromUrl);
+    setVehicleToAdd(state.vehicleToAdd);
+
     if (componentData && componentData.permissionsGranted) {
       setStep('virtual-key');
     }
 
     if (authCode && !(componentData && componentData.permissionsGranted)) {
-      const state = JSON.parse(stateFromUrl);
-      const vehicleToAdd = state.vehicleToAdd;
-      handleAuthCode(authCode, vehicleToAdd);
+      handleAuthCode(authCode, state.vehicleToAdd);
     }
   }, []);
 
@@ -70,7 +79,6 @@ export const ConnectTesla: FC = () => {
 
       if (!externalVehicles.success) {
         console.error('Permissions not granted');
-        // setStep("permissions"); // Show permissions step again
         return;
       }
 
@@ -134,7 +142,7 @@ export const ConnectTesla: FC = () => {
         return;
       }
 
-      // // ✅ Step 3: Register Integration
+      // ✅ Step 3: Register Integration
       const registeredIntegration = await registerIntegration(
         {
           userDeviceId,
@@ -176,36 +184,8 @@ export const ConnectTesla: FC = () => {
     }
   };
 
-  const pollVirtualKeyStatus = (userDeviceId: string, integrationId: string) => {
-    //Note: Not currently polling, relying on manual input - due to inability to test this, and to prevent race conditions
-    const interval = setInterval(async () => {
-      console.log('Polling Virtual Key Status...');
-      const integrationInfo = await checkIntegrationInfo(
-        {
-          userDeviceId,
-          integrationId,
-        },
-        jwt,
-      );
-
-      if (!integrationInfo.success) {
-        return;
-      }
-
-      const virtualKeyStatus = integrationInfo.data.tesla?.virtualKeyStatus;
-
-      if (virtualKeyStatus && ['Paired', 'Incapable'].includes(virtualKeyStatus)) {
-        clearInterval(interval);
-        setLoadingState(false);
-        setUiState(UiStates.MINT_VEHICLE);
-      }
-    }, 5000); // Polling every 5 seconds
-  };
-
   const handleNextStep = () => {
     if (step === 'permissions') {
-      // Redirect to Tesla OAuth
-      //   window.location.href = `https://tesla.com/oauth/...`;
       // Temporarily redirect to this page, but with the auth code
       const urlParams = new URLSearchParams(window.location.search);
       const authUrl = constructAuthUrl({
@@ -218,10 +198,9 @@ export const ConnectTesla: FC = () => {
         utm: urlParams.getAll('utm'),
         vehicleMakes: urlParams.getAll('vehicleMakes'),
         vehicles: urlParams.getAll('vehicles'),
-        vehicleToAdd: componentData.vehicleToAdd,
+        vehicleToAdd,
       });
 
-      // navigateToRedirectUri(authUrl);
       window.location.href = authUrl;
     } else if (step === 'virtual-key') {
       // Open to Tesla's Virtual Key setup
@@ -329,6 +308,28 @@ export const ConnectTesla: FC = () => {
                     >
                       Learn more.
                     </a>
+                    {vehicleToAdd && (
+                      <div className="flex items-center p-4 border rounded-2xl cursor-pointer transition hover:bg-gray-50 cursor-pointer mt-6">
+                        <img
+                          className="h-[48px] w-[48px] rounded-full object-cover mr-4"
+                          src={
+                            'https://assets.dimo.xyz/ipfs/QmaaxazmGtNM6srcRmLyNdjCp8EAmvaTDYSo1k2CXVRTaY'
+                          }
+                          alt={`${vehicleToAdd.make} ${vehicleToAdd.model}`}
+                        />
+                        <label
+                          htmlFor={`vehicle`}
+                          className="flex-grow text-left hover:cursor-pointer"
+                        >
+                          <div className="text-black font-medium">
+                            {vehicleToAdd.make} {vehicleToAdd.model} ({vehicleToAdd.year})
+                          </div>
+                          <div className="text-sm text-gray-500 font-medium">
+                            VIN: {vehicleToAdd.vin}
+                          </div>
+                        </label>
+                      </div>
+                    )}
                   </div>
                 </>
               );
