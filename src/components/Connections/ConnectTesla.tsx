@@ -40,15 +40,15 @@ export const ConnectTesla: FC = () => {
 
     if (!stateFromUrl) return;
 
-    const state = JSON.parse(stateFromUrl);
-    setVehicleToAdd(state.vehicleToAdd);
+    const decodedStateFromUrl = JSON.parse(stateFromUrl);
+    setVehicleToAdd(decodedStateFromUrl.vehicleToAdd);
 
     if (componentData && componentData.permissionsGranted) {
       setStep('virtual-key');
     }
 
     if (authCode && !(componentData && componentData.permissionsGranted)) {
-      handleAuthCode(authCode, state.vehicleToAdd);
+      handleAuthCode(authCode, decodedStateFromUrl.vehicleToAdd);
     }
   }, []);
 
