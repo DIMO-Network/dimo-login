@@ -3,10 +3,11 @@ import React, { useEffect, useState } from 'react';
 import {
   Card,
   Checkbox,
-  Header,
-  PrimaryButton,
   ErrorMessage,
+  Header,
+  LegalNotice,
   LoadingScreen,
+  PrimaryButton,
   SSOButton,
 } from '../Shared';
 import { fetchUserDetails } from '../../services/accountsService';
@@ -232,23 +233,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
               text="Sign in with Apple"
             />
           </div>
-
-          <p className="flex flex-wrap justify-center text-center text-xs text-gray-500">
-            By continuing you agree to our&nbsp;
-            <a
-              href="https://dimo.org/legal/privacy-policy"
-              className="underline whitespace-nowrap"
-            >
-              Privacy Policy
-            </a>
-            &nbsp;and&nbsp;
-            <a
-              href="https://dimo.org/legal/terms-of-use"
-              className="underline whitespace-nowrap"
-            >
-              Terms of Service
-            </a>
-          </p>
+          <LegalNotice />
         </div>
       </div>
     </Card>
