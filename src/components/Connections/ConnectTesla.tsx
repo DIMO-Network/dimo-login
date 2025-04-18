@@ -1,9 +1,7 @@
 import { useEffect, useState, type FC } from 'react';
 
-import PrimaryButton from '../Shared/PrimaryButton';
+import { PrimaryButton, Card, Header, Loader } from '../Shared';
 import { UiStates, useUIManager } from '../../context/UIManagerContext';
-import Card from '../Shared/Card';
-import Header from '../Shared/Header';
 import { getAppUrl } from '../../utils/urlHelpers';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { constructAuthUrl } from '../../utils/authUrls';
@@ -15,21 +13,22 @@ import {
 } from '../../services/dimoDevicesService';
 import { useAuthContext } from '../../context/AuthContext';
 import { TESLA_INTEGRATION_ID } from '../../utils/constants';
-import Loader from '../Shared/Loader';
+
+interface TeslaVehicle {
+  make: string;
+  model: string;
+  year: string;
+  deviceDefinitionId: string;
+  vin?: string;
+  country: string;
+}
 
 export const ConnectTesla: FC = () => {
-  const { componentData, setUiState, setLoadingState, setComponentData } = useUIManager(); // Access the manage function from the context
+  const { componentData, setUiState, setLoadingState, setComponentData } = useUIManager();
   const [step, setStep] = useState<
     'permissions' | 'minting' | 'virtual-key' | 'polling-virtual-key' | 'ready'
   >('permissions');
-  const [vehicleToAdd, setVehicleToAdd] = useState<{
-    make: string;
-    model: string;
-    year: string;
-    deviceDefinitionId: string;
-    vin?: string;
-    country: string;
-  }>();
+  const [vehicleToAdd, setVehicleToAdd] = useState<TeslaVehicle>();
   const { devLicenseAlias, clientId, redirectUri } = useDevCredentials();
   const { jwt } = useAuthContext();
   const appUrl = getAppUrl();
@@ -93,7 +92,6 @@ export const ConnectTesla: FC = () => {
           return true;
         }
 
-        // Match against deviceDefinitionId if provided
         if (deviceDefinitionId && vehicle.definition.id === deviceDefinitionId) {
           return true;
         }
@@ -118,7 +116,7 @@ export const ConnectTesla: FC = () => {
       // ✅ Step 2: Create Vehicle
       const createdVehicle = await createVehicleFromDeviceDefinitionId(
         {
-          countryCode: vehicleToAdd.country, //TODO: Update so not hardcoded
+          countryCode: vehicleToAdd.country,
           deviceDefinitionId,
         },
         jwt,
@@ -157,7 +155,7 @@ export const ConnectTesla: FC = () => {
         return;
       }
 
-      // // ✅ Step 4: Check Virtual Key Status
+      // ✅ Step 4: Check Virtual Key Status
       const integrationInfo = await checkIntegrationInfo(
         {
           userDeviceId,
@@ -186,7 +184,6 @@ export const ConnectTesla: FC = () => {
 
   const handleNextStep = () => {
     if (step === 'permissions') {
-      // Temporarily redirect to this page, but with the auth code
       const urlParams = new URLSearchParams(window.location.search);
       const authUrl = constructAuthUrl({
         provider: 'tesla',
@@ -206,12 +203,10 @@ export const ConnectTesla: FC = () => {
       // Open to Tesla's Virtual Key setup
       window.open(process.env.REACT_APP_TESLA_VIRTUAL_KEY_URL, '_blank');
       setStep('polling-virtual-key');
-      // pollVirtualKeyStatus();
     } else if (step === 'polling-virtual-key') {
       setLoadingState(false);
       setUiState(UiStates.MINT_VEHICLE);
     } else {
-      // Virtual key setup complete, move to vehicle sharing
       setLoadingState(true, 'Finalizing setup...');
       setTimeout(() => {
         setLoadingState(false);
@@ -241,19 +236,16 @@ export const ConnectTesla: FC = () => {
           link={`${appUrl.protocol}//${appUrl.host}`}
         />
 
-        {/* Render different components based on the step */}
         {(() => {
           switch (step) {
             case 'permissions':
               return (
                 <>
-                  {/* Permissions Text */}
                   <div className="w-full text-gray-600 text-sm text-center">
                     {devLicenseAlias} requires access to your car’s data to offer you
                     charging&nbsp;incentives.
                   </div>
 
-                  {/* Permissions List */}
                   <div className="flex flex-col gap-[10px] w-full">
                     {[
                       { name: 'Vehicle information', type: 'required' },
@@ -288,8 +280,6 @@ export const ConnectTesla: FC = () => {
             case 'virtual-key':
               return (
                 <>
-                  {/* Virtual Key Step */}
-
                   <div className="w-full text-gray-600 text-sm">
                     {devLicenseAlias} requires access to your car’s data to offer you
                     charging incentives.
@@ -337,7 +327,6 @@ export const ConnectTesla: FC = () => {
             case 'polling-virtual-key':
               return (
                 <div className="py-10">
-                  {/* Virtual Key Step */}
                   <Loader />
                 </div>
               );
@@ -358,7 +347,6 @@ export const ConnectTesla: FC = () => {
           }
         })()}
 
-        {/* Buttons */}
         <div className="flex flex-col w-full space-y-3">
           <PrimaryButton onClick={handleNextStep} width="w-full py-3">
             {step === 'permissions'
