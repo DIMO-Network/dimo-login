@@ -25,3 +25,5 @@ export const ConnectCarButton: FC = () => {
     </button>
   );
 };
+
+export default ConnectCarButton;
