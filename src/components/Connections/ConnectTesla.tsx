@@ -235,7 +235,7 @@ export const ConnectTesla: FC = () => {
       ),
       [TeslaOnboardingStep.POLLING_VIRTUAL_KEY]: <PollingVirtualKeyStep />,
       [TeslaOnboardingStep.MINTING]: <MintingStep devLicenseAlias={devLicenseAlias} />,
-      [TeslaOnboardingStep.READY]: <></>, // Default case
+      [TeslaOnboardingStep.READY]: <></>,
     };
 
     return stepComponents[step] || null;
@@ -270,7 +270,7 @@ export const ConnectTesla: FC = () => {
     >
       <div className="flex flex-col gap-6 w-[440px]">
         <Header
-          title={STEP_CONTENT_MAP[step]?.title || DEFAULT_STEP_CONTENT.title}
+          title={STEP_CONTENT_MAP[step].title}
           subtitle={appUrl.hostname}
           link={`${appUrl.protocol}//${appUrl.host}`}
         />
