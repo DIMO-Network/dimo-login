@@ -24,7 +24,7 @@ export const MintVehicle: FC = () => {
   useEffect(() => {
     const processMint = async () => {
       try {
-        setLoadingState(true, 'Minting vehicle', true);
+        setLoadingState(true, 'Creating vehicle...', true);
 
         const { integrationID, userDeviceID } = componentData;
 

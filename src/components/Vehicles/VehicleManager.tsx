@@ -1,23 +1,19 @@
 import React, { useEffect, useState } from 'react';
 
-import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/solid';
 import { SACDTemplate } from '@dimo-network/transactions/dist/core/types/dimo';
 
 import { FetchPermissionsParams } from '../../models/permissions';
 import { useAuthContext } from '../../context/AuthContext';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
-import { useOracles } from '../../context/OraclesContext';
-import { useUIManager } from '../../context/UIManagerContext';
 import { fetchPermissionsFromId } from '../../services/permissionsService';
-import { getDefaultExpirationDate, parseExpirationDate } from '../../utils/dateUtils';
-import { isStandalone } from '../../utils/isStandalone';
+import { Card, Header, ErrorMessage } from '../Shared';
 import { sendMessageToReferrer } from '../../utils/messageHandler';
-import { getAppUrl, getParamFromUrlOrState } from '../../utils/urlHelpers';
-
-import Card from '../Shared/Card';
-import ErrorMessage from '../Shared/ErrorMessage';
-import Header from '../Shared/Header';
+import { isStandalone } from '../../utils/isStandalone';
+import { useUIManager } from '../../context/UIManagerContext';
+import { getDefaultExpirationDate, parseExpirationDate } from '../../utils/dateUtils';
 import SelectVehicles from './SelectVehicles';
+import { getAppUrl, getParamFromUrlOrState } from '../../utils/urlHelpers';
+import { useOracles } from '../../context/OraclesContext';
 
 const VehicleManager: React.FC = () => {
   const { user } = useAuthContext();
@@ -228,46 +224,43 @@ const VehicleManager: React.FC = () => {
     <Card
       width="w-full max-w-[600px]"
       height="h-fit max-h-[770px]"
-      className="flex flex-col"
+      className="flex flex-col items-center"
     >
-      <Header
-        title={`${devLicenseAlias} wants to use DIMO to connect to your vehicles data`}
-        subtitle={appUrl.hostname}
-        link={`${appUrl.protocol}//${appUrl.host}`}
-      />
-      <div className="flex flex-col items-center justify-center max-h-[480px] lg:max-h-[584px] box-border overflow-y-auto w-full">
-        {error && <ErrorMessage message={error} />}
+      <div className="flex flex-col w-[440px]">
+        <Header
+          title={`${devLicenseAlias} wants to use DIMO to connect to your vehicles data`}
+          subtitle={appUrl.hostname}
+          link={`${appUrl.protocol}//${appUrl.host}`}
+        />
+        <div className="flex flex-col items-center justify-center max-h-[480px] lg:max-h-[584px] box-border overflow-y-auto w-full">
+          {error && <ErrorMessage message={error} />}
 
-        <>
-          <div className="description w-fit max-w-[440px] mt-2 text-sm mb-4 overflow-y-auto max-h-[356px]">
-            {permissionTemplate?.data.description
-              ? renderDescription(permissionTemplate?.data.description)
-              : 'The developer is requesting access to view your vehicle data. Select the vehicles you’d like to share access to.'}
-          </div>
-          <div className="w-full max-w-[440px]">
-            <button
-              className="bg-white w-[145px] text-[#09090B] font-medium border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500 flex items-center justify-between"
-              onClick={() => setIsExpanded(!isExpanded)}
-            >
-              <span>{isExpanded ? 'Show less' : 'Show more'}</span>
-              {isExpanded ? (
-                <ChevronUpIcon className="h-4 w-4 ml-2" />
-              ) : (
-                <ChevronDownIcon className="h-4 w-4 ml-2" />
-              )}
-            </button>
-          </div>
-        </>
+          <>
+            <div className="description w-fit w-full mt-2 text-sm overflow-y-auto">
+              {permissionTemplate?.data.description
+                ? renderDescription(permissionTemplate?.data.description)
+                : 'The developer is requesting access to view your vehicle data. Select the vehicles you’d like to share access to.'}
+            </div>
+            <div className="w-full">
+              <button
+                className="bg-white w-[145px] text-[#09090B] font-medium text-sm text-left underline decoration-[#D4D4D8]"
+                onClick={() => setIsExpanded(!isExpanded)}
+              >
+                {isExpanded ? 'Show less' : 'Show more'}
+              </button>
+            </div>
+          </>
 
-        {permissionTemplateId && (
-          <SelectVehicles
-            vehicleTokenIds={vehicleTokenIds}
-            vehicleMakes={vehicleMakes}
-            permissionTemplateId={permissionTemplateId}
-            expirationDate={expirationDate}
-            powertrainTypes={powertrainTypes}
-          />
-        )}
+          {permissionTemplateId && (
+            <SelectVehicles
+              vehicleTokenIds={vehicleTokenIds}
+              vehicleMakes={vehicleMakes}
+              permissionTemplateId={permissionTemplateId}
+              expirationDate={expirationDate}
+              powertrainTypes={powertrainTypes}
+            />
+          )}
+        </div>
       </div>
     </Card>
   );

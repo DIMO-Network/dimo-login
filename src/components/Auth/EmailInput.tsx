@@ -1,19 +1,23 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import debounce from 'lodash/debounce';
 
-import { Card } from '../Shared/Card';
-import { Checkbox } from '../Shared/Checkbox';
+import {
+  Card,
+  Checkbox,
+  ErrorMessage,
+  Header,
+  LegalNotice,
+  LoadingScreen,
+  PrimaryButton,
+  SSOButton,
+} from '../Shared';
 import { fetchUserDetails } from '../../services/accountsService';
-import { Header } from '../Shared/Header';
-import { PrimaryButton } from '../Shared/PrimaryButton';
 import { setEmailGranted } from '../../services/storageService';
 import { useAuthContext } from '../../context/AuthContext';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { UiStates, useUIManager } from '../../context/UIManagerContext';
-import debounce from 'lodash/debounce';
-import ErrorMessage from '../Shared/ErrorMessage';
 import { submitCodeExchange } from '../../services/authService';
 import { decodeJwt } from '../../utils/jwtUtils';
-import LoadingScreen from '../Shared/LoadingScreen';
 import { AppleIcon, GoogleIcon } from '../Icons';
 import { isValidEmail } from '../../utils/emailUtils';
 import { getForceEmail } from '../../stores/AuthStateStore';
@@ -186,81 +190,66 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   }
 
   return (
-    <Card width="w-full max-w-[600px]" height="h-fit" className="flex flex-col gap-6">
-      <Header
-        title={getSignInTitle(devLicenseAlias, {
-          altTitle: Boolean(altTitle),
-        })}
-        subtitle={appUrl.hostname}
-        link={`${appUrl.protocol}//${appUrl.host}`}
-      />
-      {error && <ErrorMessage message={error} />}
-      <div className="flex justify-center items-center">
-        <label
-          htmlFor="share-email"
-          className="flex justify-center items-center text-sm mb-4 cursor-pointer"
-        >
-          <Checkbox
-            onChange={() => {
-              setEmailPermissionGranted(!emailPermissionGranted);
-            }}
-            name="share-email"
-            id="share-email"
-            className="mr-2"
-            checked={emailPermissionGranted}
-          />
-          I agree to share my email with {devLicenseAlias}
-        </label>
-      </div>
-      <div
-        onKeyDown={getKeyboardEventListener('Enter', handleEmailInputSubmit)}
-        className="frame9 flex flex-col items-center gap-[10px]"
-      >
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Enter your email"
-          className="p-2 border border-gray-300 rounded-md w-full lg:w-[440px]"
+    <Card
+      width="w-full max-w-[600px]"
+      height="h-fit"
+      className="flex flex-col items-center"
+    >
+      <div className="flex flex-col gap-6 w-[440px]">
+        <Header
+          title={getSignInTitle(devLicenseAlias, {
+            altTitle: Boolean(altTitle),
+          })}
+          subtitle={appUrl.hostname}
+          link={`${appUrl.protocol}//${appUrl.host}`}
         />
-        <PrimaryButton onClick={handleEmailInputSubmit} width="w-full lg:w-[440px]">
-          Continue
-        </PrimaryButton>
-
-        <div className="flex flex-wrap sm:flex-nowrap justify-center gap-3 w-full">
-          <button
-            onClick={() => handleProviderAuth('google')}
-            className="flex items-center justify-center gap-2 w-full sm:max-w-[210px] h-[40px] rounded-full border border-gray-300 bg-white text-black text-sm hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400"
+        {error && <ErrorMessage message={error} />}
+        <div className="flex justify-center items-center">
+          <label
+            htmlFor="share-email"
+            className="flex justify-center items-center text-sm mb-4 cursor-pointer"
           >
-            <GoogleIcon />
-            Sign in with Google
-          </button>
-
-          <button
-            onClick={() => handleProviderAuth('apple')}
-            className="flex items-center justify-center gap-2 w-full sm:max-w-[210px] h-[40px] rounded-full border border-gray-300 bg-white text-black text-sm hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400"
-          >
-            <AppleIcon />
-            Sign in with Apple
-          </button>
+            <Checkbox
+              onChange={() => {
+                setEmailPermissionGranted(!emailPermissionGranted);
+              }}
+              name="share-email"
+              id="share-email"
+              className="mr-2"
+              checked={emailPermissionGranted}
+            />
+            I agree to share my email with {devLicenseAlias}
+          </label>
         </div>
+        <div
+          onKeyDown={getKeyboardEventListener('Enter', handleEmailInputSubmit)}
+          className="frame9 flex flex-col items-center gap-[10px]"
+        >
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Enter your email"
+            className="p-2 border border-gray-300 rounded-md w-full lg:w-[440px]"
+          />
+          <PrimaryButton onClick={handleEmailInputSubmit} width="w-full lg:w-[440px]">
+            Continue
+          </PrimaryButton>
 
-        <p className="flex flex-wrap justify-center text-center text-xs text-gray-500">
-          By continuing you agree to our&nbsp;
-          <a
-            href="https://dimo.org/legal/privacy-policy"
-            className="underline whitespace-nowrap"
-          >
-            Privacy Policy
-          </a>
-          &nbsp;and&nbsp;
-          <a
-            href="https://dimo.org/legal/terms-of-use"
-            className="underline whitespace-nowrap"
-          >
-            Terms of Service
-          </a>
-        </p>
+          <div className="flex flex-wrap sm:flex-nowrap justify-between gap-3 w-full">
+            <SSOButton
+              onClick={() => handleProviderAuth('google')}
+              icon={<GoogleIcon />}
+              text="Sign in with Google"
+            />
+            <SSOButton
+              onClick={() => handleProviderAuth('apple')}
+              icon={<AppleIcon />}
+              text="Sign in with Apple"
+            />
+          </div>
+          <LegalNotice />
+        </div>
       </div>
     </Card>
   );

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { XCircleIcon } from '@heroicons/react/16/solid';
 
 interface AutoCompleteInputProps {
   options: string[];
@@ -64,24 +65,35 @@ export const AutoCompleteInput: React.FC<AutoCompleteInputProps> = ({
 
   return (
     <div className="relative w-full" ref={containerRef}>
-      <input
-        type="text"
-        className="w-full mt-1 p-2 border rounded-md text-[#080808] border-gray-300 
-                focus:border-[#080808] focus:ring-[#080808] focus:outline-none"
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={handleKeyDown}
-        onFocus={() => setIsFocused(true)}
-        onBlur={handleBlur}
-      />
+      <div className="relative">
+        <input
+          type="text"
+          className="w-full mt-1 p-2 border rounded-md text-[#080808] border-gray-300 
+                  focus:border-[#080808] focus:ring-[#080808] focus:outline-none pr-10"
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onFocus={() => setIsFocused(true)}
+          onBlur={handleBlur}
+        />
+        {value && (
+          <button
+            type="button"
+            className="absolute inset-y-0 right-0 flex items-center pr-2 mt-1"
+            onClick={() => onChange('')}
+          >
+            <XCircleIcon className="size-4 text-[#080808]" />
+          </button>
+        )}
+      </div>
       {isFocused && filteredOptions.length > 0 && (
         <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-md mt-1 max-h-60 overflow-y-auto shadow-md">
           {filteredOptions.map((option, idx) => (
             <li
               key={option}
               className={`p-2 cursor-pointer ${
-                idx === highlightedIndex ? 'bg-gray-200' : ''
+                idx === highlightedIndex ? 'bg-gray-100' : ''
               }`}
               onMouseDown={() => onChange(option)}
               onMouseEnter={() => setHighlightedIndex(idx)}
@@ -94,3 +106,5 @@ export const AutoCompleteInput: React.FC<AutoCompleteInputProps> = ({
     </div>
   );
 };
+
+export default AutoCompleteInput;

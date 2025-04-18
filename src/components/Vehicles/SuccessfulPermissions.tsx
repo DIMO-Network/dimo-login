@@ -41,32 +41,34 @@ const SuccessfulPermissions: React.FC = () => {
   return (
     <Card
       width="w-full max-w-[600px]"
-      height="h-fit max-h-[770px]"
-      className="flex flex-col gap-6 items-center"
+      height="h-fit"
+      className="flex flex-col items-center"
     >
-      <Header title={`You have successfully ${action} your vehicles!`} subtitle={''} />
-      <div className="flex flex-col gap-4 max-h-[400px] overflow-auto w-full max-w-[440px]">
-        {vehicles &&
-          vehicles.length > 0 &&
-          vehicles.map((vehicle: Vehicle) => (
-            <VehicleCard
-              key={vehicle.tokenId.toString()}
-              vehicle={vehicle}
-              isSelected={false}
-              onSelect={() => console.log('yee')}
-              disabled={true}
-              incompatible={false}
-            />
-          ))}
-      </div>
-      <div className="flex fex-col">
-        {!isEmbed() && (
-          <div className="flex justify-center">
-            <PrimaryButton onClick={handleBackToThirdParty} width="w-full">
-              Back to {devLicenseAlias}
-            </PrimaryButton>
-          </div>
-        )}
+      <div className="flex flex-col gap-6 w-[440px]">
+        <Header title={`You have successfully ${action} your vehicles!`} subtitle={''} />
+        <div className="flex flex-col gap-4 max-h-[400px] overflow-auto w-full max-w-[440px]">
+          {vehicles &&
+            vehicles.length > 0 &&
+            vehicles.map((vehicle: Vehicle) => (
+              <VehicleCard
+                key={vehicle.tokenId.toString()}
+                vehicle={vehicle}
+                isSelected={false}
+                onSelect={() => console.log('yee')}
+                disabled={true}
+                incompatible={false}
+              />
+            ))}
+        </div>
+        <div className="flex fex-col">
+          {!isEmbed() && (
+            <div className="flex justify-center">
+              <PrimaryButton onClick={handleBackToThirdParty} width="w-full">
+                Back to {devLicenseAlias}
+              </PrimaryButton>
+            </div>
+          )}
+        </div>
       </div>
     </Card>
   );
