@@ -1,6 +1,14 @@
 import { useEffect, useState, type FC } from 'react';
 
-import { PrimaryButton, Card, Header, Loader } from '../Shared';
+import {
+  PrimaryButton,
+  Card,
+  Header,
+  PermissionsStep,
+  VirtualKeyStep,
+  PollingVirtualKeyStep,
+  MintingStep,
+} from '../Shared';
 import { UiStates, useUIManager } from '../../context/UIManagerContext';
 import { getAppUrl } from '../../utils/urlHelpers';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
@@ -13,21 +21,19 @@ import {
 } from '../../services/dimoDevicesService';
 import { useAuthContext } from '../../context/AuthContext';
 import { TESLA_INTEGRATION_ID } from '../../utils/constants';
+import { TeslaVehicle } from '../../types';
 
-interface TeslaVehicle {
-  make: string;
-  model: string;
-  year: string;
-  deviceDefinitionId: string;
-  vin?: string;
-  country: string;
+enum TeslaOnboardingStep {
+  PERMISSIONS = 'permissions',
+  MINTING = 'minting',
+  VIRTUAL_KEY = 'virtual-key',
+  POLLING_VIRTUAL_KEY = 'polling-virtual-key',
+  READY = 'ready',
 }
 
 export const ConnectTesla: FC = () => {
   const { componentData, setUiState, setLoadingState, setComponentData } = useUIManager();
-  const [step, setStep] = useState<
-    'permissions' | 'minting' | 'virtual-key' | 'polling-virtual-key' | 'ready'
-  >('permissions');
+  const [step, setStep] = useState<TeslaOnboardingStep>(TeslaOnboardingStep.PERMISSIONS);
   const [vehicleToAdd, setVehicleToAdd] = useState<TeslaVehicle>();
   const { devLicenseAlias, clientId, redirectUri } = useDevCredentials();
   const { jwt } = useAuthContext();
@@ -44,7 +50,7 @@ export const ConnectTesla: FC = () => {
     setVehicleToAdd(decodedStateFromUrl.vehicleToAdd);
 
     if (componentData && componentData.permissionsGranted) {
-      setStep('virtual-key');
+      setStep(TeslaOnboardingStep.VIRTUAL_KEY);
     }
 
     if (authCode && !(componentData && componentData.permissionsGranted)) {
@@ -178,12 +184,12 @@ export const ConnectTesla: FC = () => {
     } catch (error) {
       console.error('Error during onboarding:', error);
       setLoadingState(false);
-      setStep('permissions');
+      setStep(TeslaOnboardingStep.PERMISSIONS);
     }
   };
 
   const handleNextStep = () => {
-    if (step === 'permissions') {
+    if (step === TeslaOnboardingStep.PERMISSIONS) {
       const urlParams = new URLSearchParams(window.location.search);
       const authUrl = constructAuthUrl({
         provider: 'tesla',
@@ -199,11 +205,11 @@ export const ConnectTesla: FC = () => {
       });
 
       window.location.href = authUrl;
-    } else if (step === 'virtual-key') {
+    } else if (step === TeslaOnboardingStep.VIRTUAL_KEY) {
       // Open to Tesla's Virtual Key setup
       window.open(process.env.REACT_APP_TESLA_VIRTUAL_KEY_URL, '_blank');
-      setStep('polling-virtual-key');
-    } else if (step === 'polling-virtual-key') {
+      setStep(TeslaOnboardingStep.POLLING_VIRTUAL_KEY);
+    } else if (step === TeslaOnboardingStep.POLLING_VIRTUAL_KEY) {
       setLoadingState(false);
       setUiState(UiStates.MINT_VEHICLE);
     } else {
@@ -215,6 +221,47 @@ export const ConnectTesla: FC = () => {
     }
   };
 
+  const renderStep = (
+    step: TeslaOnboardingStep,
+    devLicenseAlias: string,
+    vehicleToAdd?: TeslaVehicle,
+  ) => {
+    const stepComponents: Record<TeslaOnboardingStep, JSX.Element> = {
+      [TeslaOnboardingStep.PERMISSIONS]: (
+        <PermissionsStep devLicenseAlias={devLicenseAlias} />
+      ),
+      [TeslaOnboardingStep.VIRTUAL_KEY]: (
+        <VirtualKeyStep devLicenseAlias={devLicenseAlias} vehicleToAdd={vehicleToAdd} />
+      ),
+      [TeslaOnboardingStep.POLLING_VIRTUAL_KEY]: <PollingVirtualKeyStep />,
+      [TeslaOnboardingStep.MINTING]: <MintingStep devLicenseAlias={devLicenseAlias} />,
+      [TeslaOnboardingStep.READY]: <></>, // Default case
+    };
+
+    return stepComponents[step] || null;
+  };
+
+  const DEFAULT_STEP_CONTENT = { title: 'Setup Complete', buttonText: 'Done' };
+  const STEP_CONTENT_MAP: Record<
+    TeslaOnboardingStep,
+    { title: string; buttonText: string }
+  > = {
+    [TeslaOnboardingStep.PERMISSIONS]: {
+      title: 'Authorize your Tesla account',
+      buttonText: 'Continue',
+    },
+    [TeslaOnboardingStep.VIRTUAL_KEY]: {
+      title: 'Add Virtual Key',
+      buttonText: 'Setup Virtual Key',
+    },
+    [TeslaOnboardingStep.POLLING_VIRTUAL_KEY]: {
+      title: 'Waiting for Virtual Key',
+      buttonText: "I've added my Virtual Key!",
+    },
+    [TeslaOnboardingStep.MINTING]: DEFAULT_STEP_CONTENT,
+    [TeslaOnboardingStep.READY]: DEFAULT_STEP_CONTENT,
+  };
+
   return (
     <Card
       width="w-full max-w-[600px]"
@@ -223,139 +270,16 @@ export const ConnectTesla: FC = () => {
     >
       <div className="flex flex-col gap-6 w-[440px]">
         <Header
-          title={
-            step === 'permissions'
-              ? 'Authorize your Tesla account'
-              : step === 'virtual-key'
-                ? 'Add Virtual Key'
-                : step === 'polling-virtual-key'
-                  ? 'Waiting for Virtual Key'
-                  : 'Setup Complete'
-          }
+          title={STEP_CONTENT_MAP[step]?.title || DEFAULT_STEP_CONTENT.title}
           subtitle={appUrl.hostname}
           link={`${appUrl.protocol}//${appUrl.host}`}
         />
 
-        {(() => {
-          switch (step) {
-            case 'permissions':
-              return (
-                <>
-                  <div className="w-full text-gray-600 text-sm text-center">
-                    {devLicenseAlias} requires access to your car’s data to offer you
-                    charging&nbsp;incentives.
-                  </div>
-
-                  <div className="flex flex-col gap-[10px] w-full">
-                    {[
-                      { name: 'Vehicle information', type: 'required' },
-                      { name: 'Vehicle location', type: 'required' },
-                      { name: 'Profile', type: 'recommended' },
-                      { name: 'Vehicle commands', type: 'recommended' },
-                      {
-                        name: 'Vehicle charging management',
-                        type: 'recommended',
-                      },
-                    ].map((permission) => (
-                      <div
-                        key={permission.name}
-                        className="flex justify-between items-center p-4 border border-gray-200 rounded-2xl w-full"
-                      >
-                        <span className="text-black font-normal">{permission.name}</span>
-                        <span
-                          className={`px-3 py-1 text-sm font-normal rounded-full ${
-                            permission.type === 'required'
-                              ? 'bg-[#E80303] text-white'
-                              : 'bg-[#E4E4E7] text-[#3F3F46]'
-                          }`}
-                        >
-                          {permission.type === 'required' ? 'Required' : 'Recommended'}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              );
-
-            case 'virtual-key':
-              return (
-                <>
-                  <div className="w-full text-gray-600 text-sm">
-                    {devLicenseAlias} requires access to your car’s data to offer you
-                    charging incentives.
-                  </div>
-
-                  <div className="w-full text-gray-600 text-sm mt-2">
-                    The virtual key provides end-to-end encryption, enables more frequent
-                    data updates, and allows for remote commands from your phone.
-                  </div>
-
-                  <div className="w-full text-gray-600 text-sm mt-2">
-                    This can be removed at any time in your Tesla app.{' '}
-                    <a
-                      href="https://www.tesla.com/support"
-                      className="text-black font-medium underline"
-                    >
-                      Learn more.
-                    </a>
-                    {vehicleToAdd && (
-                      <div className="flex items-center p-4 border rounded-2xl cursor-pointer transition hover:bg-gray-50 cursor-pointer mt-6">
-                        <img
-                          className="h-[48px] w-[48px] rounded-full object-cover mr-4"
-                          src={
-                            'https://assets.dimo.xyz/ipfs/QmaaxazmGtNM6srcRmLyNdjCp8EAmvaTDYSo1k2CXVRTaY'
-                          }
-                          alt={`${vehicleToAdd.make} ${vehicleToAdd.model}`}
-                        />
-                        <label
-                          htmlFor={`vehicle`}
-                          className="flex-grow text-left hover:cursor-pointer"
-                        >
-                          <div className="text-black font-medium">
-                            {vehicleToAdd.make} {vehicleToAdd.model} ({vehicleToAdd.year})
-                          </div>
-                          <div className="text-sm text-gray-500 font-medium">
-                            VIN: {vehicleToAdd.vin}
-                          </div>
-                        </label>
-                      </div>
-                    )}
-                  </div>
-                </>
-              );
-
-            case 'polling-virtual-key':
-              return (
-                <div className="py-10">
-                  <Loader />
-                </div>
-              );
-
-            case 'minting':
-              return (
-                <>
-                  <div className="w-full text-gray-600 text-sm text-center">
-                    Your Tesla is now connected! You can now access vehicle data and
-                    commands via {devLicenseAlias}.
-                  </div>
-                  <p className="text-lg font-medium text-black">All set! 🚀</p>
-                </>
-              );
-
-            default:
-              return null;
-          }
-        })()}
+        {renderStep(step, devLicenseAlias, vehicleToAdd)}
 
         <div className="flex flex-col w-full space-y-3">
           <PrimaryButton onClick={handleNextStep} width="w-full py-3">
-            {step === 'permissions'
-              ? 'Continue'
-              : step === 'virtual-key'
-                ? 'Setup Virtual Key'
-                : step === 'polling-virtual-key'
-                  ? "I've added my Virtual Key!"
-                  : 'Done'}
+            {STEP_CONTENT_MAP[step].buttonText}
           </PrimaryButton>
         </div>
       </div>
