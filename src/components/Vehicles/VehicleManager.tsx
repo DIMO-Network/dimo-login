@@ -1,17 +1,16 @@
 import React, { useEffect, useState } from 'react';
 
+import { SACDTemplate } from '@dimo-network/transactions/dist/core/types/dimo';
+
+import { FetchPermissionsParams } from '../../models/permissions';
 import { useAuthContext } from '../../context/AuthContext';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { fetchPermissionsFromId } from '../../services/permissionsService';
-import Card from '../Shared/Card';
-import Header from '../Shared/Header';
-import ErrorMessage from '../Shared/ErrorMessage';
+import { Card, Header, ErrorMessage } from '../Shared';
 import { sendMessageToReferrer } from '../../utils/messageHandler';
 import { isStandalone } from '../../utils/isStandalone';
 import { useUIManager } from '../../context/UIManagerContext';
-import { SACDTemplate } from '@dimo-network/transactions/dist/core/types/dimo';
 import { getDefaultExpirationDate, parseExpirationDate } from '../../utils/dateUtils';
-import { FetchPermissionsParams } from '../../models/permissions';
 import SelectVehicles from './SelectVehicles';
 import { getAppUrl, getParamFromUrlOrState } from '../../utils/urlHelpers';
 import { useOracles } from '../../context/OraclesContext';
@@ -28,6 +27,7 @@ const VehicleManager: React.FC = () => {
   const [vehicleMakes, setVehicleMakes] = useState<string[] | undefined>();
   const [powertrainTypes, setPowertrainTypes] = useState<string[]>();
   const [permissionTemplate, setPermissionTemplate] = useState<SACDTemplate | null>(null);
+  const [region, setRegion] = useState<string | undefined>();
 
   const [isExpanded, setIsExpanded] = useState<boolean | undefined>(false);
   const [expirationDate, setExpirationDate] = useState<BigInt>(
@@ -57,6 +57,7 @@ const VehicleManager: React.FC = () => {
       urlParams,
       decodedState,
     );
+    const region = getParamFromUrlOrState('region', urlParams, decodedState);
 
     if (permissionTemplateId) {
       setPermissionTemplateId(permissionTemplateId as string);
@@ -82,6 +83,10 @@ const VehicleManager: React.FC = () => {
       );
     }
 
+    if (region) {
+      setRegion((region as string).toUpperCase());
+    }
+
     if (onboarding && onboarding.length > 0) {
       setOnboardingEnabled(true);
     }
@@ -99,6 +104,7 @@ const VehicleManager: React.FC = () => {
         expirationDate: expirationDateFromMessage,
         onboarding,
         powertrainTypes: powertrainTypesFromMessage,
+        region: regionFromMessage,
       } = event.data;
 
       if (eventType === 'SHARE_VEHICLES_DATA') {
@@ -111,6 +117,7 @@ const VehicleManager: React.FC = () => {
         if (powertrainTypesFromMessage) {
           setPowertrainTypes(powertrainTypesFromMessage);
         }
+        if (regionFromMessage) setRegion(regionFromMessage.toUpperCase());
         if (onboarding && onboarding.length > 0) setOnboardingEnabled(true);
       }
     };
@@ -132,6 +139,7 @@ const VehicleManager: React.FC = () => {
           expirationDate,
           walletAddress: user.smartContractAddress,
           email: user.email,
+          region: region?.toUpperCase(),
         };
         const permissionTemplate = await fetchPermissionsFromId(permissionsParams);
         setComponentData({ permissionTemplateId }); //So that manage vehicle has a permission template ID
@@ -165,28 +173,44 @@ const VehicleManager: React.FC = () => {
       <div>
         {/* Render the first paragraph or the entire description based on the `isExpanded` state */}
         {isExpanded ? (
-          description.split('\n\n').map((paragraph, index) => (
-            <React.Fragment key={index}>
-              {/* Check if the paragraph contains bullet points */}
-              {paragraph.includes('- ') ? (
-                <ul className="list-disc list-inside mb-4">
-                  {paragraph.split('\n-').map((line, i) =>
-                    i === 0 ? (
-                      <p key={i} className="mb-2">
-                        {line.trim()}
-                      </p>
-                    ) : (
-                      <li key={i} className="ml-4">
-                        {line.trim()}
-                      </li>
-                    ),
-                  )}
-                </ul>
-              ) : (
-                <p className="mb-4">{paragraph}</p>
-              )}
-            </React.Fragment>
-          ))
+          description.split('\n\n').map((paragraph, index) => {
+            const hasBulletPoints = paragraph.includes('- ');
+            const isLink = paragraph.includes('http');
+            return (
+              <React.Fragment key={index}>
+                {/* Check if the paragraph contains bullet points */}
+                {hasBulletPoints && (
+                  <ul className="list-disc list-inside mb-4">
+                    {paragraph.split('\n-').map((line, i) =>
+                      i === 0 ? (
+                        <p key={i} className="mb-2">
+                          {line.trim()}
+                        </p>
+                      ) : (
+                        <li key={i} className="ml-4">
+                          {line.trim()}
+                        </li>
+                      ),
+                    )}
+                  </ul>
+                )}
+                {/* Check if the paragraph contains a link */}
+                {isLink && (
+                  <p
+                    className="mb-4 text-zinc-500 underline cursor-pointer"
+                    dangerouslySetInnerHTML={
+                      // Use `dangerouslySetInnerHTML` to render HTML content
+                      {
+                        __html: paragraph.replace(/(\r\n|\n|\r)/gm, '<br />'),
+                      }
+                    }
+                  ></p>
+                )}
+                {/* Render paragraph without bullet points or links */}
+                {!hasBulletPoints && !isLink && <p className="mb-4">{paragraph}</p>}
+              </React.Fragment>
+            );
+          })
         ) : (
           <p className="mb-4">{firstParagraph}</p> // Show only the first paragraph
         )}

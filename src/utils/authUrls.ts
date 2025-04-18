@@ -115,17 +115,17 @@ function getTeslaAuthUrl(params: AuthUrlParams): string {
     &state=${encodeURIComponent(JSON.stringify(stateParams))}`.replace(/\s+/g, '');
 }
 
+export const getOAuthRedirectUri = () => {
+  return process.env.REACT_APP_ENVIRONMENT === 'prod'
+    ? 'https://login.dimo.org'
+    : 'https://login.dev.dimo.org';
+};
+
 function getEmailAuthUrl(params: AuthUrlParams): string {
   const stateParams = buildStateParams(params);
-
-  const dimoRedirectUri =
-    process.env.REACT_APP_ENVIRONMENT === 'prod'
-      ? 'https://login.dimo.org'
-      : 'https://login.dev.dimo.org';
-
   return `${process.env.REACT_APP_DIMO_AUTH_URL}/auth/${params.provider}
     ?client_id=login-with-dimo
-    &redirect_uri=${dimoRedirectUri}
+    &redirect_uri=${getOAuthRedirectUri()}
     &response_type=code
     &scope=openid%20email
     &state=${encodeURIComponent(JSON.stringify(stateParams))}`.replace(/\s+/g, '');
