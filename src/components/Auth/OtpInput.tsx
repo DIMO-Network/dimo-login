@@ -84,7 +84,7 @@ const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
       className="flex flex-col items-center"
     >
       <div className="flex flex-col gap-2 w-[440px]">
-        <Header title="Please enter your OTP Code" subtitle={email || 'moiz@gmail.com'} />
+        <Header title="Please enter your OTP Code" subtitle={email || ''} />
         <p className="w-full tracking-tight text-center text-sm">
           A code was just sent to {email}, which will expire in 5 minutes. Check your spam
           if you don't see it, and resend.
