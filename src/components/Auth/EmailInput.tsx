@@ -1,19 +1,22 @@
 import React, { useEffect, useState } from 'react';
 
-import { Card } from '../Shared/Card';
-import { Checkbox } from '../Shared/Checkbox';
+import {
+  Card,
+  Checkbox,
+  Header,
+  PrimaryButton,
+  ErrorMessage,
+  LoadingScreen,
+  SSOButton,
+} from '../Shared';
 import { fetchUserDetails } from '../../services/accountsService';
-import { Header } from '../Shared/Header';
-import { PrimaryButton } from '../Shared/PrimaryButton';
 import { setEmailGranted } from '../../services/storageService';
 import { useAuthContext } from '../../context/AuthContext';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { UiStates, useUIManager } from '../../context/UIManagerContext';
 
-import ErrorMessage from '../Shared/ErrorMessage';
 import { submitCodeExchange } from '../../services/authService';
 import { decodeJwt } from '../../utils/jwtUtils';
-import LoadingScreen from '../Shared/LoadingScreen';
 import { AppleIcon, GoogleIcon } from '../Icons';
 import { isValidEmail } from '../../utils/emailUtils';
 import { getForceEmail } from '../../stores/AuthStateStore';
@@ -217,23 +220,17 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
             Continue
           </PrimaryButton>
 
-          {/* Flex wrap is only applied on smaller screens, ensuring buttons stay side by side when possible */}
           <div className="flex flex-wrap sm:flex-nowrap justify-between gap-3 w-full">
-            <button
+            <SSOButton
               onClick={handleGoogleAuth}
-              className="flex items-center justify-center gap-2 w-full sm:max-w-[210px] h-[40px] rounded-full border border-gray-300 bg-white text-black text-sm hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400"
-            >
-              <GoogleIcon />
-              Sign in with Google
-            </button>
-
-            <button
+              icon={<GoogleIcon />}
+              text="Sign in with Google"
+            />
+            <SSOButton
               onClick={handleAppleAuth}
-              className="flex items-center justify-center gap-2 w-full sm:max-w-[210px] h-[40px] rounded-full border border-gray-300 bg-white text-black text-sm hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400"
-            >
-              <AppleIcon />
-              Sign in with Apple
-            </button>
+              icon={<AppleIcon />}
+              text="Sign in with Apple"
+            />
           </div>
 
           <p className="flex flex-wrap justify-center text-center text-xs text-gray-500">
