@@ -10,7 +10,7 @@ import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { constructAuthUrl } from '../../utils/authUrls';
 
 export const ConnectSmartCar: FC = () => {
-  const { componentData } = useUIManager(); // Access the manage function from the context
+  const { componentData } = useUIManager();
   const { devLicenseAlias, clientId } = useDevCredentials();
   const appUrl = getAppUrl();
 
@@ -42,19 +42,16 @@ export const ConnectSmartCar: FC = () => {
       className="flex flex-col items-center"
     >
       <div className="flex flex-col gap-6 w-[440px]">
-        {/* Header */}
         <Header
           title={`Connect Data Source for ${componentData.modelYear} ${componentData.makeModel}`}
           subtitle={appUrl.hostname}
         />
 
-        {/* Text Wrapper - Restrict Width */}
         <div className="w-full text-gray-600 text-sm text-center">
           At least one data source is required to connect to {devLicenseAlias}. Connecting
           through your car's app is the easiest option and will take less than a minute.
         </div>
 
-        {/* Adapter Image */}
         <div className="flex justify-center pt-2">
           <img
             style={{ height: '120px', width: '120px' }}
@@ -64,7 +61,6 @@ export const ConnectSmartCar: FC = () => {
           />
         </div>
 
-        {/* Buttons */}
         <div className="flex flex-col w-full space-y-3">
           <PrimaryButton onClick={handleConnect} width="w-full py-3">
             Connect with Smartcar
