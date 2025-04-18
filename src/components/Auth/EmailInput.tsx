@@ -100,6 +100,7 @@ const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       powertrainTypes: urlParams.getAll('powertrainTypes'),
       onboarding: onboardingEnabled ? ['tesla'] : [], //TODO: Should have full onboarding array here
       altTitle,
+      emailPermissionGranted,
     });
   };
 
