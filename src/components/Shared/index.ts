@@ -7,6 +7,7 @@ export * from './ErrorMessage';
 export * from './ErrorScreen';
 export * from './Header';
 export * from './Input';
+export * from './LegalNotice';
 export * from './Loader';
 export * from './LoadingScreen';
 export * from './Logo';
