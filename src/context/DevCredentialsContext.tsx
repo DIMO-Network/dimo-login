@@ -31,6 +31,7 @@ interface DevCredentialsContextProps {
   invalidCredentials: boolean;
   redirectUri: string;
   utm: string;
+  configCID: string;
 }
 
 const DevCredentialsContext = createContext<DevCredentialsContextProps | undefined>(
@@ -49,6 +50,7 @@ export const DevCredentialsProvider = ({
   const [utm, setUtm] = useState<string>('');
   const [invalidCredentials, setInvalidCredentials] = useState<boolean>(false);
   const [devLicenseAlias, setDevLicenseAlias] = useState<string>(''); // Alias will only be set if credentials are valid, defaults to client ID if not alias
+  const [configCID, setConfigCID] = useState<string>('');
   const { setUiState, setEntryState, setLoadingState, setAltTitle } = useUIManager();
 
   // Example of using postMessage to receive credentials (as described previously)
@@ -63,6 +65,12 @@ export const DevCredentialsProvider = ({
     const stateFromUrl = urlParams.get('state');
     const utmFromUrl = urlParams.get('utm');
     const altTitleFromUrl = urlParams.get('altTitle') === 'true';
+    const configCIDFromUrl = urlParams.get('cid');
+    if (configCIDFromUrl) {
+      setConfigCID(configCIDFromUrl);
+    } else {
+      setConfigCID('');
+    }
 
     // ✅ Handle state from URL (e.g., for SSO / OAuth Redirects)
     const processStateFromUrl = () => {
@@ -180,6 +188,7 @@ export const DevCredentialsProvider = ({
         invalidCredentials,
         redirectUri,
         utm,
+        configCID,
       }}
     >
       {children}
