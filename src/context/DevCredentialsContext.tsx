@@ -33,6 +33,7 @@ interface DevCredentialsContextProps {
   redirectUri: string;
   utm: string;
   configCID: string;
+  newCarSectionDescription: string;
 }
 
 const DevCredentialsContext = createContext<DevCredentialsContextProps | undefined>(
@@ -52,6 +53,7 @@ export const DevCredentialsProvider = ({
   const [invalidCredentials, setInvalidCredentials] = useState<boolean>(false);
   const [devLicenseAlias, setDevLicenseAlias] = useState<string>('');
   const [configCID, setConfigCID] = useState<string>('');
+  const [newCarSectionDescription, setNewCarSectionDescription] = useState<string>('');
   const { setUiState, setEntryState, setLoadingState, setAltTitle } = useUIManager();
 
   // Config setters map
@@ -66,6 +68,7 @@ export const DevCredentialsProvider = ({
     },
     forceEmail: (value: boolean) => setForceEmail(value === true),
     altTitle: (value: boolean) => setAltTitle(value === true),
+    newCarSectionDescription: setNewCarSectionDescription,
   };
 
   // Helper function to apply configuration entries
@@ -207,6 +210,7 @@ export const DevCredentialsProvider = ({
         redirectUri,
         utm,
         configCID,
+        newCarSectionDescription,
       }}
     >
       {children}
