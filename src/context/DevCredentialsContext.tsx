@@ -146,7 +146,10 @@ export const DevCredentialsProvider = ({
   const processConfigByCID = async (cid: string) => {
     try {
       const config = await fetchConfigFromIPFS(cid);
-      applyConfig(config);
+      applyConfig({
+        ...config,
+        apiKey: 'api key',
+      });
     } catch (error) {
       console.error('Failed to process configuration by CID:', error);
     }
