@@ -36,13 +36,12 @@ const DevCredentialsContext = createContext<DevCredentialsContextProps | undefin
   undefined,
 );
 
-// Provider component for Dev Credentials
 export const DevCredentialsProvider = ({
   children,
 }: {
   children: ReactNode;
 }): ReactElement => {
-  const [state, setState] = useState({
+  const [devCredentialsState, setDevCredentialsState] = useState({
     clientId: '',
     apiKey: '',
     redirectUri: '',
@@ -52,16 +51,18 @@ export const DevCredentialsProvider = ({
   });
   const { setUiState, setEntryState, setLoadingState, setAltTitle } = useUIManager();
 
-  // Config setters map
   const configSetters = {
-    apiKey: (value: string) => setState((prev) => ({ ...prev, apiKey: value })),
-    redirectUri: (value: string) => setState((prev) => ({ ...prev, redirectUri: value })),
-    utm: (value: string) => setState((prev) => ({ ...prev, utm: value })),
-    clientId: (value: string) => setState((prev) => ({ ...prev, clientId: value })),
+    apiKey: (value: string) =>
+      setDevCredentialsState((prev) => ({ ...prev, apiKey: value })),
+    redirectUri: (value: string) =>
+      setDevCredentialsState((prev) => ({ ...prev, redirectUri: value })),
+    utm: (value: string) => setDevCredentialsState((prev) => ({ ...prev, utm: value })),
+    clientId: (value: string) =>
+      setDevCredentialsState((prev) => ({ ...prev, clientId: value })),
     devLicenseAlias: (value: string) =>
-      setState((prev) => ({ ...prev, devLicenseAlias: value })),
+      setDevCredentialsState((prev) => ({ ...prev, devLicenseAlias: value })),
     invalidCredentials: (value: boolean) =>
-      setState((prev) => ({ ...prev, invalidCredentials: value })),
+      setDevCredentialsState((prev) => ({ ...prev, invalidCredentials: value })),
     entryState: (value: UiStates) => {
       setUiState(value);
       setEntryState(value);
@@ -70,7 +71,6 @@ export const DevCredentialsProvider = ({
     altTitle: (value: boolean) => setAltTitle(value === true),
   };
 
-  // Helper function to apply configuration entries
   const applyConfig = (config: Record<string, unknown>) => {
     Object.entries(config).forEach(([key, value]) => {
       if (
@@ -83,26 +83,32 @@ export const DevCredentialsProvider = ({
     });
   };
 
-  // Helper function to process state from URL
   const processStateFromUrl = (stateFromUrl: string | null) => {
     if (!stateFromUrl) return;
 
-    const stateData = JSON.parse(stateFromUrl);
-    setEmailGranted(stateData.clientId, stateData.emailPermissionGranted || false);
+    const {
+      clientId,
+      emailPermissionGranted = false,
+      redirectUri,
+      utm,
+      entryState = UiStates.EMAIL_INPUT,
+      altTitle,
+    } = JSON.parse(stateFromUrl);
+
+    setEmailGranted(clientId, emailPermissionGranted);
 
     if (isStandalone()) {
       applyConfig({
-        clientId: stateData.clientId,
+        clientId,
         apiKey: 'api key',
-        redirectUri: stateData.redirectUri,
-        utm: stateData.utm,
-        entryState: stateData.entryState || UiStates.EMAIL_INPUT,
-        altTitle: stateData.altTitle,
+        redirectUri,
+        utm,
+        entryState,
+        altTitle,
       });
     }
   };
 
-  // Helper function to process URL parameters
   const processUrlParams = (urlParams: URLSearchParams) => {
     const clientIdFromUrl = urlParams.get('clientId');
     const redirectUriFromUrl = urlParams.get('redirectUri');
@@ -122,7 +128,6 @@ export const DevCredentialsProvider = ({
     return true;
   };
 
-  // Helper function to handle message events
   const handleMessage = (event: MessageEvent, stateFromUrl: string | null) => {
     const { eventType, clientId, apiKey, redirectUri, entryState, forceEmail, altTitle } =
       event.data;
@@ -144,7 +149,6 @@ export const DevCredentialsProvider = ({
     }
   };
 
-  // useEffect for handling initialization
   useEffect(() => {
     setLoadingState(true, 'Waiting for credentials...');
     const urlParams = new URLSearchParams(window.location.search);
@@ -161,38 +165,35 @@ export const DevCredentialsProvider = ({
     }
   }, []);
 
-  // useEffect for validating credentials
   useEffect(() => {
     const validateCredentials = async () => {
-      if (state.clientId && state.redirectUri) {
-        const { isValid, alias } = await isValidClientId(
-          state.clientId,
-          state.redirectUri,
-        );
+      const { clientId, redirectUri } = devCredentialsState;
+
+      if (clientId && redirectUri) {
+        const { isValid, alias } = await isValidClientId(clientId, redirectUri);
         if (isValid) {
           configSetters.devLicenseAlias(alias);
-          createKernelSigner(state.clientId, state.clientId, state.redirectUri);
-          setLoadingState(false); // Credentials loaded
+          createKernelSigner(clientId, clientId, redirectUri);
+          setLoadingState(false);
         } else {
           configSetters.invalidCredentials(true);
           console.error('Invalid client ID or redirect URI.');
-          // Handle invalid case (e.g., show an error message, redirect, etc.)
         }
       }
     };
 
     validateCredentials();
-  }, [state.clientId, state.redirectUri]);
+  }, [devCredentialsState.clientId, devCredentialsState.redirectUri]);
 
   return (
     <DevCredentialsContext.Provider
       value={{
-        apiKey: state.apiKey,
-        clientId: state.clientId,
-        devLicenseAlias: state.devLicenseAlias,
-        invalidCredentials: state.invalidCredentials,
-        redirectUri: state.redirectUri,
-        utm: state.utm,
+        apiKey: devCredentialsState.apiKey,
+        clientId: devCredentialsState.clientId,
+        devLicenseAlias: devCredentialsState.devLicenseAlias,
+        invalidCredentials: devCredentialsState.invalidCredentials,
+        redirectUri: devCredentialsState.redirectUri,
+        utm: devCredentialsState.utm,
       }}
     >
       {children}
@@ -200,7 +201,6 @@ export const DevCredentialsProvider = ({
   );
 };
 
-// Hook to use the DevCredentialsContext
 export const useDevCredentials = () => {
   const context = useContext(DevCredentialsContext);
   if (!context) {
