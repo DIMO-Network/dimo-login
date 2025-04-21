@@ -51,7 +51,7 @@ export const DevCredentialsProvider = ({
   });
   const { setUiState, setEntryState, setLoadingState, setAltTitle } = useUIManager();
 
-  const configSetters = {
+  const devCredentialsSetters = {
     apiKey: (value: string) =>
       setDevCredentialsState((prev) => ({ ...prev, apiKey: value })),
     redirectUri: (value: string) =>
@@ -71,19 +71,19 @@ export const DevCredentialsProvider = ({
     altTitle: (value: boolean) => setAltTitle(value === true),
   };
 
-  const applyConfig = (config: Record<string, unknown>) => {
+  const applyDevCredentialsConfig = (config: Record<string, unknown>) => {
     Object.entries(config).forEach(([key, value]) => {
       if (
-        key in configSetters &&
-        configSetters[key as keyof typeof configSetters] &&
+        key in devCredentialsSetters &&
+        devCredentialsSetters[key as keyof typeof devCredentialsSetters] &&
         value !== undefined
       ) {
-        configSetters[key as keyof typeof configSetters](value as never);
+        devCredentialsSetters[key as keyof typeof devCredentialsSetters](value as never);
       }
     });
   };
 
-  const processStateFromUrl = (stateFromUrl: string | null) => {
+  const parseStateFromUrl = (stateFromUrl: string | null) => {
     if (!stateFromUrl) return;
 
     const {
@@ -98,7 +98,7 @@ export const DevCredentialsProvider = ({
     setEmailGranted(clientId, emailPermissionGranted);
 
     if (isStandalone()) {
-      applyConfig({
+      applyDevCredentialsConfig({
         clientId,
         apiKey: 'api key',
         redirectUri,
@@ -109,13 +109,13 @@ export const DevCredentialsProvider = ({
     }
   };
 
-  const processUrlParams = (urlParams: URLSearchParams) => {
+  const parseUrlParams = (urlParams: URLSearchParams) => {
     const clientIdFromUrl = urlParams.get('clientId');
     const redirectUriFromUrl = urlParams.get('redirectUri');
 
     if (!clientIdFromUrl || !redirectUriFromUrl) return false;
 
-    applyConfig({
+    applyDevCredentialsConfig({
       clientId: clientIdFromUrl,
       apiKey: 'api key',
       redirectUri: redirectUriFromUrl,
@@ -128,7 +128,7 @@ export const DevCredentialsProvider = ({
     return true;
   };
 
-  const handleMessage = (event: MessageEvent, stateFromUrl: string | null) => {
+  const handleAuthInitMessage = (event: MessageEvent, stateFromUrl: string | null) => {
     const { eventType, clientId, apiKey, redirectUri, entryState, forceEmail, altTitle } =
       event.data;
 
@@ -138,7 +138,7 @@ export const DevCredentialsProvider = ({
         ? JSON.parse(stateFromUrl).entryState
         : entryState || UiStates.EMAIL_INPUT;
 
-      applyConfig({
+      applyDevCredentialsConfig({
         clientId,
         apiKey,
         redirectUri,
@@ -155,9 +155,10 @@ export const DevCredentialsProvider = ({
     const stateFromUrl = urlParams.get('state');
 
     if (stateFromUrl) {
-      processStateFromUrl(stateFromUrl);
-    } else if (!processUrlParams(urlParams)) {
-      const messageHandler = (event: MessageEvent) => handleMessage(event, stateFromUrl);
+      parseStateFromUrl(stateFromUrl);
+    } else if (!parseUrlParams(urlParams)) {
+      const messageHandler = (event: MessageEvent) =>
+        handleAuthInitMessage(event, stateFromUrl);
       window.addEventListener('message', messageHandler);
       return () => {
         window.removeEventListener('message', messageHandler);
@@ -172,11 +173,11 @@ export const DevCredentialsProvider = ({
       if (clientId && redirectUri) {
         const { isValid, alias } = await isValidClientId(clientId, redirectUri);
         if (isValid) {
-          configSetters.devLicenseAlias(alias);
+          devCredentialsSetters.devLicenseAlias(alias);
           createKernelSigner(clientId, clientId, redirectUri);
           setLoadingState(false);
         } else {
-          configSetters.invalidCredentials(true);
+          devCredentialsSetters.invalidCredentials(true);
           console.error('Invalid client ID or redirect URI.');
         }
       }
