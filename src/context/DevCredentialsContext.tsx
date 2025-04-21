@@ -17,7 +17,6 @@ import React, {
 } from 'react';
 
 import { createKernelSigner } from '../services/turnkeyService';
-import { CredentialParams } from '../types';
 import { isStandalone } from '../utils/isStandalone';
 import { isValidClientId } from '../services/identityService';
 import { setEmailGranted } from '../services/storageService';
@@ -43,20 +42,26 @@ export const DevCredentialsProvider = ({
 }: {
   children: ReactNode;
 }): ReactElement => {
-  const [clientId, setClientId] = useState<string>('');
-  const [apiKey, setApiKey] = useState<string>('');
-  const [redirectUri, setRedirectUri] = useState<string>('');
-  const [utm, setUtm] = useState<string>('');
-  const [invalidCredentials, setInvalidCredentials] = useState<boolean>(false);
-  const [devLicenseAlias, setDevLicenseAlias] = useState<string>('');
+  const [state, setState] = useState({
+    clientId: '',
+    apiKey: '',
+    redirectUri: '',
+    utm: '',
+    invalidCredentials: false,
+    devLicenseAlias: '',
+  });
   const { setUiState, setEntryState, setLoadingState, setAltTitle } = useUIManager();
 
   // Config setters map
   const configSetters = {
-    apiKey: setApiKey,
-    redirectUri: setRedirectUri,
-    utm: setUtm,
-    clientId: setClientId,
+    apiKey: (value: string) => setState((prev) => ({ ...prev, apiKey: value })),
+    redirectUri: (value: string) => setState((prev) => ({ ...prev, redirectUri: value })),
+    utm: (value: string) => setState((prev) => ({ ...prev, utm: value })),
+    clientId: (value: string) => setState((prev) => ({ ...prev, clientId: value })),
+    devLicenseAlias: (value: string) =>
+      setState((prev) => ({ ...prev, devLicenseAlias: value })),
+    invalidCredentials: (value: boolean) =>
+      setState((prev) => ({ ...prev, invalidCredentials: value })),
     entryState: (value: UiStates) => {
       setUiState(value);
       setEntryState(value);
@@ -82,17 +87,17 @@ export const DevCredentialsProvider = ({
   const processStateFromUrl = (stateFromUrl: string | null) => {
     if (!stateFromUrl) return;
 
-    const state = JSON.parse(stateFromUrl);
-    setEmailGranted(state.clientId, state.emailPermissionGranted || false);
+    const stateData = JSON.parse(stateFromUrl);
+    setEmailGranted(stateData.clientId, stateData.emailPermissionGranted || false);
 
     if (isStandalone()) {
       applyConfig({
-        clientId: state.clientId,
+        clientId: stateData.clientId,
         apiKey: 'api key',
-        redirectUri: state.redirectUri,
-        utm: state.utm,
-        entryState: state.entryState || UiStates.EMAIL_INPUT,
-        altTitle: state.altTitle,
+        redirectUri: stateData.redirectUri,
+        utm: stateData.utm,
+        entryState: stateData.entryState || UiStates.EMAIL_INPUT,
+        altTitle: stateData.altTitle,
       });
     }
   };
@@ -159,14 +164,17 @@ export const DevCredentialsProvider = ({
   // useEffect for validating credentials
   useEffect(() => {
     const validateCredentials = async () => {
-      if (clientId && redirectUri) {
-        const { isValid, alias } = await isValidClientId(clientId, redirectUri);
+      if (state.clientId && state.redirectUri) {
+        const { isValid, alias } = await isValidClientId(
+          state.clientId,
+          state.redirectUri,
+        );
         if (isValid) {
-          setDevLicenseAlias(alias); // Set the alias in global state
-          createKernelSigner(clientId, clientId, redirectUri);
+          configSetters.devLicenseAlias(alias);
+          createKernelSigner(state.clientId, state.clientId, state.redirectUri);
           setLoadingState(false); // Credentials loaded
         } else {
-          setInvalidCredentials(true);
+          configSetters.invalidCredentials(true);
           console.error('Invalid client ID or redirect URI.');
           // Handle invalid case (e.g., show an error message, redirect, etc.)
         }
@@ -174,17 +182,17 @@ export const DevCredentialsProvider = ({
     };
 
     validateCredentials();
-  }, [clientId, redirectUri]);
+  }, [state.clientId, state.redirectUri]);
 
   return (
     <DevCredentialsContext.Provider
       value={{
-        apiKey,
-        clientId,
-        devLicenseAlias,
-        invalidCredentials,
-        redirectUri,
-        utm,
+        apiKey: state.apiKey,
+        clientId: state.clientId,
+        devLicenseAlias: state.devLicenseAlias,
+        invalidCredentials: state.invalidCredentials,
+        redirectUri: state.redirectUri,
+        utm: state.utm,
       }}
     >
       {children}
