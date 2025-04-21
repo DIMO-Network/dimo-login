@@ -33,6 +33,7 @@ interface DevCredentialsContextProps {
   utm: string;
   configCID: string;
   newCarSectionDescription: string;
+  shareCarsSectionDescription: string;
 }
 
 const DevCredentialsContext = createContext<DevCredentialsContextProps | undefined>(
@@ -53,6 +54,7 @@ export const DevCredentialsProvider = ({
     devLicenseAlias: '',
     configCID: '',
     newCarSectionDescription: '',
+    shareCarsSectionDescription: '',
   });
   const { setUiState, setEntryState, setLoadingState, setAltTitle } = useUIManager();
 
@@ -78,6 +80,8 @@ export const DevCredentialsProvider = ({
       setDevCredentialsState((prev) => ({ ...prev, configCID: value })),
     newCarSectionDescription: (value: string) =>
       setDevCredentialsState((prev) => ({ ...prev, newCarSectionDescription: value })),
+    shareCarsSectionDescription: (value: string) =>
+      setDevCredentialsState((prev) => ({ ...prev, shareCarsSectionDescription: value })),
   };
 
   const applyDevCredentialsConfig = (config: Record<string, unknown>) => {
@@ -223,6 +227,7 @@ export const DevCredentialsProvider = ({
         utm: devCredentialsState.utm,
         configCID: devCredentialsState.configCID,
         newCarSectionDescription: devCredentialsState.newCarSectionDescription,
+        shareCarsSectionDescription: devCredentialsState.shareCarsSectionDescription,
       }}
     >
       {children}

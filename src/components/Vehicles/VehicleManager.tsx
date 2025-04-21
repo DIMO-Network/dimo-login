@@ -17,7 +17,7 @@ import { useOracles } from '../../context/OraclesContext';
 
 const VehicleManager: React.FC = () => {
   const { user } = useAuthContext();
-  const { clientId, devLicenseAlias } = useDevCredentials();
+  const { clientId, devLicenseAlias, shareCarsSectionDescription } = useDevCredentials();
   const { setOnboardingEnabled } = useOracles();
   const { setComponentData, error, setError } = useUIManager();
 
@@ -231,6 +231,11 @@ const VehicleManager: React.FC = () => {
           title={`${devLicenseAlias} wants to use DIMO to connect to your vehicles data`}
           subtitle={appUrl.hostname}
           link={`${appUrl.protocol}//${appUrl.host}`}
+          description={
+            permissionTemplateId && shareCarsSectionDescription
+              ? shareCarsSectionDescription
+              : ''
+          }
         />
         <div className="flex flex-col items-center justify-center max-h-[480px] lg:max-h-[584px] box-border overflow-y-auto w-full">
           {error && <ErrorMessage message={error} />}
