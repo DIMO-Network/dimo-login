@@ -24,7 +24,7 @@ Object.entries(countryCodes).forEach(([code, _], index) => {
 export const AddVehicle: FC = () => {
   const appUrl = getAppUrl();
   const { setComponentData, setUiState } = useUIManager();
-  const { newCarSectionDescription } = useDevCredentials();
+  const { newVehicleSectionDescription } = useDevCredentials();
 
   const [tab, setTab] = useState(0);
   const [makeModel, setMakeModel] = useState('');
@@ -101,7 +101,7 @@ export const AddVehicle: FC = () => {
           title={`Add a new car`}
           subtitle={appUrl.hostname}
           link={`${appUrl.protocol}//${appUrl.host}`}
-          description={newCarSectionDescription}
+          description={newVehicleSectionDescription}
         />
 
         <div className="w-full max-w-md mx-auto bg-white rounded-full">

@@ -17,7 +17,8 @@ import { useOracles } from '../../context/OraclesContext';
 
 const VehicleManager: React.FC = () => {
   const { user } = useAuthContext();
-  const { clientId, devLicenseAlias, shareCarsSectionDescription } = useDevCredentials();
+  const { clientId, devLicenseAlias, shareVehiclesSectionDescription } =
+    useDevCredentials();
   const { setOnboardingEnabled } = useOracles();
   const { setComponentData, error, setError } = useUIManager();
 
@@ -255,7 +256,7 @@ const VehicleManager: React.FC = () => {
             <div className="description w-fit w-full mt-2 text-sm overflow-y-auto font-normal text-[#313131]">
               {renderPermissionDescription(
                 permissionTemplate,
-                shareCarsSectionDescription,
+                shareVehiclesSectionDescription,
               )}
             </div>
             <div className="w-full">

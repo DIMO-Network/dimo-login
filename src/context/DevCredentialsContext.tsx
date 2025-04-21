@@ -32,8 +32,8 @@ interface DevCredentialsContextProps {
   redirectUri: string;
   utm: string;
   configCID: string;
-  newCarSectionDescription: string;
-  shareCarsSectionDescription: string;
+  newVehicleSectionDescription: string;
+  shareVehiclesSectionDescription: string;
 }
 
 const DevCredentialsContext = createContext<DevCredentialsContextProps | undefined>(
@@ -53,8 +53,8 @@ export const DevCredentialsProvider = ({
     invalidCredentials: false,
     devLicenseAlias: '',
     configCID: '',
-    newCarSectionDescription: '',
-    shareCarsSectionDescription: '',
+    newVehicleSectionDescription: '',
+    shareVehiclesSectionDescription: '',
   });
   const { setUiState, setEntryState, setLoadingState, setAltTitle } = useUIManager();
 
@@ -78,10 +78,16 @@ export const DevCredentialsProvider = ({
     altTitle: (value: boolean) => setAltTitle(value === true),
     configCID: (value: string) =>
       setDevCredentialsState((prev) => ({ ...prev, configCID: value })),
-    newCarSectionDescription: (value: string) =>
-      setDevCredentialsState((prev) => ({ ...prev, newCarSectionDescription: value })),
-    shareCarsSectionDescription: (value: string) =>
-      setDevCredentialsState((prev) => ({ ...prev, shareCarsSectionDescription: value })),
+    newVehicleSectionDescription: (value: string) =>
+      setDevCredentialsState((prev) => ({
+        ...prev,
+        newVehicleSectionDescription: value,
+      })),
+    shareVehiclesSectionDescription: (value: string) =>
+      setDevCredentialsState((prev) => ({
+        ...prev,
+        shareVehiclesSectionDescription: value,
+      })),
   };
 
   const applyDevCredentialsConfig = (config: Record<string, unknown>) => {
@@ -226,8 +232,9 @@ export const DevCredentialsProvider = ({
         redirectUri: devCredentialsState.redirectUri,
         utm: devCredentialsState.utm,
         configCID: devCredentialsState.configCID,
-        newCarSectionDescription: devCredentialsState.newCarSectionDescription,
-        shareCarsSectionDescription: devCredentialsState.shareCarsSectionDescription,
+        newVehicleSectionDescription: devCredentialsState.newVehicleSectionDescription,
+        shareVehiclesSectionDescription:
+          devCredentialsState.shareVehiclesSectionDescription,
       }}
     >
       {children}
