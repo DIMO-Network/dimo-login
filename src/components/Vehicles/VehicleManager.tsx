@@ -218,6 +218,22 @@ const VehicleManager: React.FC = () => {
     );
   };
 
+  const renderPermissionDescription = (
+    permissionTemplate: SACDTemplate | null,
+    shareCarsSectionDescription: string,
+  ) => {
+    if (permissionTemplate?.data.description) {
+      return renderDescription(permissionTemplate.data.description);
+    }
+
+    let description =
+      'The developer is requesting access to view your vehicle data. Select the vehicles you’d like to share access to.';
+    if (shareCarsSectionDescription) {
+      description = shareCarsSectionDescription;
+    }
+    return <p>{description}</p>;
+  };
+
   const appUrl = getAppUrl();
 
   return (
@@ -231,20 +247,16 @@ const VehicleManager: React.FC = () => {
           title={`${devLicenseAlias} wants to use DIMO to connect to your vehicles data`}
           subtitle={appUrl.hostname}
           link={`${appUrl.protocol}//${appUrl.host}`}
-          description={
-            permissionTemplateId && shareCarsSectionDescription
-              ? shareCarsSectionDescription
-              : ''
-          }
         />
         <div className="flex flex-col items-center justify-center max-h-[480px] lg:max-h-[584px] box-border overflow-y-auto w-full">
           {error && <ErrorMessage message={error} />}
 
           <>
-            <div className="description w-fit w-full mt-2 text-sm overflow-y-auto">
-              {permissionTemplate?.data.description
-                ? renderDescription(permissionTemplate?.data.description)
-                : 'The developer is requesting access to view your vehicle data. Select the vehicles you’d like to share access to.'}
+            <div className="description w-fit w-full mt-2 text-sm overflow-y-auto font-normal text-[#313131]">
+              {renderPermissionDescription(
+                permissionTemplate,
+                shareCarsSectionDescription,
+              )}
             </div>
             <div className="w-full">
               <button
