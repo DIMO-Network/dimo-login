@@ -67,8 +67,8 @@ export const DevCredentialsProvider = ({
       setUiState(value);
       setEntryState(value);
     },
-    forceEmail: (value: boolean) => setForceEmail(value === true),
-    altTitle: (value: boolean) => setAltTitle(value === true),
+    forceEmail: (value: boolean) => setForceEmail(Boolean(value)),
+    altTitle: (value: boolean) => setAltTitle(Boolean(value)),
   };
 
   const applyDevCredentialsConfig = (config: Record<string, unknown>) => {
