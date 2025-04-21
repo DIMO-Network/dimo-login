@@ -188,7 +188,6 @@ export const DevCredentialsProvider = ({
     }
   }, []);
 
-  // useEffect for validating credentials
   useEffect(() => {
     const validateCredentials = async () => {
       const { clientId, redirectUri } = devCredentialsState;

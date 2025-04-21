@@ -1,4 +1,3 @@
-// Renamed file to ipfsService.ts
 import axios from 'axios';
 
 export async function fetchConfigFromIPFS(
