@@ -53,8 +53,7 @@ export const PermissionsStep: FC<PermissionsStepProps> = ({ devLicenseAlias }) =
   return (
     <>
       <div className="w-full text-gray-600 text-sm text-center">
-        {devLicenseAlias} requires access to your car’s data to offer you charging
-        incentives.
+        {devLicenseAlias} requires access to your car's data to offer you their service.
       </div>
 
       <div className="flex flex-col gap-[10px] w-full">
