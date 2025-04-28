@@ -26,8 +26,7 @@ export const VirtualKeyStep: FC<VirtualKeyStepProps> = ({ devLicenseAlias, vehic
   return (
     <>
       <div className="w-full text-gray-600 text-sm">
-        {devLicenseAlias} requires access to your car’s data to offer you charging
-        incentives.
+        {devLicenseAlias} requires access to your car's data to offer you their service.
       </div>
 
       <div className="w-full text-gray-600 text-sm mt-2">

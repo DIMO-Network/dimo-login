@@ -19,7 +19,7 @@ export const Input: React.FC<InputProps> = ({
       <div className="relative">
         <input
           type={type}
-          className="w-full mt-1 p-2 border rounded-md text-[#080808] border-gray-300 
+          className="w-full mt-1 p-2 border rounded-md text-sm text-[#080808] border-gray-300 
                   focus:border-[#080808] focus:ring-[#080808] focus:outline-none pr-10"
           placeholder={placeholder}
           value={value}
