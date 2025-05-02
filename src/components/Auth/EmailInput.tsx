@@ -34,7 +34,7 @@ interface EmailInputProps {
   onSubmit: (email: string) => void;
 }
 
-const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
+export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   const { authenticateUser, setUser } = useAuthContext();
   const { clientId, devLicenseAlias, redirectUri } = useDevCredentials();
   const { setUiState, entryState, error, setError, setComponentData, altTitle } =
