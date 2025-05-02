@@ -22,6 +22,7 @@ import { isValidClientId } from '../services/identityService';
 import { setEmailGranted } from '../services/storageService';
 import { setForceEmail } from '../stores/AuthStateStore';
 import { UiStates, useUIManager } from './UIManagerContext';
+import { fetchConfigFromIPFS } from '../services';
 
 interface DevCredentialsContextProps {
   apiKey: string;
@@ -30,6 +31,7 @@ interface DevCredentialsContextProps {
   invalidCredentials: boolean;
   redirectUri: string;
   utm: string;
+  configCID: string;
 }
 
 const DevCredentialsContext = createContext<DevCredentialsContextProps | undefined>(
@@ -48,6 +50,7 @@ export const DevCredentialsProvider = ({
     utm: '',
     invalidCredentials: false,
     devLicenseAlias: '',
+    configCID: '',
   });
   const { setUiState, setEntryState, setLoadingState, setAltTitle } = useUIManager();
 
@@ -69,6 +72,8 @@ export const DevCredentialsProvider = ({
     },
     forceEmail: (value: boolean) => setForceEmail(Boolean(value)),
     altTitle: (value: boolean) => setAltTitle(Boolean(value)),
+    configCID: (value: string) =>
+      setDevCredentialsState((prev) => ({ ...prev, configCID: value })),
   };
 
   const applyDevCredentialsConfig = (config: Record<string, unknown>) => {
@@ -149,12 +154,29 @@ export const DevCredentialsProvider = ({
     }
   };
 
+  const processConfigByCID = async (cid: string) => {
+    try {
+      const config = await fetchConfigFromIPFS(cid);
+      applyDevCredentialsConfig({
+        ...config,
+        apiKey: 'api key',
+      });
+    } catch (error) {
+      console.error('Failed to process configuration by CID:', error);
+    }
+  };
+
   useEffect(() => {
     setLoadingState(true, 'Waiting for credentials...');
     const urlParams = new URLSearchParams(window.location.search);
     const stateFromUrl = urlParams.get('state');
+    const configCIDFromUrl = urlParams.get('configCID');
 
-    if (stateFromUrl) {
+    devCredentialsSetters.configCID(configCIDFromUrl || '');
+
+    if (configCIDFromUrl) {
+      processConfigByCID(configCIDFromUrl);
+    } else if (stateFromUrl) {
       parseStateFromUrl(stateFromUrl);
     } else if (!parseUrlParams(urlParams)) {
       const messageHandler = (event: MessageEvent) =>
@@ -195,6 +217,7 @@ export const DevCredentialsProvider = ({
         invalidCredentials: devCredentialsState.invalidCredentials,
         redirectUri: devCredentialsState.redirectUri,
         utm: devCredentialsState.utm,
+        configCID: devCredentialsState.configCID,
       }}
     >
       {children}
