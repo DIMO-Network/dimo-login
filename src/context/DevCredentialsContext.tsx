@@ -17,7 +17,6 @@ import React, {
 } from 'react';
 
 import { createKernelSigner } from '../services/turnkeyService';
-import { CredentialParams } from '../types';
 import { isStandalone } from '../utils/isStandalone';
 import { isValidClientId } from '../services/identityService';
 import { setEmailGranted } from '../services/storageService';
@@ -37,149 +36,165 @@ const DevCredentialsContext = createContext<DevCredentialsContextProps | undefin
   undefined,
 );
 
-// Provider component for Dev Credentials
 export const DevCredentialsProvider = ({
   children,
 }: {
   children: ReactNode;
 }): ReactElement => {
-  const [clientId, setClientId] = useState<string>('');
-  const [apiKey, setApiKey] = useState<string>('');
-  const [redirectUri, setRedirectUri] = useState<string>('');
-  const [utm, setUtm] = useState<string>('');
-  const [invalidCredentials, setInvalidCredentials] = useState<boolean>(false);
-  const [devLicenseAlias, setDevLicenseAlias] = useState<string>(''); // Alias will only be set if credentials are valid, defaults to client ID if not alias
+  const [devCredentialsState, setDevCredentialsState] = useState({
+    clientId: '',
+    apiKey: '',
+    redirectUri: '',
+    utm: '',
+    invalidCredentials: false,
+    devLicenseAlias: '',
+  });
   const { setUiState, setEntryState, setLoadingState, setAltTitle } = useUIManager();
 
-  // Example of using postMessage to receive credentials (as described previously)
-  useEffect(() => {
-    setLoadingState(true, 'Waiting for credentials...');
-    const urlParams = new URLSearchParams(window.location.search);
+  const devCredentialsSetters = {
+    apiKey: (value: string) =>
+      setDevCredentialsState((prev) => ({ ...prev, apiKey: value })),
+    redirectUri: (value: string) =>
+      setDevCredentialsState((prev) => ({ ...prev, redirectUri: value })),
+    utm: (value: string) => setDevCredentialsState((prev) => ({ ...prev, utm: value })),
+    clientId: (value: string) =>
+      setDevCredentialsState((prev) => ({ ...prev, clientId: value })),
+    devLicenseAlias: (value: string) =>
+      setDevCredentialsState((prev) => ({ ...prev, devLicenseAlias: value })),
+    invalidCredentials: (value: boolean) =>
+      setDevCredentialsState((prev) => ({ ...prev, invalidCredentials: value })),
+    entryState: (value: UiStates) => {
+      setUiState(value);
+      setEntryState(value);
+    },
+    forceEmail: (value: boolean) => setForceEmail(Boolean(value)),
+    altTitle: (value: boolean) => setAltTitle(Boolean(value)),
+  };
 
+  const applyDevCredentialsConfig = (config: Record<string, unknown>) => {
+    Object.entries(config).forEach(([key, value]) => {
+      if (
+        key in devCredentialsSetters &&
+        devCredentialsSetters[key as keyof typeof devCredentialsSetters] &&
+        value !== undefined
+      ) {
+        devCredentialsSetters[key as keyof typeof devCredentialsSetters](value as never);
+      }
+    });
+  };
+
+  const parseStateFromUrl = (stateFromUrl: string | null) => {
+    if (!stateFromUrl) return;
+
+    const {
+      clientId,
+      emailPermissionGranted = false,
+      redirectUri,
+      utm,
+      entryState = UiStates.EMAIL_INPUT,
+      altTitle,
+    } = JSON.parse(stateFromUrl);
+
+    setEmailGranted(clientId, emailPermissionGranted);
+
+    if (isStandalone()) {
+      applyDevCredentialsConfig({
+        clientId,
+        apiKey: 'api key',
+        redirectUri,
+        utm,
+        entryState,
+        altTitle,
+      });
+    }
+  };
+
+  const parseUrlParams = (urlParams: URLSearchParams) => {
     const clientIdFromUrl = urlParams.get('clientId');
     const redirectUriFromUrl = urlParams.get('redirectUri');
-    const entryStateFromUrl = urlParams.get('entryState') as UiStates;
-    const forceEmailFromUrl = urlParams.get('forceEmail');
-    const stateFromUrl = urlParams.get('state');
-    const utmFromUrl = urlParams.get('utm');
-    const altTitleFromUrl = urlParams.get('altTitle') === 'true';
 
-    // ✅ Handle state from URL (e.g., for SSO / OAuth Redirects)
-    const processStateFromUrl = () => {
-      if (!stateFromUrl) return;
+    if (!clientIdFromUrl || !redirectUriFromUrl) return false;
 
-      const state = JSON.parse(stateFromUrl);
+    applyDevCredentialsConfig({
+      clientId: clientIdFromUrl,
+      apiKey: 'api key',
+      redirectUri: redirectUriFromUrl,
+      entryState: urlParams.get('entryState') as UiStates,
+      forceEmail: urlParams.get('forceEmail') === 'true',
+      utm: urlParams.get('utm'),
+      altTitle: urlParams.get('altTitle') === 'true',
+    });
 
-      //We have to set this in state param, since we lose it for SSO
-      //We could do this setting in Email Input, however since we're already parsing state here, it feels more natural to put it here
-      //This sets email granted property to true/false in storage
-      //Then when we build the auth payload, it should be retrievable
-      setEmailGranted(state.clientId, state.emailPermissionGranted || false);
+    return true;
+  };
 
-      if (isStandalone()) {
-        // ✅ If standalone, use state params instead of waiting for SDK
-        setUiState(state.entryState || UiStates.EMAIL_INPUT);
-        setEntryState(state.entryState || UiStates.EMAIL_INPUT);
-        setCredentials({
-          clientId: state.clientId,
-          apiKey: 'api key',
-          redirectUri: state.redirectUri,
-          utm: state.utm,
-        });
-        setAltTitle(state.altTitle);
-      }
-    };
+  const handleAuthInitMessage = (event: MessageEvent, stateFromUrl: string | null) => {
+    const { eventType, clientId, apiKey, redirectUri, entryState, forceEmail, altTitle } =
+      event.data;
 
-    // ✅ Handle initialization from URL params (popup mode)
-    const processUrlParams = () => {
-      if (!clientIdFromUrl || !redirectUriFromUrl) return false;
+    if (eventType === 'AUTH_INIT') {
+      console.log('Received AUTH_INIT message', event);
+      const finalEntryState = stateFromUrl
+        ? JSON.parse(stateFromUrl).entryState
+        : entryState || UiStates.EMAIL_INPUT;
 
-      setUiState(entryStateFromUrl || UiStates.EMAIL_INPUT);
-      setEntryState(entryStateFromUrl || UiStates.EMAIL_INPUT);
-      setForceEmail(forceEmailFromUrl === 'true');
-      setCredentials({
-        clientId: clientIdFromUrl,
-        apiKey: 'api key',
-        redirectUri: redirectUriFromUrl,
-        utm: utmFromUrl,
-      });
-      setAltTitle(altTitleFromUrl);
-
-      return true;
-    };
-
-    // ✅ Handle message events from SDK (popup mode)
-    const handleMessage = (event: MessageEvent) => {
-      const {
-        eventType,
+      applyDevCredentialsConfig({
         clientId,
         apiKey,
         redirectUri,
-        entryState,
+        entryState: finalEntryState,
         forceEmail,
         altTitle,
-      } = event.data;
+      });
+    }
+  };
 
-      if (eventType === 'AUTH_INIT') {
-        console.log('Received AUTH_INIT message', event);
-        const finalEntryState = stateFromUrl
-          ? JSON.parse(stateFromUrl).entryState
-          : entryState || UiStates.EMAIL_INPUT;
+  useEffect(() => {
+    setLoadingState(true, 'Waiting for credentials...');
+    const urlParams = new URLSearchParams(window.location.search);
+    const stateFromUrl = urlParams.get('state');
 
-        setUiState(finalEntryState);
-        setEntryState(finalEntryState);
-        setForceEmail(forceEmail);
-        setCredentials({ clientId, apiKey, redirectUri });
-        setAltTitle(altTitle);
-      }
-    };
-
-    processStateFromUrl();
-
-    if (!processUrlParams()) {
-      window.addEventListener('message', handleMessage);
+    if (stateFromUrl) {
+      parseStateFromUrl(stateFromUrl);
+    } else if (!parseUrlParams(urlParams)) {
+      const messageHandler = (event: MessageEvent) =>
+        handleAuthInitMessage(event, stateFromUrl);
+      window.addEventListener('message', messageHandler);
       return () => {
-        window.removeEventListener('message', handleMessage);
+        window.removeEventListener('message', messageHandler);
       };
     }
   }, []);
 
   useEffect(() => {
     const validateCredentials = async () => {
+      const { clientId, redirectUri } = devCredentialsState;
+
       if (clientId && redirectUri) {
         const { isValid, alias } = await isValidClientId(clientId, redirectUri);
         if (isValid) {
-          setDevLicenseAlias(alias); // Set the alias in global state
+          devCredentialsSetters.devLicenseAlias(alias);
           createKernelSigner(clientId, clientId, redirectUri);
-          setLoadingState(false); // Credentials loaded
+          setLoadingState(false);
         } else {
-          setInvalidCredentials(true);
+          devCredentialsSetters.invalidCredentials(true);
           console.error('Invalid client ID or redirect URI.');
-          // Handle invalid case (e.g., show an error message, redirect, etc.)
         }
       }
     };
 
     validateCredentials();
-  }, [clientId, redirectUri]);
-
-  const setCredentials = ({ clientId, apiKey, redirectUri, utm }: CredentialParams) => {
-    setClientId(clientId);
-    setApiKey(apiKey);
-    setRedirectUri(redirectUri);
-    setLoadingState(false);
-    if (utm) setUtm(utm);
-  };
+  }, [devCredentialsState.clientId, devCredentialsState.redirectUri]);
 
   return (
     <DevCredentialsContext.Provider
       value={{
-        apiKey,
-        clientId,
-        devLicenseAlias,
-        invalidCredentials,
-        redirectUri,
-        utm,
+        apiKey: devCredentialsState.apiKey,
+        clientId: devCredentialsState.clientId,
+        devLicenseAlias: devCredentialsState.devLicenseAlias,
+        invalidCredentials: devCredentialsState.invalidCredentials,
+        redirectUri: devCredentialsState.redirectUri,
+        utm: devCredentialsState.utm,
       }}
     >
       {children}
@@ -187,7 +202,6 @@ export const DevCredentialsProvider = ({
   );
 };
 
-// Hook to use the DevCredentialsContext
 export const useDevCredentials = () => {
   const context = useContext(DevCredentialsContext);
   if (!context) {
