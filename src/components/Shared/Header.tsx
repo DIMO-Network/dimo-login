@@ -5,13 +5,14 @@ interface HeaderProps {
   title: string;
   subtitle?: string;
   link?: string;
+  description?: string;
 }
 
-export const Header: React.FC<HeaderProps> = ({ title, subtitle, link }) => (
-  <div className="header w-full relative">
+export const Header: React.FC<HeaderProps> = ({ title, subtitle, link, description }) => (
+  <div className="w-full relative">
     <Back />
     <Logo />
-    <div className="frame18Title text-center">
+    <div className="flex flex-col gap-1 text-center">
       <p className="text-xl font-medium">{title}</p>
       {(link || subtitle) && (
         <p className="text-sm text-zinc-500 font-medium">
@@ -35,6 +36,7 @@ export const Header: React.FC<HeaderProps> = ({ title, subtitle, link }) => (
           )}
         </p>
       )}
+      {description && <p className="text-sm font-normal text-[#313131]">{description}</p>}
     </div>
   </div>
 );

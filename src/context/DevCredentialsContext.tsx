@@ -32,6 +32,8 @@ interface DevCredentialsContextProps {
   redirectUri: string;
   utm: string;
   configCID: string;
+  newVehicleSectionDescription: string;
+  shareVehiclesSectionDescription: string;
 }
 
 const DevCredentialsContext = createContext<DevCredentialsContextProps | undefined>(
@@ -51,6 +53,8 @@ export const DevCredentialsProvider = ({
     invalidCredentials: false,
     devLicenseAlias: '',
     configCID: '',
+    newVehicleSectionDescription: '',
+    shareVehiclesSectionDescription: '',
   });
   const { setUiState, setEntryState, setLoadingState, setAltTitle } = useUIManager();
 
@@ -74,6 +78,16 @@ export const DevCredentialsProvider = ({
     altTitle: (value: boolean) => setAltTitle(Boolean(value)),
     configCID: (value: string) =>
       setDevCredentialsState((prev) => ({ ...prev, configCID: value })),
+    newVehicleSectionDescription: (value: string) =>
+      setDevCredentialsState((prev) => ({
+        ...prev,
+        newVehicleSectionDescription: value,
+      })),
+    shareVehiclesSectionDescription: (value: string) =>
+      setDevCredentialsState((prev) => ({
+        ...prev,
+        shareVehiclesSectionDescription: value,
+      })),
   };
 
   const applyDevCredentialsConfig = (config: Record<string, unknown>) => {
@@ -218,6 +232,9 @@ export const DevCredentialsProvider = ({
         redirectUri: devCredentialsState.redirectUri,
         utm: devCredentialsState.utm,
         configCID: devCredentialsState.configCID,
+        newVehicleSectionDescription: devCredentialsState.newVehicleSectionDescription,
+        shareVehiclesSectionDescription:
+          devCredentialsState.shareVehiclesSectionDescription,
       }}
     >
       {children}

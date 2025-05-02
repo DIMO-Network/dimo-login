@@ -17,7 +17,8 @@ import { useOracles } from '../../context/OraclesContext';
 
 const VehicleManager: React.FC = () => {
   const { user } = useAuthContext();
-  const { clientId, devLicenseAlias } = useDevCredentials();
+  const { clientId, devLicenseAlias, shareVehiclesSectionDescription } =
+    useDevCredentials();
   const { setOnboardingEnabled } = useOracles();
   const { setComponentData, error, setError } = useUIManager();
 
@@ -218,6 +219,22 @@ const VehicleManager: React.FC = () => {
     );
   };
 
+  const renderPermissionDescription = (
+    permissionTemplate: SACDTemplate | null,
+    shareCarsSectionDescription: string,
+  ) => {
+    if (permissionTemplate?.data.description) {
+      return renderDescription(permissionTemplate.data.description);
+    }
+
+    let description =
+      'The developer is requesting access to view your vehicle data. Select the vehicles you’d like to share access to.';
+    if (shareCarsSectionDescription) {
+      description = shareCarsSectionDescription;
+    }
+    return <p>{description}</p>;
+  };
+
   const appUrl = getAppUrl();
 
   return (
@@ -236,10 +253,11 @@ const VehicleManager: React.FC = () => {
           {error && <ErrorMessage message={error} />}
 
           <>
-            <div className="description w-fit w-full mt-2 text-sm overflow-y-auto">
-              {permissionTemplate?.data.description
-                ? renderDescription(permissionTemplate?.data.description)
-                : 'The developer is requesting access to view your vehicle data. Select the vehicles you’d like to share access to.'}
+            <div className="description w-fit w-full mt-2 text-sm overflow-y-auto font-normal text-[#313131]">
+              {renderPermissionDescription(
+                permissionTemplate,
+                shareVehiclesSectionDescription,
+              )}
             </div>
             <div className="w-full">
               <button
