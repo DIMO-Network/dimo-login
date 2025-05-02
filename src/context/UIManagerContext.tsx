@@ -43,6 +43,7 @@ export enum UiStates {
   CONNECT_TESLA = 'CONNECT_TESLA',
   CONNECT_SMARTCAR = 'CONNECT_SMARTCAR', //TBD: DEPRECATE
   SUCCESS = 'SUCCESS',
+  LOGOUT = 'LOGOUT',
 }
 
 const UIManagerContext = createContext<UIManagerContextProps | undefined>(undefined);
