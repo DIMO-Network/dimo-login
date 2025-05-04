@@ -4,12 +4,15 @@ const DEFAULT_COOKIE_EXPIRATION_YEARS = 10; // Default expiration for cookies is
 
 export const storeJWTInCookies = (clientId: string, jwt: string): void => {
   document.cookie = createCookieString(`auth_token_${clientId}`, jwt);
-  document.cookie = createCookieString('dimo_auth_token', jwt);
 };
 
-const createCookieString = (name: string, value: string, expiresAt?: Date): string => {
-  const expirationDate = expiresAt || new Date();
-  if (!expiresAt) {
+const createCookieString = (
+  name: string,
+  value: string,
+  config?: { expiresAt?: Date },
+): string => {
+  const expirationDate = config?.expiresAt || new Date();
+  if (!config?.expiresAt) {
     // If no expiration date is provided, cookies are set to expire in 10 years by default.
     expirationDate.setFullYear(
       expirationDate.getFullYear() + DEFAULT_COOKIE_EXPIRATION_YEARS,
