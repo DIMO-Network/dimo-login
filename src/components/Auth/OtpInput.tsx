@@ -11,7 +11,7 @@ interface OtpInputProps {
   email: string;
 }
 
-const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
+export const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
   const { verifyOtp, authenticateUser, sendOtp } = useAuthContext(); // Get verifyOtp from the context
   const { entryState, error } = useUIManager();
   const [otpArray, setOtpArray] = useState(Array(6).fill('')); // Array of 6 empty strings

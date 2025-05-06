@@ -10,7 +10,7 @@ import { useUIManager } from '../../context/UIManagerContext';
 import { isEmbed } from '../../utils/isEmbed';
 import { backToThirdParty } from '../../utils/messageHandler';
 
-const SuccessPage: React.FC = () => {
+export const SuccessPage: React.FC = () => {
   const { user, jwt } = useAuthContext(); // Should be set on session init
   const { redirectUri, utm, clientId, devLicenseAlias } = useDevCredentials();
   const { setUiState } = useUIManager();

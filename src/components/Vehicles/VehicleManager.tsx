@@ -15,7 +15,7 @@ import SelectVehicles from './SelectVehicles';
 import { getAppUrl, getParamFromUrlOrState } from '../../utils/urlHelpers';
 import { useOracles } from '../../context/OraclesContext';
 
-const VehicleManager: React.FC = () => {
+export const VehicleManager: React.FC = () => {
   const { user } = useAuthContext();
   const { clientId, devLicenseAlias, shareVehiclesSectionDescription } =
     useDevCredentials();

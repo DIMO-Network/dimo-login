@@ -12,7 +12,7 @@ interface VehicleCardProps {
   incompatible: boolean;
 }
 
-const VehicleCard: React.FC<VehicleCardProps> = ({
+export const VehicleCard: React.FC<VehicleCardProps> = ({
   vehicle,
   isSelected,
   onSelect,

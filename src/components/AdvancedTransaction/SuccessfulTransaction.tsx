@@ -11,7 +11,7 @@ import ErrorScreen from '../Shared/ErrorScreen';
 import Header from '../Shared/Header';
 import PrimaryButton from '../Shared/PrimaryButton';
 
-const SuccessfulTransaction: React.FC = () => {
+export const SuccessfulTransaction: React.FC = () => {
   const { redirectUri, utm, devLicenseAlias } = useDevCredentials();
   const { componentData } = useUIManager();
   const { jwt } = useAuthContext();
