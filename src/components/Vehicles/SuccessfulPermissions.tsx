@@ -13,7 +13,7 @@ import { Vehicle } from '../../models/vehicle';
 import VehicleCard from './VehicleCard';
 import { isEmbed } from '../../utils/isEmbed';
 
-const SuccessfulPermissions: React.FC = () => {
+export const SuccessfulPermissions: React.FC = () => {
   const { redirectUri, utm, devLicenseAlias, clientId } = useDevCredentials();
   const { jwt, user } = useAuthContext();
   const {

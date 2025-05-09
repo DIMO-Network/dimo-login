@@ -14,7 +14,7 @@ import {
 import { getPermsValue } from '../../services/permissionsService';
 import { extendByYear, parseExpirationDate } from '../../utils/dateUtils';
 
-const ManageVehicle: React.FC = () => {
+export const ManageVehicle: React.FC = () => {
   const { clientId } = useDevCredentials();
   const { user } = useAuthContext();
   const {

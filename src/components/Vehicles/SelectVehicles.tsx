@@ -33,7 +33,7 @@ interface SelectVehiclesProps {
   powertrainTypes?: string[];
 }
 
-const SelectVehicles: React.FC<SelectVehiclesProps> = ({
+export const SelectVehicles: React.FC<SelectVehiclesProps> = ({
   vehicleTokenIds,
   permissionTemplateId,
   vehicleMakes,

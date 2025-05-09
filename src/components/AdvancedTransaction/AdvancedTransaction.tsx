@@ -17,7 +17,7 @@ import { TransactionData } from '@dimo-network/transactions';
 import { sendMessageToReferrer } from '../../utils/messageHandler';
 import { UiStates, useUIManager } from '../../context/UIManagerContext';
 
-const AdvancedTransaction: React.FC = () => {
+export const AdvancedTransaction: React.FC = () => {
   const { redirectUri, utm } = useDevCredentials();
   const { setUiState, setComponentData, setLoadingState, error, setError } =
     useUIManager();
