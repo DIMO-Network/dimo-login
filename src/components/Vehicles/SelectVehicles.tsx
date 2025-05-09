@@ -329,11 +329,7 @@ const SelectVehicles: React.FC<SelectVehiclesProps> = ({
               Cancel
             </button>
             <PrimaryButton onClick={handleShare} disabled={selectedVehicles.length === 0}>
-              {selectedVehicles.length === 0
-                ? 'Share selected cars'
-                : selectedVehicles.length === 1
-                  ? 'Share 1 car selected'
-                  : `Share ${selectedVehicles.length} cars selected`}
+              Save changes
             </PrimaryButton>
           </>
         )}

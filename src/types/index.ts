@@ -1,1 +1,2 @@
-export * from './Credential';
+export * from './credential';
+export * from './vehicle';

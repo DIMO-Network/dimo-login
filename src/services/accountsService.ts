@@ -8,11 +8,7 @@
  */
 
 import { CreateAccountParams } from '../models/account';
-import {
-  CredentialResult,
-  OtpResult,
-  UserResult,
-} from '../models/resultTypes';
+import { CredentialResult, OtpResult, UserResult } from '../models/resultTypes';
 import { generateTargetPublicKey } from '../utils/cryptoUtils';
 
 const DIMO_ACCOUNTS_BASE_URL =

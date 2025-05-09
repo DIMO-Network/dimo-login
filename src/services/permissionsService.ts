@@ -1,12 +1,14 @@
 import { SACDTemplate } from '@dimo-network/transactions/dist/core/types/dimo';
+import { VehcilePermissionDescription } from '@dimo-network/transactions/dist/core/types/args';
+
+import { POLICY_ATTACHMENT_CID_BY_REGION } from '../enums';
+import { FetchPermissionsParams } from '../models/permissions';
+import { formatBigIntAsReadableDate } from '../utils/dateUtils';
 import {
   getSacdDescription,
   getSacdPermissionArray,
   getSacdValue,
 } from './turnkeyService';
-import { VehcilePermissionDescription } from '@dimo-network/transactions/dist/core/types/args';
-import { formatBigIntAsReadableDate } from '../utils/dateUtils';
-import { FetchPermissionsParams } from '../models/permissions';
 
 //Helper functions that communicate with the transactions service
 export function getPermsValue(permissionTemplateId: string): bigint {
@@ -30,6 +32,16 @@ export function getDescription(args: VehcilePermissionDescription): string {
   return getSacdDescription(args);
 }
 
+export function getContractAttachmentLink(
+  region: keyof typeof POLICY_ATTACHMENT_CID_BY_REGION,
+): string {
+  const cid = POLICY_ATTACHMENT_CID_BY_REGION[region];
+  if (!cid) {
+    return '';
+  }
+  return `<a href="https://${cid}.ipfs.w3s.link/agreement-${region.toLowerCase()}.pdf" target="_blank">Contract Attachment</a>`;
+}
+
 export async function fetchPermissionsFromId({
   permissionTemplateId,
   clientId,
@@ -37,6 +49,7 @@ export async function fetchPermissionsFromId({
   email,
   devLicenseAlias,
   expirationDate,
+  region,
 }: FetchPermissionsParams): Promise<SACDTemplate> {
   const templateId = '$uuid';
 
@@ -54,7 +67,14 @@ export async function fetchPermissionsFromId({
     permissionsString += `\n- ${perm}`;
   }
 
-  const description = `This contract gives permission for specific data access and control functions on the DIMO platform. Here’s what you’re agreeing to:\n\nContract Summary:\n- Grantor: ${email} (the entity giving permission).\n- Grantee: ${devLicenseAlias}  (the entity receiving permission).\n\nPermissions Granted:${permissionsString}\n\nEffective Date: ${formatBigIntAsReadableDate(
+  const contractAttachmentLink =
+    region && region in POLICY_ATTACHMENT_CID_BY_REGION
+      ? getContractAttachmentLink(region as keyof typeof POLICY_ATTACHMENT_CID_BY_REGION)
+      : '';
+  console.log('contractAttachmentLink', contractAttachmentLink);
+  console.log('region', region);
+
+  const description = `This contract gives permission for specific data access and control functions on the DIMO platform. Here’s what you’re agreeing to:\n\nContract Summary:\n- Grantor: ${email} (the entity giving permission).\n- Grantee: ${devLicenseAlias}  (the entity receiving permission).\n\n${contractAttachmentLink}\n\nPermissions Granted:${permissionsString}\n\nEffective Date: ${formatBigIntAsReadableDate(
     currentTimeBigInt,
   )} \n\nExpiration Date: ${formatBigIntAsReadableDate(
     expirationDate,

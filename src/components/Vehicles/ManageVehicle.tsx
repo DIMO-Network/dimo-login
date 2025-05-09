@@ -73,37 +73,44 @@ const ManageVehicle: React.FC = () => {
   };
 
   return (
-    <Card width="w-full max-w-[600px]" height="h-full max-h-[400px]">
-      <Header
-        title={`${vehicle.make} ${vehicle.model} ${vehicle.year}`}
-        subtitle={`ID:${vehicle.tokenId}`}
-      />
-
-      <div className="flex justify-center pt-8">
-        <img
-          style={{ height: '80px', width: '80px' }}
-          className="rounded-full object-cover"
-          src={
-            'https://assets.dimo.xyz/ipfs/QmaaxazmGtNM6srcRmLyNdjCp8EAmvaTDYSo1k2CXVRTaY'
-          }
-          alt={`${vehicle.make} ${vehicle.model}`}
+    <Card
+      width="w-full max-w-[600px]"
+      height="h-fit"
+      className="flex flex-col items-center"
+    >
+      <div className="flex flex-col gap-6 w-[440px]">
+        <Header
+          title={`${vehicle.make} ${vehicle.model} ${vehicle.year}`}
+          subtitle={`ID:${vehicle.tokenId}`}
         />
-      </div>
 
-      <div className="flex pt-8 justify-center">
-        <p>Shared until {vehicle.expiresAt}</p>
-      </div>
+        <div className="flex justify-center pt-8 w-full">
+          <img
+            style={{ height: '80px', width: '80px' }}
+            className="rounded-full object-cover"
+            src={
+              'https://assets.dimo.xyz/ipfs/QmaaxazmGtNM6srcRmLyNdjCp8EAmvaTDYSo1k2CXVRTaY'
+            }
+            alt={`${vehicle.make} ${vehicle.model}`}
+          />
+        </div>
 
-      <div className="flex pt-8 justify-center gap-2">
-        <button
-          onClick={handleRevoke}
-          className="font-medium justify-center px-4 py-2 w-[214px] rounded-3xl border border-gray-300 bg-white text-black hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400"
-        >
-          Stop Sharing
-        </button>
-        <PrimaryButton onClick={handleExtend} width="w-[214px]">
-          Extend (1 year)
-        </PrimaryButton>
+        <div className="flex pt-8 justify-center w-full">
+          <p>Shared until {vehicle.expiresAt}</p>
+        </div>
+
+        {/* Render buttons */}
+        <div className="flex pt-8 justify-center gap-2 w-full">
+          <button
+            onClick={handleRevoke}
+            className="font-medium justify-center px-4 py-2 w-[214px] rounded-3xl border border-gray-300 bg-white text-black hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400"
+          >
+            Stop Sharing
+          </button>
+          <PrimaryButton onClick={handleExtend} width="w-[214px]">
+            Extend (1 year)
+          </PrimaryButton>
+        </div>
       </div>
     </Card>
   );
