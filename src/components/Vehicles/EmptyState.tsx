@@ -6,7 +6,7 @@ import { ConnectCarButton } from '../Shared/ConnectCarButton';
 
 export const EmptyState: FC = () => {
   return (
-    <div className="flex flex-col items-center text-center gap-4 sm:gap-5 px-4 w-full max-w-sm sm:max-w-md mx-auto">
+    <div className="flex flex-col items-center justify-center text-center gap-4 sm:gap-5 px-4 w-full max-w-sm sm:max-w-md mx-auto overflow-y-hidden">
       {/* Vehicle Image */}
       <img
         className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover"
@@ -30,7 +30,7 @@ export const EmptyState: FC = () => {
         </p>
 
         {/* App Store & Google Play Buttons */}
-        <div className="flex flex-row gap-3 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto justify-center items-center">
           <AppStoreButton url={IOS_URL} theme="dark" className="!rounded-lg" />
           <GooglePlayButton url={APK_URL} theme="dark" className="!rounded-lg" />
         </div>
