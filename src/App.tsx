@@ -94,11 +94,13 @@ const App = () => {
   };
 
   return (
-    <div className="flex h-screen pt-2 justify-center bg-white lg-h-screen">
-      <Card width="w-full max-w-[600px]" height="h-full max-h-[308px]">
-        <div className="flex flex-col gap-6 w-[440px]">
-          {componentMap[uiState] || null}
-        </div>
+    <div className="flex h-screen pt-2 items-center justify-center bg-white md:bg-[#F7F7F7]">
+      <Card
+        width="w-full max-w-[600px]"
+        height="min-h-[308px]"
+        className="flex flex-col gap-6 items-center p-6"
+      >
+        <div className="w-full md:w-[440px]">{componentMap[uiState] || null}</div>
       </Card>
     </div>
   );
