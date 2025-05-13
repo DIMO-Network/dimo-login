@@ -1,6 +1,5 @@
 import React, { useEffect, useState, type FC } from 'react';
 
-import { Card } from '../Shared/Card';
 import { Header } from '../Shared/Header';
 import { PrimaryButton } from '../Shared/PrimaryButton';
 import { DevicesIcon, FingerprintIcon, IconProps, SecurityIcon } from '../Icons';
@@ -91,27 +90,19 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
   };
 
   return (
-    <Card
-      width="w-full max-w-[600px]"
-      height="h-fit"
-      className="flex flex-col items-center"
-    >
-      <div className="flex flex-col gap-6 w-[440px]">
-        <Header title="Add a passkey" />
-        <div className="flex flex-col gap-3 w-full">
-          <div className="passkey-description">
-            <p className="text-sm">
-              DIMO uses passkeys to keep your account and data secure.
-            </p>
-          </div>
-          <div className="passkey-benefits">{PASSKEY_BENEFITS.map(renderBenefit)}</div>
-          <div className="actions">
-            <PrimaryButton onClick={handlePasskeyGeneration} width="w-full">
-              Add a passkey
-            </PrimaryButton>
-          </div>
-        </div>
+    <>
+      <Header title="Add a passkey" />
+      <div className="passkey-description">
+        <p className="text-sm">
+          DIMO uses passkeys to keep your account and data secure.
+        </p>
       </div>
-    </Card>
+      <div className="passkey-benefits">{PASSKEY_BENEFITS.map(renderBenefit)}</div>
+      <div className="actions">
+        <PrimaryButton onClick={handlePasskeyGeneration} width="w-full">
+          Add a passkey
+        </PrimaryButton>
+      </div>
+    </>
   );
 };

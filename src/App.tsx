@@ -26,6 +26,7 @@ import {
   ConnectSmartCar,
   Logout,
 } from './components';
+import { Card } from './components/Shared/Card';
 
 import './App.css';
 
@@ -94,7 +95,11 @@ const App = () => {
 
   return (
     <div className="flex h-screen pt-2 justify-center bg-white lg-h-screen">
-      {componentMap[uiState] || null}
+      <Card width="w-full max-w-[600px]" height="h-full max-h-[308px]">
+        <div className="flex flex-col gap-6 w-[440px]">
+          {componentMap[uiState] || null}
+        </div>
+      </Card>
     </div>
   );
 };

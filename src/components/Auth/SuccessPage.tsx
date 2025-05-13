@@ -1,7 +1,6 @@
 // src/components/SuccessPage.tsx
 import React from 'react';
 import { useAuthContext } from '../../context/AuthContext';
-import Card from '../Shared/Card';
 import Header from '../Shared/Header';
 import PrimaryButton from '../Shared/PrimaryButton';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
@@ -35,7 +34,7 @@ export const SuccessPage: React.FC = () => {
   };
 
   return (
-    <Card width="w-full max-w-[600px]" height="h-full max-h-[308px]">
+    <>
       <Header title="You are logged in!" subtitle={user.email} />
       <div className="space-y-4">
         {!isEmbed() && (
@@ -51,7 +50,7 @@ export const SuccessPage: React.FC = () => {
           </PrimaryButton>
         </div>
       </div>
-    </Card>
+    </>
   );
 };
 
