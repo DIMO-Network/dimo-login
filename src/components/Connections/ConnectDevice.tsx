@@ -1,10 +1,8 @@
 import { type FC } from 'react';
 
 import PhysicalAdapter from '../../assets/images/physical-adapter.png';
-import PrimaryButton from '../Shared/PrimaryButton';
+import { Header, PrimaryButton } from '../Shared';
 import { useUIManager } from '../../context/UIManagerContext';
-import Card from '../Shared/Card';
-import Header from '../Shared/Header';
 import { getAppUrl } from '../../utils/urlHelpers';
 import { IOS_URL, SHOP_DIMO_URL } from '../../utils/constants';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
@@ -15,11 +13,7 @@ export const ConnectDevice: FC = () => {
   const appUrl = getAppUrl();
 
   return (
-    <Card
-      width="w-full max-w-[600px]"
-      height="h-fit max-h-[770px]"
-      className="flex flex-col gap-6 items-center text-center px-6"
-    >
+    <>
       {/* Header */}
       <Header
         title={`Connect Data Source for ${componentData.modelYear} ${componentData.makeModel}`}
@@ -60,6 +54,6 @@ export const ConnectDevice: FC = () => {
           Later
         </button>
       </div>
-    </Card>
+    </>
   );
 };

@@ -45,7 +45,7 @@ export const SuccessPage: React.FC = () => {
           </div>
         )}
         <div className="flex justify-center">
-          <PrimaryButton onClick={handleLogout} width="w-32">
+          <PrimaryButton onClick={handleLogout} width="w-64">
             Logout
           </PrimaryButton>
         </div>

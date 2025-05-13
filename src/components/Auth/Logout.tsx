@@ -18,9 +18,9 @@ export const Logout = () => {
   }, [setLoadingState, clientId, redirectUri, utm, setUiState]);
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen">
+    <>
       <Loader />
-    </div>
+    </>
   );
 };
 
