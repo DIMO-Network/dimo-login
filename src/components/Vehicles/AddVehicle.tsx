@@ -91,32 +91,26 @@ export const AddVehicle: FC = () => {
     (tab === 0 && !(makeModel && country && modelYear)) || (tab === 1 && !vinNumber);
 
   return (
-    <Card
-      width="w-full max-w-[600px]"
-      height="h-fit"
-      className="flex flex-col items-center"
-    >
-      <div className="flex flex-col gap-6 w-[440px]">
-        <Header
-          title={`Add a new car`}
-          subtitle={appUrl.hostname}
-          link={`${appUrl.protocol}//${appUrl.host}`}
-          description={newVehicleSectionDescription}
-        />
+    <>
+      <Header
+        title={`Add a new car`}
+        subtitle={appUrl.hostname}
+        link={`${appUrl.protocol}//${appUrl.host}`}
+        description={newVehicleSectionDescription}
+      />
 
-        <div className="w-full max-w-md mx-auto bg-white rounded-full">
-          {renderTabs()}
-          {tabContent[tab]}
+      <div className="w-full max-w-md mx-auto bg-white rounded-full">
+        {renderTabs()}
+        {tabContent[tab]}
 
-          <button
-            disabled={isDisabled}
-            className="w-full mt-6 p-3 rounded-full bg-black disabled:bg-[#A1A1AA] text-white"
-            onClick={handleSubmit}
-          >
-            Check compatibility
-          </button>
-        </div>
+        <button
+          disabled={isDisabled}
+          className="w-full mt-6 p-3 rounded-full bg-black disabled:bg-[#A1A1AA] text-white"
+          onClick={handleSubmit}
+        >
+          Check compatibility
+        </button>
       </div>
-    </Card>
+    </>
   );
 };

@@ -70,9 +70,6 @@ export const MintVehicle: FC = () => {
         }
       } catch (error) {
         console.error('Mint processing error:', error);
-      } finally {
-        // setLoadingState(false);
-        // setIsProcessing(false);
       }
     };
 
@@ -114,7 +111,7 @@ export const MintVehicle: FC = () => {
   };
 
   return (
-    <div className="flex flex-col items-center gap-6">
+    <>
       <img
         style={{ height: '40px', width: '40px' }}
         className="rounded-full object-cover mr-4"
@@ -129,6 +126,6 @@ export const MintVehicle: FC = () => {
         <p className="text-xl font-medium">Download the DIMO app now</p>
         <div className="flex flex-row gap-6"></div>
       </div>
-    </div>
+    </>
   );
 };

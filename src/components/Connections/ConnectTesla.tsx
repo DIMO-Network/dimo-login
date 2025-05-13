@@ -263,26 +263,20 @@ export const ConnectTesla: FC = () => {
   };
 
   return (
-    <Card
-      width="w-full max-w-[600px]"
-      height="h-fit"
-      className="flex flex-col items-center"
-    >
-      <div className="flex flex-col gap-6 w-[440px]">
-        <Header
-          title={STEP_CONTENT_MAP[step].title}
-          subtitle={appUrl.hostname}
-          link={`${appUrl.protocol}//${appUrl.host}`}
-        />
+    <>
+      <Header
+        title={STEP_CONTENT_MAP[step].title}
+        subtitle={appUrl.hostname}
+        link={`${appUrl.protocol}//${appUrl.host}`}
+      />
 
-        {renderStep(step, devLicenseAlias, vehicleToAdd)}
+      {renderStep(step, devLicenseAlias, vehicleToAdd)}
 
-        <div className="flex flex-col w-full space-y-3">
-          <PrimaryButton onClick={handleNextStep} width="w-full py-3">
-            {STEP_CONTENT_MAP[step].buttonText}
-          </PrimaryButton>
-        </div>
+      <div className="flex flex-col w-full mt-3">
+        <PrimaryButton onClick={handleNextStep} width="w-full py-3">
+          {STEP_CONTENT_MAP[step].buttonText}
+        </PrimaryButton>
       </div>
-    </Card>
+    </>
   );
 };

@@ -1,16 +1,20 @@
 // components/Shared/LoadingScreen.js
 import React from 'react';
 import Logo from './Logo';
-import Loader from './Loader';
+import { Card, Loader } from '../';
 
 export const LoadingScreen = () => (
-  <div className="flex h-screen pt-2 justify-center bg-white lg-h-screen">
-    <div className="bg-white p-8 rounded-lg text-center max-w-[600px] w-full h-full max-h-[308px]">
-      <div className="flex justify-center mb-4">
+  <div className="flex h-screen pt-2 items-center justify-center bg-white md:bg-[#F7F7F7]">
+    <Card
+      width="w-full max-w-[600px]"
+      height="min-h-[308px]"
+      className="flex flex-col gap-6 items-center p-6"
+    >
+      <div className="w-full md:w-[440px]">
         <Logo />
+        <Loader />
       </div>
-      <Loader />
-    </div>
+    </Card>
   </div>
 );
 
