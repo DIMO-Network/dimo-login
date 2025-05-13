@@ -58,7 +58,7 @@ export const SuccessfulTransaction: React.FC = () => {
           </div>
         )}
         <div className="flex justify-center">
-          <PrimaryButton onClick={handleView} width="w-32">
+          <PrimaryButton onClick={handleView} width="w-64">
             View Transaction
           </PrimaryButton>
         </div>
