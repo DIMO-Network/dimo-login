@@ -7,11 +7,12 @@ import {
 } from '../services/turnkeyService';
 import {
   clearSessionData,
-  getEmailGranted,
+  isEmailGranted,
   getJWTFromCookies,
   getUserFromLocalStorage,
   storeJWTInCookies,
   storeUserInLocalStorage,
+  setLoggedEmail,
 } from '../services/storageService';
 import { UserObject } from '../models/user';
 import { backToThirdParty, sendMessageToReferrer } from './messageHandler';
@@ -30,7 +31,6 @@ export function buildAuthPayload(
   //Won't send to SDK until these are set in cookies/storage (may not work in incognito though?)
   const token = getJWTFromCookies(clientId) || jwt;
   const user = getUserFromLocalStorage(clientId) || userObj;
-  const emailGranted = getEmailGranted(clientId);
 
   if (!token) {
     throw new Error('JWT is missing. Ensure the user is authenticated.');
@@ -43,7 +43,7 @@ export function buildAuthPayload(
   return {
     token,
     walletAddress: user.smartContractAddress,
-    email: emailGranted ? user.email : undefined,
+    email: isEmailGranted(clientId) ? user.email : undefined,
   };
 }
 
@@ -157,6 +157,7 @@ export async function authenticateUser(
         setUser(userProperties);
         storeJWTInCookies(clientId, jwt.data.access_token); // Store JWT in cookies
         storeUserInLocalStorage(clientId, userProperties); // Store user properties in localStorage
+        setLoggedEmail(clientId, email);
 
         //Parse Entry State
         if (entryState === UiStates.EMAIL_INPUT) {
