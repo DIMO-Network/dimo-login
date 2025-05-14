@@ -8,7 +8,6 @@ export * from './identityService';
 export * from './ipfsService';
 export * from './permissionsService';
 export * from './sessionService';
-export * from './smartcarService';
 export * from './storageService';
 export * from './tokenService';
 export * from './turnkeyService';

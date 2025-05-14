@@ -25,8 +25,6 @@ export const CompatibilityCheck: FC = () => {
   const handleContinue = () => {
     if (connectionType === 'tesla') {
       setUiState(UiStates.CONNECT_TESLA, { setBack: true });
-    } else if (connectionType === 'smartcar') {
-      setUiState(UiStates.CONNECT_SMARTCAR, { setBack: true });
     } else {
       setUiState(UiStates.CONNECT_DEVICE, { setBack: true });
     }
