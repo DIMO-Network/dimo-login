@@ -2,13 +2,13 @@ import { useEffect, useState, type FC } from 'react';
 
 import {
   PrimaryButton,
-  Card,
   Header,
   PermissionsStep,
   VirtualKeyStep,
   PollingVirtualKeyStep,
   MintingStep,
 } from '../Shared';
+import { AuthProvider } from '../../utils/authUrls';
 import { UiStates, useUIManager } from '../../context/UIManagerContext';
 import { getAppUrl } from '../../utils/urlHelpers';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
@@ -192,7 +192,7 @@ export const ConnectTesla: FC = () => {
     if (step === TeslaOnboardingStep.PERMISSIONS) {
       const urlParams = new URLSearchParams(window.location.search);
       const authUrl = constructAuthUrl({
-        provider: 'tesla',
+        provider: AuthProvider.TESLA,
         clientId,
         redirectUri,
         entryState: UiStates.CONNECT_TESLA,
