@@ -1,31 +1,23 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import debounce from 'lodash/debounce';
 
-import {
-  Checkbox,
-  ErrorMessage,
-  Header,
-  LegalNotice,
-  LoadingScreen,
-  PrimaryButton,
-  SSOButton,
-} from '../Shared';
+import { Checkbox, ErrorMessage, Header, LegalNotice, LoadingScreen } from '../Shared';
+import { CachedEmail, EmailInputForm } from './';
 import { fetchUserDetails } from '../../services/accountsService';
-import { setEmailGranted } from '../../services/storageService';
+import {
+  setEmailGranted,
+  isEmailGranted,
+  getLoggedEmail,
+} from '../../services/storageService';
 import { useAuthContext } from '../../context/AuthContext';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { UiStates, useUIManager } from '../../context/UIManagerContext';
 import { submitCodeExchange } from '../../services/authService';
 import { decodeJwt } from '../../utils/jwtUtils';
-import { AppleIcon, GoogleIcon } from '../Icons';
 import { isValidEmail } from '../../utils/emailUtils';
 import { getForceEmail } from '../../stores/AuthStateStore';
 import { getAppUrl } from '../../utils/urlHelpers';
-import {
-  AuthProvider,
-  constructAuthUrl,
-  getOAuthRedirectUri,
-} from '../../utils/authUrls';
+import { constructAuthUrl, getOAuthRedirectUri } from '../../utils/authUrls';
 import { getKeyboardEventListener, getSignInTitle } from '../../utils/uiUtils';
 import { useOracles } from '../../context/OraclesContext';
 
@@ -51,6 +43,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     error: null,
     attempts: 0,
   });
+  const [showInput, setShowInput] = useState(!getLoggedEmail(clientId));
   const forceEmail = getForceEmail();
   const appUrl = getAppUrl();
 
@@ -71,7 +64,8 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   );
 
   const handleEmailInputSubmit = async () => {
-    if (!email || !isValidEmail(email)) {
+    const emailToUse = String(email || getLoggedEmail(clientId));
+    if (!emailToUse || !isValidEmail(emailToUse)) {
       setError('Please enter a valid email');
       return;
     }
@@ -80,10 +74,16 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       return;
     }
     setEmailGranted(clientId, emailPermissionGranted);
-    await processEmailSubmission(email);
+    await processEmailSubmission(emailToUse);
   };
 
-  const handleProviderAuth = (provider: AuthProvider) => {
+  const handleSwitchAccount = () => {
+    setShowInput(true);
+    setEmail('');
+    setEmailPermissionGranted(false);
+  };
+
+  const handleProviderAuth = (provider: 'google' | 'apple') => {
     if (forceEmail && !emailPermissionGranted) {
       setError('Email sharing is required to proceed. Please check the box.');
       return;
@@ -219,29 +219,19 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
         onKeyDown={getKeyboardEventListener('Enter', handleEmailInputSubmit)}
         className="frame9 flex flex-col items-center gap-[10px]"
       >
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Enter your email"
-          className="p-2 border border-gray-300 rounded-md w-full lg:w-[440px]"
-        />
-        <PrimaryButton onClick={handleEmailInputSubmit} width="w-full lg:w-[440px]">
-          Continue
-        </PrimaryButton>
-
-        <div className="flex flex-wrap sm:flex-nowrap justify-between gap-3 w-full">
-          <SSOButton
-            onClick={() => handleProviderAuth('google')}
-            icon={<GoogleIcon />}
-            text="Sign in with Google"
+        {showInput ? (
+          <EmailInputForm
+            email={email}
+            onEmailChange={setEmail}
+            onContinue={handleEmailInputSubmit}
+            onProviderAuth={handleProviderAuth}
           />
-          <SSOButton
-            onClick={() => handleProviderAuth('apple')}
-            icon={<AppleIcon />}
-            text="Sign in with Apple"
+        ) : (
+          <CachedEmail
+            onContinue={handleEmailInputSubmit}
+            onSwitchAccount={handleSwitchAccount}
           />
-        </div>
+        )}
         <LegalNotice />
       </div>
     </>
