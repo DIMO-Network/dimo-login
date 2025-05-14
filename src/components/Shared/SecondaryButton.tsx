@@ -4,20 +4,22 @@ import React, { ReactNode } from 'react';
 interface SecondaryButtonProps {
   onClick: () => void;
   children: ReactNode;
-  width?: string; // Optional width prop
+  width?: string;
   disabled?: boolean;
+  className?: string;
 }
 
-const SecondaryButton: React.FC<SecondaryButtonProps> = ({
+export const SecondaryButton: React.FC<SecondaryButtonProps> = ({
   onClick,
   children,
   width,
   disabled,
+  className,
 }) => (
   <button
     onClick={onClick}
     disabled={disabled ? disabled : false}
-    className={`font-medium text-black ${width} disabled:bg-gray-400`}
+    className={`font-medium text-black ${width ?? ''} disabled:bg-gray-400 ${className ?? ''}`}
   >
     {children}
   </button>
