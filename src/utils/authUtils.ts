@@ -132,8 +132,7 @@ function handlePostAuthUIState({
   }
 }
 
-// Helper function to initialize user authentication by initializing passkey and retrieving addresses
-async function initializeUserAuthentication(
+async function initializeKernelClient(
   subOrganizationId: string,
 ): Promise<{ smartContractAddress: string; walletAddress: string }> {
   await initializePasskey(subOrganizationId);
@@ -201,8 +200,6 @@ async function submitSignedChallenge({
   return jwtResponse.data.access_token;
 }
 
-//TODO: Clean this up, and potentially move elsewhere
-//This Function is basically just getting the JWT, Setting it in state, dealing with storage/cookies, and also navigating the UI
 export async function authenticateUser(
   email: string,
   clientId: string,
@@ -219,7 +216,7 @@ export async function authenticateUser(
     throw new Error('Could not authenticate user, account not deployed');
   }
   const { smartContractAddress, walletAddress } =
-    await initializeUserAuthentication(subOrganizationId);
+    await initializeKernelClient(subOrganizationId);
 
   const { challenge, state } = await getChallenge({
     clientId,
