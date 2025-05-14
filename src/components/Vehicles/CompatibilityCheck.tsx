@@ -1,10 +1,8 @@
 import { useEffect, useState, type FC } from 'react';
-import PrimaryButton from '../Shared/PrimaryButton';
+
+import { PrimaryButton, Loader, Card, Header } from '../Shared';
 import { UiStates, useUIManager } from '../../context/UIManagerContext';
-import Card from '../Shared/Card';
-import Header from '../Shared/Header';
 import { getAppUrl } from '../../utils/urlHelpers';
-import Loader from '../Shared/Loader';
 import { AuthProvider } from '../../utils/authUrls';
 import {
   formatVehicleString,
@@ -19,11 +17,13 @@ export const CompatibilityCheck: FC = () => {
   const [isCompatible, setIsCompatible] = useState<boolean>(false); // `null` means loading
   const [isChecking, setIsChecking] = useState<boolean>(true);
   const [vehicleString, setVehicleString] = useState<string>('');
-  const [connectionType, setConnectionType] = useState<AuthProvider>('connect');
+  const [connectionType, setConnectionType] = useState<AuthProvider>(
+    AuthProvider.CONNECT,
+  );
   const appUrl = getAppUrl();
 
   const handleContinue = () => {
-    if (connectionType === 'tesla') {
+    if (connectionType === AuthProvider.TESLA) {
       setUiState(UiStates.CONNECT_TESLA, { setBack: true });
     } else {
       setUiState(UiStates.CONNECT_DEVICE, { setBack: true });
@@ -33,7 +33,7 @@ export const CompatibilityCheck: FC = () => {
   // Centralized state update function
   const updateCompatibilityState = (
     isCompatible: boolean,
-    connectionType: 'tesla' | 'connect' | null = null,
+    connectionType: AuthProvider | null = null,
   ) => {
     setIsChecking(false);
     setIsCompatible(isCompatible);
@@ -125,7 +125,7 @@ export const CompatibilityCheck: FC = () => {
       });
     }
 
-    updateCompatibilityState(true, isTesla ? 'tesla' : 'connect');
+    updateCompatibilityState(true, isTesla ? AuthProvider.TESLA : AuthProvider.CONNECT);
   };
 
   const safeFormatVehicleString = (data: any): string => {

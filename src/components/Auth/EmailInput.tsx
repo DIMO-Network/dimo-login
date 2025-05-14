@@ -232,12 +232,12 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
 
         <div className="flex flex-wrap sm:flex-nowrap justify-between gap-3 w-full">
           <SSOButton
-            onClick={() => handleProviderAuth('google')}
+            onClick={() => handleProviderAuth(AuthProvider.GOOGLE)}
             icon={<GoogleIcon />}
             text="Sign in with Google"
           />
           <SSOButton
-            onClick={() => handleProviderAuth('apple')}
+            onClick={() => handleProviderAuth(AuthProvider.APPLE)}
             icon={<AppleIcon />}
             text="Sign in with Apple"
           />

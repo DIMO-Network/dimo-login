@@ -1,4 +1,9 @@
-export type AuthProvider = 'tesla' | 'google' | 'apple' | 'connect';
+export enum AuthProvider {
+  TESLA = 'tesla',
+  GOOGLE = 'google',
+  APPLE = 'apple',
+  CONNECT = 'connect'
+}
 
 interface AuthUrlParams {
   provider: AuthProvider;
@@ -28,11 +33,11 @@ interface AuthUrlParams {
 
 export function constructAuthUrl(params: AuthUrlParams): string {
   switch (params.provider) {
-    case 'tesla':
+    case AuthProvider.TESLA:
       return getTeslaAuthUrl(params);
-    case 'google':
+    case AuthProvider.GOOGLE:
       return getEmailAuthUrl(params);
-    case 'apple':
+    case AuthProvider.APPLE:
       return getEmailAuthUrl(params);
     default:
       throw new Error(`Unsupported provider: ${params.provider}`);
