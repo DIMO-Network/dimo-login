@@ -208,7 +208,7 @@ export const SelectVehicles: React.FC<SelectVehiclesProps> = ({
   const canShare = vehicles.some((v) => !v.shared);
 
   return (
-    <div className="flex flex-col w-full items-center justify-center max-h-[480px] lg:max-h-[584px] box-border overflow-y-auto">
+    <div className="flex flex-col w-full items-center justify-center box-border overflow-y-auto">
       {noVehicles && !vehiclesLoading && <EmptyState />}
 
       {allShared && (

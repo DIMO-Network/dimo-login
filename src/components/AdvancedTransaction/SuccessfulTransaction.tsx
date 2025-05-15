@@ -6,7 +6,6 @@ import { useAuthContext } from '../../context/AuthContext';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { useUIManager } from '../../context/UIManagerContext';
 
-import Card from '../Shared/Card';
 import ErrorScreen from '../Shared/ErrorScreen';
 import Header from '../Shared/Header';
 import PrimaryButton from '../Shared/PrimaryButton';
@@ -48,29 +47,23 @@ export const SuccessfulTransaction: React.FC = () => {
   };
 
   return (
-    <Card
-      width="w-full max-w-[600px]"
-      height="h-fit"
-      className="flex flex-col items-center"
-    >
-      <div className="flex flex-col gap-6 w-[440px]">
-        <Header title="Successful Transaction!" subtitle={''} />
-        <div className="space-y-4 w-full">
-          {!isEmbed() && (
-            <div className="flex justify-center">
-              <PrimaryButton onClick={handleBackToThirdParty} width="w-64">
-                Back to {devLicenseAlias}
-              </PrimaryButton>
-            </div>
-          )}
+    <>
+      <Header title="Successful Transaction!" subtitle={''} />
+      <div className="space-y-4 w-full">
+        {!isEmbed() && (
           <div className="flex justify-center">
-            <PrimaryButton onClick={handleView} width="w-32">
-              View Transaction
+            <PrimaryButton onClick={handleBackToThirdParty} width="w-64">
+              Back to {devLicenseAlias}
             </PrimaryButton>
           </div>
+        )}
+        <div className="flex justify-center">
+          <PrimaryButton onClick={handleView} width="w-64">
+            View Transaction
+          </PrimaryButton>
         </div>
       </div>
-    </Card>
+    </>
   );
 };
 

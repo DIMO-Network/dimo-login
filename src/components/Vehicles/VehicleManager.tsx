@@ -6,7 +6,7 @@ import { FetchPermissionsParams } from '../../models/permissions';
 import { useAuthContext } from '../../context/AuthContext';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { fetchPermissionsFromId } from '../../services/permissionsService';
-import { Card, Header, ErrorMessage } from '../Shared';
+import { Header, ErrorMessage } from '../Shared';
 import { sendMessageToReferrer } from '../../utils/messageHandler';
 import { isStandalone } from '../../utils/isStandalone';
 import { useUIManager } from '../../context/UIManagerContext';
@@ -238,49 +238,43 @@ export const VehicleManager: React.FC = () => {
   const appUrl = getAppUrl();
 
   return (
-    <Card
-      width="w-full max-w-[600px]"
-      height="h-fit max-h-[770px]"
-      className="flex flex-col items-center"
-    >
-      <div className="flex flex-col w-[440px]">
-        <Header
-          title={`${devLicenseAlias} wants to use DIMO to connect to your vehicles data`}
-          subtitle={appUrl.hostname}
-          link={`${appUrl.protocol}//${appUrl.host}`}
-        />
-        <div className="flex flex-col items-center justify-center max-h-[480px] lg:max-h-[584px] box-border overflow-y-auto w-full">
-          {error && <ErrorMessage message={error} />}
+    <>
+      <Header
+        title={`${devLicenseAlias} wants to use DIMO to connect to your vehicles data`}
+        subtitle={appUrl.hostname}
+        link={`${appUrl.protocol}//${appUrl.host}`}
+      />
+      <div className="flex flex-col items-center justify-center max-h-[480px] lg:max-h-[584px] box-border overflow-y-auto w-full">
+        {error && <ErrorMessage message={error} />}
 
-          <>
-            <div className="description w-fit w-full mt-2 text-sm overflow-y-auto font-normal text-[#313131]">
-              {renderPermissionDescription(
-                permissionTemplate,
-                shareVehiclesSectionDescription,
-              )}
-            </div>
-            <div className="w-full">
-              <button
-                className="bg-white w-[145px] text-[#09090B] font-medium text-sm text-left underline decoration-[#D4D4D8]"
-                onClick={() => setIsExpanded(!isExpanded)}
-              >
-                {isExpanded ? 'Show less' : 'Show more'}
-              </button>
-            </div>
-          </>
+        <>
+          <div className="description w-fit w-full mt-2 text-sm overflow-y-auto font-normal text-[#313131]">
+            {renderPermissionDescription(
+              permissionTemplate,
+              shareVehiclesSectionDescription,
+            )}
+          </div>
+          <div className="w-full">
+            <button
+              className="bg-white w-[145px] text-[#09090B] font-medium text-sm text-left underline decoration-[#D4D4D8]"
+              onClick={() => setIsExpanded(!isExpanded)}
+            >
+              {isExpanded ? 'Show less' : 'Show more'}
+            </button>
+          </div>
+        </>
 
-          {permissionTemplateId && (
-            <SelectVehicles
-              vehicleTokenIds={vehicleTokenIds}
-              vehicleMakes={vehicleMakes}
-              permissionTemplateId={permissionTemplateId}
-              expirationDate={expirationDate}
-              powertrainTypes={powertrainTypes}
-            />
-          )}
-        </div>
+        {permissionTemplateId && (
+          <SelectVehicles
+            vehicleTokenIds={vehicleTokenIds}
+            vehicleMakes={vehicleMakes}
+            permissionTemplateId={permissionTemplateId}
+            expirationDate={expirationDate}
+            powertrainTypes={powertrainTypes}
+          />
+        )}
       </div>
-    </Card>
+    </>
   );
 };
 
