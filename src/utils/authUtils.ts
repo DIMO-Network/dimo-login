@@ -82,8 +82,124 @@ export function logout(
   });
 }
 
-//TODO: Clean this up, and potentially move elsewhere
-//This Function is basically just getting the JWT, Setting it in state, dealing with storage/cookies, and also navigating the UI
+function handleAuthenticatedUser({
+  clientId,
+  jwt,
+  userProperties,
+  setJwt,
+  setUser,
+}: {
+  clientId: string;
+  jwt: string;
+  userProperties: UserObject;
+  setJwt: (jwt: string) => void;
+  setUser: (user: UserObject) => void;
+}) {
+  setJwt(jwt);
+  setUser(userProperties);
+  storeJWTInCookies(clientId, jwt);
+  storeUserInLocalStorage(clientId, userProperties);
+}
+
+function handlePostAuthUIState({
+  entryState,
+  clientId,
+  jwt,
+  userProperties,
+  redirectUri,
+  utm,
+  setUiState,
+}: {
+  entryState: string;
+  clientId: string;
+  jwt: string;
+  userProperties: UserObject;
+  redirectUri: string;
+  utm: string;
+  setUiState: (step: UiStates) => void;
+}) {
+  if (entryState === UiStates.EMAIL_INPUT) {
+    const authPayload = buildAuthPayload(clientId, jwt, userProperties);
+    sendAuthPayloadToParent(authPayload, redirectUri, (payload) => {
+      backToThirdParty(payload, redirectUri, utm);
+      setUiState(UiStates.SUCCESS); //For Embed Mode
+    });
+  } else if (entryState === UiStates.VEHICLE_MANAGER) {
+    //Note: If the user is unauthenticated but the vehicle manager is the entry state, the payload will be sent to parent in the vehicle manager, after vehicles are shared
+    setUiState(UiStates.VEHICLE_MANAGER); //Move to vehicle manager
+  } else if (entryState === UiStates.ADVANCED_TRANSACTION) {
+    setUiState(UiStates.ADVANCED_TRANSACTION);
+  }
+}
+
+async function initializeKernelClient(
+  subOrganizationId: string,
+): Promise<{ smartContractAddress: string; walletAddress: string }> {
+  await initializePasskey(subOrganizationId);
+
+  const smartContractAddress = getSmartContractAddress();
+  const walletAddress = getWalletAddress();
+
+  if (!smartContractAddress || !walletAddress) {
+    throw new Error('Could not authenticate user, wallet address does not exist');
+  }
+
+  return { smartContractAddress, walletAddress };
+}
+
+// Helper function to generate challenge and state
+async function getChallenge({
+  clientId,
+  redirectUri,
+  smartContractAddress,
+}: {
+  clientId: string;
+  redirectUri: string;
+  smartContractAddress: string;
+}): Promise<{ challenge: string; state: string }> {
+  const generateChallengeParams: GenerateChallengeParams = {
+    clientId,
+    domain: redirectUri,
+    scope: 'openid email',
+    address: smartContractAddress,
+  };
+
+  const resp = await generateChallenge(generateChallengeParams);
+  if (!resp.success) {
+    throw new Error(resp.error);
+  }
+
+  return { challenge: resp.data.challenge, state: resp.data.state };
+}
+
+// Helper function to submit signed challenge and return access token
+async function submitSignedChallenge({
+  clientId,
+  redirectUri,
+  signature,
+  state,
+}: {
+  clientId: string;
+  redirectUri: string;
+  signature: string;
+  state: string;
+}): Promise<string> {
+  const web3ChallengeSubmission: SubmitChallengeParams = {
+    clientId,
+    state,
+    domain: redirectUri,
+    signature,
+  };
+
+  const jwtResponse = await submitWeb3Challenge(web3ChallengeSubmission);
+
+  if (!jwtResponse.success) {
+    throw new Error('Failed to submit web3 challenge');
+  }
+
+  return jwtResponse.data.access_token;
+}
+
 export async function authenticateUser(
   email: string,
   clientId: string,
@@ -96,86 +212,55 @@ export async function authenticateUser(
   setUser: (user: UserObject) => void,
 ) {
   console.log(`Authenticating user with email: ${email}`);
-
   if (!subOrganizationId) {
     throw new Error('Could not authenticate user, account not deployed');
   }
+  const { smartContractAddress, walletAddress } =
+    await initializeKernelClient(subOrganizationId);
 
-  if (subOrganizationId) {
-    console.log('Debugging Account Creation');
-    await initializePasskey(subOrganizationId);
+  const { challenge, state } = await getChallenge({
+    clientId,
+    redirectUri,
+    smartContractAddress,
+  });
 
-    console.log('Passkey Initialized');
-
-    const smartContractAddress = getSmartContractAddress();
-    const walletAddress = getWalletAddress();
-
-    if (!smartContractAddress || !walletAddress) {
-      throw new Error('Could not authenticate user, wallet address does not exist');
-    }
-
-    const generateChallengeParams: GenerateChallengeParams = {
-      clientId,
-      domain: redirectUri,
-      scope: 'openid email',
-      address: smartContractAddress, //We want this address to be recovered after signing
-    };
-
-    const resp = await generateChallenge(generateChallengeParams);
-
-    if (resp.success) {
-      const challenge = resp.data.challenge;
-      const state = resp.data.state;
-
-      const signature = await signChallenge(challenge);
-
-      if (signature) {
-        const web3ChallengeSubmission: SubmitChallengeParams = {
-          clientId,
-          state,
-          domain: redirectUri,
-          signature,
-        };
-
-        const jwt = await submitWeb3Challenge(web3ChallengeSubmission);
-
-        if (!jwt.success) {
-          throw new Error('Failed to submit web3 challenge');
-        }
-
-        const userProperties: UserObject = {
-          email,
-          subOrganizationId,
-          walletAddress,
-          smartContractAddress,
-          hasPasskey: true, //TODO: These should not be hardcoded
-          emailVerified: true, //TODO: These should not be hardcoded
-        };
-
-        //TODO, this can potentially be moved to a diff function
-        setJwt(jwt.data.access_token); //Store in global state, to allow being used in VehicleManager component
-        setUser(userProperties);
-        storeJWTInCookies(clientId, jwt.data.access_token); // Store JWT in cookies
-        storeUserInLocalStorage(clientId, userProperties); // Store user properties in localStorage
-
-        //Parse Entry State
-        if (entryState === UiStates.EMAIL_INPUT) {
-          const authPayload = buildAuthPayload(
-            clientId,
-            jwt.data.access_token,
-            userProperties,
-          );
-          sendAuthPayloadToParent(authPayload, redirectUri, (payload) => {
-            backToThirdParty(payload, redirectUri, utm);
-            setUiState(UiStates.SUCCESS); //For Embed Mode
-          });
-        } else if (entryState === UiStates.VEHICLE_MANAGER) {
-          //Note: If the user is unauthenticated but the vehicle manager is the entry state, the payload will be sent to parent in the vehicle manager, after vehicles are shared
-          setUiState(UiStates.VEHICLE_MANAGER); //Move to vehicle manager
-        } else if (entryState === UiStates.ADVANCED_TRANSACTION) {
-          setUiState(UiStates.ADVANCED_TRANSACTION);
-        }
-      }
-    }
+  const signature = await signChallenge(challenge);
+  if (!signature) {
+    throw new Error('Failed to sign challenge');
   }
+
+  const accessToken = await submitSignedChallenge({
+    clientId,
+    redirectUri,
+    signature,
+    state,
+  });
+
+  const userProperties: UserObject = {
+    email,
+    subOrganizationId,
+    walletAddress,
+    smartContractAddress,
+    hasPasskey: true, //TODO: These should not be hardcoded
+    emailVerified: true, //TODO: These should not be hardcoded
+  };
+
+  handleAuthenticatedUser({
+    clientId,
+    jwt: accessToken,
+    userProperties,
+    setJwt,
+    setUser,
+  });
+
+  //Parse Entry State
+  handlePostAuthUIState({
+    entryState,
+    clientId,
+    jwt: accessToken,
+    userProperties,
+    redirectUri,
+    utm,
+    setUiState,
+  });
 }
