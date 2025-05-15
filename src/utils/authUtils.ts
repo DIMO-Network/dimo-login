@@ -82,7 +82,7 @@ export function logout(
   });
 }
 
-function handleAuthenticatedUser({
+export function handleAuthenticatedUser({
   clientId,
   jwt,
   userProperties,
@@ -101,7 +101,7 @@ function handleAuthenticatedUser({
   storeUserInLocalStorage(clientId, userProperties);
 }
 
-function handlePostAuthUIState({
+export function handlePostAuthUIState({
   entryState,
   clientId,
   jwt,
@@ -201,17 +201,10 @@ async function submitSignedChallenge({
 }
 
 export async function authenticateUser(
-  email: string,
   clientId: string,
   redirectUri: string,
-  utm: string,
   subOrganizationId: string | null,
-  entryState: string,
-  setJwt: (jwt: string) => void,
-  setUiState: (step: UiStates) => void,
-  setUser: (user: UserObject) => void,
 ) {
-  console.log(`Authenticating user with email: ${email}`);
   if (!subOrganizationId) {
     throw new Error('Could not authenticate user, account not deployed');
   }
@@ -236,31 +229,9 @@ export async function authenticateUser(
     state,
   });
 
-  const userProperties: UserObject = {
-    email,
-    subOrganizationId,
-    walletAddress,
+  return {
+    accessToken,
     smartContractAddress,
-    hasPasskey: true, //TODO: These should not be hardcoded
-    emailVerified: true, //TODO: These should not be hardcoded
+    walletAddress,
   };
-
-  handleAuthenticatedUser({
-    clientId,
-    jwt: accessToken,
-    userProperties,
-    setJwt,
-    setUser,
-  });
-
-  //Parse Entry State
-  handlePostAuthUIState({
-    entryState,
-    clientId,
-    jwt: accessToken,
-    userProperties,
-    redirectUri,
-    utm,
-    setUiState,
-  });
 }
