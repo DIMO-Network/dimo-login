@@ -4,11 +4,7 @@ import debounce from 'lodash/debounce';
 import { Checkbox, ErrorMessage, Header, LegalNotice, LoadingScreen } from '../Shared';
 import { CachedEmail, EmailInputForm } from './';
 import { fetchUserDetails } from '../../services/accountsService';
-import {
-  setEmailGranted,
-  isEmailGranted,
-  getLoggedEmail,
-} from '../../services/storageService';
+import { setEmailGranted, getLoggedEmail } from '../../services/storageService';
 import { useAuthContext } from '../../context/AuthContext';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { UiStates, useUIManager } from '../../context/UIManagerContext';
@@ -17,7 +13,11 @@ import { decodeJwt } from '../../utils/jwtUtils';
 import { isValidEmail } from '../../utils/emailUtils';
 import { getForceEmail } from '../../stores/AuthStateStore';
 import { getAppUrl } from '../../utils/urlHelpers';
-import { constructAuthUrl, getOAuthRedirectUri } from '../../utils/authUrls';
+import {
+  AuthProvider,
+  constructAuthUrl,
+  getOAuthRedirectUri,
+} from '../../utils/authUrls';
 import { getKeyboardEventListener, getSignInTitle } from '../../utils/uiUtils';
 import { useOracles } from '../../context/OraclesContext';
 
@@ -83,7 +83,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     setEmailPermissionGranted(false);
   };
 
-  const handleProviderAuth = (provider: 'google' | 'apple') => {
+  const handleProviderAuth = (provider: AuthProvider) => {
     if (forceEmail && !emailPermissionGranted) {
       setError('Email sharing is required to proceed. Please check the box.');
       return;

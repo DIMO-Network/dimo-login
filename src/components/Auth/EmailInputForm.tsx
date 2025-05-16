@@ -1,13 +1,14 @@
 import React from 'react';
 
+import { AppleIcon, GoogleIcon } from '../Icons';
+import { AuthProvider } from '../../utils/authUrls';
 import { PrimaryButton, SSOButton } from '../Shared';
-import { GoogleIcon, AppleIcon } from '../Icons';
 
 interface EmailInputFormProps {
   email: string;
   onEmailChange: (email: string) => void;
   onContinue: () => void;
-  onProviderAuth: (provider: 'google' | 'apple') => void;
+  onProviderAuth: (provider: AuthProvider) => void;
 }
 
 export const EmailInputForm: React.FC<EmailInputFormProps> = ({
@@ -29,12 +30,12 @@ export const EmailInputForm: React.FC<EmailInputFormProps> = ({
     </PrimaryButton>
     <div className="flex flex-wrap sm:flex-nowrap justify-between gap-3 w-full">
       <SSOButton
-        onClick={() => onProviderAuth('google')}
+        onClick={() => onProviderAuth(AuthProvider.GOOGLE)}
         icon={<GoogleIcon />}
         text="Sign in with Google"
       />
       <SSOButton
-        onClick={() => onProviderAuth('apple')}
+        onClick={() => onProviderAuth(AuthProvider.APPLE)}
         icon={<AppleIcon />}
         text="Sign in with Apple"
       />
