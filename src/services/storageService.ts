@@ -49,10 +49,25 @@ export const setEmailGranted = (clientId: string, granted: boolean): void => {
   localStorage.setItem(key, JSON.stringify(granted));
 };
 
-export const getEmailGranted = (clientId: string): boolean => {
+export const isEmailGranted = (clientId: string): boolean => {
   const key = `email_granted_${clientId}`;
   const value = localStorage.getItem(key);
   return value ? JSON.parse(value) : false;
+};
+
+export const setLoggedEmail = (clientId: string, email: string): void => {
+  const key = `logged_email_${clientId}`;
+  localStorage.setItem(key, email);
+};
+
+export const getLoggedEmail = (clientId: string): string | null => {
+  const key = `logged_email_${clientId}`;
+  const value = localStorage.getItem(key);
+  return value ? value : null;
+};
+
+export const clearLoggedEmail = (clientId: string): void => {
+  localStorage.removeItem(`logged_email_${clientId}`);
 };
 
 export const clearSessionData = (clientId: string): void => {
