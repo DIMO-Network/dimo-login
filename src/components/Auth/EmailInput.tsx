@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import debounce from 'lodash/debounce';
 
-import { Checkbox, ErrorMessage, Header, LegalNotice, LoadingScreen } from '../Shared';
+import { Checkbox, ErrorMessage, Header, LegalNotice, LoadingContent } from '../Shared';
 import { CachedEmail, EmailInputForm } from './';
 import { fetchUserDetails } from '../../services/accountsService';
 import { setEmailGranted, getLoggedEmail } from '../../services/storageService';
@@ -186,7 +186,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   }, [codeExchangeState.attempts, handleOAuthCodeExchange]);
 
   if (codeExchangeState.isLoading) {
-    return <LoadingScreen />;
+    return <LoadingContent />;
   }
 
   return (
