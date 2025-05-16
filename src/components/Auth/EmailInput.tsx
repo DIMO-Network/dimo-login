@@ -110,7 +110,8 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   useEffect(() => {
     // Only authenticate if `user` is set and authentication hasn't been triggered
     if (triggerAuth) {
-      authenticateUser(email, 'credentialBundle', entryState);
+      const emailToUse = String(email || getLoggedEmail(clientId));
+      authenticateUser(emailToUse, 'credentialBundle', entryState);
     }
   }, [triggerAuth]);
 
