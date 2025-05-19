@@ -37,6 +37,7 @@ const App = () => {
 
   useEffect(() => {
     if (clientId) {
+      console.log('initializing session');
       initializeSession({
         clientId,
         setJwt,

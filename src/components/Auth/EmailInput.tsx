@@ -10,7 +10,7 @@ import {
   PrimaryButton,
   SSOButton,
 } from '../Shared';
-import { fetchUserDetails } from '../../services/accountsService';
+import { fetchUserDetails, sendOtp } from '../../services/accountsService';
 import { setEmailGranted } from '../../services/storageService';
 import { useAuthContext } from '../../context/AuthContext';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
@@ -81,6 +81,23 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     }
     setEmailGranted(clientId, emailPermissionGranted);
     await processEmailSubmission(email);
+  };
+
+  const handleLoginWithEmail = async () => {
+    try {
+      if (!email) {
+        return setError('No email was found');
+      }
+      const result = await sendOtp(email);
+      if (!result.success) {
+        return setError(result.error);
+      }
+      setComponentData({ otpId: result.data });
+      setUiState(UiStates.OTP_INPUT);
+    } catch (err: unknown) {
+      let errorMsg = `Failed to send OTP to ${email}`;
+      setError(err instanceof Error ? (err.message ?? errorMsg) : errorMsg);
+    }
   };
 
   const handleProviderAuth = (provider: AuthProvider) => {
@@ -228,6 +245,9 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
         />
         <PrimaryButton onClick={handleEmailInputSubmit} width="w-full lg:w-[440px]">
           Continue
+        </PrimaryButton>
+        <PrimaryButton onClick={handleLoginWithEmail} width="w-full lg:w-[440px]">
+          Continue with email
         </PrimaryButton>
 
         <div className="flex flex-wrap sm:flex-nowrap justify-between gap-3 w-full">

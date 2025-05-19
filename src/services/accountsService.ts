@@ -9,15 +9,11 @@
 
 import { CreateAccountParams } from '../models/account';
 import { CredentialResult, OtpResult, UserResult } from '../models/resultTypes';
-import { generateTargetPublicKey } from '../utils/cryptoUtils';
 
 const DIMO_ACCOUNTS_BASE_URL =
   process.env.REACT_APP_DIMO_ACCOUNTS_URL || 'https://accounts.dev.dimo.org/api';
 
-// Example: Send OTP using Accounts API
-export const sendOtp = async (email: string, apiKey: string): Promise<OtpResult> => {
-  // Call Turnkey's OTP generation API/SDK
-  //Endpoint: POST /api/auth/otp
+export const sendOtp = async (email: string): Promise<OtpResult> => {
   const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/auth/otp`, {
     method: 'POST',
     headers: {
@@ -25,7 +21,6 @@ export const sendOtp = async (email: string, apiKey: string): Promise<OtpResult>
     },
     body: JSON.stringify({
       email,
-      key: apiKey,
     }),
   });
 
@@ -48,44 +43,30 @@ export const sendOtp = async (email: string, apiKey: string): Promise<OtpResult>
   return { success: true, data: { otpId: responseData.otpId } };
 };
 
-// Example: Verify OTP using Accounts API
-export const verifyOtp = async (
-  email: string,
-  otp: string,
-  otpId: string,
-): Promise<CredentialResult> => {
-  // Call Turnkey's OTP verification API/SDK
-  //Endpoint: PUT /api/auth/otp
-  console.log(`Verifying OTP, Email:${email}, OTP: ${otp}, OtpID: ${otpId}`);
+export interface VerifyOtpArgs {
+  email: string;
+  otpCode: string;
+  key: string;
+  otpId: string;
+}
+export const verifyOtp = async (args: {
+  email: string;
+  otpCode: string;
+  otpId: string;
+  key: string;
+}): Promise<CredentialResult> => {
   const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/auth/otp`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      email,
-      otpId,
-      otpCode: otp,
-      key: await generateTargetPublicKey(),
-    }),
+    body: JSON.stringify(args),
   });
 
-  // Handle response failure cases first
   if (!response.ok) {
     throw new Error('Failed to send OTP');
   }
-
-  //   // Parse successful response
-  const responseData = await response.json();
-  if (!responseData.credentialBundle) {
-    throw new Error('Could not retrieve credential bundle');
-  }
-
-  //   // Return success with OTP ID
-  return {
-    success: true,
-    data: { credentialBundle: responseData.credentialBundle },
-  };
+  return await response.json();
 };
 
 // Function to create an account

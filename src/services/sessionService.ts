@@ -31,7 +31,7 @@ export function initializeSession({
 
   const jwt = getJWTFromCookies(clientId);
   const user = getUserFromLocalStorage(clientId);
-
+  console.log('JWT AND USER', jwt, user, uiState);
   if (jwt && !isTokenExpired(jwt) && user) {
     setJwt(jwt);
     setUser(user);

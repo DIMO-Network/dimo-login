@@ -18,17 +18,22 @@
 
  */
 
-import React, { createContext, useContext, ReactNode, useState } from 'react';
+import React, { createContext, ReactNode, useContext, useState } from 'react';
 
 import {
   authenticateUser,
   handleAuthenticatedUser,
   handlePostAuthUIState,
 } from '../utils/authUtils';
-import { createAccount, sendOtp, verifyOtp } from '../services/accountsService'; // Import the service functions
+import {
+  createAccount,
+  sendOtp,
+  verifyOtp,
+  VerifyOtpArgs,
+} from '../services/accountsService'; // Import the service functions
 import { CreateAccountParams } from '../models/account';
 import { createPasskey } from '../services/turnkeyService';
-import { CredentialResult, OtpResult, UserResult } from '../models/resultTypes';
+import { CredentialResult, OtpResult, Result, UserResult } from '../models/resultTypes';
 import { useDevCredentials } from './DevCredentialsContext';
 import { UserObject } from '../models/user';
 import { useUIManager } from './UIManagerContext';
@@ -36,7 +41,7 @@ import { useUIManager } from './UIManagerContext';
 interface AuthContextProps {
   createAccountWithPasskey: (email: string) => Promise<UserResult>;
   sendOtp: (email: string) => Promise<OtpResult>;
-  verifyOtp: (email: string, otp: string) => Promise<CredentialResult>;
+  verifyOtp: (args: VerifyOtpArgs) => Promise<Result<CredentialResult>>;
   authenticateUser: (
     email: string,
     credentialBundle: string,
@@ -52,7 +57,6 @@ interface AuthContextProps {
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
-//This will be set on account creation partially, and completed on wallet connection
 const defaultUser: UserObject = {
   email: '',
   smartContractAddress: '',
@@ -62,7 +66,6 @@ const defaultUser: UserObject = {
   emailVerified: false,
 };
 
-// AuthProvider component to provide the context
 export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element => {
   const [user, setUser] = useState<UserObject>(defaultUser);
   const [otpId, setOtpId] = useState<string>('');
@@ -122,7 +125,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
 
     try {
       // Try sending OTP first
-      let otpResult = await sendOtp(email, apiKey);
+      let otpResult = await sendOtp(email);
       if (!otpResult.success) {
         // If sending OTP fails, attempt account creation and retry OTP
         const accountCreation = await createAccountWithPasskey(email);
@@ -130,7 +133,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
           throw new Error('Account creation failed during OTP setup.');
 
         // Retry sending OTP after successful account creation
-        otpResult = await sendOtp(email, apiKey);
+        otpResult = await sendOtp(email);
         if (!otpResult.success)
           throw new Error('Failed to send OTP after account creation.');
       }
@@ -148,25 +151,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
   };
 
   const handleVerifyOtp = async (
-    email: string,
-    otp: string,
-  ): Promise<CredentialResult> => {
+    props: VerifyOtpArgs,
+  ): Promise<Result<CredentialResult>> => {
     setLoadingState(true, 'Verifying OTP', true);
     setError(null);
     try {
-      const result = await verifyOtp(email, otp, otpId);
-      if (result.success && result.data.credentialBundle) {
-        console.log(`OTP verified for ${email}`);
-        return {
-          success: true,
-          data: { credentialBundle: result.data.credentialBundle },
-        };
-      } else {
-        throw new Error('Invalid OTP');
-      }
+      const data = await verifyOtp(props);
+      return {
+        success: true,
+        data,
+      };
     } catch (err) {
       setError('Invalid code. Try again.');
-      console.error(err);
       return { success: false, error: err as string };
     } finally {
       setLoadingState(false);
@@ -180,7 +176,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
   ) => {
     setLoadingState(true, 'Authenticating User');
     setError(null);
-
     try {
       if (!user || !user.subOrganizationId) {
         throw new Error('User does not exist');
@@ -189,7 +184,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
       if (!clientId || !redirectUri) {
         throw new Error('Developer credentials not found');
       }
-
       const { accessToken, smartContractAddress, walletAddress } = await authenticateUser(
         clientId,
         redirectUri,
@@ -210,8 +204,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
         setJwt,
         setUser,
       });
-
-      //Parse Entry State
       handlePostAuthUIState({
         entryState,
         clientId,
@@ -249,7 +241,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
   );
 };
 
-// Hook to use the AuthContext
 export const useAuthContext = () => {
   const context = useContext(AuthContext);
   if (!context) {

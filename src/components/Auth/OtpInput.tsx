@@ -5,15 +5,36 @@ import PrimaryButton from '../Shared/PrimaryButton';
 import SecondaryButton from '../Shared/SecondaryButton';
 import Header from '../Shared/Header';
 import { useUIManager } from '../../context/UIManagerContext';
+import { verifyOtp, VerifyOtpArgs } from '../../services';
+import { CredentialResult, Result } from '../../models/resultTypes';
 
 interface OtpInputProps {
   email: string;
 }
 
 export const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
-  const { verifyOtp, authenticateUser, sendOtp } = useAuthContext(); // Get verifyOtp from the context
-  const { entryState, error } = useUIManager();
+  const { authenticateUser, sendOtp } = useAuthContext(); // Get verifyOtp from the context
+  const { entryState, error, setLoadingState, setError } = useUIManager();
   const [otpArray, setOtpArray] = useState(Array(6).fill('')); // Array of 6 empty strings
+
+  const handleVerifyOtp = async (
+    props: VerifyOtpArgs,
+  ): Promise<Result<CredentialResult>> => {
+    setLoadingState(true, 'Verifying OTP', true);
+    setError(null);
+    try {
+      const data = await verifyOtp(props);
+      return {
+        success: true,
+        data,
+      };
+    } catch (err) {
+      setError('Invalid code. Try again.');
+      return { success: false, error: err as string };
+    } finally {
+      setLoadingState(false);
+    }
+  };
 
   // Function to handle change for each input
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
@@ -45,7 +66,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
     if (otpArray) {
       // Verify OTP using the auth context
       const otp = otpArray.join('');
-      const result = await verifyOtp(email, otp);
+      const result = await handleVerifyOtp(email, otp);
 
       if (result.success && result.data.credentialBundle) {
         authenticateUser(email, result.data.credentialBundle, entryState);
