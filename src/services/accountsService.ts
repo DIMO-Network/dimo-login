@@ -10,6 +10,7 @@
 import { CreateAccountParams } from '../models/account';
 import { CredentialResult, OtpResult, UserResult } from '../models/resultTypes';
 import { generateTargetPublicKey } from '../utils/cryptoUtils';
+import { UserObject } from '../models/user';
 
 const DIMO_ACCOUNTS_BASE_URL =
   process.env.REACT_APP_DIMO_ACCOUNTS_URL || 'https://accounts.dev.dimo.org/api';
@@ -95,7 +96,7 @@ export const createAccount = async ({
   attestation,
   challenge,
   deployAccount,
-}: CreateAccountParams): Promise<UserResult> => {
+}: CreateAccountParams): Promise<UserObject> => {
   const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account`, {
     method: 'POST',
     headers: {
@@ -114,10 +115,9 @@ export const createAccount = async ({
     throw new Error('Failed to create account');
   }
 
-  const { subOrganizationId, hasPasskey } = await response.json(); //This is to mock the wallet address and smart contract address not being returned
+  const { subOrganizationId, hasPasskey } = await response.json();
 
-  //Partial Construction of User Object, completed post connect
-  const userResponse = {
+  return {
     email,
     subOrganizationId,
     hasPasskey,
@@ -125,8 +125,6 @@ export const createAccount = async ({
     walletAddress: '',
     emailVerified: true,
   };
-
-  return { success: true, data: { user: userResponse } };
 };
 
 // src/services/authService.ts

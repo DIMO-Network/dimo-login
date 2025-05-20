@@ -18,7 +18,7 @@
 
  */
 
-import React, { createContext, useContext, ReactNode, useState } from 'react';
+import React, { createContext, ReactNode, useContext, useState } from 'react';
 
 import {
   authenticateUser,
@@ -26,7 +26,6 @@ import {
   handlePostAuthUIState,
 } from '../utils/authUtils';
 import { createAccount, sendOtp, verifyOtp } from '../services/accountsService'; // Import the service functions
-import { CreateAccountParams } from '../models/account';
 import { createPasskey } from '../services/turnkeyService';
 import { CredentialResult, OtpResult, UserResult } from '../models/resultTypes';
 import { useDevCredentials } from './DevCredentialsContext';
@@ -37,11 +36,7 @@ interface AuthContextProps {
   createAccountWithPasskey: (email: string) => Promise<UserResult>;
   sendOtp: (email: string) => Promise<OtpResult>;
   verifyOtp: (email: string, otp: string) => Promise<CredentialResult>;
-  authenticateUser: (
-    email: string,
-    credentialBundle: string,
-    entryState: string,
-  ) => Promise<void>;
+  authenticateUser: (account: UserObject, entryState: string) => Promise<void>;
   user: UserObject;
   setUser: React.Dispatch<React.SetStateAction<UserObject>>;
   jwt: string;
@@ -72,40 +67,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
   const { setLoadingState, error, setError, setUiState } = useUIManager();
 
   const createAccountWithPasskey = async (email: string): Promise<UserResult> => {
-    setLoadingState(true, 'Creating account', true);
-    setError(null);
-    if (!apiKey) {
-      return {
-        success: false,
-        error: 'API key is required for account creation',
-      };
-    }
-
     try {
-      // Create passkey and get attestation
       const [attestation, challenge] = await createPasskey(email);
-
-      // Trigger account creation request
-      const accountCreationParams: CreateAccountParams = {
+      if (!apiKey) {
+        return { success: false, error: 'No API key found.' };
+      }
+      const account = await createAccount({
         email,
         apiKey,
-        attestation: attestation as object,
-        challenge: challenge as string,
+        attestation,
+        challenge,
         deployAccount: true,
+      });
+      setUser(account);
+      return { success: true, data: { user: account } };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Unknown error creating account',
       };
-      const account = await createAccount(accountCreationParams);
-
-      if (account.success && account.data.user) {
-        setUser(account.data.user); // Store the user object in the context
-        return { success: true, data: { user: account.data.user } };
-      } else {
-        throw new Error('Failed to create account');
-      }
-    } catch (error) {
-      setError('Failed to create account, please try again or contact support.');
-      return { success: false, error: error as string };
-    } finally {
-      setLoadingState(false);
     }
   };
 
@@ -173,60 +153,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
     }
   };
 
-  const handleAuthenticateUser = async (
-    email: string,
-    credentialBundle: string,
-    entryState: string,
-  ) => {
-    setLoadingState(true, 'Authenticating User');
-    setError(null);
-
-    try {
-      if (!user || !user.subOrganizationId) {
-        throw new Error('User does not exist');
-      }
-
-      if (!clientId || !redirectUri) {
-        throw new Error('Developer credentials not found');
-      }
-
-      const { accessToken, smartContractAddress, walletAddress } = await authenticateUser(
-        clientId,
-        redirectUri,
-        user.subOrganizationId,
-      );
-      const account: UserObject = {
-        email,
-        subOrganizationId: user.subOrganizationId,
-        walletAddress,
-        smartContractAddress,
-        hasPasskey: true, //TODO: These should not be hardcoded
-        emailVerified: true, //TODO: These should not be hardcoded
-      };
-      handleAuthenticatedUser({
-        clientId,
-        jwt: accessToken,
-        userProperties: account,
-        setJwt,
-        setUser,
-      });
-
-      //Parse Entry State
-      handlePostAuthUIState({
-        entryState,
-        clientId,
-        jwt: accessToken,
-        userProperties: account,
-        redirectUri,
-        utm,
-        setUiState,
-      });
-    } catch (error: unknown) {
-      console.error(error);
-      setError('Could not authenticate user, please verify your passkey and try again.');
-    } finally {
-      setLoadingState(false);
+  const handleAuthenticateUser = async (account: UserObject, entryState: string) => {
+    if (!account.subOrganizationId) {
+      throw new Error('Account subOrganizationId is missing');
     }
+    if (!clientId || !redirectUri) {
+      throw new Error('Some developer credentials are missing');
+    }
+    const { accessToken, smartContractAddress, walletAddress } = await authenticateUser(
+      clientId,
+      redirectUri,
+      account.subOrganizationId,
+    );
+    const updatedUserObject: UserObject = {
+      ...account,
+      walletAddress,
+      smartContractAddress,
+    };
+    setJwt(jwt);
+    setUser(updatedUserObject);
+    handleAuthenticatedUser({
+      clientId,
+      jwt: accessToken,
+      userProperties: updatedUserObject,
+    });
+    handlePostAuthUIState({
+      entryState,
+      clientId,
+      redirectUri,
+      userProperties: updatedUserObject,
+      utm,
+      setUiState,
+      jwt: accessToken,
+    });
   };
 
   return (

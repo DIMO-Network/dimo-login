@@ -28,19 +28,19 @@ import {
 } from '../../utils/authUrls';
 import { getKeyboardEventListener, getSignInTitle } from '../../utils/uiUtils';
 import { useOracles } from '../../context/OraclesContext';
+import { useHandleAuthenticateUser } from '../../hooks/UseHandleAuthenticateUser';
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;
 }
 
 export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
-  const { authenticateUser, setUser } = useAuthContext();
+  const { setUser } = useAuthContext();
+  const authenticateUser = useHandleAuthenticateUser();
   const { clientId, devLicenseAlias, redirectUri } = useDevCredentials();
-  const { setUiState, entryState, error, setError, setComponentData, altTitle } =
-    useUIManager();
+  const { setUiState, error, setError, setComponentData, altTitle } = useUIManager();
   const { onboardingEnabled } = useOracles();
   const [email, setEmail] = useState('');
-  const [triggerAuth, setTriggerAuth] = useState(false);
   const [emailPermissionGranted, setEmailPermissionGranted] = useState(false);
   const [codeExchangeState, setCodeExchangeState] = useState<{
     isLoading: boolean;
@@ -61,13 +61,13 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       const userExistsResult = await fetchUserDetails(email);
       if (userExistsResult.success && userExistsResult.data.user) {
         setUser(userExistsResult.data.user);
-        setTriggerAuth(true);
+        await authenticateUser(userExistsResult.data.user);
         return true;
       }
       setUiState(UiStates.PASSKEY_GENERATOR, { setBack: true });
       return false;
     },
-    [clientId, onSubmit, setUiState, setUser],
+    [authenticateUser, clientId, onSubmit, setUiState, setUser],
   );
 
   const handleEmailInputSubmit = async () => {
@@ -106,13 +106,6 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       emailPermissionGranted,
     });
   };
-
-  useEffect(() => {
-    // Only authenticate if `user` is set and authentication hasn't been triggered
-    if (triggerAuth) {
-      authenticateUser(email, 'credentialBundle', entryState);
-    }
-  }, [triggerAuth]);
 
   const handleCodeExchangeError = useCallback(
     (errorMsg: string) => {

@@ -86,17 +86,11 @@ export function handleAuthenticatedUser({
   clientId,
   jwt,
   userProperties,
-  setJwt,
-  setUser,
 }: {
   clientId: string;
   jwt: string;
   userProperties: UserObject;
-  setJwt: (jwt: string) => void;
-  setUser: (user: UserObject) => void;
 }) {
-  setJwt(jwt);
-  setUser(userProperties);
   storeJWTInCookies(clientId, jwt);
   storeUserInLocalStorage(clientId, userProperties);
 }

@@ -48,7 +48,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
       const result = await verifyOtp(email, otp);
 
       if (result.success && result.data.credentialBundle) {
-        authenticateUser(email, result.data.credentialBundle, entryState);
+        // authenticateUser(email, result.data.credentialBundle, entryState);
       }
     }
   };
