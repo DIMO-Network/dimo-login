@@ -7,6 +7,7 @@ import Header from '../Shared/Header';
 import { useUIManager } from '../../context/UIManagerContext';
 import { verifyOtp, VerifyOtpArgs } from '../../services';
 import { CredentialResult, Result } from '../../models/resultTypes';
+import { generateP256KeyPair } from '@turnkey/crypto';
 
 interface OtpInputProps {
   email: string;
@@ -14,7 +15,7 @@ interface OtpInputProps {
 
 export const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
   const { authenticateUser, sendOtp } = useAuthContext(); // Get verifyOtp from the context
-  const { entryState, error, setLoadingState, setError } = useUIManager();
+  const { entryState, error, setLoadingState, setError, componentData } = useUIManager();
   const [otpArray, setOtpArray] = useState(Array(6).fill('')); // Array of 6 empty strings
 
   const handleVerifyOtp = async (
@@ -63,14 +64,23 @@ export const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
   };
 
   const handleSubmit = async () => {
-    if (otpArray) {
-      // Verify OTP using the auth context
-      const otp = otpArray.join('');
-      const result = await handleVerifyOtp(email, otp);
-
-      if (result.success && result.data.credentialBundle) {
-        authenticateUser(email, result.data.credentialBundle, entryState);
-      }
+    if (!otpArray.length) {
+      return setError('No OTP was entered');
+    }
+    if (!componentData.otpId) {
+      return setError('No otpId was found.');
+    }
+    const otpCode = otpArray.join('');
+    const key = generateP256KeyPair();
+    const targetPublicKey = key.publicKeyUncompressed;
+    const result = await handleVerifyOtp({
+      email: email,
+      key: targetPublicKey,
+      otpId: componentData.otpId,
+      otpCode,
+    });
+    if (result.success && result.data.credentialBundle) {
+      authenticateUser(email, result.data.credentialBundle, entryState);
     }
   };
 

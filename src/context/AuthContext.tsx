@@ -41,7 +41,6 @@ import { useUIManager } from './UIManagerContext';
 interface AuthContextProps {
   createAccountWithPasskey: (email: string) => Promise<UserResult>;
   sendOtp: (email: string) => Promise<OtpResult>;
-  verifyOtp: (args: VerifyOtpArgs) => Promise<Result<CredentialResult>>;
   authenticateUser: (
     email: string,
     credentialBundle: string,
@@ -115,14 +114,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
   const handleSendOtp = async (email: string): Promise<OtpResult> => {
     setLoadingState(true, 'Sending OTP', true);
     setError(null);
-
-    if (!apiKey) {
-      return {
-        success: false,
-        error: 'API key is to send an OTP',
-      };
-    }
-
     try {
       // Try sending OTP first
       let otpResult = await sendOtp(email);
@@ -150,24 +141,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
     }
   };
 
-  const handleVerifyOtp = async (
-    props: VerifyOtpArgs,
-  ): Promise<Result<CredentialResult>> => {
-    setLoadingState(true, 'Verifying OTP', true);
-    setError(null);
-    try {
-      const data = await verifyOtp(props);
-      return {
-        success: true,
-        data,
-      };
-    } catch (err) {
-      setError('Invalid code. Try again.');
-      return { success: false, error: err as string };
-    } finally {
-      setLoadingState(false);
-    }
-  };
+  // const handleVerifyOtp = async (props: {}): Promise<Result<CredentialResult>> => {
+  //   setLoadingState(true, 'Verifying OTP', true);
+  //   setError(null);
+  //   try {
+  //     const data = await verifyOtp(props);
+  //     return {
+  //       success: true,
+  //       data,
+  //     };
+  //   } catch (err) {
+  //     setError('Invalid code. Try again.');
+  //     return { success: false, error: err as string };
+  //   } finally {
+  //     setLoadingState(false);
+  //   }
+  // };
+
+  const completeOtpLogin = async (args: {
+    email: string;
+    credentialBundle: string;
+    privateKey: string;
+  }) => {};
 
   const handleAuthenticateUser = async (
     email: string,
@@ -226,7 +221,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
       value={{
         createAccountWithPasskey,
         sendOtp: handleSendOtp,
-        verifyOtp: handleVerifyOtp,
         authenticateUser: handleAuthenticateUser,
         user,
         setUser,
