@@ -9,6 +9,7 @@ export * from './Header';
 export * from './Input';
 export * from './LegalNotice';
 export * from './Loader';
+export * from './LoadingContent';
 export * from './LoadingScreen';
 export * from './Logo';
 export * from './MakeModelYearTab';
