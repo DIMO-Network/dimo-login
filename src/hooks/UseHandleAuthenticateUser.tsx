@@ -13,11 +13,7 @@ export const useHandleAuthenticateUser = () => {
         setError(null);
         await authenticateUser(account, entryState);
       } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : 'Failed to authenticate user. Please try again.',
-        );
+        setError('Failed to authenticate user. Please try again.');
       } finally {
         setLoadingState(false);
       }
