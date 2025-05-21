@@ -3,7 +3,6 @@ import debounce from 'lodash/debounce';
 
 import { Checkbox, ErrorMessage, Header, LegalNotice, LoadingContent } from '../Shared';
 import { CachedEmail, EmailInputForm } from './';
-import { fetchUserDetails } from '../../services/accountsService';
 import {
   fetchUserDetails,
   setEmailGranted,
