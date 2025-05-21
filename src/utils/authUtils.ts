@@ -1,5 +1,6 @@
 import { generateChallenge, submitWeb3Challenge } from '../services/authService';
 import {
+  getKernelSigner,
   getSmartContractAddress,
   getWalletAddress,
   initializePasskey,
@@ -18,6 +19,8 @@ import { UserObject } from '../models/user';
 import { backToThirdParty, sendMessageToReferrer } from './messageHandler';
 import { GenerateChallengeParams, SubmitChallengeParams } from '../models/web3';
 import { UiStates } from '../context/UIManagerContext';
+import { TStamper } from '@turnkey/http/dist/base';
+import { ApiKeyStamper } from '@turnkey/api-key-stamper';
 
 export function buildAuthPayload(
   clientId: string,
@@ -86,28 +89,22 @@ export function logout(
 export function handleAuthenticatedUser({
   clientId,
   jwt,
-  userProperties,
-  setJwt,
-  setUser,
+  user,
 }: {
   clientId: string;
   jwt: string;
-  userProperties: UserObject;
-  setJwt: (jwt: string) => void;
-  setUser: (user: UserObject) => void;
+  user: UserObject;
 }) {
-  setJwt(jwt);
-  setUser(userProperties);
   storeJWTInCookies(clientId, jwt);
-  storeUserInLocalStorage(clientId, userProperties);
-  setLoggedEmail(clientId, userProperties.email);
+  storeUserInLocalStorage(clientId, user);
+  setLoggedEmail(clientId, user.email);
 }
 
 export function handlePostAuthUIState({
   entryState,
   clientId,
   jwt,
-  userProperties,
+  user,
   redirectUri,
   utm,
   setUiState,
@@ -115,13 +112,13 @@ export function handlePostAuthUIState({
   entryState: string;
   clientId: string;
   jwt: string;
-  userProperties: UserObject;
+  user: UserObject;
   redirectUri: string;
   utm: string;
   setUiState: (step: UiStates) => void;
 }) {
   if (entryState === UiStates.EMAIL_INPUT) {
-    const authPayload = buildAuthPayload(clientId, jwt, userProperties);
+    const authPayload = buildAuthPayload(clientId, jwt, user);
     sendAuthPayloadToParent(authPayload, redirectUri, (payload) => {
       backToThirdParty(payload, redirectUri, utm);
       setUiState(UiStates.SUCCESS); //For Embed Mode
@@ -136,8 +133,13 @@ export function handlePostAuthUIState({
 
 async function initializeKernelClient(
   subOrganizationId: string,
+  stamper: TStamper,
 ): Promise<{ smartContractAddress: string; walletAddress: string }> {
-  await initializePasskey(subOrganizationId);
+  if (stamper instanceof ApiKeyStamper) {
+    await getKernelSigner().openSessionWithApiStamper(subOrganizationId, stamper);
+  } else {
+    await initializePasskey(subOrganizationId);
+  }
 
   const smartContractAddress = getSmartContractAddress();
   const walletAddress = getWalletAddress();
@@ -150,7 +152,7 @@ async function initializeKernelClient(
 }
 
 // Helper function to generate challenge and state
-async function getChallenge({
+export async function getChallenge({
   clientId,
   redirectUri,
   smartContractAddress,
@@ -206,12 +208,15 @@ export async function authenticateUser(
   clientId: string,
   redirectUri: string,
   subOrganizationId: string | null,
+  stamper: TStamper,
 ) {
   if (!subOrganizationId) {
     throw new Error('Could not authenticate user, account not deployed');
   }
-  const { smartContractAddress, walletAddress } =
-    await initializeKernelClient(subOrganizationId);
+  const { smartContractAddress, walletAddress } = await initializeKernelClient(
+    subOrganizationId,
+    stamper,
+  );
 
   const { challenge, state } = await getChallenge({
     clientId,

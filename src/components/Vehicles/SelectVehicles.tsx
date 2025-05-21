@@ -20,7 +20,7 @@ import { getPermsValue } from '../../services/permissionsService';
 import PrimaryButton from '../Shared/PrimaryButton';
 import { backToThirdParty } from '../../utils/messageHandler';
 import { UiStates, useUIManager } from '../../context/UIManagerContext';
-import Loader from '../Shared/Loader';
+import ConnectedLoader from '../Shared/Loader';
 import { EmptyState } from './EmptyState';
 import { ConnectCarButton } from '../Shared/ConnectCarButton';
 import { fetchVehiclesWithTransformation } from '../../services/vehicleService';
@@ -223,7 +223,7 @@ export const SelectVehicles: React.FC<SelectVehiclesProps> = ({
       )}
 
       {vehiclesLoading ? (
-        <Loader />
+        <ConnectedLoader />
       ) : (
         <div className="space-y-4 pt-4 max-h-[400px] overflow-auto w-full max-w-[440px]">
           {/* Render Compatible Vehicles */}

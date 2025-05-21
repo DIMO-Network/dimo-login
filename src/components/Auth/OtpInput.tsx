@@ -1,19 +1,33 @@
-import React, { useState } from 'react';
-import { useAuthContext } from '../../context/AuthContext'; // Use the auth context
+import React, { useCallback, useState } from 'react';
 import ErrorMessage from '../Shared/ErrorMessage';
 import PrimaryButton from '../Shared/PrimaryButton';
 import SecondaryButton from '../Shared/SecondaryButton';
 import Header from '../Shared/Header';
 import { useUIManager } from '../../context/UIManagerContext';
+import { verifyOtp } from '../../services';
+import { decryptBundle, getPublicKey, generateP256KeyPair } from '@turnkey/crypto';
+import { uint8ArrayToHexString } from '@turnkey/encoding';
+import { ApiKeyStamper } from '@turnkey/api-key-stamper';
+import { useHandleAuthenticateUser } from '../../hooks/UseHandleAuthenticateUser';
+import { TStamper } from '@turnkey/http/dist/base';
+import { useAuthContext } from '../../context/AuthContext';
 
 interface OtpInputProps {
   email: string;
 }
 
 export const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
-  const { verifyOtp, authenticateUser, sendOtp } = useAuthContext(); // Get verifyOtp from the context
-  const { entryState, error } = useUIManager();
-  const [otpArray, setOtpArray] = useState(Array(6).fill('')); // Array of 6 empty strings
+  const { beginOtpLogin, otpId } = useAuthContext();
+  const { error, setError } = useUIManager();
+  const [otpArray, setOtpArray] = useState(Array(6).fill(''));
+  const authenticateUser = useHandleAuthenticateUser();
+
+  const sendOtpCode = useCallback(async () => {
+    const result = await beginOtpLogin();
+    if (!result.success) {
+      return setError('Failed to send OTP code');
+    }
+  }, [beginOtpLogin, setError]);
 
   // Function to handle change for each input
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
@@ -42,14 +56,32 @@ export const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
   };
 
   const handleSubmit = async () => {
-    if (otpArray) {
-      // Verify OTP using the auth context
-      const otp = otpArray.join('');
-      const result = await verifyOtp(email, otp);
-
-      if (result.success && result.data.credentialBundle) {
-        authenticateUser(email, result.data.credentialBundle, entryState);
-      }
+    let apiKeyStamper: TStamper | null = null;
+    try {
+      if (!otpArray) return;
+      const otpCode = otpArray.join('');
+      const keyPair = generateP256KeyPair();
+      const { credentialBundle } = await verifyOtp({
+        email,
+        otpCode: otpCode,
+        otpId,
+        key: keyPair.publicKeyUncompressed,
+      });
+      const privateKey = decryptBundle(credentialBundle, keyPair.privateKey);
+      const publicKey = uint8ArrayToHexString(getPublicKey(privateKey, true));
+      apiKeyStamper = new ApiKeyStamper({
+        apiPublicKey: publicKey,
+        apiPrivateKey: uint8ArrayToHexString(privateKey),
+      });
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'An unknown error occurred trying to verify your OTP',
+      );
+    }
+    if (apiKeyStamper) {
+      authenticateUser(apiKeyStamper);
     }
   };
 
@@ -106,7 +138,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
         <PrimaryButton onClick={handleSubmit} width="w-full">
           Verify email
         </PrimaryButton>
-        <SecondaryButton onClick={() => sendOtp(email)} width="w-full">
+        <SecondaryButton onClick={sendOtpCode} width="w-full">
           Resend code
         </SecondaryButton>
       </div>
