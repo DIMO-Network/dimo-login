@@ -4,8 +4,12 @@ import debounce from 'lodash/debounce';
 import { Checkbox, ErrorMessage, Header, LegalNotice, LoadingContent } from '../Shared';
 import { CachedEmail, EmailInputForm } from './';
 import { fetchUserDetails } from '../../services/accountsService';
-import { setEmailGranted, getLoggedEmail } from '../../services/storageService';
-import { fetchUserDetails, setEmailGranted, submitCodeExchange } from '../../services';
+import {
+  fetchUserDetails,
+  setEmailGranted,
+  getLoggedEmail,
+  submitCodeExchange,
+} from '../../services';
 import { useAuthContext } from '../../context/AuthContext';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { UiStates, useUIManager } from '../../context/UIManagerContext';
@@ -95,7 +99,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       return;
     }
     setEmailGranted(clientId, emailPermissionGranted);
-    await processEmailSubmission(email, loginType);
+    await processEmailSubmission(emailToUse, loginType);
   };
 
   const handleSwitchAccount = () => {
@@ -103,7 +107,6 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     setEmail('');
     setEmailPermissionGranted(false);
   };
-
 
   const handleProviderAuth = (provider: AuthProvider) => {
     if (forceEmail && !emailPermissionGranted) {

@@ -3,11 +3,12 @@ import React from 'react';
 import { AppleIcon, GoogleIcon } from '../Icons';
 import { AuthProvider } from '../../utils/authUrls';
 import { PrimaryButton, SSOButton } from '../Shared';
+import { LoginType } from './EmailInput';
 
 interface EmailInputFormProps {
   email: string;
   onEmailChange: (email: string) => void;
-  onContinue: () => void;
+  onContinue: (loginType: LoginType) => void;
   onProviderAuth: (provider: AuthProvider) => void;
 }
 
@@ -25,7 +26,10 @@ export const EmailInputForm: React.FC<EmailInputFormProps> = ({
       placeholder="Enter your email"
       className="p-2 border border-gray-300 rounded-md w-full lg:w-[440px]"
     />
-    <PrimaryButton onClick={onContinue} width="w-full lg:w-[440px]">
+    <PrimaryButton
+      onClick={() => onContinue(LoginType.PASSKEY)}
+      width="w-full lg:w-[440px]"
+    >
       Continue
     </PrimaryButton>
     <div className="flex flex-wrap sm:flex-nowrap justify-between gap-3 w-full">
