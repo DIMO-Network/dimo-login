@@ -12,6 +12,7 @@ import { useHandleAuthenticateUser } from '../../hooks/UseHandleAuthenticateUser
 import { TStamper } from '@turnkey/http/dist/base';
 import debounce from 'lodash/debounce';
 import { Loader } from '../Shared';
+import Logo from '../Shared/Logo';
 
 interface OtpInputProps {
   email: string;
@@ -139,6 +140,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
   if (loading) {
     return (
       <>
+        <Logo />
         <Loader message={'Verifying OTP'} />
       </>
     );

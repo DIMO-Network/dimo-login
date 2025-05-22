@@ -36,7 +36,7 @@ export enum LoginType {
 }
 
 export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
-  const [triggerLoginType, setTriggerLoginType] = useState<LoginType>();
+  const [loginType, setLoginType] = useState<LoginType>(LoginType.NONE);
   const { setUser } = useAuthContext();
   const { clientId, devLicenseAlias, redirectUri } = useDevCredentials();
   const { setUiState, error, setError, setComponentData, altTitle } = useUIManager();
@@ -57,17 +57,17 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   const appUrl = getAppUrl();
 
   const handlePasskeyRejected = (shouldFallback: boolean) => {
-    setTriggerLoginType(shouldFallback ? LoginType.OTP : LoginType.NONE);
+    setLoginType(shouldFallback ? LoginType.OTP : LoginType.NONE);
   };
 
   const processEmailSubmission = useCallback(
-    async (email: string, loginType: LoginType) => {
+    async (email: string) => {
       if (!email || !clientId) return;
       onSubmit(email);
       const userExistsResult = await fetchUserDetails(email);
       if (userExistsResult.success && userExistsResult.data.user) {
         setUser(userExistsResult.data.user);
-        setTriggerLoginType(loginType);
+        setLoginType(LoginType.PASSKEY);
         return true;
       }
       setUiState(UiStates.PASSKEY_GENERATOR, { setBack: true });
@@ -76,7 +76,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     [clientId, onSubmit, setUiState, setUser],
   );
 
-  const handleEmailInputSubmit = async (loginType: LoginType) => {
+  const handleEmailInputSubmit = async () => {
     const emailToUse = String(email || getLoggedEmail(clientId));
     if (!emailToUse || !isValidEmail(emailToUse)) {
       setError('Please enter a valid email');
@@ -87,7 +87,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       return;
     }
     setEmailGranted(clientId, emailPermissionGranted);
-    await processEmailSubmission(emailToUse, loginType);
+    await processEmailSubmission(emailToUse);
   };
 
   const handleSwitchAccount = () => {
@@ -143,7 +143,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
         ...prev,
         error: null,
       }));
-      await processEmailSubmission(email, LoginType.PASSKEY);
+      await processEmailSubmission(email);
     },
     [processEmailSubmission, setComponentData],
   );
@@ -194,11 +194,11 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     return <LoadingContent />;
   }
 
-  if (triggerLoginType === LoginType.PASSKEY) {
+  if (loginType === LoginType.PASSKEY) {
     return <PasskeyLogin handlePasskeyRejected={handlePasskeyRejected} />;
   }
 
-  if (triggerLoginType === LoginType.OTP && (email || getLoggedEmail(clientId))) {
+  if (loginType === LoginType.OTP && (email || getLoggedEmail(clientId))) {
     return <OtpInput email={email || getLoggedEmail(clientId) || ''} />;
   }
 
@@ -230,9 +230,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
         </label>
       </div>
       <div
-        onKeyDown={getKeyboardEventListener('Enter', () =>
-          handleEmailInputSubmit(LoginType.PASSKEY),
-        )}
+        onKeyDown={getKeyboardEventListener('Enter', handleEmailInputSubmit)}
         className="frame9 flex flex-col items-center gap-[10px]"
       >
         {showInput ? (
