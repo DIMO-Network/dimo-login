@@ -5,7 +5,7 @@ import { PrimaryButton } from '../Shared/PrimaryButton';
 import { DevicesIcon, FingerprintIcon, IconProps, SecurityIcon } from '../Icons';
 import { useAuthContext } from '../../context/AuthContext';
 import { useUIManager } from '../../context/UIManagerContext';
-import { useHandleAuthenticateUser } from '../../hooks/UseHandleAuthenticateUser';
+import { useAuthenticateUserWithUI } from '../../hooks/useAuthenticateUserWithUI';
 import { ErrorMessage, Loader } from '../Shared';
 import { createAccount, createPasskey } from '../../services';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
@@ -42,7 +42,7 @@ interface PasskeyGenerationProps {
 
 export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
   const { user, setUser } = useAuthContext();
-  const authenticateUser = useHandleAuthenticateUser();
+  const authenticateUser = useAuthenticateUserWithUI();
   const { setError, error } = useUIManager();
   const { apiKey } = useDevCredentials();
   const [isLoading, setIsLoading] = useState(false);

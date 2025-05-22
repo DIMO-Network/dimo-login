@@ -8,7 +8,7 @@ import { sendOtp, verifyOtp } from '../../services';
 import { decryptBundle, getPublicKey, generateP256KeyPair } from '@turnkey/crypto';
 import { uint8ArrayToHexString } from '@turnkey/encoding';
 import { ApiKeyStamper } from '@turnkey/api-key-stamper';
-import { useHandleAuthenticateUser } from '../../hooks/UseHandleAuthenticateUser';
+import { useAuthenticateUserWithUI } from '../../hooks/useAuthenticateUserWithUI';
 import { TStamper } from '@turnkey/http/dist/base';
 import debounce from 'lodash/debounce';
 import { Loader } from '../Shared';
@@ -21,7 +21,7 @@ interface OtpInputProps {
 export const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
   const { error, setError } = useUIManager();
   const [otpArray, setOtpArray] = useState(Array(6).fill(''));
-  const authenticateUser = useHandleAuthenticateUser();
+  const authenticateUser = useAuthenticateUserWithUI();
   const [otpId, setOtpId] = useState('');
   const [loading, setLoading] = useState(false);
 

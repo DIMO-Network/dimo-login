@@ -4,7 +4,7 @@ import { useAuthContext } from '../context/AuthContext';
 import { passkeyStamper } from '../services';
 import { TStamper } from '@turnkey/http/dist/base';
 
-export const useHandleAuthenticateUser = () => {
+export const useAuthenticateUserWithUI = () => {
   const { authenticateUser } = useAuthContext();
   const { setLoadingState, setError } = useUIManager();
   return useCallback(
