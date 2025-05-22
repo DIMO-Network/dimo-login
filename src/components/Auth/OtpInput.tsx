@@ -1,33 +1,58 @@
-import React, { useCallback, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import ErrorMessage from '../Shared/ErrorMessage';
 import PrimaryButton from '../Shared/PrimaryButton';
 import SecondaryButton from '../Shared/SecondaryButton';
 import Header from '../Shared/Header';
 import { useUIManager } from '../../context/UIManagerContext';
-import { verifyOtp } from '../../services';
+import { sendOtp, verifyOtp } from '../../services';
 import { decryptBundle, getPublicKey, generateP256KeyPair } from '@turnkey/crypto';
 import { uint8ArrayToHexString } from '@turnkey/encoding';
 import { ApiKeyStamper } from '@turnkey/api-key-stamper';
 import { useHandleAuthenticateUser } from '../../hooks/UseHandleAuthenticateUser';
 import { TStamper } from '@turnkey/http/dist/base';
-import { useAuthContext } from '../../context/AuthContext';
+import debounce from 'lodash/debounce';
+import { Loader } from '../Shared';
 
 interface OtpInputProps {
   email: string;
 }
 
 export const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
-  const { beginOtpLogin, otpId } = useAuthContext();
   const { error, setError } = useUIManager();
   const [otpArray, setOtpArray] = useState(Array(6).fill(''));
   const authenticateUser = useHandleAuthenticateUser();
+  const [otpId, setOtpId] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const sendOtpCode = useCallback(async () => {
-    const result = await beginOtpLogin();
-    if (!result.success) {
-      return setError('Failed to send OTP code');
+  const sendOtpCode = async () => {
+    try {
+      const result = await sendOtp(email);
+      if (!result.success) {
+        return setError(result.error ?? 'Failed to send OTP code');
+      }
+      setOtpId(result.data.otpId);
+    } catch (err) {
+      console.log(err);
+      let msg = 'Failed to send OTP code';
+      if (err instanceof Error) {
+        msg = err.message || msg;
+      }
+      setError(msg);
     }
-  }, [beginOtpLogin, setError]);
+  };
+
+  useEffect(() => {
+    // We need to debounce this call because for some reason this component gets un-mounted
+    // Which then leads to a double OTP send
+    // Debouncing the function prevents this by canceling the first function call that happens before the component gets un-mounted
+    const callback = debounce(() => {
+      void sendOtpCode();
+    }, 1000);
+    callback();
+    return () => {
+      callback.cancel();
+    };
+  }, []);
 
   // Function to handle change for each input
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
@@ -59,6 +84,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
     let apiKeyStamper: TStamper | null = null;
     try {
       if (!otpArray) return;
+      setLoading(true);
       const otpCode = otpArray.join('');
       const keyPair = generateP256KeyPair();
       const { credentialBundle } = await verifyOtp({
@@ -79,6 +105,8 @@ export const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
           ? err.message
           : 'An unknown error occurred trying to verify your OTP',
       );
+    } finally {
+      setLoading(false);
     }
     if (apiKeyStamper) {
       authenticateUser(apiKeyStamper);
@@ -107,6 +135,14 @@ export const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
       setTimeout(() => handleBackspace(id, index), 100);
     }
   };
+
+  if (loading) {
+    return (
+      <>
+        <Loader message={'Verifying OTP'} />
+      </>
+    );
+  }
 
   return (
     <>

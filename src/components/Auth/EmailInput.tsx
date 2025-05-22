@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import debounce from 'lodash/debounce';
 
 import { Checkbox, ErrorMessage, Header, LegalNotice, LoadingContent } from '../Shared';
-import { CachedEmail, EmailInputForm } from './';
+import { CachedEmail, EmailInputForm, OtpInput } from './';
 import {
   fetchUserDetails,
   setEmailGranted,
@@ -23,7 +23,7 @@ import {
 } from '../../utils/authUrls';
 import { getKeyboardEventListener, getSignInTitle } from '../../utils/uiUtils';
 import { useOracles } from '../../context/OraclesContext';
-import { useHandleAuthenticateUser } from '../../hooks/UseHandleAuthenticateUser';
+import { PasskeyLogin } from './PasskeyLogin';
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;
@@ -32,12 +32,12 @@ interface EmailInputProps {
 export enum LoginType {
   OTP = 'otp',
   PASSKEY = 'passkey',
+  NONE = 'none',
 }
 
 export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   const [triggerLoginType, setTriggerLoginType] = useState<LoginType>();
-  const { user, setUser, beginOtpLogin } = useAuthContext();
-  const authenticateUser = useHandleAuthenticateUser();
+  const { setUser } = useAuthContext();
   const { clientId, devLicenseAlias, redirectUri } = useDevCredentials();
   const { setUiState, error, setError, setComponentData, altTitle } = useUIManager();
   const { onboardingEnabled } = useOracles();
@@ -56,20 +56,9 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   const forceEmail = getForceEmail();
   const appUrl = getAppUrl();
 
-  useEffect(() => {
-    const handleLogin = async () => {
-      if (!(triggerLoginType && user.subOrganizationId)) return;
-      if (triggerLoginType === LoginType.OTP) {
-        const { success } = await beginOtpLogin();
-        if (!success) {
-          return setError('Could not sent OTP code');
-        }
-        return setUiState(UiStates.OTP_INPUT);
-      }
-      authenticateUser();
-    };
-    handleLogin();
-  }, [triggerLoginType, user.subOrganizationId]);
+  const handlePasskeyRejected = (shouldFallback: boolean) => {
+    setTriggerLoginType(shouldFallback ? LoginType.OTP : LoginType.NONE);
+  };
 
   const processEmailSubmission = useCallback(
     async (email: string, loginType: LoginType) => {
@@ -203,6 +192,14 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
 
   if (codeExchangeState.isLoading) {
     return <LoadingContent />;
+  }
+
+  if (triggerLoginType === LoginType.PASSKEY) {
+    return <PasskeyLogin handlePasskeyRejected={handlePasskeyRejected} />;
+  }
+
+  if (triggerLoginType === LoginType.OTP && (email || getLoggedEmail(clientId))) {
+    return <OtpInput email={email || getLoggedEmail(clientId) || ''} />;
   }
 
   return (

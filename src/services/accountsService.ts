@@ -32,11 +32,10 @@ export const sendOtp = async (email: string): Promise<OtpResult> => {
   // Handle response failure cases first
   if (!response.ok) {
     const errorData = await response.json();
-    console.log(errorData);
     if (errorData.error === 'User not found') {
       return { success: false, error: 'User not found' };
     }
-    throw new Error('Failed to send OTP');
+    throw new Error(errorData?.error ?? 'Failed to send OTP');
   }
 
   // Parse successful response

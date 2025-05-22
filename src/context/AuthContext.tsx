@@ -40,7 +40,6 @@ interface AuthContextProps {
   userInitialized: boolean;
   setUserInitialized: React.Dispatch<React.SetStateAction<boolean>>;
   otpId: string;
-  beginOtpLogin: () => Promise<{ success: boolean }>;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -63,22 +62,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
   const [userInitialized, setUserInitialized] = useState<boolean>(false);
   const { clientId, redirectUri, utm } = useDevCredentials();
   const { setUiState, entryState } = useUIManager();
-
-  const beginOtpLogin = async () => {
-    try {
-      if (!user.email) {
-        return { success: false };
-      }
-      const result = await sendOtp(user.email);
-      if (!result.success) {
-        return { success: false };
-      }
-      setOtpId(result.data.otpId);
-      return { success: true };
-    } catch (err) {
-      return { success: false };
-    }
-  };
 
   const handleAuthenticateUser = async (stamper: TStamper) => {
     if (!user.subOrganizationId) {
@@ -120,7 +103,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
         userInitialized,
         setUserInitialized,
         otpId,
-        beginOtpLogin,
       }}
     >
       {children}
