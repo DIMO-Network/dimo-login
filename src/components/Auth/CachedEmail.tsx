@@ -3,10 +3,9 @@ import React from 'react';
 import { clearLoggedEmail, getLoggedEmail } from '../../services/storageService';
 import { PrimaryButton, SecondaryButton } from '../Shared';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
-import { LoginType } from './EmailInput';
 
 interface CachedEmailProps {
-  onContinue: (loginType: LoginType) => void;
+  onContinue: () => void;
   onSwitchAccount: () => void;
 }
 
@@ -22,10 +21,7 @@ export const CachedEmail: React.FC<CachedEmailProps> = ({
   return (
     <>
       <p className="text-sm">Login with {getLoggedEmail(clientId)}</p>
-      <PrimaryButton
-        onClick={() => onContinue(LoginType.PASSKEY)}
-        width="w-full lg:w-[440px]"
-      >
+      <PrimaryButton onClick={onContinue} width="w-full lg:w-[440px]">
         Continue
       </PrimaryButton>
       <SecondaryButton

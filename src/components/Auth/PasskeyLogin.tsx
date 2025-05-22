@@ -38,6 +38,7 @@ export const PasskeyLogin: FC<Props> = ({ handlePasskeyRejected }) => {
       callback.cancel();
     };
   }, []);
+
   return (
     <>
       <Header title={'Continue with passkey'} />

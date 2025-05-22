@@ -25,7 +25,6 @@ import {
   handleAuthenticatedUser,
   handlePostAuthUIState,
 } from '../utils/authUtils';
-import { sendOtp } from '../services';
 import { useDevCredentials } from './DevCredentialsContext';
 import { UserObject } from '../models/user';
 import { useUIManager } from './UIManagerContext';
@@ -39,7 +38,6 @@ interface AuthContextProps {
   setJwt: React.Dispatch<React.SetStateAction<string>>;
   userInitialized: boolean;
   setUserInitialized: React.Dispatch<React.SetStateAction<boolean>>;
-  otpId: string;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -57,7 +55,6 @@ const defaultUser: UserObject = {
 // AuthProvider component to provide the context
 export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element => {
   const [user, setUser] = useState<UserObject>(defaultUser);
-  const [otpId, setOtpId] = useState<string>('');
   const [jwt, setJwt] = useState<string>('');
   const [userInitialized, setUserInitialized] = useState<boolean>(false);
   const { clientId, redirectUri, utm } = useDevCredentials();
@@ -102,7 +99,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
         setJwt,
         userInitialized,
         setUserInitialized,
-        otpId,
       }}
     >
       {children}

@@ -88,7 +88,7 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
           DIMO uses passkeys to keep your account and data secure.
         </p>
       </div>
-      <PasskeyBenefitsList />
+      <Benefits />
       <div className="actions">
         <PrimaryButton onClick={handlePasskeyGeneration} width="w-full">
           Add a passkey
@@ -110,7 +110,7 @@ const CustomLoader = () => {
   );
 };
 
-const PasskeyBenefitsList = () => {
+const Benefits = () => {
   const renderBenefit = ({ Icon, title, description }: PasskeyBenefitProps) => {
     return (
       <div
