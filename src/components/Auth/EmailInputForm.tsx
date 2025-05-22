@@ -32,9 +32,6 @@ export const EmailInputForm: React.FC<EmailInputFormProps> = ({
     >
       Continue
     </PrimaryButton>
-    <PrimaryButton onClick={() => onContinue(LoginType.OTP)} width="w-full lg:w-[440px]">
-      Continue with email
-    </PrimaryButton>
     <div className="flex flex-wrap sm:flex-nowrap justify-between gap-3 w-full">
       <SSOButton
         onClick={() => onProviderAuth(AuthProvider.GOOGLE)}
