@@ -1,19 +1,59 @@
-import React, { useState } from 'react';
-import { useAuthContext } from '../../context/AuthContext'; // Use the auth context
+import React, { useEffect, useState } from 'react';
 import ErrorMessage from '../Shared/ErrorMessage';
 import PrimaryButton from '../Shared/PrimaryButton';
 import SecondaryButton from '../Shared/SecondaryButton';
 import Header from '../Shared/Header';
 import { useUIManager } from '../../context/UIManagerContext';
+import { sendOtp, verifyOtp } from '../../services';
+import { decryptBundle, getPublicKey, generateP256KeyPair } from '@turnkey/crypto';
+import { uint8ArrayToHexString } from '@turnkey/encoding';
+import { ApiKeyStamper } from '@turnkey/api-key-stamper';
+import { useAuthenticateUserWithUI } from '../../hooks/useAuthenticateUserWithUI';
+import { TStamper } from '@turnkey/http/dist/base';
+import debounce from 'lodash/debounce';
+import { Loader } from '../Shared';
+import Logo from '../Shared/Logo';
 
 interface OtpInputProps {
   email: string;
 }
 
 export const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
-  const { verifyOtp, authenticateUser, sendOtp } = useAuthContext(); // Get verifyOtp from the context
-  const { entryState, error } = useUIManager();
-  const [otpArray, setOtpArray] = useState(Array(6).fill('')); // Array of 6 empty strings
+  const { error, setError } = useUIManager();
+  const [otpArray, setOtpArray] = useState(Array(6).fill(''));
+  const authenticateUser = useAuthenticateUserWithUI();
+  const [otpId, setOtpId] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const sendOtpCode = async () => {
+    try {
+      const result = await sendOtp(email);
+      if (!result.success) {
+        return setError(result.error ?? 'Failed to send OTP code');
+      }
+      setOtpId(result.data.otpId);
+    } catch (err) {
+      console.log(err);
+      let msg = 'Failed to send OTP code';
+      if (err instanceof Error) {
+        msg = err.message || msg;
+      }
+      setError(msg);
+    }
+  };
+
+  useEffect(() => {
+    // We need to debounce this call because for some reason this component gets un-mounted
+    // Which then leads to a double OTP send
+    // Debouncing the function prevents this by canceling the first function call that happens before the component gets un-mounted
+    const callback = debounce(() => {
+      void sendOtpCode();
+    }, 1000);
+    callback();
+    return () => {
+      callback.cancel();
+    };
+  }, []);
 
   // Function to handle change for each input
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
@@ -42,14 +82,35 @@ export const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
   };
 
   const handleSubmit = async () => {
-    if (otpArray) {
-      // Verify OTP using the auth context
-      const otp = otpArray.join('');
-      const result = await verifyOtp(email, otp);
-
-      if (result.success && result.data.credentialBundle) {
-        authenticateUser(email, result.data.credentialBundle, entryState);
-      }
+    let apiKeyStamper: TStamper | null = null;
+    try {
+      if (!otpArray) return;
+      setLoading(true);
+      const otpCode = otpArray.join('');
+      const keyPair = generateP256KeyPair();
+      const { credentialBundle } = await verifyOtp({
+        email,
+        otpCode: otpCode,
+        otpId,
+        key: keyPair.publicKeyUncompressed,
+      });
+      const privateKey = decryptBundle(credentialBundle, keyPair.privateKey);
+      const publicKey = uint8ArrayToHexString(getPublicKey(privateKey, true));
+      apiKeyStamper = new ApiKeyStamper({
+        apiPublicKey: publicKey,
+        apiPrivateKey: uint8ArrayToHexString(privateKey),
+      });
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'An unknown error occurred trying to verify your OTP',
+      );
+    } finally {
+      setLoading(false);
+    }
+    if (apiKeyStamper) {
+      authenticateUser(apiKeyStamper);
     }
   };
 
@@ -75,6 +136,15 @@ export const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
       setTimeout(() => handleBackspace(id, index), 100);
     }
   };
+
+  if (loading) {
+    return (
+      <>
+        <Logo />
+        <Loader message={'Verifying OTP'} />
+      </>
+    );
+  }
 
   return (
     <>
@@ -106,7 +176,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
         <PrimaryButton onClick={handleSubmit} width="w-full">
           Verify email
         </PrimaryButton>
-        <SecondaryButton onClick={() => sendOtp(email)} width="w-full">
+        <SecondaryButton onClick={sendOtpCode} width="w-full">
           Resend code
         </SecondaryButton>
       </div>

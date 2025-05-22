@@ -23,7 +23,7 @@ import { base64UrlEncode, generateRandomBuffer } from '../utils/cryptoUtils';
 import { VehcilePermissionDescription } from '@dimo-network/transactions/dist/core/types/args';
 import { PasskeyCreationResult } from '../models/resultTypes';
 
-const stamper = new WebauthnStamper({
+export const passkeyStamper = new WebauthnStamper({
   rpId: process.env.REACT_APP_RPCID_URL as string,
 });
 
@@ -107,7 +107,7 @@ export const createPasskey = async (email: string): Promise<PasskeyCreationResul
 };
 
 export const initializePasskey = async (subOrganizationId: string): Promise<void> => {
-  await kernelSigner.passkeyToSession(subOrganizationId, stamper);
+  await kernelSigner.passkeyToSession(subOrganizationId, passkeyStamper);
 };
 
 export const initializeIfNeeded = async (subOrganizationId: string): Promise<void> => {

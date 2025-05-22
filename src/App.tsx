@@ -74,7 +74,6 @@ const App = () => {
     [key in UiStates]: React.ReactNode;
   } = {
     [UiStates.EMAIL_INPUT]: <EmailInput onSubmit={setEmail} />,
-    [UiStates.OTP_INPUT]: <OtpInput email={email} />,
     [UiStates.PASSKEY_GENERATOR]: <PasskeyGeneration email={email} />,
     [UiStates.VEHICLE_MANAGER]: <VehicleManager />,
     [UiStates.MANAGE_VEHICLE]: <ManageVehicle />,

@@ -1,9 +1,8 @@
 import React from 'react';
 
-import { clearLoggedEmail } from '../../services/storageService';
+import { clearLoggedEmail, getLoggedEmail } from '../../services/storageService';
 import { PrimaryButton, SecondaryButton } from '../Shared';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
-import { getLoggedEmail } from '../../services/storageService';
 
 interface CachedEmailProps {
   onContinue: () => void;

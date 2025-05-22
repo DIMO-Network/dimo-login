@@ -1,6 +1,6 @@
 import { useEffect, useState, type FC } from 'react';
 
-import { PrimaryButton, Loader, Card, Header } from '../Shared';
+import { PrimaryButton, ConnectedLoader, Card, Header } from '../Shared';
 import { UiStates, useUIManager } from '../../context/UIManagerContext';
 import { getAppUrl } from '../../utils/urlHelpers';
 import { AuthProvider } from '../../utils/authUrls';
@@ -179,7 +179,7 @@ export const CompatibilityCheck: FC = () => {
 
       {isChecking ? (
         <div>
-          <Loader />
+          <ConnectedLoader />
         </div>
       ) : isCompatible ? (
         <div className="flex flex-col space-y-2 w-full px-4">
