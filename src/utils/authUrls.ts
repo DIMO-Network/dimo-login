@@ -1,4 +1,9 @@
-export type AuthProvider = 'smartcar' | 'tesla' | 'google' | 'apple' | 'connect';
+export enum AuthProvider {
+  TESLA = 'tesla',
+  GOOGLE = 'google',
+  APPLE = 'apple',
+  CONNECT = 'connect'
+}
 
 interface AuthUrlParams {
   provider: AuthProvider;
@@ -28,13 +33,11 @@ interface AuthUrlParams {
 
 export function constructAuthUrl(params: AuthUrlParams): string {
   switch (params.provider) {
-    case 'smartcar':
-      return getSmartcarAuthUrl(params);
-    case 'tesla':
+    case AuthProvider.TESLA:
       return getTeslaAuthUrl(params);
-    case 'google':
+    case AuthProvider.GOOGLE:
       return getEmailAuthUrl(params);
-    case 'apple':
+    case AuthProvider.APPLE:
       return getEmailAuthUrl(params);
     default:
       throw new Error(`Unsupported provider: ${params.provider}`);
@@ -59,34 +62,6 @@ function buildStateParams(params: AuthUrlParams): Record<string, any> {
     testMode: params.testMode,
     provider: params.provider,
   };
-}
-
-function getSmartcarAuthUrl(params: AuthUrlParams): string {
-  let url = `https://connect.smartcar.com/oauth/authorize`;
-  url += `?response_type=code`;
-  url += `&client_id=${process.env.REACT_APP_SMARTCAR_CLIENT_ID}`; //TODO: Remove Hardcode
-  url += `&redirect_uri=${encodeURIComponent(params.redirectUri)}`;
-  url += `&scope=${encodeURIComponent('required:read_vehicle_info')}`;
-  url += `&approval_prompt=force`; // Force login
-  url += `&single_select=true`; // User can only select one car
-
-  if (process.env.REACT_APP_ENVIRONMENT !== 'prod') {
-    url += `&mode=simulated`;
-  }
-
-  const stateParams = buildStateParams(params);
-
-  url += `&state=${encodeURIComponent(JSON.stringify(stateParams))}`;
-
-  // if (params.make) {
-  //   url += `&make=${encodeURIComponent(params.make)}`;
-  // }
-
-  // if (params.countryCode) {
-  //   url += `&flags=country:${params.countryCode}`;
-  // }
-
-  return url;
 }
 
 function getTeslaAuthUrl(params: AuthUrlParams): string {

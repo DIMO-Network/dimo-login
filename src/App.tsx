@@ -23,7 +23,6 @@ import {
   CompatibilityCheck,
   ConnectDevice,
   ConnectTesla,
-  ConnectSmartCar,
   Logout,
 } from './components';
 import { Card } from './components/Shared/Card';
@@ -87,7 +86,6 @@ const App = () => {
     [UiStates.MINT_VEHICLE]: <MintVehicle />,
     [UiStates.CONNECT_DEVICE]: <ConnectDevice />,
     [UiStates.CONNECT_TESLA]: <ConnectTesla />,
-    [UiStates.CONNECT_SMARTCAR]: <ConnectSmartCar />,
     [UiStates.TRANSACTION_CANCELLED]: <CancelledTransaction />,
     [UiStates.SUCCESS]: <SuccessPage />,
     [UiStates.LOGOUT]: <Logout />,
