@@ -33,7 +33,7 @@ import { useErrorHandler } from './hooks/useErrorHandler';
 
 const App = () => {
   const { setJwt, setUser, setUserInitialized, userInitialized } = useAuthContext();
-  const { clientId, apiKey, redirectUri, invalidCredentials } = useDevCredentials();
+  const { clientId, invalidCredentials } = useDevCredentials();
   const { uiState, setUiState, isLoading, entryState } = useUIManager() as {
     uiState: keyof typeof componentMap;
     setUiState: (state: UiStates) => void;
@@ -43,9 +43,6 @@ const App = () => {
   const [email, setEmail] = useState('');
 
   const { error } = useErrorHandler({
-    clientId,
-    apiKey,
-    redirectUri,
     entryState,
     invalidCredentials,
     customValidations: getValidationsForState(entryState || ''),

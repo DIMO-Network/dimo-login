@@ -1,3 +1,4 @@
+import { getParamFromUrlOrState } from '../utils/urlHelpers';
 import {
   ErrorMessage as GlobalErrorMessage,
   getGlobalError,
@@ -14,9 +15,6 @@ export type ValidationFunction = (params: {
 }) => ValidationResult;
 
 type UseErrorHandlerProps = {
-  clientId?: string;
-  apiKey?: string;
-  redirectUri?: string;
   invalidCredentials?: boolean;
   customValidations?: Record<string, ValidationFunction>;
   entryState?: string;
@@ -32,26 +30,26 @@ const getValidationError = (
 };
 
 export const useErrorHandler = ({
-  clientId,
-  apiKey,
-  redirectUri,
   invalidCredentials,
   customValidations = {},
 }: UseErrorHandlerProps): { error: GlobalErrorMessage | null } => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const state = urlParams.get('state');
+  const decodedState = state ? JSON.parse(decodeURIComponent(state)) : {};
+
+  const clientId = getParamFromUrlOrState('clientId', urlParams, decodedState);
+  const redirectUri = getParamFromUrlOrState('redirectUri', urlParams, decodedState);
+
   const globalError = getGlobalError({
     missingClientId: !clientId,
     missingRedirectUri: !redirectUri,
     invalidCredentials: Boolean(invalidCredentials),
-    missingCredentials: !clientId || !apiKey || !redirectUri,
+    missingCredentials: !clientId || !redirectUri,
   } as const);
 
   if (globalError) {
     return { error: globalError };
   }
-
-  const urlParams = new URLSearchParams(window.location.search);
-  const state = urlParams.get('state');
-  const decodedState = state ? JSON.parse(decodeURIComponent(state)) : {};
   const validationError = getValidationError(customValidations, {
     urlParams,
     decodedState,
