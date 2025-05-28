@@ -1,15 +1,12 @@
 import React, { useEffect, useState } from 'react';
 
-import PrimaryButton from '../Shared/PrimaryButton';
-import Header from '../Shared/Header';
-import ErrorMessage from '../Shared/ErrorMessage';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { useAuthContext } from '../../context/AuthContext';
 import {
   executeAdvancedTransaction,
   initializeIfNeeded,
 } from '../../services/turnkeyService';
-import ErrorScreen from '../Shared/ErrorScreen';
+import { PrimaryButton, Header, ErrorMessage } from '../Shared';
 import { sendTxnResponseToParent } from '../../utils/txnUtils';
 import { sendErrorToParent } from '../../utils/errorUtils';
 import { TransactionData } from '@dimo-network/transactions';
@@ -22,7 +19,7 @@ export const AdvancedTransaction: React.FC = () => {
     useUIManager();
   const { user, jwt } = useAuthContext();
 
-  const [transactionData, setTransactionData] = useState<TransactionData | undefined>();
+  const [transactionData, setTransactionData] = useState<TransactionData>();
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -39,7 +36,7 @@ export const AdvancedTransaction: React.FC = () => {
         console.error('Failed to parse transactionData:', error);
       }
     } else {
-      sendMessageToReferrer({ eventType: 'EXECUTE_ADVANCED_TRANSACTION' }); //Requests Data from SDK
+      sendMessageToReferrer({ eventType: 'EXECUTE_ADVANCED_TRANSACTION' });
 
       const handleMessage = (event: MessageEvent) => {
         const { eventType, transactionData } = event.data;
@@ -51,15 +48,6 @@ export const AdvancedTransaction: React.FC = () => {
     }
   }, []);
 
-  if (!transactionData) {
-    return (
-      <ErrorScreen
-        title="Missing Transaction Data"
-        message="ABI not supported in URL. Please contact developer"
-      />
-    );
-  }
-
   const onApprove = async () => {
     setLoadingState(true, 'Executing Transaction', true);
     //Ensure Passkey
@@ -68,10 +56,10 @@ export const AdvancedTransaction: React.FC = () => {
 
     try {
       const receipt = await executeAdvancedTransaction(
-        transactionData.abi,
-        transactionData.functionName,
-        transactionData.args,
-        transactionData.value,
+        transactionData!.abi,
+        transactionData!.functionName,
+        transactionData!.args,
+        transactionData!.value,
       );
 
       //Send transaction hash to developer, and show user successful txn
@@ -115,12 +103,12 @@ export const AdvancedTransaction: React.FC = () => {
 
       <div className="flex flex-col w-full gap-[8px] rounded-md text-sm">
         <p className="text-gray-600">ADDRESS:</p>
-        <p className="text-gray-600">{transactionData?.address}</p>
+        <p className="text-gray-600">{transactionData!.address}</p>
 
-        {transactionData.value && (
+        {transactionData!.value && (
           <>
             <p className="text-gray-600">VALUE:</p>
-            <p className="text-gray-600">{transactionData?.value?.toString()}</p>
+            <p className="text-gray-600">{transactionData!.value?.toString()}</p>
           </>
         )}
       </div>
