@@ -91,7 +91,11 @@ export const DevCredentialsProvider = ({
   };
 
   const applyDevCredentialsConfig = (config: Record<string, unknown>) => {
-    Object.entries(config).forEach(([key, value]) => {
+    const finalConfig = {
+      ...config,
+      entryState: (config.entryState as UiStates) ?? UiStates.EMAIL_INPUT,
+    };
+    Object.entries(finalConfig).forEach(([key, value]) => {
       if (
         key in devCredentialsSetters &&
         devCredentialsSetters[key as keyof typeof devCredentialsSetters] &&
