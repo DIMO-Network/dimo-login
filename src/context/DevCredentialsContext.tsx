@@ -18,7 +18,11 @@ import React, {
 
 import { createKernelSigner } from '../services/turnkeyService';
 import { isStandalone } from '../utils/isStandalone';
-import { isValidClientId } from '../services/identityService';
+import {
+  getDeveloperLicense,
+  isValidDeveloperLicense,
+  getLicenseAlias,
+} from '../services/identityService';
 import { setEmailGranted } from '../services/storageService';
 import { setForceEmail } from '../stores/AuthStateStore';
 import { UiStates, useUIManager } from './UIManagerContext';
@@ -132,7 +136,7 @@ export const DevCredentialsProvider = ({
     const clientIdFromUrl = urlParams.get('clientId');
     const redirectUriFromUrl = urlParams.get('redirectUri');
 
-    if (!clientIdFromUrl || !redirectUriFromUrl) return false;
+    if (!clientIdFromUrl) return false;
 
     applyDevCredentialsConfig({
       clientId: clientIdFromUrl,
@@ -206,10 +210,13 @@ export const DevCredentialsProvider = ({
     const validateCredentials = async () => {
       const { clientId, redirectUri } = devCredentialsState;
 
-      if (clientId && redirectUri) {
-        const { isValid, alias } = await isValidClientId(clientId, redirectUri);
+      if (clientId) {
+        const licenseData = await getDeveloperLicense(clientId);
+        const alias = await getLicenseAlias(licenseData, clientId);
+        const isValid = await isValidDeveloperLicense(licenseData, redirectUri);
+        console.log({ alias, isValid });
+        devCredentialsSetters.devLicenseAlias(alias);
         if (isValid) {
-          devCredentialsSetters.devLicenseAlias(alias);
           createKernelSigner(clientId, clientId, redirectUri);
           setLoadingState(false);
         } else {

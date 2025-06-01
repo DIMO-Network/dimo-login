@@ -44,7 +44,6 @@ export const useErrorHandler = ({
     missingClientId: !clientId,
     missingRedirectUri: !redirectUri,
     invalidCredentials: Boolean(invalidCredentials),
-    missingCredentials: !clientId || !redirectUri,
   } as const);
 
   if (globalError) {

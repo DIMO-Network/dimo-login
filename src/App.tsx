@@ -33,7 +33,7 @@ import { useErrorHandler } from './hooks/useErrorHandler';
 
 const App = () => {
   const { setJwt, setUser, setUserInitialized, userInitialized } = useAuthContext();
-  const { clientId, invalidCredentials } = useDevCredentials();
+  const { clientId, invalidCredentials, devLicenseAlias } = useDevCredentials();
   const { uiState, setUiState, isLoading, entryState } = useUIManager() as {
     uiState: keyof typeof componentMap;
     setUiState: (state: UiStates) => void;
@@ -62,7 +62,15 @@ const App = () => {
   }, [clientId]);
 
   if (error) {
-    return <ErrorScreen title={error.title} message={error.message} />;
+    return (
+      <ErrorScreen
+        title={error.title}
+        message={error.message.replace(
+          '<license_alias>',
+          devLicenseAlias || 'the developer',
+        )}
+      />
+    );
   }
 
   if (isLoading || !userInitialized) {
