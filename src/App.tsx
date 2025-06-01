@@ -67,7 +67,7 @@ const App = () => {
         title={error.title}
         message={error.message.replace(
           '<license_alias>',
-          devLicenseAlias || 'the developer',
+          devLicenseAlias || 'the application developer',
         )}
       />
     );
