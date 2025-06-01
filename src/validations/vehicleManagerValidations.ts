@@ -1,14 +1,38 @@
 import { ValidationFunction } from '../hooks/useErrorHandler';
 import { getParamFromUrlOrState } from '../utils/urlHelpers';
+import { PERMISSION_KEYS } from '../types/permissions';
 
-const validatePermissionTemplate: ValidationFunction = ({ urlParams, decodedState }) => {
+interface ValidationResult {
+  isValid: boolean;
+  error?: {
+    title: string;
+    message: string;
+  };
+}
+
+interface ValidationParams {
+  urlParams: URLSearchParams;
+  decodedState: Record<string, unknown>;
+}
+
+const validatePermissionString = (value: string): boolean =>
+  new RegExp(`^[01]{1,${PERMISSION_KEYS.length}}$`).test(value);
+
+const validatePermissionTemplate: ValidationFunction = ({
+  urlParams,
+  decodedState,
+}: ValidationParams): ValidationResult => {
   const permissionTemplateId = getParamFromUrlOrState(
     'permissionTemplateId',
     urlParams,
     decodedState,
   );
 
-  if (!permissionTemplateId) {
+  const permissions = getParamFromUrlOrState('permissions', urlParams, decodedState) as
+    | string
+    | undefined;
+
+  if (!permissionTemplateId && !permissions) {
     return {
       isValid: false,
       error: {
@@ -20,6 +44,28 @@ const validatePermissionTemplate: ValidationFunction = ({ urlParams, decodedStat
   return { isValid: true };
 };
 
+const validatePermissionParams = ({
+  urlParams,
+  decodedState,
+}: ValidationParams): ValidationResult => {
+  const permissions = getParamFromUrlOrState('permissions', urlParams, decodedState) as
+    | string
+    | undefined;
+
+  if (permissions && !validatePermissionString(permissions)) {
+    return {
+      isValid: false,
+      error: {
+        title: 'Invalid Permissions Format',
+        message: `Permissions must be a string of 0s and 1s with a maximum length of ${PERMISSION_KEYS.length}.`,
+      },
+    };
+  }
+
+  return { isValid: true };
+};
+
 export const vehicleManagerValidations = {
   validatePermissionTemplate,
-} satisfies Record<string, ValidationFunction>;
+  validatePermissionParams,
+};
