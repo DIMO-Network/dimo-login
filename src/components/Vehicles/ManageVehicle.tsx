@@ -17,7 +17,7 @@ export const ManageVehicle: React.FC = () => {
   const { clientId } = useDevCredentials();
   const { user } = useAuthContext();
   const {
-    componentData: { vehicle, permissionTemplateId },
+    componentData: { vehicle, permissionTemplateId, permissions },
     setUiState,
     setComponentData,
     setLoadingState,
@@ -35,7 +35,7 @@ export const ManageVehicle: React.FC = () => {
 
     await initializeIfNeeded(user.subOrganizationId);
 
-    const perms = getPermsValue(permissionTemplateId ? permissionTemplateId : '1');
+    const perms = getPermsValue(permissionTemplateId ?? '1', permissions);
 
     const expiration =
       actionType === 'revoke' ? BigInt(0) : parseExpirationDate(expirationDate);

@@ -26,9 +26,10 @@ import { ConnectCarButton } from '../Shared/ConnectCarButton';
 import { fetchVehiclesWithTransformation } from '../../services/vehicleService';
 
 interface SelectVehiclesProps {
-  vehicleTokenIds: string[] | undefined; // Adjust the type based on your data
-  permissionTemplateId: string; // Adjust the type if necessary
-  vehicleMakes: string[] | undefined; // Adjust the type if necessary
+  vehicleTokenIds: string[] | undefined;
+  permissionTemplateId?: string;
+  permissions?: string;
+  vehicleMakes: string[] | undefined;
   expirationDate: BigInt;
   powertrainTypes?: string[];
 }
@@ -36,6 +37,7 @@ interface SelectVehiclesProps {
 export const SelectVehicles: React.FC<SelectVehiclesProps> = ({
   vehicleTokenIds,
   permissionTemplateId,
+  permissions,
   vehicleMakes,
   expirationDate,
   powertrainTypes,
@@ -136,8 +138,8 @@ export const SelectVehicles: React.FC<SelectVehiclesProps> = ({
 
     await initializeIfNeeded(user.subOrganizationId);
 
-    if (permissionTemplateId) {
-      const perms = getPermsValue(permissionTemplateId);
+    if (permissionTemplateId || permissions) {
+      const perms = getPermsValue(permissionTemplateId ?? '1', permissions);
       if (selectedVehicles.length > 0 && clientId) {
         const unsharedTokenIds = selectedVehicles
           .filter((vehicle) => !vehicle.shared)

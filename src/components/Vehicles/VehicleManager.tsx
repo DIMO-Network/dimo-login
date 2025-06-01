@@ -24,6 +24,7 @@ export const VehicleManager: React.FC = () => {
 
   //Data from SDK
   const [permissionTemplateId, setPermissionTemplateId] = useState<string | undefined>();
+  const [permissions, setPermissions] = useState<string | undefined>();
   const [vehicleTokenIds, setVehicleTokenIds] = useState<string[] | undefined>();
   const [vehicleMakes, setVehicleMakes] = useState<string[] | undefined>();
   const [powertrainTypes, setPowertrainTypes] = useState<string[]>();
@@ -45,6 +46,9 @@ export const VehicleManager: React.FC = () => {
       urlParams,
       decodedState,
     );
+    const permissions = getParamFromUrlOrState('permissions', urlParams, decodedState) as
+      | string
+      | undefined;
     const expirationDate = getParamFromUrlOrState(
       'expirationDate',
       urlParams,
@@ -62,6 +66,8 @@ export const VehicleManager: React.FC = () => {
 
     if (permissionTemplateId) {
       setPermissionTemplateId(permissionTemplateId as string);
+    } else if (permissions) {
+      setPermissions(permissions);
     }
 
     if (vehicles) {
@@ -131,10 +137,11 @@ export const VehicleManager: React.FC = () => {
   };
 
   const fetchPermissions = async () => {
-    if (permissionTemplateId) {
+    if (permissionTemplateId || permissions) {
       try {
         const permissionsParams: FetchPermissionsParams = {
           permissionTemplateId,
+          permissions,
           clientId,
           devLicenseAlias,
           expirationDate,
@@ -143,7 +150,10 @@ export const VehicleManager: React.FC = () => {
           region: region?.toUpperCase(),
         };
         const permissionTemplate = await fetchPermissionsFromId(permissionsParams);
-        setComponentData({ permissionTemplateId }); //So that manage vehicle has a permission template ID
+        setComponentData({
+          permissionTemplateId: permissionTemplateId || 'custom',
+          ...(permissions && { permissions }),
+        });
         setPermissionTemplate(permissionTemplate as SACDTemplate);
       } catch (error) {
         setError('Could not fetch permissions');
@@ -264,11 +274,12 @@ export const VehicleManager: React.FC = () => {
           </div>
         </>
 
-        {permissionTemplateId && (
+        {(permissionTemplateId || permissions) && (
           <SelectVehicles
             vehicleTokenIds={vehicleTokenIds}
             vehicleMakes={vehicleMakes}
             permissionTemplateId={permissionTemplateId}
+            permissions={permissions}
             expirationDate={expirationDate}
             powertrainTypes={powertrainTypes}
           />

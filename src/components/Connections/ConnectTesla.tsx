@@ -198,6 +198,7 @@ export const ConnectTesla: FC = () => {
         entryState: UiStates.CONNECT_TESLA,
         expirationDate: urlParams.get('expirationDate'),
         permissionTemplateId: urlParams.get('permissionTemplateId'),
+        permissions: urlParams.get('permissions'),
         utm: urlParams.getAll('utm'),
         vehicleMakes: urlParams.getAll('vehicleMakes'),
         vehicles: urlParams.getAll('vehicles'),
