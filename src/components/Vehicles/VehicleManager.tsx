@@ -151,7 +151,7 @@ export const VehicleManager: React.FC = () => {
         };
         const permissionTemplate = await fetchPermissionsFromId(permissionsParams);
         setComponentData({
-          permissionTemplateId: permissionTemplateId || 'custom',
+          ...(permissionTemplateId && { permissionTemplateId }),
           ...(permissions && { permissions }),
         });
         setPermissionTemplate(permissionTemplate as SACDTemplate);
@@ -172,7 +172,13 @@ export const VehicleManager: React.FC = () => {
 
   useEffect(() => {
     Promise.all([fetchPermissions()]);
-  }, [user.smartContractAddress, clientId, permissionTemplateId, devLicenseAlias]);
+  }, [
+    user.smartContractAddress,
+    clientId,
+    permissionTemplateId,
+    permissions,
+    devLicenseAlias,
+  ]);
 
   const renderDescription = (description: string) => {
     const paragraphs = description.split('\n\n');

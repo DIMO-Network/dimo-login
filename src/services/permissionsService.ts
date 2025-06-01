@@ -8,14 +8,14 @@ import {
   getSacdValue,
 } from './turnkeyService';
 import { formatBigIntAsReadableDate } from '../utils/dateUtils';
-import { PERMISSION_KEYS, PermissionsObject } from '../types/permissions';
+import { PERMISSIONS, PermissionsObject } from '../types/permissions';
 import { POLICY_ATTACHMENT_CID_BY_REGION } from '../enums';
 
 const createPermissionsObject = (permissionString: string): PermissionsObject =>
   Object.fromEntries(
-    PERMISSION_KEYS.map((key, index) => [
+    Object.keys(PERMISSIONS).map((key, index) => [
       key,
-      (permissionString?.[index] ?? '1') === '1',
+      (permissionString?.[index] ?? '0') === '1',
     ]),
   ) as PermissionsObject;
 
@@ -25,7 +25,7 @@ export const getPermsValue = (
 ): bigint => {
   let permissionString = permissions;
   if (permissionTemplateId) {
-    permissionString = `1${permissionTemplateId === '1' ? '1' : '0'}`;
+    permissionString = `1${permissionTemplateId === '1' ? '1' : '0'}1111`;
   }
   return getSacdValue(createPermissionsObject(permissionString as string));
 };

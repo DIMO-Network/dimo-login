@@ -1,6 +1,6 @@
 import { ValidationFunction } from '../hooks/useErrorHandler';
 import { getParamFromUrlOrState } from '../utils/urlHelpers';
-import { PERMISSION_KEYS } from '../types/permissions';
+import { PERMISSIONS } from '../types/permissions';
 
 interface ValidationResult {
   isValid: boolean;
@@ -16,7 +16,7 @@ interface ValidationParams {
 }
 
 const validatePermissionString = (value: string): boolean =>
-  new RegExp(`^[01]{1,${PERMISSION_KEYS.length}}$`).test(value);
+  new RegExp(`^[01]{1,${Object.keys(PERMISSIONS).length}}$`).test(value);
 
 const validatePermissionTemplate: ValidationFunction = ({
   urlParams,
@@ -57,7 +57,7 @@ const validatePermissionParams = ({
       isValid: false,
       error: {
         title: 'Invalid Permissions Format',
-        message: `Permissions must be a string of 0s and 1s with a maximum length of ${PERMISSION_KEYS.length}.`,
+        message: `Permissions must be a string of 0s and 1s with a maximum length of ${Object.keys(PERMISSIONS).length}.`,
       },
     };
   }
