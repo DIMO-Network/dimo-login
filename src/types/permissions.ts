@@ -6,4 +6,12 @@ export type PermissionsObject = {
   [K in PermissionKey]: boolean;
 };
 
-export const PERMISSION_KEYS = Object.keys(PERMISSIONS_FROM_SDK) as PermissionKey[];
+// Order is important, as it is used to create the permission string
+export const PERMISSION_KEYS = [
+  PERMISSIONS_FROM_SDK.NONLOCATION_TELEMETRY,
+  PERMISSIONS_FROM_SDK.COMMANDS,
+  PERMISSIONS_FROM_SDK.CURRENT_LOCATION,
+  PERMISSIONS_FROM_SDK.ALLTIME_LOCATION,
+  PERMISSIONS_FROM_SDK.CREDENTIALS,
+  PERMISSIONS_FROM_SDK.STREAMS,
+] as PermissionKey[];
