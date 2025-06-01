@@ -1,63 +1,69 @@
 import { SACDTemplate } from '@dimo-network/transactions/dist/core/types/dimo';
 import { VehcilePermissionDescription } from '@dimo-network/transactions/dist/core/types/args';
 
-import { POLICY_ATTACHMENT_CID_BY_REGION } from '../enums';
 import { FetchPermissionsParams } from '../models/permissions';
-import { formatBigIntAsReadableDate } from '../utils/dateUtils';
 import {
   getSacdDescription,
   getSacdPermissionArray,
   getSacdValue,
 } from './turnkeyService';
+import { formatBigIntAsReadableDate } from '../utils/dateUtils';
+import { PERMISSION_KEYS, PermissionsObject } from '../types/permissions';
+import { POLICY_ATTACHMENT_CID_BY_REGION } from '../enums';
 
-//Helper functions that communicate with the transactions service
-export function getPermsValue(permissionTemplateId: string): bigint {
-  const newPermissions = getSacdValue({
-    NONLOCATION_TELEMETRY: true,
-    COMMANDS: permissionTemplateId === '1',
-    CURRENT_LOCATION: true,
-    ALLTIME_LOCATION: true,
-    CREDENTIALS: true,
-    STREAMS: true,
-  });
+const createPermissionsObject = (permissionString: string): PermissionsObject =>
+  Object.fromEntries(
+    PERMISSION_KEYS.map((key, index) => [
+      key,
+      (permissionString?.[index] ?? '1') === '1',
+    ]),
+  ) as PermissionsObject;
 
-  return newPermissions;
-}
+export const getPermsValue = (
+  permissionTemplateId?: string,
+  permissions?: string,
+): bigint => {
+  let permissionString = permissions;
+  if (permissionTemplateId) {
+    permissionString = `1${permissionTemplateId === '1' ? '1' : '0'}`;
+  }
+  return getSacdValue(createPermissionsObject(permissionString as string));
+};
 
-export function getPermissionArray(perms: bigint): string[] {
+export const getPermissionArray = (perms: bigint): string[] => {
   return getSacdPermissionArray(perms);
-}
+};
 
-export function getDescription(args: VehcilePermissionDescription): string {
+export const getDescription = (args: VehcilePermissionDescription): string => {
   return getSacdDescription(args);
-}
+};
 
-export function getContractAttachmentLink(
+export const getContractAttachmentLink = (
   region: keyof typeof POLICY_ATTACHMENT_CID_BY_REGION,
-): string {
+): string => {
   const cid = POLICY_ATTACHMENT_CID_BY_REGION[region];
   if (!cid) {
     return '';
   }
   return `<a href="https://${cid}.ipfs.w3s.link/agreement-${region.toLowerCase()}.pdf" target="_blank">Contract Attachment</a>`;
-}
+};
 
-export async function fetchPermissionsFromId({
+export const fetchPermissionsFromId = async ({
   permissionTemplateId,
+  permissions,
   clientId,
   walletAddress,
   email,
   devLicenseAlias,
   expirationDate,
   region,
-}: FetchPermissionsParams): Promise<SACDTemplate> {
+}: FetchPermissionsParams): Promise<SACDTemplate> => {
   const templateId = '$uuid';
 
-  //Call helpers, that will communicate with the transactionService, which has access to the SDK
-  //Not necessary, but the abstraction make it easier for us to mock responses etc
-  const permissionsValue = getPermsValue(permissionTemplateId);
-
-  const permissionArray = getPermissionArray(permissionsValue);
+  // Call helpers, that will communicate with the transactionService, which has access to the SDK
+  // Not necessary, but the abstraction makes it easier for us to mock responses etc
+  const permsValue = getPermsValue(permissionTemplateId, permissions);
+  const permissionArray = getPermissionArray(permsValue);
 
   const currentTime = new Date();
   const currentTimeBigInt = BigInt(Math.floor(currentTime.getTime() / 1000));
@@ -102,4 +108,4 @@ export async function fetchPermissionsFromId({
   };
 
   return template;
-}
+};
