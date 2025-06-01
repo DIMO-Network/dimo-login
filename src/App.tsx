@@ -59,6 +59,7 @@ const App = () => {
         setUserInitialized,
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId]);
 
   if (error) {

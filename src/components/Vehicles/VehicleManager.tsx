@@ -168,10 +168,12 @@ export const VehicleManager: React.FC = () => {
     } else {
       handleEmbedPopupMode();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     Promise.all([fetchPermissions()]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     user.smartContractAddress,
     clientId,

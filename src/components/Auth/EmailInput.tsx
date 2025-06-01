@@ -114,6 +114,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       const emailToUse = String(email || getLoggedEmail(clientId));
       authenticateUser(emailToUse, 'credentialBundle', entryState);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [triggerAuth]);
 
   const handleCodeExchangeError = useCallback(

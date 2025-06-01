@@ -56,6 +56,7 @@ export const ConnectTesla: FC = () => {
     if (authCode && !(componentData && componentData.permissionsGranted)) {
       handleAuthCode(authCode, decodedStateFromUrl.vehicleToAdd);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ✅ Main Tesla onboarding function

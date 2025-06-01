@@ -200,6 +200,7 @@ export const DevCredentialsProvider = ({
         window.removeEventListener('message', messageHandler);
       };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -220,6 +221,7 @@ export const DevCredentialsProvider = ({
     };
 
     validateCredentials();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [devCredentialsState.clientId, devCredentialsState.redirectUri]);
 
   return (
