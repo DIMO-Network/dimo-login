@@ -13,8 +13,7 @@ const validateTransactionData: ValidationFunction = ({ urlParams, decodedState }
       isValid: false,
       error: {
         title: 'Missing Transaction Data',
-        message:
-          'Missing transaction data, please check the configuration and reload the page.',
+        message: 'Missing transaction data, please check the configuration and reload.',
       },
     };
   }
