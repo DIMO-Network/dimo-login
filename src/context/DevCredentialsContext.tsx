@@ -214,8 +214,8 @@ export const DevCredentialsProvider = ({
         const licenseData = await getDeveloperLicense(clientId);
         const alias = await getLicenseAlias(licenseData, clientId);
         const isValid = await isValidDeveloperLicense(licenseData, redirectUri);
-        console.log({ alias, isValid });
         devCredentialsSetters.devLicenseAlias(alias);
+
         if (isValid) {
           createKernelSigner(clientId, clientId, redirectUri);
           setLoadingState(false);
