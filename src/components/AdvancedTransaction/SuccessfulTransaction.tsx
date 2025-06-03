@@ -6,9 +6,7 @@ import { useAuthContext } from '../../context/AuthContext';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { useUIManager } from '../../context/UIManagerContext';
 
-import ErrorScreen from '../Shared/ErrorScreen';
-import Header from '../Shared/Header';
-import PrimaryButton from '../Shared/PrimaryButton';
+import { ErrorContent, Header, PrimaryButton } from '../Shared';
 
 export const SuccessfulTransaction: React.FC = () => {
   const { redirectUri, utm, devLicenseAlias } = useDevCredentials();
@@ -17,7 +15,7 @@ export const SuccessfulTransaction: React.FC = () => {
 
   if (!componentData.transactionHash) {
     return (
-      <ErrorScreen
+      <ErrorContent
         title="Missing Transaction Hash"
         message="Transaction was not successfully completed."
       />

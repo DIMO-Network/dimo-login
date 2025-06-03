@@ -116,10 +116,7 @@ export const getPowertrainTypeMatch = async (vehicle: any, powertrainTypes: stri
   );
 };
 
-export const isValidClientId = async (
-  clientId: string,
-  redirectUri: string,
-): Promise<{ isValid: boolean; alias: string }> => {
+export const getDeveloperLicense = async (clientId: string) => {
   const query = `{
     developerLicense(by: { clientId: "${clientId}" }) {
       owner
@@ -141,28 +138,46 @@ export const isValidClientId = async (
     body: JSON.stringify({ query }),
   });
 
-  const response = await apiResponse.json();
+  const {
+    data: { developerLicense },
+  } = await apiResponse.json();
 
-  // Check if data is not null
-  if (!response || !response.data || !response.data.developerLicense) {
+  if (!developerLicense) {
     console.error('No data found in the response.');
-    return { isValid: false, alias: '' };
+    return null;
   }
 
-  // Access the redirectURIs from the response
-  const { redirectURIs, alias } = response.data.developerLicense;
+  return developerLicense;
+};
 
-  // Check if redirectURIs exist and contains nodes
-  if (redirectURIs && redirectURIs.nodes) {
-    // Extract the URIs from the nodes
+export const isValidDeveloperLicense = async (
+  developerLicense: any,
+  redirectUri: string,
+): Promise<boolean> => {
+  if (!developerLicense) {
+    console.error('No data found in the response.');
+    return false;
+  }
+
+  const { redirectURIs } = developerLicense;
+
+  if (redirectUri && redirectURIs && redirectURIs.nodes) {
     const uris = redirectURIs.nodes.map((node: { uri: any }) => node.uri);
-
-    // Verify if the redirectUri exists in the list
     const exists = uris.includes(redirectUri);
 
-    return { isValid: exists, alias: alias || clientId };
-  } else {
-    console.error('No redirect URIs found.');
-    return { isValid: false, alias: '' };
+    return exists;
   }
+
+  console.error('No redirect URIs found.');
+  return false;
+};
+
+export const getLicenseAlias = async (developerLicense: any, clientId: string) => {
+  if (!developerLicense) {
+    console.error('No data found in the response.');
+    return '';
+  }
+  const { alias } = developerLicense;
+
+  return alias || clientId;
 };
