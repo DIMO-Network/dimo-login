@@ -130,24 +130,28 @@ export const getDeveloperLicense = async (clientId: string) => {
     }
   }`;
 
-  const apiResponse = await fetch(GRAPHQL_ENDPOINT!, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ query }),
-  });
+  try {
+    const apiResponse = await fetch(GRAPHQL_ENDPOINT!, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query }),
+    });
 
-  const {
-    data: { developerLicense },
-  } = await apiResponse.json();
+    const { data } = await apiResponse.json();
+    const { developerLicense } = data || {};
 
-  if (!developerLicense) {
-    console.error('No data found in the response.');
+    if (!developerLicense) {
+      console.error('No data found in the response.');
+      return null;
+    }
+
+    return developerLicense;
+  } catch (error) {
+    console.error('Error fetching developer license:', error);
     return null;
   }
-
-  return developerLicense;
 };
 
 export const isValidDeveloperLicense = async (

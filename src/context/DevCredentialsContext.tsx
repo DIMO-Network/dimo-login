@@ -222,11 +222,11 @@ export const DevCredentialsProvider = ({
 
         if (isValid) {
           createKernelSigner(clientId, clientId, redirectUri);
-          setLoadingState(false);
         } else {
           devCredentialsSetters.invalidCredentials(true);
           console.error('Invalid client ID or redirect URI.');
         }
+        setLoadingState(false);
       }
     };
 
