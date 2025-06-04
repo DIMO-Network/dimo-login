@@ -1,4 +1,4 @@
-import { getParamFromUrlOrState } from '../utils/urlHelpers';
+import { useDevCredentials } from '../context/DevCredentialsContext';
 import {
   ErrorMessage as GlobalErrorMessage,
   getGlobalError,
@@ -33,12 +33,10 @@ export const useErrorHandler = ({
   invalidCredentials,
   customValidations = {},
 }: UseErrorHandlerProps): { error: GlobalErrorMessage | null } => {
+  const { clientId, redirectUri } = useDevCredentials();
   const urlParams = new URLSearchParams(window.location.search);
   const state = urlParams.get('state');
   const decodedState = state ? JSON.parse(decodeURIComponent(state)) : {};
-
-  const clientId = getParamFromUrlOrState('clientId', urlParams, decodedState);
-  const redirectUri = getParamFromUrlOrState('redirectUri', urlParams, decodedState);
 
   const globalError = getGlobalError({
     missingClientId: !clientId,
