@@ -120,16 +120,14 @@ export const DevCredentialsProvider = ({
 
     setEmailGranted(clientId, emailPermissionGranted);
 
-    if (isStandalone()) {
-      applyDevCredentialsConfig({
-        clientId,
-        apiKey: 'api key',
-        redirectUri,
-        utm,
-        entryState,
-        altTitle,
-      });
-    }
+    applyDevCredentialsConfig({
+      clientId,
+      apiKey: 'api key',
+      redirectUri,
+      utm,
+      entryState,
+      altTitle,
+    });
   };
 
   const parseUrlParams = (urlParams: URLSearchParams) => {
