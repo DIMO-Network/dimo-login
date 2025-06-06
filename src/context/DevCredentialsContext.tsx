@@ -173,7 +173,7 @@ export const DevCredentialsProvider = ({
   };
 
   const processConfigByCID = async (cid: string | null) => {
-    if (cid) return false;
+    if (!cid) return false;
     try {
       const config = await fetchConfigFromIPFS(cid);
       applyDevCredentialsConfig({
