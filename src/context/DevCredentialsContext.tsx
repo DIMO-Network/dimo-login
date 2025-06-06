@@ -182,7 +182,7 @@ export const DevCredentialsProvider = ({
       });
       return true;
     } catch (error) {
-      console.error("Failed to process configuration by CID:", error);
+      console.error('Failed to process configuration by CID:', error);
       return false;
     }
   };
