@@ -97,6 +97,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       entryState: UiStates.EMAIL_INPUT,
       expirationDate: urlParams.get('expirationDate'),
       permissionTemplateId: urlParams.get('permissionTemplateId'),
+      permissions: urlParams.get('permissions'),
       utm: urlParams.getAll('utm'),
       vehicleMakes: urlParams.getAll('vehicleMakes'),
       vehicles: urlParams.getAll('vehicles'),
@@ -113,6 +114,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       const emailToUse = String(email || getLoggedEmail(clientId));
       authenticateUser(emailToUse, 'credentialBundle', entryState);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [triggerAuth]);
 
   const handleCodeExchangeError = useCallback(
