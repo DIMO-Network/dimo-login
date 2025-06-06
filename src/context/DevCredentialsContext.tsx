@@ -107,7 +107,7 @@ export const DevCredentialsProvider = ({
   };
 
   const parseStateFromUrl = (stateFromUrl: string | null) => {
-    if (!stateFromUrl) return;
+    if (!stateFromUrl) return false;
 
     const {
       clientId,
@@ -128,6 +128,8 @@ export const DevCredentialsProvider = ({
       entryState,
       altTitle,
     });
+
+    return true;
   };
 
   const parseUrlParams = (urlParams: URLSearchParams) => {
@@ -171,14 +173,17 @@ export const DevCredentialsProvider = ({
   };
 
   const processConfigByCID = async (cid: string) => {
+    if (cid) return false;
     try {
       const config = await fetchConfigFromIPFS(cid);
       applyDevCredentialsConfig({
         ...config,
         apiKey: 'api key',
       });
+      return true;
     } catch (error) {
-      console.error('Failed to process configuration by CID:', error);
+      console.error("Failed to process configuration by CID:", error);
+      return false;
     }
   };
 
@@ -190,11 +195,13 @@ export const DevCredentialsProvider = ({
 
     devCredentialsSetters.configCID(configCIDFromUrl || '');
 
-    if (configCIDFromUrl) {
-      processConfigByCID(configCIDFromUrl);
-    } else if (stateFromUrl) {
-      parseStateFromUrl(stateFromUrl);
-    } else if (!parseUrlParams(urlParams)) {
+    const isConfiguredByUrl =
+      processConfigByCID(configCIDFromUrl) || parseUrlParams(urlParams);
+
+    // Recovering config from state for social sign-in
+    parseStateFromUrl(stateFromUrl);
+
+    if (!isConfiguredByUrl) {
       const messageHandler = (event: MessageEvent) =>
         handleAuthInitMessage(event, stateFromUrl);
       window.addEventListener('message', messageHandler);
