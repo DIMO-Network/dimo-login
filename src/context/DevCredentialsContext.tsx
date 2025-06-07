@@ -187,7 +187,7 @@ export const DevCredentialsProvider = ({
     }
   };
 
-  useEffect(() => {
+  const initAuthProcess = async () => {
     setLoadingState(true, 'Waiting for credentials...');
     const urlParams = new URLSearchParams(window.location.search);
     const stateFromUrl = urlParams.get('state');
@@ -196,7 +196,7 @@ export const DevCredentialsProvider = ({
     devCredentialsSetters.configCID(configCIDFromUrl || '');
 
     const isConfiguredByUrl =
-      processConfigByCID(configCIDFromUrl) || parseUrlParams(urlParams);
+      (await processConfigByCID(configCIDFromUrl)) || parseUrlParams(urlParams);
 
     // Recovering config from state for social sign-in
     parseStateFromUrl(stateFromUrl);
@@ -209,6 +209,10 @@ export const DevCredentialsProvider = ({
         window.removeEventListener('message', messageHandler);
       };
     }
+  };
+
+  useEffect(() => {
+    initAuthProcess();
   }, []);
 
   useEffect(() => {
