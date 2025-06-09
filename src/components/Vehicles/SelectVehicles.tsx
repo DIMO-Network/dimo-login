@@ -142,7 +142,6 @@ export const SelectVehicles: React.FC<SelectVehiclesProps> = ({
 
   const handleShare = async () => {
     const shouldReinit = reinitialize();
-    console.log('SHOULD REINIT', shouldReinit);
     if (shouldReinit) {
       setUiState(UiStates.OTP_INPUT);
       return;

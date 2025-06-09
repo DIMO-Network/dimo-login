@@ -6,10 +6,9 @@ export const storeJWTInCookies = (clientId: string, jwt: string): void => {
   document.cookie = createCookieString(`auth_token_${clientId}`, jwt);
 };
 
-const createCookieString = (
-  name: string,
-  value: string,
-): string => {
+export const TurnkeySessionKey = 'turnkey_session';
+
+const createCookieString = (name: string, value: string): string => {
   const expirationDate = new Date();
   expirationDate.setDate(expirationDate.getDate() + DEFAULT_COOKIE_EXPIRATION_DAYS);
 

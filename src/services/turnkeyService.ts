@@ -25,7 +25,7 @@ import { PasskeyCreationResult } from '../models/resultTypes';
 import { getFromLocalStorage, TurnkeySessionKey } from './storageService';
 import { ApiKeyStamper } from '@turnkey/api-key-stamper';
 import { uint8ArrayToHexString } from '@turnkey/encoding';
-import { decryptBundle, getPublicKey, generateP256KeyPair } from '@turnkey/crypto';
+import { getPublicKey } from '@turnkey/crypto';
 
 export const passkeyStamper = new WebauthnStamper({
   rpId: process.env.REACT_APP_RPCID_URL as string,
@@ -137,14 +137,6 @@ export const initializeIfNeeded = async (subOrganizationId: string): Promise<voi
     console.log('ERROR INITIALIZING', err);
     await initializePasskey(subOrganizationId);
   }
-
-  // try {
-  //   await kernelSigner.getActiveClient();
-  // } catch (e) {
-  //   // TODO - here we might have to initialize with an OTP.
-  //   await initializePasskey(subOrganizationId);
-  //   console.log(kernelSigner.walletAddress);
-  // }
 };
 
 export const signChallenge = async (challenge: string): Promise<`0x${string}`> => {
