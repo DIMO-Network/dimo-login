@@ -72,7 +72,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
   const { setLoadingState, error, setError, setUiState } = useUIManager();
 
   const createAccountWithPasskey = async (email: string): Promise<UserResult> => {
-    setLoadingState(true, 'Creating account', true);
     setError(null);
     if (!apiKey) {
       return {
@@ -104,8 +103,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
     } catch (error) {
       setError('Failed to create account, please try again or contact support.');
       return { success: false, error: error as string };
-    } finally {
-      setLoadingState(false);
     }
   };
 
