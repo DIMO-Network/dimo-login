@@ -19,19 +19,14 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handlePasskeyGeneration = async () => {
-    try {
-      setIsLoading(true);
-      const account = await createAccountWithPasskey(email);
-      if (account.success && account.data.user) {
-        setTriggerAuth(true);
-      } else {
-        console.error('Account creation failed');
-      }
-    } catch (error) {
-      console.error('Error generating passkey:', error);
-    } finally {
-      setIsLoading(false);
+    setIsLoading(true);
+    const account = await createAccountWithPasskey(email);
+    if (account.success && account.data.user) {
+      setTriggerAuth(true);
+    } else {
+      console.error('Account creation failed');
     }
+    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -42,7 +37,9 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
   }, [triggerAuth]);
 
   if (isLoading) {
-    return <LoadingContent message="Creating your account. This may take a few minutes" />;
+    return (
+      <LoadingContent message="Creating your account. This may take a few minutes" />
+    );
   }
 
   return (
