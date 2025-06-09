@@ -6,6 +6,7 @@ import { useAuthContext } from '../../context/AuthContext';
 import { useUIManager } from '../../context/UIManagerContext';
 import ErrorMessage from '../Shared/ErrorMessage';
 import { Benefits } from '../Passkey/PasskeyBenefits';
+import { LoadingContent } from '../Shared/LoadingContent';
 
 interface PasskeyGenerationProps {
   email: string;
@@ -13,24 +14,36 @@ interface PasskeyGenerationProps {
 
 export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
   const { createAccountWithPasskey, authenticateUser, user } = useAuthContext();
-  const { componentData, entryState, error } = useUIManager();
+  const { entryState, error } = useUIManager();
   const [triggerAuth, setTriggerAuth] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handlePasskeyGeneration = async () => {
-    const account = await createAccountWithPasskey(email);
-    if (account.success && account.data.user) {
-      setTriggerAuth(true);
-    } else {
-      console.error('Account creation failed');
+    try {
+      setIsLoading(true);
+      const account = await createAccountWithPasskey(email);
+      if (account.success && account.data.user) {
+        setTriggerAuth(true);
+      } else {
+        console.error('Account creation failed');
+      }
+    } catch (error) {
+      console.error('Error generating passkey:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     // Only authenticate if `user` is set and authentication hasn't been triggered
-    if (user && user.subOrganizationId && componentData && componentData.emailValidated) {
-      authenticateUser(componentData.emailValidated, 'credentialBundle', entryState);
+    if (user && user.subOrganizationId) {
+      authenticateUser(email, 'credentialBundle', entryState);
     }
   }, [triggerAuth]);
+
+  if (isLoading) {
+    return <LoadingContent message="Creating your account. This may take a few minutes" />;
+  }
 
   return (
     <>
