@@ -58,21 +58,18 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
 
   return (
     <>
-      <Header title="Add a passkey for faster and safer login" />
+      <Header title="Add a passkey for faster and safer login" description={email} />
       {error && <ErrorMessage message={error} />}
 
-      <div className="text-center mt-3 mb-10">
-        <p className="text-sm text-zinc-500">{email}</p>
-      </div>
-      <p className={'text-sm text-[#313131] font-medium'}>
-        DIMO uses passkeys to keep your account and data secure.
-      </p>
-      <div className={'py-3'}>
+      <div className={'flex flex-col gap-3'}>
+        <p className={'text-sm text-[#313131] font-medium mt-10'}>
+          DIMO uses passkeys to keep your account and data secure.
+        </p>
         <Benefits />
+        <PrimaryButton onClick={handlePasskeyGeneration} width="w-full">
+          Add a passkey
+        </PrimaryButton>
       </div>
-      <PrimaryButton onClick={handlePasskeyGeneration} width="w-full">
-        Add a passkey
-      </PrimaryButton>
     </>
   );
 };
