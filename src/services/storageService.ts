@@ -1,6 +1,6 @@
 import { UserObject } from '../models/user';
 
-const DEFAULT_COOKIE_EXPIRATION_YEARS = 10; // Default expiration for cookies is 10 years if not specified.
+const DEFAULT_COOKIE_EXPIRATION_DAYS = 14; // Default expiration for cookies is 2 weeks
 
 export const storeJWTInCookies = (clientId: string, jwt: string): void => {
   document.cookie = createCookieString(`auth_token_${clientId}`, jwt);
@@ -9,15 +9,10 @@ export const storeJWTInCookies = (clientId: string, jwt: string): void => {
 const createCookieString = (
   name: string,
   value: string,
-  config?: { expiresAt?: Date },
 ): string => {
-  const expirationDate = config?.expiresAt || new Date();
-  if (!config?.expiresAt) {
-    // If no expiration date is provided, cookies are set to expire in 10 years by default.
-    expirationDate.setFullYear(
-      expirationDate.getFullYear() + DEFAULT_COOKIE_EXPIRATION_YEARS,
-    );
-  }
+  const expirationDate = new Date();
+  expirationDate.setDate(expirationDate.getDate() + DEFAULT_COOKIE_EXPIRATION_DAYS);
+  
   let cookieString = `${name}=${value}; expires=${expirationDate.toUTCString()}; path=/`;
   if (window.location.hostname !== 'localhost') {
     cookieString += '; SameSite=None; Secure';
