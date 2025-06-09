@@ -18,36 +18,31 @@
 
  */
 
-import React, { createContext, useContext, ReactNode, useState } from 'react';
+import React, { createContext, ReactNode, useContext, useState } from 'react';
 
 import {
   authenticateUser,
   handleAuthenticatedUser,
   handlePostAuthUIState,
 } from '../utils/authUtils';
-import { createAccount, sendOtp, verifyOtp } from '../services/accountsService'; // Import the service functions
-import { CreateAccountParams } from '../models/account';
-import { createPasskey } from '../services/turnkeyService';
-import { CredentialResult, OtpResult, UserResult } from '../models/resultTypes';
 import { useDevCredentials } from './DevCredentialsContext';
 import { UserObject } from '../models/user';
 import { useUIManager } from './UIManagerContext';
+import { TStamper } from '@turnkey/http/dist/base';
+import { verifyOtp } from '../services';
+import { decryptBundle, getPublicKey, generateP256KeyPair } from '@turnkey/crypto';
+import { uint8ArrayToHexString } from '@turnkey/encoding';
+import { ApiKeyStamper } from '@turnkey/api-key-stamper';
 
 interface AuthContextProps {
-  createAccountWithPasskey: (email: string) => Promise<UserResult>;
-  sendOtp: (email: string) => Promise<OtpResult>;
-  verifyOtp: (email: string, otp: string) => Promise<CredentialResult>;
-  authenticateUser: (
-    email: string,
-    credentialBundle: string,
-    entryState: string,
-  ) => Promise<void>;
+  authenticateUser: (stamper: TStamper) => Promise<void>;
   user: UserObject;
   setUser: React.Dispatch<React.SetStateAction<UserObject>>;
   jwt: string;
   setJwt: React.Dispatch<React.SetStateAction<string>>;
   userInitialized: boolean;
   setUserInitialized: React.Dispatch<React.SetStateAction<boolean>>;
+  completeOTPLogin: (args: OTPAuthArgs) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -62,176 +57,100 @@ const defaultUser: UserObject = {
   emailVerified: false,
 };
 
+type FinalizeAuthenticationArgs = {
+  stamper: TStamper;
+  turnkeySessionData?: {
+    embeddedKey: string;
+    credentialBundle: any;
+  };
+};
+
+interface OTPAuthArgs {
+  otpId: string;
+  otpCode: string;
+}
+
 // AuthProvider component to provide the context
 export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element => {
   const [user, setUser] = useState<UserObject>(defaultUser);
-  const [otpId, setOtpId] = useState<string>('');
   const [jwt, setJwt] = useState<string>('');
   const [userInitialized, setUserInitialized] = useState<boolean>(false);
-  const { clientId, apiKey, redirectUri, utm } = useDevCredentials();
-  const { setLoadingState, error, setError, setUiState } = useUIManager();
+  const { clientId, redirectUri, utm } = useDevCredentials();
+  const { setUiState, entryState } = useUIManager();
 
-  const createAccountWithPasskey = async (email: string): Promise<UserResult> => {
-    setError(null);
-    if (!apiKey) {
-      return {
-        success: false,
-        error: 'API key is required for account creation',
-      };
+  const loginToDIMO = async ({
+    stamper,
+    turnkeySessionData,
+  }: FinalizeAuthenticationArgs) => {
+    if (!user.subOrganizationId) {
+      throw new Error('User has not been initialized yet');
     }
 
-    try {
-      // Create passkey and get attestation
-      const [attestation, challenge] = await createPasskey(email);
+    const { accessToken, walletAddress, smartContractAddress, turnkeySessionExpiration } =
+      await authenticateUser(clientId, redirectUri, user.subOrganizationId, stamper);
 
-      // Trigger account creation request
-      const accountCreationParams: CreateAccountParams = {
-        email,
-        apiKey,
-        attestation: attestation as object,
-        challenge: challenge as string,
-        deployAccount: true,
-      };
-      const account = await createAccount(accountCreationParams);
+    const updatedUserObject: UserObject = {
+      ...user,
+      walletAddress,
+      smartContractAddress,
+    };
 
-      if (account.success && account.data.user) {
-        setUser(account.data.user); // Store the user object in the context
-        return { success: true, data: { user: account.data.user } };
-      } else {
-        throw new Error('Failed to create account');
-      }
-    } catch (error) {
-      setError('Failed to create account, please try again or contact support.');
-      return { success: false, error: error as string };
-    }
+    setJwt(accessToken);
+    setUser(updatedUserObject);
+
+    handleAuthenticatedUser({
+      clientId,
+      jwt: accessToken,
+      user: updatedUserObject,
+      turnkeySessionData: turnkeySessionData
+        ? { ...turnkeySessionData, expiresAt: turnkeySessionExpiration }
+        : undefined,
+    });
+
+    handlePostAuthUIState({
+      entryState,
+      clientId,
+      redirectUri,
+      utm,
+      setUiState,
+      user: updatedUserObject,
+      jwt: accessToken,
+    });
   };
 
-  const handleSendOtp = async (email: string): Promise<OtpResult> => {
-    setLoadingState(true, 'Sending OTP', true);
-    setError(null);
-
-    if (!apiKey) {
-      return {
-        success: false,
-        error: 'API key is to send an OTP',
-      };
-    }
-
-    try {
-      // Try sending OTP first
-      let otpResult = await sendOtp(email, apiKey);
-      if (!otpResult.success) {
-        // If sending OTP fails, attempt account creation and retry OTP
-        const accountCreation = await createAccountWithPasskey(email);
-        if (!accountCreation.success)
-          throw new Error('Account creation failed during OTP setup.');
-
-        // Retry sending OTP after successful account creation
-        otpResult = await sendOtp(email, apiKey);
-        if (!otpResult.success)
-          throw new Error('Failed to send OTP after account creation.');
-      }
-
-      setOtpId(otpResult.data.otpId);
-      console.log(`OTP sent to ${email}, OTP ID: ${otpResult.data.otpId}`);
-      return { success: true, data: { otpId: otpResult.data.otpId } };
-    } catch (err) {
-      setError('Failed to send OTP');
-      console.error(err);
-      return { success: false, error: error as string };
-    } finally {
-      setLoadingState(false);
-    }
+  const handleAuthenticateUser = async (stamper: TStamper) => {
+    await loginToDIMO({ stamper });
   };
 
-  const handleVerifyOtp = async (
-    email: string,
-    otp: string,
-  ): Promise<CredentialResult> => {
-    setLoadingState(true, 'Verifying OTP', true);
-    setError(null);
-    try {
-      const result = await verifyOtp(email, otp, otpId);
-      if (result.success && result.data.credentialBundle) {
-        console.log(`OTP verified for ${email}`);
-        return {
-          success: true,
-          data: { credentialBundle: result.data.credentialBundle },
-        };
-      } else {
-        throw new Error('Invalid OTP');
-      }
-    } catch (err) {
-      setError('Invalid code. Try again.');
-      console.error(err);
-      return { success: false, error: err as string };
-    } finally {
-      setLoadingState(false);
+  const completeOTPLogin = async (args: OTPAuthArgs) => {
+    if (!user.email || !user.subOrganizationId) {
+      throw new Error('User has not been initialized yet');
     }
-  };
-
-  const handleAuthenticateUser = async (
-    email: string,
-    credentialBundle: string,
-    entryState: string,
-  ) => {
-    setLoadingState(true, 'Authenticating User');
-    setError(null);
-
-    try {
-      if (!user || !user.subOrganizationId) {
-        throw new Error('User does not exist');
-      }
-
-      if (!clientId || !redirectUri) {
-        throw new Error('Developer credentials not found');
-      }
-
-      const { accessToken, smartContractAddress, walletAddress } = await authenticateUser(
-        clientId,
-        redirectUri,
-        user.subOrganizationId,
-      );
-      const account: UserObject = {
-        email,
-        subOrganizationId: user.subOrganizationId,
-        walletAddress,
-        smartContractAddress,
-        hasPasskey: true, //TODO: These should not be hardcoded
-        emailVerified: true, //TODO: These should not be hardcoded
-      };
-      handleAuthenticatedUser({
-        clientId,
-        jwt: accessToken,
-        userProperties: account,
-        setJwt,
-        setUser,
-      });
-
-      //Parse Entry State
-      handlePostAuthUIState({
-        entryState,
-        clientId,
-        jwt: accessToken,
-        userProperties: account,
-        redirectUri,
-        utm,
-        setUiState,
-      });
-    } catch (error: unknown) {
-      console.error(error);
-      setError('Could not authenticate user, please verify your passkey and try again.');
-    } finally {
-      setLoadingState(false);
-    }
+    const keyPair = generateP256KeyPair();
+    const { credentialBundle } = await verifyOtp({
+      email: user.email,
+      otpCode: args.otpCode,
+      otpId: args.otpId,
+      key: keyPair.publicKeyUncompressed,
+    });
+    const privateKey = decryptBundle(credentialBundle, keyPair.privateKey);
+    const publicKey = uint8ArrayToHexString(getPublicKey(privateKey, true));
+    const apiKeyStamper = new ApiKeyStamper({
+      apiPublicKey: publicKey,
+      apiPrivateKey: uint8ArrayToHexString(privateKey),
+    });
+    await loginToDIMO({
+      stamper: apiKeyStamper,
+      turnkeySessionData: {
+        embeddedKey: uint8ArrayToHexString(privateKey),
+        credentialBundle,
+      },
+    });
   };
 
   return (
     <AuthContext.Provider
       value={{
-        createAccountWithPasskey,
-        sendOtp: handleSendOtp,
-        verifyOtp: handleVerifyOtp,
         authenticateUser: handleAuthenticateUser,
         user,
         setUser,
@@ -239,6 +158,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
         setJwt,
         userInitialized,
         setUserInitialized,
+        completeOTPLogin,
       }}
     >
       {children}

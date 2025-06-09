@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 
 import {
   SetVehiclePermissions,
@@ -13,6 +13,7 @@ import {
   initializeIfNeeded,
   setVehiclePermissions,
   setVehiclePermissionsBulk,
+  TurnkeySessionData,
 } from '../../services/turnkeyService';
 import { buildAuthPayload, sendAuthPayloadToParent } from '../../utils/authUtils';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
@@ -20,10 +21,11 @@ import { getPermsValue } from '../../services/permissionsService';
 import PrimaryButton from '../Shared/PrimaryButton';
 import { backToThirdParty } from '../../utils/messageHandler';
 import { UiStates, useUIManager } from '../../context/UIManagerContext';
-import Loader from '../Shared/Loader';
+import ConnectedLoader from '../Shared/Loader';
 import { EmptyState } from './EmptyState';
 import { ConnectCarButton } from '../Shared/ConnectCarButton';
 import { fetchVehiclesWithTransformation } from '../../services/vehicleService';
+import { getFromLocalStorage, TurnkeySessionKey } from '../../services';
 
 interface SelectVehiclesProps {
   vehicleTokenIds: string[] | undefined; // Adjust the type based on your data
@@ -40,6 +42,13 @@ export const SelectVehicles: React.FC<SelectVehiclesProps> = ({
   expirationDate,
   powertrainTypes,
 }) => {
+  const useInitializeIfNeeded = () => {
+    return useCallback(() => {
+      const turnkeySessionData =
+        getFromLocalStorage<TurnkeySessionData>(TurnkeySessionKey);
+      return !(turnkeySessionData && turnkeySessionData.expiresAt > Date.now());
+    }, []);
+  };
   const { user, jwt } = useAuthContext();
   const { clientId, redirectUri, utm, devLicenseAlias } = useDevCredentials();
   const { setUiState, setComponentData, setLoadingState, componentData, setError } =
@@ -52,7 +61,7 @@ export const SelectVehicles: React.FC<SelectVehiclesProps> = ({
   const [hasPreviousPage, setHasPreviousPage] = useState(false);
   const [startCursor, setStartCursor] = useState('');
   const [selectedVehicles, setSelectedVehicles] = useState<Vehicle[]>([]); // Array for multiple selected vehicles)
-
+  const reinitialize = useInitializeIfNeeded();
   const hasFetched = useRef(false);
 
   const fetchVehicles = async (direction = 'next') => {
@@ -132,9 +141,15 @@ export const SelectVehicles: React.FC<SelectVehiclesProps> = ({
   };
 
   const handleShare = async () => {
+    const shouldReinit = reinitialize();
+    console.log('SHOULD REINIT', shouldReinit);
+    if (shouldReinit) {
+      setUiState(UiStates.OTP_INPUT);
+      return;
+    } else {
+      await initializeIfNeeded(user.subOrganizationId);
+    }
     setLoadingState(true, 'Sharing vehicles', true);
-
-    await initializeIfNeeded(user.subOrganizationId);
 
     if (permissionTemplateId) {
       const perms = getPermsValue(permissionTemplateId);
@@ -223,7 +238,7 @@ export const SelectVehicles: React.FC<SelectVehiclesProps> = ({
       )}
 
       {vehiclesLoading ? (
-        <Loader />
+        <ConnectedLoader />
       ) : (
         <div className="space-y-4 pt-4 max-h-[400px] overflow-auto w-full max-w-[440px]">
           {/* Render Compatible Vehicles */}

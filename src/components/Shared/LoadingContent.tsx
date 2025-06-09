@@ -1,19 +1,13 @@
 import React from 'react';
 
 import Logo from './Logo';
-import { Loader } from '../';
+import { ConnectedLoader } from '../';
 
-interface LoadingContentProps {
-  message?: string;
-}
-
-export const LoadingContent: React.FC<LoadingContentProps> = ({ message }) => {
-  return (
-    <div className="w-full md:w-[440px]">
-      <Logo />
-      <Loader message={message} />
-    </div>
-  );
-};
+export const LoadingContent = () => (
+  <div className="w-full md:w-[440px]">
+    <Logo />
+    <ConnectedLoader />
+  </div>
+);
 
 export default LoadingContent;

@@ -63,10 +63,9 @@ export const AdvancedTransaction: React.FC = () => {
   const onApprove = async () => {
     setLoadingState(true, 'Executing Transaction', true);
     //Ensure Passkey
-
-    await initializeIfNeeded(user.subOrganizationId);
-
     try {
+      await initializeIfNeeded(user.subOrganizationId);
+
       const receipt = await executeAdvancedTransaction(
         transactionData.abi,
         transactionData.functionName,

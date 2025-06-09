@@ -1,19 +1,57 @@
-import React, { useState } from 'react';
-import { useAuthContext } from '../../context/AuthContext'; // Use the auth context
+import React, { useEffect, useState } from 'react';
 import ErrorMessage from '../Shared/ErrorMessage';
 import PrimaryButton from '../Shared/PrimaryButton';
 import SecondaryButton from '../Shared/SecondaryButton';
 import Header from '../Shared/Header';
 import { useUIManager } from '../../context/UIManagerContext';
+import { sendOtp } from '../../services';
+import { useAuthenticateUserWithUI } from '../../hooks/useAuthenticateUserWithUI';
+import debounce from 'lodash/debounce';
+import { Loader } from '../Shared';
+import Logo from '../Shared/Logo';
+import { useAuthContext } from '../../context/AuthContext';
 
 interface OtpInputProps {
   email: string;
 }
 
 export const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
-  const { verifyOtp, authenticateUser, sendOtp } = useAuthContext(); // Get verifyOtp from the context
-  const { entryState, error } = useUIManager();
-  const [otpArray, setOtpArray] = useState(Array(6).fill('')); // Array of 6 empty strings
+  const { user } = useAuthContext();
+  const { completeOTPLogin } = useAuthContext();
+  const { error, setError } = useUIManager();
+  const [otpArray, setOtpArray] = useState(Array(6).fill(''));
+  const [otpId, setOtpId] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const sendOtpCode = async () => {
+    try {
+      const result = await sendOtp(user.email);
+      if (!result.success) {
+        return setError(result.error ?? 'Failed to send OTP code');
+      }
+      setOtpId(result.data.otpId);
+    } catch (err) {
+      console.log(err);
+      let msg = 'Failed to send OTP code';
+      if (err instanceof Error) {
+        msg = err.message || msg;
+      }
+      setError(msg);
+    }
+  };
+
+  useEffect(() => {
+    // We need to debounce this call because for some reason this component gets un-mounted
+    // Which then leads to a double OTP send
+    // Debouncing the function prevents this by canceling the first function call that happens before the component gets un-mounted
+    const callback = debounce(() => {
+      void sendOtpCode();
+    }, 1000);
+    callback();
+    return () => {
+      callback.cancel();
+    };
+  }, []);
 
   // Function to handle change for each input
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
@@ -42,14 +80,19 @@ export const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
   };
 
   const handleSubmit = async () => {
-    if (otpArray) {
-      // Verify OTP using the auth context
-      const otp = otpArray.join('');
-      const result = await verifyOtp(email, otp);
-
-      if (result.success && result.data.credentialBundle) {
-        authenticateUser(email, result.data.credentialBundle, entryState);
-      }
+    try {
+      if (!otpArray) return;
+      setLoading(true);
+      const otpCode = otpArray.join('');
+      await completeOTPLogin({ otpId, otpCode });
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'An unknown error occurred trying to verify your OTP',
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -75,6 +118,15 @@ export const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
       setTimeout(() => handleBackspace(id, index), 100);
     }
   };
+
+  if (loading) {
+    return (
+      <>
+        <Logo />
+        <Loader message={'Verifying OTP'} />
+      </>
+    );
+  }
 
   return (
     <>
@@ -106,7 +158,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
         <PrimaryButton onClick={handleSubmit} width="w-full">
           Verify email
         </PrimaryButton>
-        <SecondaryButton onClick={() => sendOtp(email)} width="w-full">
+        <SecondaryButton onClick={sendOtpCode} width="w-full">
           Resend code
         </SecondaryButton>
       </div>

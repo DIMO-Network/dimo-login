@@ -6,6 +6,7 @@ interface PrimaryButtonProps {
   children: ReactNode;
   width?: string; // Optional width prop
   disabled?: boolean;
+  loading?: boolean;
 }
 
 export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
@@ -13,6 +14,7 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
   children,
   width,
   disabled,
+  loading,
 }) => (
   <button
     onClick={onClick}

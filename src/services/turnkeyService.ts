@@ -22,13 +22,21 @@ import { WebauthnStamper } from '@turnkey/webauthn-stamper';
 import { base64UrlEncode, generateRandomBuffer } from '../utils/cryptoUtils';
 import { VehcilePermissionDescription } from '@dimo-network/transactions/dist/core/types/args';
 import { PasskeyCreationResult } from '../models/resultTypes';
+import { getFromLocalStorage, TurnkeySessionKey } from './storageService';
+import { ApiKeyStamper } from '@turnkey/api-key-stamper';
+import { uint8ArrayToHexString } from '@turnkey/encoding';
+import { decryptBundle, getPublicKey, generateP256KeyPair } from '@turnkey/crypto';
 
-const stamper = new WebauthnStamper({
+export const passkeyStamper = new WebauthnStamper({
   rpId: process.env.REACT_APP_RPCID_URL as string,
 });
 
 let kernelSigner: KernelSigner;
-
+export interface TurnkeySessionData {
+  credentialBundle: string;
+  embeddedKey: string;
+  expiresAt: number;
+}
 export const createKernelSigner = (
   clientId: string,
   domain: string,
@@ -107,16 +115,36 @@ export const createPasskey = async (email: string): Promise<PasskeyCreationResul
 };
 
 export const initializePasskey = async (subOrganizationId: string): Promise<void> => {
-  await kernelSigner.passkeyToSession(subOrganizationId, stamper);
+  await kernelSigner.passkeyToSession(subOrganizationId, passkeyStamper);
 };
 
 export const initializeIfNeeded = async (subOrganizationId: string): Promise<void> => {
   try {
+    const turnkeySessionData = getFromLocalStorage<TurnkeySessionData>(TurnkeySessionKey);
+    if (turnkeySessionData && turnkeySessionData.expiresAt > Date.now()) {
+      const publicKey = uint8ArrayToHexString(
+        getPublicKey(turnkeySessionData.embeddedKey, true),
+      );
+      const apiKeyStamper = new ApiKeyStamper({
+        apiPublicKey: publicKey,
+        apiPrivateKey: turnkeySessionData.embeddedKey,
+      });
+      await kernelSigner.openSessionWithApiStamper(subOrganizationId, apiKeyStamper);
+    }
+    console.log('initialized, getting active client');
     await kernelSigner.getActiveClient();
-  } catch (e) {
+  } catch (err) {
+    console.log('ERROR INITIALIZING', err);
     await initializePasskey(subOrganizationId);
-    console.log(kernelSigner.walletAddress);
   }
+
+  // try {
+  //   await kernelSigner.getActiveClient();
+  // } catch (e) {
+  //   // TODO - here we might have to initialize with an OTP.
+  //   await initializePasskey(subOrganizationId);
+  //   console.log(kernelSigner.walletAddress);
+  // }
 };
 
 export const signChallenge = async (challenge: string): Promise<`0x${string}`> => {
