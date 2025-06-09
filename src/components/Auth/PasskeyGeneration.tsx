@@ -4,7 +4,8 @@ import { Header } from '../Shared/Header';
 import { PrimaryButton } from '../Shared/PrimaryButton';
 import { DevicesIcon, FingerprintIcon, IconProps, SecurityIcon } from '../Icons';
 import { useAuthContext } from '../../context/AuthContext';
-import { UiStates, useUIManager } from '../../context/UIManagerContext';
+import { useUIManager } from '../../context/UIManagerContext';
+import ErrorMessage from '../Shared/ErrorMessage';
 
 interface PasskeyBenefitProps {
   Icon: FC<IconProps>;
@@ -35,33 +36,16 @@ interface PasskeyGenerationProps {
 }
 
 export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
-  const { createAccountWithPasskey, sendOtp, authenticateUser, user } = useAuthContext();
-  const { setUiState, componentData, entryState } = useUIManager();
+  const { createAccountWithPasskey, authenticateUser, user } = useAuthContext();
+  const { componentData, entryState, error } = useUIManager();
   const [triggerAuth, setTriggerAuth] = useState(false);
-
-  const handleOtpSend = async (email: string) => {
-    const otpResult = await sendOtp(email); // Send OTP for new account
-
-    if (otpResult.success && otpResult.data.otpId) {
-      setUiState(UiStates.OTP_INPUT, {
-        setBack: true,
-        removeCurrent: true,
-      });
-    }
-  };
 
   const handlePasskeyGeneration = async () => {
     const account = await createAccountWithPasskey(email);
-
-    //MOVE TO AUTHENTICATE, IF FROM SSO
     if (account.success && account.data.user) {
-      if (componentData && componentData.emailValidated) {
-        setTriggerAuth(true); //Essentially waits for state updates, before authenticating the user
-      } else {
-        await handleOtpSend(email);
-      }
+      setTriggerAuth(true);
     } else {
-      console.error('Account creation failed'); // Handle account creation failure
+      console.error('Account creation failed');
     }
   };
 
@@ -72,37 +56,50 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
     }
   }, [triggerAuth]);
 
-  const renderBenefit = ({ Icon, title, description }: PasskeyBenefitProps) => {
-    return (
-      <div
-        className="flex flex-col gap-2 w-full mt-2 p-4 rounded-2xl cursor-pointer transition bg-gray-50 text-gray-500 cursor-not-allowed"
-        key={title}
-      >
-        <div className="flex flex-row gap-2 font-medium text-sm text-black">
-          <Icon className="w-5 h-5" />
-          <p>{title}</p>
-        </div>
-        <div className="">
-          <p className="text-sm text-black">{description}</p>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <>
-      <Header title="Add a passkey" />
-      <div className="passkey-description">
-        <p className="text-sm">
-          DIMO uses passkeys to keep your account and data secure.
-        </p>
+      <Header title="Add a passkey for faster and safer login" />
+      {error && <ErrorMessage message={error} />}
+
+      <div className="text-center mt-3 mb-10">
+        <p className="text-sm text-zinc-500">{email}</p>
       </div>
-      <div className="passkey-benefits">{PASSKEY_BENEFITS.map(renderBenefit)}</div>
-      <div className="actions">
-        <PrimaryButton onClick={handlePasskeyGeneration} width="w-full">
-          Add a passkey
-        </PrimaryButton>
+      <p className={'text-sm text-[#313131] font-medium'}>
+        DIMO uses passkeys to keep your account and data secure.
+      </p>
+      <div className={'py-3'}>
+        <Benefits />
       </div>
+      <PrimaryButton onClick={handlePasskeyGeneration} width="w-full">
+        Add a passkey
+      </PrimaryButton>
     </>
+  );
+};
+
+const Benefits = () => {
+  return (
+    <div className={'flex gap-2 flex-col'}>
+      {PASSKEY_BENEFITS.map((benefitProps) => {
+        return <Benefit {...benefitProps} />;
+      })}
+    </div>
+  );
+};
+
+const Benefit = ({ title, description, Icon }: PasskeyBenefitProps) => {
+  return (
+    <div
+      className="flex flex-col gap-2 w-full p-4 rounded-2xl cursor-pointer transition bg-gray-50 text-gray-500"
+      key={title}
+    >
+      <div className="flex flex-row gap-2 font-medium text-sm text-black">
+        <Icon className="w-5 h-5" />
+        <p>{title}</p>
+      </div>
+      <div className="">
+        <p className="text-sm text-black">{description}</p>
+      </div>
+    </div>
   );
 };
