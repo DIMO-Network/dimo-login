@@ -55,30 +55,6 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
   if (isLoading) {
     return <CustomLoader />;
   }
-  return (
-    <>
-      <Header title="Add a passkey" />
-      {error && <ErrorMessage message={error} />}
-      <div className="passkey-description">
-        <p className="text-sm">
-          DIMO uses passkeys to keep your account and data secure.
-        </p>
-      </div>
-      <Benefits />
-      <div className="actions">
-        <PrimaryButton onClick={handlePasskeyGeneration} width="w-full">
-          Add a passkey
-        </PrimaryButton>
-      </div>
-    </>
-  );
-};
-
-  if (isLoading) {
-    return (
-      <LoadingContent message="Creating your account. This may take a few minutes" />
-    );
-  }
 
   return (
     <>
@@ -105,7 +81,7 @@ const CustomLoader = () => {
   return (
     <>
       <Logo />
-      <Loader message={'Creating your account'} />
+      <Loader message={'Creating your account. This may take a few minutes.'} />
     </>
   );
 };

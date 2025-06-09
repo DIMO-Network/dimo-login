@@ -9,5 +9,3 @@ export const LoadingContent = () => (
     <ConnectedLoader />
   </div>
 );
-
-export default LoadingContent;

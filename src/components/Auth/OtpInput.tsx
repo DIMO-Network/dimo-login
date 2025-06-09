@@ -5,7 +5,6 @@ import SecondaryButton from '../Shared/SecondaryButton';
 import Header from '../Shared/Header';
 import { useUIManager } from '../../context/UIManagerContext';
 import { sendOtp } from '../../services';
-import { useAuthenticateUserWithUI } from '../../hooks/useAuthenticateUserWithUI';
 import debounce from 'lodash/debounce';
 import { Loader } from '../Shared';
 import Logo from '../Shared/Logo';
