@@ -58,7 +58,7 @@ export const createKernelSigner = (
     clientId,
     domain,
     redirectUri,
-    sessionTimeoutSeconds: String(30 * 60), // TODO - this isn't being read as 15 minutes
+    sessionTimeoutSeconds: String(30 * 60),
   });
 
   kernelSigner = new KernelSigner(kernelSignerConfig);
