@@ -85,3 +85,7 @@ export const getFromLocalStorage = <T>(key: string): T | null => {
   }
   return JSON.parse(serializedValue);
 };
+
+export const removeFromLocalStorage = (key: string): void => {
+  localStorage.removeItem(key);
+};

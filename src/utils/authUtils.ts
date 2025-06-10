@@ -103,8 +103,12 @@ export function createSession({
   storeJWTInCookies(clientId, jwt);
   storeUserInLocalStorage(clientId, user);
   setLoggedEmail(clientId, user.email);
-  saveToLocalStorage(TurnkeySessionKey, turnkeySessionData);
+  updateTurnkeySession(turnkeySessionData);
 }
+
+export const updateTurnkeySession = (sessionData: TurnkeySessionDataWithExpiry) => {
+  return saveToLocalStorage(TurnkeySessionKey, sessionData);
+};
 
 export function handlePostAuthUIState({
   entryState,

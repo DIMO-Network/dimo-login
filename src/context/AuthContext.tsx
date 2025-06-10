@@ -25,6 +25,7 @@ import {
   createSession,
   handlePostAuthUIState,
   logout,
+  updateTurnkeySession,
 } from '../utils/authUtils';
 import { useDevCredentials } from './DevCredentialsContext';
 import { UserObject } from '../models/user';
@@ -34,6 +35,7 @@ import {
   getApiKeyStamper,
   getFromLocalStorage,
   initializePasskey,
+  removeFromLocalStorage,
   TurnkeySessionData,
   TurnkeySessionDataWithExpiry,
   TurnkeySessionKey,
@@ -82,7 +84,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
   const [jwt, setJwt] = useState<string>('');
   const [userInitialized, setUserInitialized] = useState<boolean>(false);
   const { clientId, redirectUri, utm } = useDevCredentials();
-  const { setUiState, entryState, setLoadingState } = useUIManager();
+  const { setUiState, entryState } = useUIManager();
 
   const loginToDIMO = async ({
     stamper,
@@ -163,10 +165,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
     }
     if (turnkeySessionData.sessionType === 'passkey') {
       await initializePasskey(user.subOrganizationId);
-      // TODO - do we need to update the turnkey session?
+      updateTurnkeySession({
+        sessionType: 'passkey',
+        expiresAt: getKernelSigner().passkeySessionClient.expires,
+      });
       return true;
     }
     if (turnkeySessionData.expiresAt < Date.now()) {
+      removeFromLocalStorage(TurnkeySessionKey);
       setUiState(UiStates.OTP_INPUT);
       return null;
     }
