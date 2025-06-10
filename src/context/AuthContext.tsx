@@ -24,7 +24,6 @@ import {
   authenticateUser,
   createSession,
   handlePostAuthUIState,
-  logout,
   updateTurnkeySession,
 } from '../utils/authUtils';
 import { useDevCredentials } from './DevCredentialsContext';
