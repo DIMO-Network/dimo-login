@@ -40,7 +40,7 @@ export const SelectVehicles: React.FC<SelectVehiclesProps> = ({
   expirationDate,
   powertrainTypes,
 }) => {
-  const { user, jwt } = useAuthContext();
+  const { user, jwt, validateSession } = useAuthContext();
   const { clientId, redirectUri, utm, devLicenseAlias } = useDevCredentials();
   const { setUiState, setComponentData, setLoadingState, componentData, setError } =
     useUIManager();
@@ -52,7 +52,6 @@ export const SelectVehicles: React.FC<SelectVehiclesProps> = ({
   const [hasPreviousPage, setHasPreviousPage] = useState(false);
   const [startCursor, setStartCursor] = useState('');
   const [selectedVehicles, setSelectedVehicles] = useState<Vehicle[]>([]);
-
   const hasFetched = useRef(false);
 
   const fetchVehicles = async (direction = 'next') => {
@@ -163,8 +162,13 @@ export const SelectVehicles: React.FC<SelectVehiclesProps> = ({
     setLoadingState(true, 'Sharing vehicles', true);
 
     try {
-      await initializeIfNeeded(user.subOrganizationId);
-
+      const hasValidSession = await validateSession();
+      console.log('has valid session', hasValidSession);
+      if (!hasValidSession) {
+        // TODO - figure out if we need to return anything or throw an errror?
+        // The validate session function should take care of the UI states.
+        return;
+      }
       const unsharedTokenIds = selectedVehicles
         .filter((vehicle) => !vehicle.shared)
         .map((vehicle) => vehicle.tokenId.toString());

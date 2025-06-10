@@ -25,7 +25,12 @@ import { PasskeyCreationResult } from '../models/resultTypes';
 import { getFromLocalStorage, TurnkeySessionKey } from './storageService';
 import { ApiKeyStamper } from '@turnkey/api-key-stamper';
 import { uint8ArrayToHexString } from '@turnkey/encoding';
-import { getPublicKey, decryptBundle } from '@turnkey/crypto';
+import { decryptBundle, getPublicKey } from '@turnkey/crypto';
+import { useAuthContext } from '../context/AuthContext';
+import { useCallback } from 'react';
+import { useDevCredentials } from '../context/DevCredentialsContext';
+import { UiStates, useUIManager } from '../context/UIManagerContext';
+import { logout } from '../utils/authUtils';
 
 export const passkeyStamper = new WebauthnStamper({
   rpId: process.env.REACT_APP_RPCID_URL as string,
@@ -59,7 +64,7 @@ export const createKernelSigner = (
     clientId,
     domain,
     redirectUri,
-    sessionTimeoutSeconds: String(30 * 60),
+    sessionTimeoutSeconds: String(30 * 60), // TODO - this isn't being read as 15 minutes
   });
 
   kernelSigner = new KernelSigner(kernelSignerConfig);
@@ -141,22 +146,6 @@ export const getApiKeyStamper = (args: {
 
 export const initializeIfNeeded = async (subOrganizationId: string): Promise<void> => {
   try {
-    if (kernelSigner.hasActiveSession()) {
-      return;
-    }
-    const turnkeySessionData =
-      getFromLocalStorage<TurnkeySessionDataWithExpiry>(TurnkeySessionKey);
-    if (
-      turnkeySessionData &&
-      turnkeySessionData.expiresAt > Date.now() &&
-      turnkeySessionData.sessionType === 'api_key'
-    ) {
-      const apiKeyStamper = getApiKeyStamper({
-        credentialBundle: turnkeySessionData.credentialBundle,
-        embeddedKey: turnkeySessionData.embeddedKey,
-      });
-      await kernelSigner.openSessionWithApiStamper(subOrganizationId, apiKeyStamper);
-    }
     await kernelSigner.getActiveClient();
   } catch (err) {
     await initializePasskey(subOrganizationId);

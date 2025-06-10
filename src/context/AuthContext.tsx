@@ -24,13 +24,23 @@ import {
   authenticateUser,
   createSession,
   handlePostAuthUIState,
+  logout,
 } from '../utils/authUtils';
 import { useDevCredentials } from './DevCredentialsContext';
 import { UserObject } from '../models/user';
-import { useUIManager } from './UIManagerContext';
+import { UiStates, useUIManager } from './UIManagerContext';
 import { TStamper } from '@turnkey/http/dist/base';
-import { getApiKeyStamper, TurnkeySessionData, verifyOtp } from '../services';
+import {
+  getApiKeyStamper,
+  getFromLocalStorage,
+  initializePasskey,
+  TurnkeySessionData,
+  TurnkeySessionDataWithExpiry,
+  TurnkeySessionKey,
+  verifyOtp,
+} from '../services';
 import { generateP256KeyPair } from '@turnkey/crypto';
+import { getKernelSigner } from '../services';
 
 interface AuthContextProps {
   authenticateUser: (stamper: TStamper) => Promise<void>;
@@ -41,6 +51,7 @@ interface AuthContextProps {
   userInitialized: boolean;
   setUserInitialized: React.Dispatch<React.SetStateAction<boolean>>;
   completeOTPLogin: (args: OTPAuthArgs) => Promise<void>;
+  validateSession: () => Promise<null | boolean>;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -140,6 +151,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
     });
   };
 
+  const validateSession = async () => {
+    const turnkeySessionData =
+      getFromLocalStorage<TurnkeySessionDataWithExpiry>(TurnkeySessionKey);
+    if (!user.subOrganizationId || !turnkeySessionData) {
+      logout(clientId, redirectUri, utm, setUiState);
+      return null;
+    }
+    if (getKernelSigner().hasActiveSession()) {
+      return true;
+    }
+    if (turnkeySessionData.sessionType === 'passkey') {
+      await initializePasskey(user.subOrganizationId);
+      // TODO - do we need to update the turnkey session?
+      return true;
+    }
+    if (turnkeySessionData.expiresAt < Date.now()) {
+      setUiState(UiStates.OTP_INPUT);
+      return null;
+    }
+    const apiKeyStamper = getApiKeyStamper({
+      credentialBundle: turnkeySessionData.credentialBundle,
+      embeddedKey: turnkeySessionData.embeddedKey,
+    });
+    await getKernelSigner().openSessionWithApiStamper(
+      user.subOrganizationId,
+      apiKeyStamper,
+    );
+    return true;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -151,6 +192,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
         userInitialized,
         setUserInitialized,
         completeOTPLogin,
+        validateSession,
       }}
     >
       {children}

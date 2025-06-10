@@ -67,6 +67,7 @@ export const clearLoggedEmail = (clientId: string): void => {
 export const clearSessionData = (clientId: string): void => {
   document.cookie = `auth_token_${clientId}=; Max-Age=0`;
   localStorage.removeItem(`user_data_${clientId}`);
+  localStorage.removeItem(TurnkeySessionKey);
 };
 
 export const saveToLocalStorage = <T>(key: string, value: T): void => {
