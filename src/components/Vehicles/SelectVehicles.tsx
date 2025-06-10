@@ -13,7 +13,7 @@ import {
   initializeIfNeeded,
   setVehiclePermissions,
   setVehiclePermissionsBulk,
-  TurnkeySessionData,
+  TurnkeySessionDataWithExpiry,
 } from '../../services/turnkeyService';
 import { buildAuthPayload, sendAuthPayloadToParent } from '../../utils/authUtils';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
@@ -45,7 +45,7 @@ export const SelectVehicles: React.FC<SelectVehiclesProps> = ({
   const useInitializeIfNeeded = () => {
     return useCallback(() => {
       const turnkeySessionData =
-        getFromLocalStorage<TurnkeySessionData>(TurnkeySessionKey);
+        getFromLocalStorage<TurnkeySessionDataWithExpiry>(TurnkeySessionKey);
       return !(turnkeySessionData && turnkeySessionData.expiresAt > Date.now());
     }, []);
   };
@@ -141,13 +141,14 @@ export const SelectVehicles: React.FC<SelectVehiclesProps> = ({
   };
 
   const handleShare = async () => {
-    const shouldReinit = reinitialize();
-    if (shouldReinit) {
-      setUiState(UiStates.OTP_INPUT);
-      return;
-    } else {
-      await initializeIfNeeded(user.subOrganizationId);
-    }
+    // first, here, we need to check if the user has a "write" session available.
+    // const shouldReinit = reinitialize();
+    // if (shouldReinit) {
+    //   setUiState(UiStates.OTP_INPUT);
+    //   return;
+    // } else {
+    //   await initializeIfNeeded(user.subOrganizationId);
+    // }
     setLoadingState(true, 'Sharing vehicles', true);
 
     if (permissionTemplateId) {

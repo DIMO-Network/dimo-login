@@ -29,7 +29,7 @@ import { useDevCredentials } from './DevCredentialsContext';
 import { UserObject } from '../models/user';
 import { useUIManager } from './UIManagerContext';
 import { TStamper } from '@turnkey/http/dist/base';
-import { verifyOtp } from '../services';
+import { TurnkeySessionData, verifyOtp } from '../services';
 import { decryptBundle, getPublicKey, generateP256KeyPair } from '@turnkey/crypto';
 import { uint8ArrayToHexString } from '@turnkey/encoding';
 import { ApiKeyStamper } from '@turnkey/api-key-stamper';
@@ -59,10 +59,7 @@ const defaultUser: UserObject = {
 
 type FinalizeAuthenticationArgs = {
   stamper: TStamper;
-  turnkeySessionData?: {
-    embeddedKey: string;
-    credentialBundle: any;
-  };
+  turnkeySessionData: TurnkeySessionData;
 };
 
 interface OTPAuthArgs {
@@ -102,9 +99,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
       clientId,
       jwt: accessToken,
       user: updatedUserObject,
-      turnkeySessionData: turnkeySessionData
-        ? { ...turnkeySessionData, expiresAt: turnkeySessionExpiration }
-        : undefined,
+      turnkeySessionData: { ...turnkeySessionData, expiresAt: turnkeySessionExpiration },
     });
 
     handlePostAuthUIState({
@@ -119,7 +114,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
   };
 
   const handleAuthenticateUser = async (stamper: TStamper) => {
-    await loginToDIMO({ stamper });
+    await loginToDIMO({ stamper, turnkeySessionData: { sessionType: 'passkey' } });
   };
 
   const completeOTPLogin = async (args: OTPAuthArgs) => {
@@ -135,15 +130,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
     });
     const privateKey = decryptBundle(credentialBundle, keyPair.privateKey);
     const publicKey = uint8ArrayToHexString(getPublicKey(privateKey, true));
+    const embeddedKey = uint8ArrayToHexString(privateKey);
     const apiKeyStamper = new ApiKeyStamper({
       apiPublicKey: publicKey,
-      apiPrivateKey: uint8ArrayToHexString(privateKey),
+      apiPrivateKey: embeddedKey,
     });
     await loginToDIMO({
       stamper: apiKeyStamper,
       turnkeySessionData: {
-        embeddedKey: uint8ArrayToHexString(privateKey),
-        credentialBundle,
+        embeddedKey,
+        sessionType: 'api_key',
       },
     });
   };
