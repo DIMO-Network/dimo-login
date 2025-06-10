@@ -10,7 +10,6 @@ import { useAuthContext } from '../../context/AuthContext';
 import { Vehicle } from '../../models/vehicle';
 import {
   generateIpfsSources,
-  initializeIfNeeded,
   setVehiclePermissions,
   setVehiclePermissionsBulk,
 } from '../../services/turnkeyService';
@@ -20,7 +19,7 @@ import { getPermsValue } from '../../services/permissionsService';
 import PrimaryButton from '../Shared/PrimaryButton';
 import { backToThirdParty } from '../../utils/messageHandler';
 import { UiStates, useUIManager } from '../../context/UIManagerContext';
-import Loader from '../Shared/Loader';
+import { ConnectedLoader } from '../Shared/Loader';
 import { EmptyState } from './EmptyState';
 import { ConnectCarButton } from '../Shared/ConnectCarButton';
 import { fetchVehiclesWithTransformation } from '../../services/vehicleService';
@@ -40,7 +39,7 @@ export const SelectVehicles: React.FC<SelectVehiclesProps> = ({
   expirationDate,
   powertrainTypes,
 }) => {
-  const { user, jwt } = useAuthContext();
+  const { user, jwt, validateSession } = useAuthContext();
   const { clientId, redirectUri, utm, devLicenseAlias } = useDevCredentials();
   const { setUiState, setComponentData, setLoadingState, componentData, setError } =
     useUIManager();
@@ -51,8 +50,7 @@ export const SelectVehicles: React.FC<SelectVehiclesProps> = ({
   const [endCursor, setEndCursor] = useState('');
   const [hasPreviousPage, setHasPreviousPage] = useState(false);
   const [startCursor, setStartCursor] = useState('');
-  const [selectedVehicles, setSelectedVehicles] = useState<Vehicle[]>([]); // Array for multiple selected vehicles)
-
+  const [selectedVehicles, setSelectedVehicles] = useState<Vehicle[]>([]);
   const hasFetched = useRef(false);
 
   const fetchVehicles = async (direction = 'next') => {
@@ -131,62 +129,71 @@ export const SelectVehicles: React.FC<SelectVehiclesProps> = ({
     });
   };
 
+  const createBasePermissions = (perms: bigint, sources: string) => ({
+    grantee: clientId as `0x${string}`,
+    permissions: perms,
+    expiration: expirationDate,
+    source: sources,
+  });
+
+  const shareSingleVehicle = async (tokenId: string, basePermissions: any) => {
+    const vehiclePermissions: SetVehiclePermissions = {
+      ...basePermissions,
+      tokenId: BigInt(tokenId),
+    };
+    await setVehiclePermissions(vehiclePermissions);
+  };
+
+  const shareMultipleVehicles = async (tokenIds: string[], basePermissions: any) => {
+    const bulkVehiclePermissions: SetVehiclePermissionsBulk = {
+      ...basePermissions,
+      tokenIds: tokenIds.map((id) => BigInt(id)),
+    };
+    await setVehiclePermissionsBulk(bulkVehiclePermissions);
+  };
+
   const handleShare = async () => {
+    if (!permissionTemplateId || selectedVehicles.length === 0 || !clientId) {
+      setError('No vehicles selected');
+      return;
+    }
+
     setLoadingState(true, 'Sharing vehicles', true);
 
-    await initializeIfNeeded(user.subOrganizationId);
-
-    if (permissionTemplateId) {
-      const perms = getPermsValue(permissionTemplateId);
-      if (selectedVehicles.length > 0 && clientId) {
-        const unsharedTokenIds = selectedVehicles
-          .filter((vehicle) => !vehicle.shared)
-          .map((vehicle) => vehicle.tokenId);
-
-        if (unsharedTokenIds.length === 0) {
-          return;
-        }
-
-        try {
-          const sources = await generateIpfsSources(perms, clientId, expirationDate);
-
-          const basePermissions = {
-            grantee: clientId as `0x${string}`,
-            permissions: perms,
-            expiration: expirationDate,
-            source: sources,
-          };
-
-          if (unsharedTokenIds.length === 1) {
-            const vehiclePermissions: SetVehiclePermissions = {
-              ...basePermissions,
-              tokenId: unsharedTokenIds[0],
-            };
-
-            await setVehiclePermissions(vehiclePermissions);
-          } else {
-            const bulkVehiclePermissions: SetVehiclePermissionsBulk = {
-              ...basePermissions,
-              tokenIds: unsharedTokenIds,
-            };
-            await setVehiclePermissionsBulk(bulkVehiclePermissions);
-          }
-
-          sendJwtAfterPermissions((authPayload: any) => {
-            setComponentData({ action: 'shared', vehicles: selectedVehicles });
-            setUiState(UiStates.VEHICLES_SHARED_SUCCESS);
-            setSelectedVehicles([]);
-          });
-          setLoadingState(false);
-        } catch (error) {
-          setError('Could not share vehicles');
-          setLoadingState(false);
-          console.error('Error sharing vehicles:', error);
-        }
-      } else {
-        setError('No vehicles selected');
-        setLoadingState(false);
+    try {
+      const hasValidSession = await validateSession();
+      if (!hasValidSession) {
+        return;
       }
+      const unsharedTokenIds = selectedVehicles
+        .filter((vehicle) => !vehicle.shared)
+        .map((vehicle) => vehicle.tokenId.toString());
+
+      if (unsharedTokenIds.length === 0) {
+        setLoadingState(false);
+        return;
+      }
+
+      const perms = getPermsValue(permissionTemplateId);
+      const sources = await generateIpfsSources(perms, clientId, expirationDate);
+      const basePermissions = createBasePermissions(perms, sources);
+
+      if (unsharedTokenIds.length === 1) {
+        await shareSingleVehicle(unsharedTokenIds[0], basePermissions);
+      } else {
+        await shareMultipleVehicles(unsharedTokenIds, basePermissions);
+      }
+
+      sendJwtAfterPermissions((authPayload: any) => {
+        setComponentData({ action: 'shared', vehicles: selectedVehicles });
+        setUiState(UiStates.VEHICLES_SHARED_SUCCESS);
+        setSelectedVehicles([]);
+      });
+    } catch (error) {
+      setError('Could not share vehicles');
+      console.error('Error sharing vehicles:', error);
+    } finally {
+      setLoadingState(false);
     }
   };
 
@@ -223,7 +230,7 @@ export const SelectVehicles: React.FC<SelectVehiclesProps> = ({
       )}
 
       {vehiclesLoading ? (
-        <Loader />
+        <ConnectedLoader />
       ) : (
         <div className="space-y-4 pt-4 max-h-[400px] overflow-auto w-full max-w-[440px]">
           {/* Render Compatible Vehicles */}
