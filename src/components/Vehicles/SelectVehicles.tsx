@@ -13,7 +13,6 @@ import {
   initializeIfNeeded,
   setVehiclePermissions,
   setVehiclePermissionsBulk,
-  TurnkeySessionDataWithExpiry,
 } from '../../services/turnkeyService';
 import { buildAuthPayload, sendAuthPayloadToParent } from '../../utils/authUtils';
 import { useDevCredentials } from '../../context/DevCredentialsContext';

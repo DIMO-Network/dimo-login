@@ -89,7 +89,7 @@ export function logout(
   });
 }
 
-export function handleAuthenticatedUser({
+export function createSession({
   clientId,
   jwt,
   user,
@@ -103,10 +103,7 @@ export function handleAuthenticatedUser({
   storeJWTInCookies(clientId, jwt);
   storeUserInLocalStorage(clientId, user);
   setLoggedEmail(clientId, user.email);
-
-  if (turnkeySessionData) {
-    saveToLocalStorage(TurnkeySessionKey, turnkeySessionData);
-  }
+  saveToLocalStorage(TurnkeySessionKey, turnkeySessionData);
 }
 
 export function handlePostAuthUIState({

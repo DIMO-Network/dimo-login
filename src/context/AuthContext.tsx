@@ -22,14 +22,14 @@ import React, { createContext, ReactNode, useContext, useState } from 'react';
 
 import {
   authenticateUser,
-  handleAuthenticatedUser,
+  createSession,
   handlePostAuthUIState,
 } from '../utils/authUtils';
 import { useDevCredentials } from './DevCredentialsContext';
 import { UserObject } from '../models/user';
 import { useUIManager } from './UIManagerContext';
 import { TStamper } from '@turnkey/http/dist/base';
-import { TurnkeySessionData, verifyOtp } from '../services';
+import { getApiKeyStamper, TurnkeySessionData, verifyOtp } from '../services';
 import { decryptBundle, getPublicKey, generateP256KeyPair } from '@turnkey/crypto';
 import { uint8ArrayToHexString } from '@turnkey/encoding';
 import { ApiKeyStamper } from '@turnkey/api-key-stamper';
@@ -95,7 +95,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
     setJwt(accessToken);
     setUser(updatedUserObject);
 
-    handleAuthenticatedUser({
+    createSession({
       clientId,
       jwt: accessToken,
       user: updatedUserObject,
@@ -128,17 +128,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
       otpId: args.otpId,
       key: keyPair.publicKeyUncompressed,
     });
-    const privateKey = decryptBundle(credentialBundle, keyPair.privateKey);
-    const publicKey = uint8ArrayToHexString(getPublicKey(privateKey, true));
-    const embeddedKey = uint8ArrayToHexString(privateKey);
-    const apiKeyStamper = new ApiKeyStamper({
-      apiPublicKey: publicKey,
-      apiPrivateKey: embeddedKey,
+    const apiKeyStamper = getApiKeyStamper({
+      credentialBundle,
+      embeddedKey: keyPair.privateKey,
     });
     await loginToDIMO({
       stamper: apiKeyStamper,
       turnkeySessionData: {
-        embeddedKey,
+        embeddedKey: keyPair.privateKey,
+        credentialBundle,
         sessionType: 'api_key',
       },
     });

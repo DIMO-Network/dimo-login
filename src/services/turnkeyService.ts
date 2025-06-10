@@ -25,9 +25,7 @@ import { PasskeyCreationResult } from '../models/resultTypes';
 import { getFromLocalStorage, TurnkeySessionKey } from './storageService';
 import { ApiKeyStamper } from '@turnkey/api-key-stamper';
 import { uint8ArrayToHexString } from '@turnkey/encoding';
-import { getPublicKey } from '@turnkey/crypto';
-import { useCallback } from "react";
-import { logout } from "../utils/authUtils";
+import { getPublicKey, decryptBundle } from '@turnkey/crypto';
 
 export const passkeyStamper = new WebauthnStamper({
   rpId: process.env.REACT_APP_RPCID_URL as string,
@@ -39,6 +37,7 @@ export type TurnkeySessionData =
   | {
       sessionType: 'api_key';
       embeddedKey: string;
+      credentialBundle: string;
     }
   | { sessionType: 'passkey' };
 
@@ -127,18 +126,17 @@ export const initializePasskey = async (subOrganizationId: string): Promise<void
   await kernelSigner.passkeyToSession(subOrganizationId, passkeyStamper);
 };
 
-export const useInitializeIfNeeded = (subOrganizationId: string) => {
-  return useCallback(async () => {
-    try {
-      if (kernelSigner.hasActiveSession()) return;
-      const turnkeySessionData =
-        getFromLocalStorage<TurnkeySessionDataWithExpiry>(TurnkeySessionKey);
-      if (!turnkeySessionData) // they'll need to go to
-    } catch (err) {
-
-    }
-  }, [])
-}
+export const getApiKeyStamper = (args: {
+  credentialBundle: string;
+  embeddedKey: string;
+}) => {
+  const privateKey = decryptBundle(args.credentialBundle, args.embeddedKey);
+  const publicKey = uint8ArrayToHexString(getPublicKey(privateKey, true));
+  return new ApiKeyStamper({
+    apiPublicKey: publicKey,
+    apiPrivateKey: uint8ArrayToHexString(privateKey),
+  });
+};
 
 export const initializeIfNeeded = async (subOrganizationId: string): Promise<void> => {
   try {
@@ -152,19 +150,14 @@ export const initializeIfNeeded = async (subOrganizationId: string): Promise<voi
       turnkeySessionData.expiresAt > Date.now() &&
       turnkeySessionData.sessionType === 'api_key'
     ) {
-      const publicKey = uint8ArrayToHexString(
-        getPublicKey(turnkeySessionData.embeddedKey, true),
-      );
-      const apiKeyStamper = new ApiKeyStamper({
-        apiPublicKey: publicKey,
-        apiPrivateKey: turnkeySessionData.embeddedKey,
+      const apiKeyStamper = getApiKeyStamper({
+        credentialBundle: turnkeySessionData.credentialBundle,
+        embeddedKey: turnkeySessionData.embeddedKey,
       });
       await kernelSigner.openSessionWithApiStamper(subOrganizationId, apiKeyStamper);
     }
-    console.log('initialized, getting active client');
     await kernelSigner.getActiveClient();
   } catch (err) {
-    console.log('ERROR INITIALIZING', err);
     await initializePasskey(subOrganizationId);
   }
 };
