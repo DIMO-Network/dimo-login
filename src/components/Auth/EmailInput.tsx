@@ -2,13 +2,16 @@ import React, { useCallback, useEffect, useState } from 'react';
 import debounce from 'lodash/debounce';
 
 import { Checkbox, ErrorMessage, Header, LegalNotice, LoadingContent } from '../Shared';
-import { CachedEmail, EmailInputForm } from './';
-import { fetchUserDetails } from '../../services/accountsService';
-import { setEmailGranted, getLoggedEmail } from '../../services/storageService';
+import { CachedEmail, EmailInputForm, OtpInput } from './';
+import {
+  fetchUserDetails,
+  setEmailGranted,
+  getLoggedEmail,
+  submitCodeExchange,
+} from '../../services';
 import { useAuthContext } from '../../context/AuthContext';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { UiStates, useUIManager } from '../../context/UIManagerContext';
-import { submitCodeExchange } from '../../services/authService';
 import { decodeJwt } from '../../utils/jwtUtils';
 import { isValidEmail } from '../../utils/emailUtils';
 import { getForceEmail } from '../../stores/AuthStateStore';
@@ -20,19 +23,25 @@ import {
 } from '../../utils/authUrls';
 import { getKeyboardEventListener, getSignInTitle } from '../../utils/uiUtils';
 import { useOracles } from '../../context/OraclesContext';
+import { PasskeyLogin } from './PasskeyLogin';
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;
 }
 
+export enum LoginType {
+  OTP = 'otp',
+  PASSKEY = 'passkey',
+  NONE = 'none',
+}
+
 export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
-  const { authenticateUser, setUser } = useAuthContext();
+  const [loginType, setLoginType] = useState<LoginType>(LoginType.NONE);
+  const { setUser } = useAuthContext();
   const { clientId, devLicenseAlias, redirectUri } = useDevCredentials();
-  const { setUiState, entryState, error, setError, setComponentData, altTitle } =
-    useUIManager();
+  const { setUiState, error, setError, setComponentData, altTitle } = useUIManager();
   const { onboardingEnabled } = useOracles();
   const [email, setEmail] = useState('');
-  const [triggerAuth, setTriggerAuth] = useState(false);
   const [emailPermissionGranted, setEmailPermissionGranted] = useState(false);
   const [codeExchangeState, setCodeExchangeState] = useState<{
     isLoading: boolean;
@@ -47,6 +56,10 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   const forceEmail = getForceEmail();
   const appUrl = getAppUrl();
 
+  const handlePasskeyRejected = (shouldFallback: boolean) => {
+    setLoginType(shouldFallback ? LoginType.OTP : LoginType.NONE);
+  };
+
   const processEmailSubmission = useCallback(
     async (email: string) => {
       if (!email || !clientId) return;
@@ -54,7 +67,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       const userExistsResult = await fetchUserDetails(email);
       if (userExistsResult.success && userExistsResult.data.user) {
         setUser(userExistsResult.data.user);
-        setTriggerAuth(true);
+        setLoginType(LoginType.PASSKEY);
         return true;
       }
       setUiState(UiStates.PASSKEY_GENERATOR, { setBack: true });
@@ -106,14 +119,6 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       emailPermissionGranted,
     });
   };
-
-  useEffect(() => {
-    // Only authenticate if `user` is set and authentication hasn't been triggered
-    if (triggerAuth) {
-      const emailToUse = String(email || getLoggedEmail(clientId));
-      authenticateUser(emailToUse, 'credentialBundle', entryState);
-    }
-  }, [triggerAuth]);
 
   const handleCodeExchangeError = useCallback(
     (errorMsg: string) => {
@@ -187,6 +192,14 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
 
   if (codeExchangeState.isLoading) {
     return <LoadingContent />;
+  }
+
+  if (loginType === LoginType.PASSKEY) {
+    return <PasskeyLogin handlePasskeyRejected={handlePasskeyRejected} />;
+  }
+
+  if (loginType === LoginType.OTP && (email || getLoggedEmail(clientId))) {
+    return <OtpInput email={email || getLoggedEmail(clientId) || ''} />;
   }
 
   return (

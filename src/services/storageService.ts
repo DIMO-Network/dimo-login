@@ -6,13 +6,12 @@ export const storeJWTInCookies = (clientId: string, jwt: string): void => {
   document.cookie = createCookieString(`auth_token_${clientId}`, jwt);
 };
 
-const createCookieString = (
-  name: string,
-  value: string,
-): string => {
+export const TurnkeySessionKey = 'turnkey_session';
+
+const createCookieString = (name: string, value: string): string => {
   const expirationDate = new Date();
   expirationDate.setDate(expirationDate.getDate() + DEFAULT_COOKIE_EXPIRATION_DAYS);
-  
+
   let cookieString = `${name}=${value}; expires=${expirationDate.toUTCString()}; path=/`;
   if (window.location.hostname !== 'localhost') {
     cookieString += '; SameSite=None; Secure';
@@ -68,4 +67,25 @@ export const clearLoggedEmail = (clientId: string): void => {
 export const clearSessionData = (clientId: string): void => {
   document.cookie = `auth_token_${clientId}=; Max-Age=0`;
   localStorage.removeItem(`user_data_${clientId}`);
+  localStorage.removeItem(TurnkeySessionKey);
+};
+
+export const saveToLocalStorage = <T>(key: string, value: T): void => {
+  const serializedValue = JSON.stringify(value);
+  localStorage.setItem(key, serializedValue);
+};
+
+export const getFromLocalStorage = <T>(key: string): T | null => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  const serializedValue = localStorage.getItem(key);
+  if (!serializedValue) {
+    return null;
+  }
+  return JSON.parse(serializedValue);
+};
+
+export const removeFromLocalStorage = (key: string): void => {
+  localStorage.removeItem(key);
 };

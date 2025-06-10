@@ -5,10 +5,7 @@ import Header from '../Shared/Header';
 import ErrorMessage from '../Shared/ErrorMessage';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { useAuthContext } from '../../context/AuthContext';
-import {
-  executeAdvancedTransaction,
-  initializeIfNeeded,
-} from '../../services/turnkeyService';
+import { executeAdvancedTransaction } from '../../services/turnkeyService';
 import ErrorScreen from '../Shared/ErrorScreen';
 import { sendTxnResponseToParent } from '../../utils/txnUtils';
 import { sendErrorToParent } from '../../utils/errorUtils';
@@ -20,7 +17,7 @@ export const AdvancedTransaction: React.FC = () => {
   const { redirectUri, utm } = useDevCredentials();
   const { setUiState, setComponentData, setLoadingState, error, setError } =
     useUIManager();
-  const { user, jwt } = useAuthContext();
+  const { jwt, validateSession } = useAuthContext();
 
   const [transactionData, setTransactionData] = useState<TransactionData | undefined>();
 
@@ -62,11 +59,12 @@ export const AdvancedTransaction: React.FC = () => {
 
   const onApprove = async () => {
     setLoadingState(true, 'Executing Transaction', true);
-    //Ensure Passkey
-
-    await initializeIfNeeded(user.subOrganizationId);
-
     try {
+      const validSession = await validateSession();
+      if (!validSession) {
+        setLoadingState(false);
+        return;
+      }
       const receipt = await executeAdvancedTransaction(
         transactionData.abi,
         transactionData.functionName,
@@ -83,6 +81,7 @@ export const AdvancedTransaction: React.FC = () => {
     } catch (e) {
       console.log(e);
       setError('Could not execute transaction, please try again');
+    } finally {
       setLoadingState(false);
     }
   };

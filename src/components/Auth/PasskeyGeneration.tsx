@@ -1,45 +1,59 @@
-import React, { useEffect, useState, type FC } from 'react';
+import React, { type FC, useEffect, useState } from 'react';
 
 import { Header } from '../Shared/Header';
 import { PrimaryButton } from '../Shared/PrimaryButton';
 import { useAuthContext } from '../../context/AuthContext';
 import { useUIManager } from '../../context/UIManagerContext';
-import ErrorMessage from '../Shared/ErrorMessage';
 import { Benefits } from '../Passkey/PasskeyBenefits';
-import { LoadingContent } from '../Shared/LoadingContent';
+import { useAuthenticateUserWithUI } from '../../hooks/useAuthenticateUserWithUI';
+import { ErrorMessage, Loader } from '../Shared';
+import { createAccount, createPasskey } from '../../services';
+import { useDevCredentials } from '../../context/DevCredentialsContext';
+import Logo from '../Shared/Logo';
+import { UserObject } from '../../models/user';
 
 interface PasskeyGenerationProps {
   email: string;
 }
 
 export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
-  const { createAccountWithPasskey, authenticateUser, user } = useAuthContext();
-  const { entryState, error } = useUIManager();
-  const [triggerAuth, setTriggerAuth] = useState(false);
+  const { user, setUser } = useAuthContext();
+  const authenticateUser = useAuthenticateUserWithUI();
+  const { setError, error } = useUIManager();
+  const { apiKey } = useDevCredentials();
   const [isLoading, setIsLoading] = useState(false);
 
+  const createAccountWithPasskey = async (email: string): Promise<UserObject> => {
+    const [attestation, challenge] = await createPasskey(email);
+    return await createAccount({
+      email,
+      apiKey,
+      attestation,
+      challenge,
+      deployAccount: true,
+    });
+  };
   const handlePasskeyGeneration = async () => {
-    setIsLoading(true);
-    const account = await createAccountWithPasskey(email);
-    if (account.success && account.data.user) {
-      setTriggerAuth(true);
-    } else {
-      console.error('Account creation failed');
+    try {
+      setIsLoading(true);
+      const newAccount = await createAccountWithPasskey(email);
+      setUser(newAccount);
+    } catch (err) {
+      setError('There was an error creating your account');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   useEffect(() => {
-    // Only authenticate if `user` is set and authentication hasn't been triggered
-    if (user && user.subOrganizationId) {
-      authenticateUser(email, 'credentialBundle', entryState);
+    if (user.subOrganizationId) {
+      setIsLoading(false);
+      authenticateUser();
     }
-  }, [triggerAuth]);
+  }, [user.subOrganizationId]);
 
   if (isLoading) {
-    return (
-      <LoadingContent message="Creating your account. This may take a few minutes" />
-    );
+    return <CustomLoader />;
   }
 
   return (
@@ -56,6 +70,18 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
           Add a passkey
         </PrimaryButton>
       </div>
+    </>
+  );
+};
+
+// Using a custom loader here instead of the ConnectedLoader
+// because the ConnectedLoader will un-render this component
+// and cause the useEffect to not behave as intended
+const CustomLoader = () => {
+  return (
+    <>
+      <Logo />
+      <Loader message={'Creating your account. This may take a few minutes.'} />
     </>
   );
 };
