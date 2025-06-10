@@ -30,7 +30,6 @@ export const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
       }
       setOtpId(result.data.otpId);
     } catch (err) {
-      console.log(err);
       let msg = 'Failed to send OTP code';
       if (err instanceof Error) {
         msg = err.message || msg;
