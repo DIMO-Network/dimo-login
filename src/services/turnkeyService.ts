@@ -22,15 +22,9 @@ import { WebauthnStamper } from '@turnkey/webauthn-stamper';
 import { base64UrlEncode, generateRandomBuffer } from '../utils/cryptoUtils';
 import { VehcilePermissionDescription } from '@dimo-network/transactions/dist/core/types/args';
 import { PasskeyCreationResult } from '../models/resultTypes';
-import { getFromLocalStorage, TurnkeySessionKey } from './storageService';
 import { ApiKeyStamper } from '@turnkey/api-key-stamper';
 import { uint8ArrayToHexString } from '@turnkey/encoding';
 import { decryptBundle, getPublicKey } from '@turnkey/crypto';
-import { useAuthContext } from '../context/AuthContext';
-import { useCallback } from 'react';
-import { useDevCredentials } from '../context/DevCredentialsContext';
-import { UiStates, useUIManager } from '../context/UIManagerContext';
-import { logout } from '../utils/authUtils';
 
 export const passkeyStamper = new WebauthnStamper({
   rpId: process.env.REACT_APP_RPCID_URL as string,
@@ -142,14 +136,6 @@ export const getApiKeyStamper = (args: {
     apiPublicKey: publicKey,
     apiPrivateKey: uint8ArrayToHexString(privateKey),
   });
-};
-
-export const initializeIfNeeded = async (subOrganizationId: string): Promise<void> => {
-  try {
-    await kernelSigner.getActiveClient();
-  } catch (err) {
-    await initializePasskey(subOrganizationId);
-  }
 };
 
 export const signChallenge = async (challenge: string): Promise<`0x${string}`> => {

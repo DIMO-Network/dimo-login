@@ -82,7 +82,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
   const [jwt, setJwt] = useState<string>('');
   const [userInitialized, setUserInitialized] = useState<boolean>(false);
   const { clientId, redirectUri, utm } = useDevCredentials();
-  const { setUiState, entryState } = useUIManager();
+  const { setUiState, entryState, setLoadingState } = useUIManager();
 
   const loginToDIMO = async ({
     stamper,
@@ -155,7 +155,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
     const turnkeySessionData =
       getFromLocalStorage<TurnkeySessionDataWithExpiry>(TurnkeySessionKey);
     if (!user.subOrganizationId || !turnkeySessionData) {
-      logout(clientId, redirectUri, utm, setUiState);
+      setUiState(UiStates.EMAIL_INPUT);
       return null;
     }
     if (getKernelSigner().hasActiveSession()) {

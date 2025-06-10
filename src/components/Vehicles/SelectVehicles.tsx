@@ -10,7 +10,6 @@ import { useAuthContext } from '../../context/AuthContext';
 import { Vehicle } from '../../models/vehicle';
 import {
   generateIpfsSources,
-  initializeIfNeeded,
   setVehiclePermissions,
   setVehiclePermissionsBulk,
 } from '../../services/turnkeyService';
@@ -163,10 +162,7 @@ export const SelectVehicles: React.FC<SelectVehiclesProps> = ({
 
     try {
       const hasValidSession = await validateSession();
-      console.log('has valid session', hasValidSession);
       if (!hasValidSession) {
-        // TODO - figure out if we need to return anything or throw an errror?
-        // The validate session function should take care of the UI states.
         return;
       }
       const unsharedTokenIds = selectedVehicles
