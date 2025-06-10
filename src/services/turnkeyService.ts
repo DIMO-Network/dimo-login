@@ -22,17 +22,30 @@ import { WebauthnStamper } from '@turnkey/webauthn-stamper';
 import { base64UrlEncode, generateRandomBuffer } from '../utils/cryptoUtils';
 import { VehcilePermissionDescription } from '@dimo-network/transactions/dist/core/types/args';
 import { PasskeyCreationResult } from '../models/resultTypes';
+import { getFromLocalStorage, TurnkeySessionKey } from './storageService';
+import { ApiKeyStamper } from '@turnkey/api-key-stamper';
+import { uint8ArrayToHexString } from '@turnkey/encoding';
+import { getPublicKey } from '@turnkey/crypto';
+import { useCallback } from "react";
+import { logout } from "../utils/authUtils";
 
 export const passkeyStamper = new WebauthnStamper({
   rpId: process.env.REACT_APP_RPCID_URL as string,
 });
 
 let kernelSigner: KernelSigner;
-export interface TurnkeySessionData {
-  credentialBundle: string;
-  embeddedKey: string;
+
+export type TurnkeySessionData =
+  | {
+      sessionType: 'api_key';
+      embeddedKey: string;
+    }
+  | { sessionType: 'passkey' };
+
+export type TurnkeySessionDataWithExpiry = TurnkeySessionData & {
   expiresAt: number;
-}
+};
+
 export const createKernelSigner = (
   clientId: string,
   domain: string,
@@ -114,12 +127,45 @@ export const initializePasskey = async (subOrganizationId: string): Promise<void
   await kernelSigner.passkeyToSession(subOrganizationId, passkeyStamper);
 };
 
+export const useInitializeIfNeeded = (subOrganizationId: string) => {
+  return useCallback(async () => {
+    try {
+      if (kernelSigner.hasActiveSession()) return;
+      const turnkeySessionData =
+        getFromLocalStorage<TurnkeySessionDataWithExpiry>(TurnkeySessionKey);
+      if (!turnkeySessionData) // they'll need to go to
+    } catch (err) {
+
+    }
+  }, [])
+}
+
 export const initializeIfNeeded = async (subOrganizationId: string): Promise<void> => {
   try {
+    if (kernelSigner.hasActiveSession()) {
+      return;
+    }
+    const turnkeySessionData =
+      getFromLocalStorage<TurnkeySessionDataWithExpiry>(TurnkeySessionKey);
+    if (
+      turnkeySessionData &&
+      turnkeySessionData.expiresAt > Date.now() &&
+      turnkeySessionData.sessionType === 'api_key'
+    ) {
+      const publicKey = uint8ArrayToHexString(
+        getPublicKey(turnkeySessionData.embeddedKey, true),
+      );
+      const apiKeyStamper = new ApiKeyStamper({
+        apiPublicKey: publicKey,
+        apiPrivateKey: turnkeySessionData.embeddedKey,
+      });
+      await kernelSigner.openSessionWithApiStamper(subOrganizationId, apiKeyStamper);
+    }
+    console.log('initialized, getting active client');
     await kernelSigner.getActiveClient();
-  } catch (e) {
+  } catch (err) {
+    console.log('ERROR INITIALIZING', err);
     await initializePasskey(subOrganizationId);
-    console.log(kernelSigner.walletAddress);
   }
 };
 

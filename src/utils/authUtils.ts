@@ -5,7 +5,7 @@ import {
   getWalletAddress,
   initializePasskey,
   signChallenge,
-  TurnkeySessionData,
+  TurnkeySessionDataWithExpiry,
 } from '../services/turnkeyService';
 import {
   clearSessionData,
@@ -98,7 +98,7 @@ export function handleAuthenticatedUser({
   clientId: string;
   jwt: string;
   user: UserObject;
-  turnkeySessionData?: TurnkeySessionData;
+  turnkeySessionData: TurnkeySessionDataWithExpiry;
 }) {
   storeJWTInCookies(clientId, jwt);
   storeUserInLocalStorage(clientId, user);
