@@ -30,9 +30,7 @@ import { UserObject } from '../models/user';
 import { useUIManager } from './UIManagerContext';
 import { TStamper } from '@turnkey/http/dist/base';
 import { getApiKeyStamper, TurnkeySessionData, verifyOtp } from '../services';
-import { decryptBundle, getPublicKey, generateP256KeyPair } from '@turnkey/crypto';
-import { uint8ArrayToHexString } from '@turnkey/encoding';
-import { ApiKeyStamper } from '@turnkey/api-key-stamper';
+import { generateP256KeyPair } from '@turnkey/crypto';
 
 interface AuthContextProps {
   authenticateUser: (stamper: TStamper) => Promise<void>;

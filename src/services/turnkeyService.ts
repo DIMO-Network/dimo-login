@@ -59,6 +59,7 @@ export const createKernelSigner = (
     clientId,
     domain,
     redirectUri,
+    sessionTimeoutSeconds: String(30 * 60),
   });
 
   kernelSigner = new KernelSigner(kernelSignerConfig);
