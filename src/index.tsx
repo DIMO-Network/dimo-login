@@ -14,7 +14,7 @@ import { ApolloProvider } from '@apollo/client';
 
 // Initialize Sentry
 Sentry.init({
-  dsn: 'https://6fc9b3a58ee6d226d4f86882ba71f899@o4505993131655168.ingest.us.sentry.io/4509481766748160',
+  dsn: process.env.REACT_APP_SENTRY_DSN,
   // Setting this option to true will send default PII data to Sentry.
   // For example, automatic IP address collection on events
   sendDefaultPii: true,
