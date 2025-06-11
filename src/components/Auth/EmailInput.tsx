@@ -229,6 +229,13 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
           I agree to share my email with {devLicenseAlias}
         </label>
       </div>
+      <button
+        onClick={() => {
+          throw new Error('This is your second error');
+        }}
+      >
+        Break the world
+      </button>
       <div
         onKeyDown={getKeyboardEventListener('Enter', handleEmailInputSubmit)}
         className="frame9 flex flex-col items-center gap-[10px]"
