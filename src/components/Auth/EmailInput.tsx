@@ -141,6 +141,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       // if it causes problems, revisit resetting it
       setCodeExchangeState((prev) => ({
         ...prev,
+        isLoading: false,
         error: null,
       }));
       await processEmailSubmission(email);
