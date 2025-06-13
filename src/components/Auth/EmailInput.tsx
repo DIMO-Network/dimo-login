@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import debounce from 'lodash/debounce';
 
 import { Checkbox, ErrorMessage, Header, LegalNotice, LoadingContent } from '../Shared';
-import { CachedEmail, EmailInputForm, OtpInput } from './';
+import { CachedEmail, EmailInputForm } from './';
 import {
   fetchUserDetails,
   setEmailGranted,
@@ -23,20 +23,12 @@ import {
 } from '../../utils/authUrls';
 import { getKeyboardEventListener, getSignInTitle } from '../../utils/uiUtils';
 import { useOracles } from '../../context/OraclesContext';
-import { PasskeyLogin } from './PasskeyLogin';
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;
 }
 
-export enum LoginType {
-  OTP = 'otp',
-  PASSKEY = 'passkey',
-  NONE = 'none',
-}
-
 export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
-  const [loginType, setLoginType] = useState<LoginType>(LoginType.NONE);
   const { setUser } = useAuthContext();
   const { clientId, devLicenseAlias, redirectUri } = useDevCredentials();
   const { setUiState, error, setError, setComponentData, altTitle } = useUIManager();
@@ -56,10 +48,6 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   const forceEmail = getForceEmail();
   const appUrl = getAppUrl();
 
-  const handlePasskeyRejected = (shouldFallback: boolean) => {
-    setLoginType(shouldFallback ? LoginType.OTP : LoginType.NONE);
-  };
-
   const processEmailSubmission = useCallback(
     async (email: string) => {
       if (!email || !clientId) return;
@@ -67,7 +55,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       const userExistsResult = await fetchUserDetails(email);
       if (userExistsResult.success && userExistsResult.data.user) {
         setUser(userExistsResult.data.user);
-        setLoginType(LoginType.PASSKEY);
+        setUiState(UiStates.PASSKEY_LOGIN);
         return true;
       }
       setUiState(UiStates.PASSKEY_GENERATOR, { setBack: true });
@@ -193,14 +181,6 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
 
   if (codeExchangeState.isLoading) {
     return <LoadingContent />;
-  }
-
-  if (loginType === LoginType.PASSKEY) {
-    return <PasskeyLogin handlePasskeyRejected={handlePasskeyRejected} />;
-  }
-
-  if (loginType === LoginType.OTP && (email || getLoggedEmail(clientId))) {
-    return <OtpInput email={email || getLoggedEmail(clientId) || ''} />;
   }
 
   return (
