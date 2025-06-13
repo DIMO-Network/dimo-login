@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import debounce from 'lodash/debounce';
 
 import { Checkbox, ErrorMessage, Header, LegalNotice, LoadingContent } from '../Shared';
-import { CachedEmail, EmailInputForm, OtpInput } from './';
+import { CachedEmail, EmailInputForm } from './';
 import {
   fetchUserDetails,
   setEmailGranted,
