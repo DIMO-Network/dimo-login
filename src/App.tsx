@@ -76,7 +76,7 @@ const App = () => {
     [key in UiStates]: React.ReactNode;
   } = {
     [UiStates.EMAIL_INPUT]: <EmailInput onSubmit={setEmail} />,
-    [UiStates.PASSKEY_LOGIN]: <PasskeyLogin handlePasskeyRejected={() => {}} />,
+    [UiStates.PASSKEY_LOGIN]: <PasskeyLogin />,
     [UiStates.OTP_INPUT]: <OtpInput email={email} />,
     [UiStates.PASSKEY_LOGIN_FAIL]: <PasskeyLoginFail email={email} />,
     [UiStates.PASSKEY_GENERATOR]: <PasskeyGeneration email={email} />,

@@ -8,7 +8,7 @@ import { clearLoggedEmail } from '../../services';
 
 export const PasskeyLoginFail = ({ email }: { email: string }) => {
   const { devLicenseAlias, clientId } = useDevCredentials();
-  const { altTitle, setUiState } = useUIManager();
+  const { altTitle, setUiState, setError } = useUIManager();
   const appUrl = getAppUrl();
 
   return (
@@ -24,6 +24,7 @@ export const PasskeyLoginFail = ({ email }: { email: string }) => {
       <div className={'flex flex-col gap-3 mb-3.5'}>
         <PrimaryButton
           onClick={() => {
+            setError(null);
             setUiState(UiStates.PASSKEY_LOGIN);
           }}
           width="w-full lg:w-[440px]"
@@ -32,6 +33,7 @@ export const PasskeyLoginFail = ({ email }: { email: string }) => {
         </PrimaryButton>
         <SecondaryButton
           onClick={() => {
+            setError(null);
             setUiState(UiStates.OTP_INPUT);
           }}
           width="w-full lg:w-[440px]"
@@ -41,6 +43,7 @@ export const PasskeyLoginFail = ({ email }: { email: string }) => {
         </SecondaryButton>
         <SecondaryButton
           onClick={() => {
+            setError(null);
             clearLoggedEmail(clientId);
             setUiState(UiStates.EMAIL_INPUT);
           }}

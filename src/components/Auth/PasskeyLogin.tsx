@@ -5,10 +5,7 @@ import { passkeyStamper } from '../../services';
 import { UiStates, useUIManager } from '../../context/UIManagerContext';
 import debounce from 'lodash/debounce';
 
-interface Props {
-  handlePasskeyRejected: (shouldFallback: boolean) => void;
-}
-export const PasskeyLogin: FC<Props> = ({ handlePasskeyRejected }) => {
+export const PasskeyLogin: FC = () => {
   const { authenticateUser } = useAuthContext();
   const { setError, setUiState } = useUIManager();
   const handleLoginWithPasskey = async () => {
@@ -21,8 +18,8 @@ export const PasskeyLogin: FC<Props> = ({ handlePasskeyRejected }) => {
           return;
         }
       }
-      handlePasskeyRejected(false);
       setError('Failed to login with passkey');
+      setUiState(UiStates.EMAIL_INPUT);
     }
   };
 
