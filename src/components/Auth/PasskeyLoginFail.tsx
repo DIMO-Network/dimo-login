@@ -5,10 +5,12 @@ import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { UiStates, useUIManager } from '../../context/UIManagerContext';
 import { getAppUrl } from '../../utils/urlHelpers';
 import { clearLoggedEmail } from '../../services';
+import { useAuthContext } from '../../context/AuthContext';
 
 export const PasskeyLoginFail = ({ email }: { email: string }) => {
   const { devLicenseAlias, clientId } = useDevCredentials();
   const { altTitle, setUiState, setError } = useUIManager();
+  const { resetUser } = useAuthContext();
   const appUrl = getAppUrl();
 
   return (
@@ -44,6 +46,7 @@ export const PasskeyLoginFail = ({ email }: { email: string }) => {
         <SecondaryButton
           onClick={() => {
             setError(null);
+            resetUser();
             clearLoggedEmail(clientId);
             setUiState(UiStates.EMAIL_INPUT);
           }}
