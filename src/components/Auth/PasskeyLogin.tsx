@@ -2,27 +2,24 @@ import { Header, Loader } from '../Shared';
 import { useAuthContext } from '../../context/AuthContext';
 import { FC, useEffect } from 'react';
 import { passkeyStamper } from '../../services';
-import { useUIManager } from '../../context/UIManagerContext';
+import { UiStates, useUIManager } from '../../context/UIManagerContext';
 import debounce from 'lodash/debounce';
 
-interface Props {
-  handlePasskeyRejected: (shouldFallback: boolean) => void;
-}
-export const PasskeyLogin: FC<Props> = ({ handlePasskeyRejected }) => {
+export const PasskeyLogin: FC = () => {
   const { authenticateUser } = useAuthContext();
-  const { setError } = useUIManager();
+  const { setError, setUiState } = useUIManager();
   const handleLoginWithPasskey = async () => {
     try {
       await authenticateUser(passkeyStamper);
     } catch (err) {
       if (err instanceof Error) {
         if (err.name === 'NotAllowedError') {
-          handlePasskeyRejected(true);
+          setUiState(UiStates.PASSKEY_LOGIN_FAIL);
           return;
         }
       }
-      handlePasskeyRejected(false);
       setError('Failed to login with passkey');
+      setUiState(UiStates.EMAIL_INPUT);
     }
   };
 
