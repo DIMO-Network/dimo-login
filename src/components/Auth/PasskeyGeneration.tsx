@@ -1,11 +1,10 @@
-import React, { type FC, useEffect, useState } from 'react';
+import React, { type FC, useState } from 'react';
 
 import { Header } from '../Shared/Header';
 import { PrimaryButton } from '../Shared/PrimaryButton';
 import { useAuthContext } from '../../context/AuthContext';
-import { useUIManager } from '../../context/UIManagerContext';
+import { UiStates, useUIManager } from '../../context/UIManagerContext';
 import { Benefits } from '../Passkey/PasskeyBenefits';
-import { useAuthenticateUserWithUI } from '../../hooks/useAuthenticateUserWithUI';
 import { ErrorMessage, Loader } from '../Shared';
 import { createAccount, createPasskey } from '../../services';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
@@ -17,9 +16,8 @@ interface PasskeyGenerationProps {
 }
 
 export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
-  const { user, setUser } = useAuthContext();
-  const authenticateUser = useAuthenticateUserWithUI();
-  const { setError, error } = useUIManager();
+  const { setUser } = useAuthContext();
+  const { setError, error, setUiState } = useUIManager();
   const { apiKey } = useDevCredentials();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -38,19 +36,14 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
       setIsLoading(true);
       const newAccount = await createAccountWithPasskey(email);
       setUser(newAccount);
+      setIsLoading(false);
+      setUiState(UiStates.PASSKEY_LOGIN);
     } catch (err) {
       setError('There was an error creating your account');
     } finally {
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (user.subOrganizationId) {
-      setIsLoading(false);
-      authenticateUser();
-    }
-  }, [user.subOrganizationId]);
 
   if (isLoading) {
     return <CustomLoader />;
