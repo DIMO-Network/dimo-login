@@ -53,6 +53,7 @@ interface AuthContextProps {
   setUserInitialized: React.Dispatch<React.SetStateAction<boolean>>;
   completeOTPLogin: (args: OTPAuthArgs) => Promise<void>;
   validateSession: () => Promise<null | boolean>;
+  resetUser: () => void;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -84,6 +85,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
   const [userInitialized, setUserInitialized] = useState<boolean>(false);
   const { clientId, redirectUri, utm } = useDevCredentials();
   const { setUiState, entryState } = useUIManager();
+
+  const resetUser = () => {
+    setUser(defaultUser);
+  };
 
   const loginToDIMO = async ({
     stamper,
@@ -198,6 +203,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
         setUserInitialized,
         completeOTPLogin,
         validateSession,
+        resetUser,
       }}
     >
       {children}
