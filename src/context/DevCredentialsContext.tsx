@@ -111,7 +111,7 @@ export const DevCredentialsProvider = ({
   };
 
   const parseStateFromUrl = (stateFromUrl: string | null) => {
-    if (!stateFromUrl) return;
+    if (!stateFromUrl) return false;
 
     const {
       clientId,
@@ -124,16 +124,16 @@ export const DevCredentialsProvider = ({
 
     setEmailGranted(clientId, emailPermissionGranted);
 
-    if (isStandalone()) {
-      applyDevCredentialsConfig({
-        clientId,
-        apiKey: 'api key',
-        redirectUri,
-        utm,
-        entryState,
-        altTitle,
-      });
-    }
+    applyDevCredentialsConfig({
+      clientId,
+      apiKey: 'api key',
+      redirectUri,
+      utm,
+      entryState,
+      altTitle,
+    });
+
+    return true;
   };
 
   const parseUrlParams = (urlParams: URLSearchParams) => {
@@ -176,19 +176,22 @@ export const DevCredentialsProvider = ({
     }
   };
 
-  const processConfigByCID = async (cid: string) => {
+  const processConfigByCID = async (cid: string | null) => {
+    if (!cid) return false;
     try {
       const config = await fetchConfigFromIPFS(cid);
       applyDevCredentialsConfig({
         ...config,
         apiKey: 'api key',
       });
+      return true;
     } catch (error) {
       console.error('Failed to process configuration by CID:', error);
+      return false;
     }
   };
 
-  useEffect(() => {
+  const initAuthProcess = async () => {
     setLoadingState(true, 'Waiting for credentials...');
     const urlParams = new URLSearchParams(window.location.search);
     const stateFromUrl = urlParams.get('state');
@@ -196,11 +199,13 @@ export const DevCredentialsProvider = ({
 
     devCredentialsSetters.configCID(configCIDFromUrl || '');
 
-    if (configCIDFromUrl) {
-      processConfigByCID(configCIDFromUrl);
-    } else if (stateFromUrl) {
-      parseStateFromUrl(stateFromUrl);
-    } else if (!parseUrlParams(urlParams)) {
+    const isConfiguredByUrl =
+      (await processConfigByCID(configCIDFromUrl)) || parseUrlParams(urlParams);
+
+    // Recovering config from state for social sign-in
+    parseStateFromUrl(stateFromUrl);
+
+    if (!isConfiguredByUrl) {
       const messageHandler = (event: MessageEvent) =>
         handleAuthInitMessage(event, stateFromUrl);
       window.addEventListener('message', messageHandler);
@@ -208,6 +213,10 @@ export const DevCredentialsProvider = ({
         window.removeEventListener('message', messageHandler);
       };
     }
+  };
+
+  useEffect(() => {
+    initAuthProcess();
   }, []);
 
   useEffect(() => {

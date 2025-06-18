@@ -2,22 +2,19 @@ import React, { useEffect, useState } from 'react';
 
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { useAuthContext } from '../../context/AuthContext';
-import {
-  executeAdvancedTransaction,
-  initializeIfNeeded,
-} from '../../services/turnkeyService';
-import { PrimaryButton, Header, ErrorMessage } from '../Shared';
+import { executeAdvancedTransaction } from '../../services/turnkeyService';
 import { sendTxnResponseToParent } from '../../utils/txnUtils';
 import { sendErrorToParent } from '../../utils/errorUtils';
 import { TransactionData } from '@dimo-network/transactions';
 import { sendMessageToReferrer } from '../../utils/messageHandler';
 import { UiStates, useUIManager } from '../../context/UIManagerContext';
+import { ErrorMessage, Header, PrimaryButton } from '../Shared';
 
 export const AdvancedTransaction: React.FC = () => {
   const { redirectUri, utm } = useDevCredentials();
   const { setUiState, setComponentData, setLoadingState, error, setError } =
     useUIManager();
-  const { user, jwt } = useAuthContext();
+  const { jwt, validateSession } = useAuthContext();
 
   const [transactionData, setTransactionData] = useState<TransactionData>();
 
@@ -50,11 +47,12 @@ export const AdvancedTransaction: React.FC = () => {
 
   const onApprove = async () => {
     setLoadingState(true, 'Executing Transaction', true);
-    //Ensure Passkey
-
-    await initializeIfNeeded(user.subOrganizationId);
-
     try {
+      const validSession = await validateSession();
+      if (!validSession) {
+        setLoadingState(false);
+        return;
+      }
       const receipt = await executeAdvancedTransaction(
         transactionData!.abi,
         transactionData!.functionName,
@@ -71,6 +69,7 @@ export const AdvancedTransaction: React.FC = () => {
     } catch (e) {
       console.log(e);
       setError('Could not execute transaction, please try again');
+    } finally {
       setLoadingState(false);
     }
   };

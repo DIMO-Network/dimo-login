@@ -27,9 +27,11 @@ import {
   Logout,
 } from './components';
 import { Card } from './components/Shared/Card';
+import { useErrorHandler } from './hooks/useErrorHandler';
+import { PasskeyLogin } from './components/Auth/PasskeyLogin';
+import { PasskeyLoginFail } from './components/Auth/PasskeyLoginFail';
 
 import './App.css';
-import { useErrorHandler } from './hooks/useErrorHandler';
 
 const App = () => {
   const { setJwt, setUser, setUserInitialized, userInitialized } = useAuthContext();
@@ -79,7 +81,9 @@ const App = () => {
 
   const componentMap: Record<UiStates, React.ReactNode> = {
     [UiStates.EMAIL_INPUT]: <EmailInput onSubmit={setEmail} />,
+    [UiStates.PASSKEY_LOGIN]: <PasskeyLogin />,
     [UiStates.OTP_INPUT]: <OtpInput email={email} />,
+    [UiStates.PASSKEY_LOGIN_FAIL]: <PasskeyLoginFail email={email} />,
     [UiStates.PASSKEY_GENERATOR]: <PasskeyGeneration email={email} />,
     [UiStates.VEHICLE_MANAGER]: <VehicleManager />,
     [UiStates.MANAGE_VEHICLE]: <ManageVehicle />,

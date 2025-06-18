@@ -1,108 +1,80 @@
-import React, { useEffect, useState, type FC } from 'react';
+import React, { type FC, useState } from 'react';
 
 import { Header } from '../Shared/Header';
 import { PrimaryButton } from '../Shared/PrimaryButton';
-import { DevicesIcon, FingerprintIcon, IconProps, SecurityIcon } from '../Icons';
 import { useAuthContext } from '../../context/AuthContext';
 import { UiStates, useUIManager } from '../../context/UIManagerContext';
-
-interface PasskeyBenefitProps {
-  Icon: FC<IconProps>;
-  title: string;
-  description: string;
-}
-
-const PASSKEY_BENEFITS: PasskeyBenefitProps[] = [
-  {
-    Icon: FingerprintIcon,
-    title: 'No need to remember a password',
-    description: 'Passkeys are digital signatures that use Face ID or biometrics.',
-  },
-  {
-    Icon: SecurityIcon,
-    title: 'Advanced protection',
-    description: 'Passkeys offer phishing-resistant technology to keep you safe.',
-  },
-  {
-    Icon: DevicesIcon,
-    title: 'Seamless authentication',
-    description: 'Sign in and approve requests in an instant.',
-  },
-];
+import { Benefits } from '../Passkey/PasskeyBenefits';
+import { ErrorMessage, Loader } from '../Shared';
+import { createAccount, createPasskey } from '../../services';
+import { useDevCredentials } from '../../context/DevCredentialsContext';
+import Logo from '../Shared/Logo';
+import { UserObject } from '../../models/user';
 
 interface PasskeyGenerationProps {
   email: string;
 }
 
 export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
-  const { createAccountWithPasskey, sendOtp, authenticateUser, user } = useAuthContext();
-  const { setUiState, componentData, entryState } = useUIManager();
-  const [triggerAuth, setTriggerAuth] = useState(false);
+  const { setUser } = useAuthContext();
+  const { setError, error, setUiState } = useUIManager();
+  const { apiKey } = useDevCredentials();
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleOtpSend = async (email: string) => {
-    const otpResult = await sendOtp(email); // Send OTP for new account
-
-    if (otpResult.success && otpResult.data.otpId) {
-      setUiState(UiStates.OTP_INPUT, {
-        setBack: true,
-        removeCurrent: true,
-      });
-    }
+  const createAccountWithPasskey = async (email: string): Promise<UserObject> => {
+    const [attestation, challenge] = await createPasskey(email);
+    return await createAccount({
+      email,
+      apiKey,
+      attestation,
+      challenge,
+      deployAccount: true,
+    });
   };
-
   const handlePasskeyGeneration = async () => {
-    const account = await createAccountWithPasskey(email);
-
-    //MOVE TO AUTHENTICATE, IF FROM SSO
-    if (account.success && account.data.user) {
-      if (componentData && componentData.emailValidated) {
-        setTriggerAuth(true); //Essentially waits for state updates, before authenticating the user
-      } else {
-        await handleOtpSend(email);
-      }
-    } else {
-      console.error('Account creation failed'); // Handle account creation failure
+    try {
+      setIsLoading(true);
+      const newAccount = await createAccountWithPasskey(email);
+      setUser(newAccount);
+      setIsLoading(false);
+      setUiState(UiStates.PASSKEY_LOGIN);
+    } catch (err) {
+      setError('There was an error creating your account');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    // Only authenticate if `user` is set and authentication hasn't been triggered
-    if (user && user.subOrganizationId && componentData && componentData.emailValidated) {
-      authenticateUser(componentData.emailValidated, 'credentialBundle', entryState);
-    }
-  }, [triggerAuth]);
-
-  const renderBenefit = ({ Icon, title, description }: PasskeyBenefitProps) => {
-    return (
-      <div
-        className="flex flex-col gap-2 w-full mt-2 p-4 rounded-2xl cursor-pointer transition bg-gray-50 text-gray-500 cursor-not-allowed"
-        key={title}
-      >
-        <div className="flex flex-row gap-2 font-medium text-sm text-black">
-          <Icon className="w-5 h-5" />
-          <p>{title}</p>
-        </div>
-        <div className="">
-          <p className="text-sm text-black">{description}</p>
-        </div>
-      </div>
-    );
-  };
+  if (isLoading) {
+    return <CustomLoader />;
+  }
 
   return (
     <>
-      <Header title="Add a passkey" />
-      <div className="passkey-description">
-        <p className="text-sm">
+      <Header title="Add a passkey for faster and safer login" description={email} />
+      {error && <ErrorMessage message={error} />}
+
+      <div className={'flex flex-col gap-3'}>
+        <p className={'text-sm text-[#313131] font-medium mt-10'}>
           DIMO uses passkeys to keep your account and data secure.
         </p>
-      </div>
-      <div className="passkey-benefits">{PASSKEY_BENEFITS.map(renderBenefit)}</div>
-      <div className="actions">
+        <Benefits />
         <PrimaryButton onClick={handlePasskeyGeneration} width="w-full">
           Add a passkey
         </PrimaryButton>
       </div>
+    </>
+  );
+};
+
+// Using a custom loader here instead of the ConnectedLoader
+// because the ConnectedLoader will un-render this component
+// and cause the useEffect to not behave as intended
+const CustomLoader = () => {
+  return (
+    <>
+      <Logo />
+      <Loader message={'Creating your account. This may take a few minutes.'} />
     </>
   );
 };
