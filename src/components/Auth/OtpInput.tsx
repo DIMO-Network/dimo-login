@@ -163,5 +163,3 @@ export const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
     </>
   );
 };
-
-export default OtpInput;
