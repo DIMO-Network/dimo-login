@@ -45,7 +45,7 @@ export const DevCredentialsProvider = ({
 }): ReactElement => {
   const [devCredentialsState, setDevCredentialsState] = useState({
     clientId: '',
-    apiKey: '',
+    apiKey: 'api key',
     redirectUri: '',
     utm: '',
     invalidCredentials: false,
@@ -66,6 +66,8 @@ export const DevCredentialsProvider = ({
     },
     forceEmail: (value: boolean) => setForceEmail(Boolean(value)),
     altTitle: (value: boolean) => setAltTitle(Boolean(value)),
+    emailPermissionGranted: (value: boolean) =>
+      setEmailGranted(devCredentialsState.clientId, Boolean(value)),
   };
 
   const applyDevCredentialsConfig = (config: Record<string, unknown>) => {
@@ -80,60 +82,32 @@ export const DevCredentialsProvider = ({
         value !== undefined
       ) {
         specialSetters[key as keyof typeof specialSetters](value as never);
-      } else {
-        setDevCredentialsState((prev) => ({ ...prev, [key]: value }));
       }
+      setDevCredentialsState((prev) => ({ ...prev, [key]: value }));
     });
   };
 
   const parseStateFromUrl = (stateFromUrl: string | null) => {
     if (!stateFromUrl) return false;
 
-    const {
-      clientId,
-      emailPermissionGranted = false,
-      redirectUri,
-      utm,
-      entryState = UiStates.EMAIL_INPUT,
-      altTitle,
-    } = JSON.parse(stateFromUrl);
+    const { emailPermissionGranted = false, ...parsedState } = JSON.parse(stateFromUrl);
 
-    setEmailGranted(clientId, emailPermissionGranted);
-
-    applyDevCredentialsConfig({
-      clientId,
-      apiKey: 'api key',
-      redirectUri,
-      utm,
-      entryState,
-      altTitle,
-    });
+    applyDevCredentialsConfig(parsedState);
+    setEmailGranted(devCredentialsState.clientId, emailPermissionGranted);
 
     return true;
   };
 
   const parseUrlParams = (urlParams: URLSearchParams) => {
-    const clientIdFromUrl = urlParams.get('clientId');
-    const redirectUriFromUrl = urlParams.get('redirectUri');
+    const parsedUrlParams = Object.fromEntries(urlParams.entries());
 
-    if (!clientIdFromUrl) return false;
-
-    applyDevCredentialsConfig({
-      clientId: clientIdFromUrl,
-      apiKey: 'api key',
-      redirectUri: redirectUriFromUrl,
-      entryState: urlParams.get('entryState') as UiStates,
-      forceEmail: urlParams.get('forceEmail') === 'true',
-      utm: urlParams.get('utm'),
-      altTitle: urlParams.get('altTitle') === 'true',
-    });
+    applyDevCredentialsConfig(parsedUrlParams);
 
     return true;
   };
 
   const handleAuthInitMessage = (event: MessageEvent, stateFromUrl: string | null) => {
-    const { eventType, clientId, apiKey, redirectUri, entryState, forceEmail, altTitle } =
-      event.data;
+    const { eventType, entryState, ...sourceParams } = event.data;
 
     if (eventType === 'AUTH_INIT') {
       console.log('Received AUTH_INIT message', event);
@@ -142,12 +116,8 @@ export const DevCredentialsProvider = ({
         : entryState || UiStates.EMAIL_INPUT;
 
       applyDevCredentialsConfig({
-        clientId,
-        apiKey,
-        redirectUri,
+        ...sourceParams,
         entryState: finalEntryState,
-        forceEmail,
-        altTitle,
       });
     }
   };
@@ -156,10 +126,9 @@ export const DevCredentialsProvider = ({
     if (!cid) return false;
     try {
       const config = await fetchConfigFromIPFS(cid);
-      applyDevCredentialsConfig({
-        ...config,
-        apiKey: 'api key',
-      });
+
+      applyDevCredentialsConfig(config);
+
       return true;
     } catch (error) {
       console.error('Failed to process configuration by CID:', error);
