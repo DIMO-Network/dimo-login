@@ -14,11 +14,11 @@ export interface BaseParams {
 }
 
 export interface VehicleManagerParams {
-  permissionTemplateId?: string;
-  vehicles?: string | string[];
-  vehicleMakes?: string | string[];
-  expirationDate?: BigInt;
-  powertrainTypes?: string | string[];
+  permissionTemplateId: string;
+  vehicleTokenIds: string[];
+  vehicleMakes: string[];
+  expirationDate: BigInt;
+  powertrainTypes: string[];
   region?: string;
   onboarding?: string;
 }

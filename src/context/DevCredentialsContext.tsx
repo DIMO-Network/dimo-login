@@ -55,6 +55,10 @@ export const DevCredentialsProvider = ({
     entryState: UiStates.EMAIL_INPUT,
     altTitle: false,
     forceEmail: false,
+    vehicleTokenIds: [],
+    vehicleMakes: [],
+    powertrainTypes: [],
+    expirationDate: BigInt(0),
   });
   const { setUiState, setEntryState, setLoadingState, setAltTitle } = useUIManager();
   const { setOnboardingEnabled } = useOracles();

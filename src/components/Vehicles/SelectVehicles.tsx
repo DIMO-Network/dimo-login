@@ -26,22 +26,21 @@ import { ConnectCarButton } from '../Shared/ConnectCarButton';
 import { fetchVehiclesWithTransformation } from '../../services/vehicleService';
 
 interface SelectVehiclesProps {
-  vehicleTokenIds: string[] | undefined; // Adjust the type based on your data
-  permissionTemplateId: string; // Adjust the type if necessary
-  vehicleMakes: string[] | undefined; // Adjust the type if necessary
-  expirationDate: BigInt;
-  powertrainTypes?: string[];
+  permissionTemplateId: string;
 }
 
-export const SelectVehicles: React.FC<SelectVehiclesProps> = ({
-  vehicleTokenIds,
-  permissionTemplateId,
-  vehicleMakes,
-  expirationDate,
-  powertrainTypes,
-}) => {
+export const SelectVehicles: React.FC<SelectVehiclesProps> = ({ permissionTemplateId }) => {
   const { user, jwt, validateSession } = useAuthContext();
-  const { clientId, redirectUri, utm, devLicenseAlias } = useDevCredentials();
+  const {
+    clientId,
+    redirectUri,
+    utm,
+    devLicenseAlias,
+    vehicleTokenIds,
+    vehicleMakes,
+    powertrainTypes,
+    expirationDate,
+  } = useDevCredentials();
   const { setUiState, setComponentData, setLoadingState, componentData, setError } =
     useUIManager();
   const [vehiclesLoading, setVehiclesLoading] = useState(true);
@@ -176,7 +175,7 @@ export const SelectVehicles: React.FC<SelectVehiclesProps> = ({
       }
 
       const perms = getPermsValue(permissionTemplateId);
-      const sources = await generateIpfsSources(perms, clientId, expirationDate);
+      const sources = await generateIpfsSources(perms, clientId, expirationDate!);
       const basePermissions = createBasePermissions(perms, sources);
 
       if (unsharedTokenIds.length === 1) {
