@@ -160,14 +160,18 @@ export const DevCredentialsProvider = ({
   const parseUrlParams = (urlParams: URLSearchParams) => {
     const parsedUrlParams = Object.fromEntries(urlParams.entries());
 
+    if (!parsedUrlParams.clientId) return false;
+
     applyDevCredentialsConfig(parsedUrlParams);
 
     return true;
   };
 
-  const handleAuthInitMessage = (event: MessageEvent, stateFromUrl: string | null) => {
+  const handleAuthInitMessage = (event: MessageEvent) => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const stateFromUrl = urlParams.get('state');
+
     const { eventType, entryState, ...sourceParams } = event.data;
-    console.log('Received message', event);
 
     if (!(eventType in Event)) return;
 
@@ -201,12 +205,6 @@ export const DevCredentialsProvider = ({
     }
   };
 
-  const messageHandler = (event: MessageEvent) => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const stateFromUrl = urlParams.get('state');
-    handleAuthInitMessage(event, stateFromUrl);
-  };
-
   const initAuthProcess = async () => {
     setLoadingState(true, 'Waiting for credentials...');
     const urlParams = new URLSearchParams(window.location.search);
@@ -225,7 +223,7 @@ export const DevCredentialsProvider = ({
     parseStateFromUrl(stateFromUrl);
 
     if (!isConfiguredByUrl) {
-      window.addEventListener('message', messageHandler);
+      window.addEventListener('message', handleAuthInitMessage);
       const { entryState } = devCredentialsState;
 
       if (entryState && entryState in EventByUiState) {
@@ -240,7 +238,7 @@ export const DevCredentialsProvider = ({
     initAuthProcess();
 
     return () => {
-      window.removeEventListener('message', messageHandler);
+      window.removeEventListener('message', handleAuthInitMessage);
     };
   }, []);
 
