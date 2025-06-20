@@ -33,7 +33,7 @@ export const VehicleManager: React.FC = () => {
         const permissionsParams: FetchPermissionsParams = {
           permissionTemplateId,
           clientId,
-          devLicenseAlias,
+          devLicenseAlias: devLicenseAlias!,
           expirationDate: expirationDate!,
           walletAddress: user.smartContractAddress,
           email: user.email,

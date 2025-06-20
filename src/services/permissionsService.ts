@@ -1,5 +1,5 @@
 import { SACDTemplate } from '@dimo-network/transactions/dist/core/types/dimo';
-import { VehcilePermissionDescription } from '@dimo-network/transactions/dist/core/types/args';
+import { VehiclePermissionDescription } from '@dimo-network/transactions/dist/core/types/args';
 
 import { POLICY_ATTACHMENT_CID_BY_REGION } from '../enums';
 import { FetchPermissionsParams } from '../models/permissions';
@@ -28,7 +28,7 @@ export function getPermissionArray(perms: bigint): string[] {
   return getSacdPermissionArray(perms);
 }
 
-export function getDescription(args: VehcilePermissionDescription): string {
+export function getDescription(args: VehiclePermissionDescription): string {
   return getSacdDescription(args);
 }
 

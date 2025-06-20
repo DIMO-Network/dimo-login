@@ -271,7 +271,7 @@ export const ConnectTesla: FC = () => {
         link={`${appUrl.protocol}//${appUrl.host}`}
       />
 
-      {renderStep(step, devLicenseAlias, vehicleToAdd)}
+      {renderStep(step, devLicenseAlias!, vehicleToAdd)}
 
       <div className="flex flex-col w-full mt-3">
         <PrimaryButton onClick={handleNextStep} width="w-full py-3">

@@ -15,6 +15,11 @@ export interface BaseParams {
   shareVehiclesSectionDescription?: string;
 }
 
+export interface FetchedParams {
+  devLicenseAlias: string;
+  invalidCredentials: boolean;
+}
+
 export interface VehicleManagerParams {
   permissionTemplateId: string;
   vehicleTokenIds: string[];
@@ -29,4 +34,5 @@ export interface AdvancedTransactionParams {
   transactionData: TransactionData;
 }
 export type AllParams = BaseParams &
+  Partial<FetchedParams> &
   Partial<VehicleManagerParams & AdvancedTransactionParams>;

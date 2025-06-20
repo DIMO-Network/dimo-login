@@ -36,7 +36,7 @@ import './App.css';
 
 const App = () => {
   const { setJwt, setUser, setUserInitialized, userInitialized } = useAuthContext();
-  const { clientId, invalidCredentials, devLicenseAlias } = useDevCredentials();
+  const { clientId, devLicenseAlias, ...params } = useDevCredentials();
   const { uiState, setUiState, isLoading, entryState } = useUIManager() as {
     uiState: keyof typeof componentMap;
     setUiState: (state: UiStates) => void;
@@ -46,9 +46,12 @@ const App = () => {
   const [email, setEmail] = useState('');
 
   const { error } = useErrorHandler({
-    entryState,
-    invalidCredentials,
     customValidations: getValidationsForState(entryState || ''),
+    params: {
+      clientId,
+      devLicenseAlias,
+      ...params,
+    },
   });
 
   useEffect(() => {

@@ -34,13 +34,25 @@ import { useUIManager } from './UIManagerContext';
 import { TransactionData } from '@dimo-network/transactions';
 import { sendMessageToReferrer } from '../utils/messageHandler';
 
-interface DevCredentialsContextProps extends AllParams {
-  devLicenseAlias: string;
-  invalidCredentials: boolean;
-}
 
-const DevCredentialsContext = createContext<DevCredentialsContextProps | undefined>(
-  undefined,
+const DEFAULT_CONTEXT = {
+  clientId: '',
+  redirectUri: '',
+  utm: '',
+  apiKey: 'api key',
+  invalidCredentials: false,
+  devLicenseAlias: '',
+  entryState: UiStates.EMAIL_INPUT,
+  altTitle: false,
+  forceEmail: false,
+  vehicleTokenIds: [],
+  vehicleMakes: [],
+  powertrainTypes: [],
+  expirationDate: BigInt(0),
+};
+
+const DevCredentialsContext = createContext<AllParams | undefined>(
+  DEFAULT_CONTEXT as AllParams,
 );
 
 export const DevCredentialsProvider = ({
@@ -48,20 +60,8 @@ export const DevCredentialsProvider = ({
 }: {
   children: ReactNode;
 }): ReactElement => {
-  const [devCredentialsState, setDevCredentialsState] = useState<
-    Partial<DevCredentialsContextProps>
-  >({
-    apiKey: 'api key',
-    invalidCredentials: false,
-    devLicenseAlias: '',
-    entryState: UiStates.EMAIL_INPUT,
-    altTitle: false,
-    forceEmail: false,
-    vehicleTokenIds: [],
-    vehicleMakes: [],
-    powertrainTypes: [],
-    expirationDate: BigInt(0),
-  });
+  const [devCredentialsState, setDevCredentialsState] =
+    useState<Partial<AllParams>>(DEFAULT_CONTEXT);
   const { setUiState, setEntryState, setLoadingState, setAltTitle } = useUIManager();
   const { setOnboardingEnabled } = useOracles();
 
@@ -70,9 +70,25 @@ export const DevCredentialsProvider = ({
       if (typeof value !== 'string' || !(value in UiStates)) return;
       setUiState(value as UiStates);
       setEntryState(value as UiStates);
+      setDevCredentialsState((prev) => ({
+        ...prev,
+        entryState: value as UiStates,
+      }));
     },
-    forceEmail: (value: unknown) => setForceEmail(Boolean(value)),
-    altTitle: (value: unknown) => setAltTitle(Boolean(value)),
+    forceEmail: (value: unknown) => {
+      setForceEmail(Boolean(value));
+      setDevCredentialsState((prev) => ({
+        ...prev,
+        forceEmail: Boolean(value),
+      }));
+    },
+    altTitle: (value: unknown) => {
+      setAltTitle(Boolean(value));
+      setDevCredentialsState((prev) => ({
+        ...prev,
+        altTitle: Boolean(value),
+      }));
+    },
     vehicles: (value: unknown) =>
       setDevCredentialsState((prev) => ({
         ...prev,
@@ -121,11 +137,12 @@ export const DevCredentialsProvider = ({
         value !== undefined
       ) {
         specialSetters[key as keyof typeof specialSetters](value as never);
+      } else {
+        setDevCredentialsState((prev) => ({
+          ...prev,
+          [key]: value,
+        }));
       }
-      setDevCredentialsState((prev) => ({
-        ...prev,
-        [key]: value,
-      }));
     });
   };
 
@@ -154,7 +171,7 @@ export const DevCredentialsProvider = ({
 
     if (!(eventType in Event)) return;
 
-    const customParams: Partial<DevCredentialsContextProps> = {};
+    const customParams: Partial<AllParams> = {};
 
     if (eventType === Event.AUTH_INIT) {
       const finalEntryState = stateFromUrl
@@ -257,9 +274,7 @@ export const DevCredentialsProvider = ({
   }, [devCredentialsState.clientId, devCredentialsState.redirectUri]);
 
   return (
-    <DevCredentialsContext.Provider
-      value={devCredentialsState as DevCredentialsContextProps}
-    >
+    <DevCredentialsContext.Provider value={devCredentialsState as AllParams}>
       {children}
     </DevCredentialsContext.Provider>
   );
