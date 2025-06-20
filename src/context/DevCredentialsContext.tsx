@@ -25,7 +25,8 @@ import {
 } from '../services/identityService';
 import { setEmailGranted } from '../services/storageService';
 import { setForceEmail } from '../stores/AuthStateStore';
-import { UiStates, useUIManager } from './UIManagerContext';
+import { UiStates } from '../enums';
+import { useUIManager } from './UIManagerContext';
 import { fetchConfigFromIPFS } from '../services';
 
 interface DevCredentialsContextProps {

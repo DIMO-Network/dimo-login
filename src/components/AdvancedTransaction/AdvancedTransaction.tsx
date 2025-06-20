@@ -7,7 +7,8 @@ import { sendTxnResponseToParent } from '../../utils/txnUtils';
 import { sendErrorToParent } from '../../utils/errorUtils';
 import { TransactionData } from '@dimo-network/transactions';
 import { sendMessageToReferrer } from '../../utils/messageHandler';
-import { UiStates, useUIManager } from '../../context/UIManagerContext';
+import { UiStates } from '../../enums';
+import { useUIManager } from '../../context/UIManagerContext';
 import { ErrorMessage, Header, PrimaryButton } from '../Shared';
 
 export const AdvancedTransaction: React.FC = () => {

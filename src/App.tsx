@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { initializeSession } from './services/sessionService';
 import { useAuthContext } from './context/AuthContext';
 import { useDevCredentials } from './context/DevCredentialsContext';
-import { UiStates, useUIManager } from './context/UIManagerContext';
+import { UiStates } from './enums';
+import { useUIManager } from './context/UIManagerContext';
 import { getValidationsForState } from './validations';
 
 import {
