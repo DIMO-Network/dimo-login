@@ -19,7 +19,7 @@ import React, {
 
 import { AllParams } from '../types';
 import { createKernelSigner } from '../services/turnkeyService';
-import { Event, UiStates } from '../enums';
+import { Event, EventByUiState, UiStates } from '../enums';
 import { fetchConfigFromIPFS } from '../services';
 import {
   getDeveloperLicense,
@@ -31,6 +31,8 @@ import { setForceEmail } from '../stores/AuthStateStore';
 import { parseExpirationDate } from '../utils/dateUtils';
 import { useOracles } from './OraclesContext';
 import { useUIManager } from './UIManagerContext';
+import { TransactionData } from '@dimo-network/transactions';
+import { sendMessageToReferrer } from '../utils/messageHandler';
 
 interface DevCredentialsContextProps extends AllParams {
   devLicenseAlias: string;
@@ -97,6 +99,13 @@ export const DevCredentialsProvider = ({
         region: String(value).toUpperCase(),
       })),
     onboarding: (value: unknown) => setOnboardingEnabled(Boolean(String(value).length)),
+    transactionData: (value: unknown) =>
+      setDevCredentialsState((prev) => ({
+        ...prev,
+        transactionData: (typeof value === 'string'
+          ? JSON.parse(decodeURIComponent(value))
+          : value) as TransactionData,
+      })),
   };
 
   const applyDevCredentialsConfig = (config: Record<string, unknown>) => {
@@ -113,7 +122,10 @@ export const DevCredentialsProvider = ({
       ) {
         specialSetters[key as keyof typeof specialSetters](value as never);
       }
-      setDevCredentialsState((prev) => ({ ...prev, [key]: value }));
+      setDevCredentialsState((prev) => ({
+        ...prev,
+        [key]: value,
+      }));
     });
   };
 
@@ -172,13 +184,22 @@ export const DevCredentialsProvider = ({
     }
   };
 
+  const messageHandler = (event: MessageEvent) => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const stateFromUrl = urlParams.get('state');
+    handleAuthInitMessage(event, stateFromUrl);
+  };
+
   const initAuthProcess = async () => {
     setLoadingState(true, 'Waiting for credentials...');
     const urlParams = new URLSearchParams(window.location.search);
     const stateFromUrl = urlParams.get('state');
     const configCIDFromUrl = urlParams.get('configCID');
 
-    setDevCredentialsState((prev) => ({ ...prev, configCID: configCIDFromUrl || '' }));
+    setDevCredentialsState((prev) => ({
+      ...prev,
+      configCID: configCIDFromUrl || '',
+    }));
 
     const isConfiguredByUrl =
       (await processConfigByCID(configCIDFromUrl)) || parseUrlParams(urlParams);
@@ -187,17 +208,23 @@ export const DevCredentialsProvider = ({
     parseStateFromUrl(stateFromUrl);
 
     if (!isConfiguredByUrl) {
-      const messageHandler = (event: MessageEvent) =>
-        handleAuthInitMessage(event, stateFromUrl);
       window.addEventListener('message', messageHandler);
-      return () => {
-        window.removeEventListener('message', messageHandler);
-      };
+      const { entryState } = devCredentialsState;
+
+      if (entryState && entryState in EventByUiState) {
+        sendMessageToReferrer({
+          eventType: EventByUiState[entryState as keyof typeof EventByUiState],
+        });
+      }
     }
   };
 
   useEffect(() => {
     initAuthProcess();
+
+    return () => {
+      window.removeEventListener('message', messageHandler);
+    };
   }, []);
 
   useEffect(() => {
@@ -208,13 +235,19 @@ export const DevCredentialsProvider = ({
         const licenseData = await getDeveloperLicense(clientId);
         const alias = await getLicenseAlias(licenseData, clientId);
         const isValid = await isValidDeveloperLicense(licenseData, redirectUri!);
-        setDevCredentialsState((prev) => ({ ...prev, devLicenseAlias: alias }));
+        setDevCredentialsState((prev) => ({
+          ...prev,
+          devLicenseAlias: alias,
+        }));
 
         if (isValid) {
           createKernelSigner(clientId, clientId, redirectUri!);
           setLoadingState(false);
         } else {
-          setDevCredentialsState((prev) => ({ ...prev, invalidCredentials: true }));
+          setDevCredentialsState((prev) => ({
+            ...prev,
+            invalidCredentials: true,
+          }));
           console.error('Invalid client ID or redirect URI.');
         }
       }

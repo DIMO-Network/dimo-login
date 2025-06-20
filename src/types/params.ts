@@ -1,3 +1,5 @@
+import { TransactionData } from '@dimo-network/transactions';
+
 import { UiStates } from '../enums';
 
 export interface BaseParams {
@@ -24,7 +26,7 @@ export interface VehicleManagerParams {
 }
 
 export interface AdvancedTransactionParams {
-  transactionData?: string;
+  transactionData: TransactionData;
 }
 export type AllParams = BaseParams &
   Partial<VehicleManagerParams & AdvancedTransactionParams>;
