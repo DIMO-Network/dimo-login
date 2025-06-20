@@ -2,7 +2,8 @@ import { Header, Loader } from '../Shared';
 import { useAuthContext } from '../../context/AuthContext';
 import { FC, useEffect } from 'react';
 import { passkeyStamper } from '../../services';
-import { UiStates, useUIManager } from '../../context/UIManagerContext';
+import { UiStates } from '../../enums';
+import { useUIManager } from '../../context/UIManagerContext';
 import debounce from 'lodash/debounce';
 
 export const PasskeyLogin: FC = () => {

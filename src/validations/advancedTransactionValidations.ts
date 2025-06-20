@@ -1,13 +1,6 @@
 import { ValidationFunction } from '../hooks/useErrorHandler';
-import { getParamFromUrlOrState } from '../utils/urlHelpers';
 
-const validateTransactionData: ValidationFunction = ({ urlParams, decodedState }) => {
-  const transactionData = getParamFromUrlOrState(
-    'transactionData',
-    urlParams,
-    decodedState,
-  );
-
+const validateTransactionData: ValidationFunction = ({ transactionData }) => {
   if (!transactionData) {
     return {
       isValid: false,

@@ -1,13 +1,6 @@
 import { ValidationFunction } from '../hooks/useErrorHandler';
-import { getParamFromUrlOrState } from '../utils/urlHelpers';
 
-const validatePermissionTemplate: ValidationFunction = ({ urlParams, decodedState }) => {
-  const permissionTemplateId = getParamFromUrlOrState(
-    'permissionTemplateId',
-    urlParams,
-    decodedState,
-  );
-
+const validatePermissionTemplate: ValidationFunction = ({ permissionTemplateId }) => {
   if (!permissionTemplateId) {
     return {
       isValid: false,

@@ -2,7 +2,8 @@ import React from 'react';
 import Header from '../Shared/Header';
 import PrimaryButton from '../Shared/PrimaryButton';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
-import { UiStates, useUIManager } from '../../context/UIManagerContext';
+import { UiStates } from '../../enums';
+import { useUIManager } from '../../context/UIManagerContext';
 import { useAuthContext } from '../../context/AuthContext';
 import { SetVehiclePermissions } from '@dimo-network/transactions';
 import {

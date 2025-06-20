@@ -11,7 +11,8 @@ import {
 } from '../../services';
 import { useAuthContext } from '../../context/AuthContext';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
-import { UiStates, useUIManager } from '../../context/UIManagerContext';
+import { UiStates } from '../../enums';
+import { useUIManager } from '../../context/UIManagerContext';
 import { decodeJwt } from '../../utils/jwtUtils';
 import { isValidEmail } from '../../utils/emailUtils';
 import { getForceEmail } from '../../stores/AuthStateStore';
@@ -186,7 +187,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   return (
     <>
       <Header
-        title={getSignInTitle(devLicenseAlias, {
+        title={getSignInTitle(devLicenseAlias!, {
           altTitle: Boolean(altTitle),
         })}
         subtitle={appUrl.hostname}

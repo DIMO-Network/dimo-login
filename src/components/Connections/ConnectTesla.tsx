@@ -9,7 +9,8 @@ import {
   MintingStep,
 } from '../Shared';
 import { AuthProvider } from '../../utils/authUrls';
-import { UiStates, useUIManager } from '../../context/UIManagerContext';
+import { UiStates } from '../../enums';
+import { useUIManager } from '../../context/UIManagerContext';
 import { getAppUrl } from '../../utils/urlHelpers';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { constructAuthUrl } from '../../utils/authUrls';
@@ -270,7 +271,7 @@ export const ConnectTesla: FC = () => {
         link={`${appUrl.protocol}//${appUrl.host}`}
       />
 
-      {renderStep(step, devLicenseAlias, vehicleToAdd)}
+      {renderStep(step, devLicenseAlias!, vehicleToAdd)}
 
       <div className="flex flex-col w-full mt-3">
         <PrimaryButton onClick={handleNextStep} width="w-full py-3">
