@@ -188,20 +188,7 @@ export const DevCredentialsProvider = ({
   }, [devCredentialsState.clientId, devCredentialsState.redirectUri]);
 
   return (
-    <DevCredentialsContext.Provider
-      value={{
-        apiKey: devCredentialsState.apiKey,
-        clientId: devCredentialsState.clientId,
-        devLicenseAlias: devCredentialsState.devLicenseAlias,
-        invalidCredentials: devCredentialsState.invalidCredentials,
-        redirectUri: devCredentialsState.redirectUri,
-        utm: devCredentialsState.utm,
-        configCID: devCredentialsState.configCID,
-        newVehicleSectionDescription: devCredentialsState.newVehicleSectionDescription,
-        shareVehiclesSectionDescription:
-          devCredentialsState.shareVehiclesSectionDescription,
-      }}
-    >
+    <DevCredentialsContext.Provider value={devCredentialsState}>
       {children}
     </DevCredentialsContext.Provider>
   );
