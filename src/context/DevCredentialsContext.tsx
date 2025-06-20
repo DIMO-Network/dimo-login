@@ -17,7 +17,6 @@ import React, {
 } from 'react';
 
 import { createKernelSigner } from '../services/turnkeyService';
-import { isStandalone } from '../utils/isStandalone';
 import {
   getDeveloperLicense,
   isValidDeveloperLicense,
@@ -28,17 +27,11 @@ import { setForceEmail } from '../stores/AuthStateStore';
 import { UiStates } from '../enums';
 import { useUIManager } from './UIManagerContext';
 import { fetchConfigFromIPFS } from '../services';
+import { AllParams } from '../types';
 
-interface DevCredentialsContextProps {
-  apiKey: string;
-  clientId: string;
+interface DevCredentialsContextProps extends AllParams {
   devLicenseAlias: string;
   invalidCredentials: boolean;
-  redirectUri: string;
-  utm: string;
-  configCID: string;
-  newVehicleSectionDescription: string;
-  shareVehiclesSectionDescription: string;
 }
 
 const DevCredentialsContext = createContext<DevCredentialsContextProps | undefined>(
@@ -60,39 +53,19 @@ export const DevCredentialsProvider = ({
     configCID: '',
     newVehicleSectionDescription: '',
     shareVehiclesSectionDescription: '',
+    entryState: UiStates.EMAIL_INPUT,
+    altTitle: false,
+    forceEmail: false,
   });
   const { setUiState, setEntryState, setLoadingState, setAltTitle } = useUIManager();
 
-  const devCredentialsSetters = {
-    apiKey: (value: string) =>
-      setDevCredentialsState((prev) => ({ ...prev, apiKey: value })),
-    redirectUri: (value: string) =>
-      setDevCredentialsState((prev) => ({ ...prev, redirectUri: value })),
-    utm: (value: string) => setDevCredentialsState((prev) => ({ ...prev, utm: value })),
-    clientId: (value: string) =>
-      setDevCredentialsState((prev) => ({ ...prev, clientId: value })),
-    devLicenseAlias: (value: string) =>
-      setDevCredentialsState((prev) => ({ ...prev, devLicenseAlias: value })),
-    invalidCredentials: (value: boolean) =>
-      setDevCredentialsState((prev) => ({ ...prev, invalidCredentials: value })),
+  const specialSetters = {
     entryState: (value: UiStates) => {
       setUiState(value);
       setEntryState(value);
     },
     forceEmail: (value: boolean) => setForceEmail(Boolean(value)),
     altTitle: (value: boolean) => setAltTitle(Boolean(value)),
-    configCID: (value: string) =>
-      setDevCredentialsState((prev) => ({ ...prev, configCID: value })),
-    newVehicleSectionDescription: (value: string) =>
-      setDevCredentialsState((prev) => ({
-        ...prev,
-        newVehicleSectionDescription: value,
-      })),
-    shareVehiclesSectionDescription: (value: string) =>
-      setDevCredentialsState((prev) => ({
-        ...prev,
-        shareVehiclesSectionDescription: value,
-      })),
   };
 
   const applyDevCredentialsConfig = (config: Record<string, unknown>) => {
@@ -102,11 +75,13 @@ export const DevCredentialsProvider = ({
     };
     Object.entries(finalConfig).forEach(([key, value]) => {
       if (
-        key in devCredentialsSetters &&
-        devCredentialsSetters[key as keyof typeof devCredentialsSetters] &&
+        key in specialSetters &&
+        specialSetters[key as keyof typeof specialSetters] &&
         value !== undefined
       ) {
-        devCredentialsSetters[key as keyof typeof devCredentialsSetters](value as never);
+        specialSetters[key as keyof typeof specialSetters](value as never);
+      } else {
+        setDevCredentialsState((prev) => ({ ...prev, [key]: value }));
       }
     });
   };
@@ -198,7 +173,7 @@ export const DevCredentialsProvider = ({
     const stateFromUrl = urlParams.get('state');
     const configCIDFromUrl = urlParams.get('configCID');
 
-    devCredentialsSetters.configCID(configCIDFromUrl || '');
+    setDevCredentialsState((prev) => ({ ...prev, configCID: configCIDFromUrl || '' }));
 
     const isConfiguredByUrl =
       (await processConfigByCID(configCIDFromUrl)) || parseUrlParams(urlParams);
@@ -228,13 +203,13 @@ export const DevCredentialsProvider = ({
         const licenseData = await getDeveloperLicense(clientId);
         const alias = await getLicenseAlias(licenseData, clientId);
         const isValid = await isValidDeveloperLicense(licenseData, redirectUri);
-        devCredentialsSetters.devLicenseAlias(alias);
+        setDevCredentialsState((prev) => ({ ...prev, devLicenseAlias: alias }));
 
         if (isValid) {
           createKernelSigner(clientId, clientId, redirectUri);
           setLoadingState(false);
         } else {
-          devCredentialsSetters.invalidCredentials(true);
+          setDevCredentialsState((prev) => ({ ...prev, invalidCredentials: true }));
           console.error('Invalid client ID or redirect URI.');
         }
       }
