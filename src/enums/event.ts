@@ -1,0 +1,4 @@
+export enum Event {
+  AUTH_INIT = 'AUTH_INIT',
+  SHARE_VEHICLES_DATA = 'SHARE_VEHICLES_DATA',
+}

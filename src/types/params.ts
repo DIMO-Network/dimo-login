@@ -17,7 +17,7 @@ export interface VehicleManagerParams {
   permissionTemplateId?: string;
   vehicles?: string | string[];
   vehicleMakes?: string | string[];
-  expirationDate?: string;
+  expirationDate?: BigInt;
   powertrainTypes?: string | string[];
   region?: string;
   onboarding?: string;

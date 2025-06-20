@@ -16,18 +16,21 @@ import React, {
   ReactElement,
 } from 'react';
 
+
+import { AllParams } from '../types';
 import { createKernelSigner } from '../services/turnkeyService';
+import { Event, UiStates } from '../enums';
+import { fetchConfigFromIPFS } from '../services';
 import {
   getDeveloperLicense,
-  isValidDeveloperLicense,
   getLicenseAlias,
+  isValidDeveloperLicense,
 } from '../services/identityService';
 import { setEmailGranted } from '../services/storageService';
 import { setForceEmail } from '../stores/AuthStateStore';
-import { UiStates } from '../enums';
+import { parseExpirationDate } from '../utils/dateUtils';
+import { useOracles } from './OraclesContext';
 import { useUIManager } from './UIManagerContext';
-import { fetchConfigFromIPFS } from '../services';
-import { AllParams } from '../types';
 
 interface DevCredentialsContextProps extends AllParams {
   devLicenseAlias: string;
@@ -43,38 +46,61 @@ export const DevCredentialsProvider = ({
 }: {
   children: ReactNode;
 }): ReactElement => {
-  const [devCredentialsState, setDevCredentialsState] = useState({
-    clientId: '',
+  const [devCredentialsState, setDevCredentialsState] = useState<
+    Partial<DevCredentialsContextProps>
+  >({
     apiKey: 'api key',
-    redirectUri: '',
-    utm: '',
     invalidCredentials: false,
     devLicenseAlias: '',
-    configCID: '',
-    newVehicleSectionDescription: '',
-    shareVehiclesSectionDescription: '',
     entryState: UiStates.EMAIL_INPUT,
     altTitle: false,
     forceEmail: false,
   });
   const { setUiState, setEntryState, setLoadingState, setAltTitle } = useUIManager();
+  const { setOnboardingEnabled } = useOracles();
 
   const specialSetters = {
-    entryState: (value: UiStates) => {
-      setUiState(value);
-      setEntryState(value);
+    entryState: (value: unknown) => {
+      if (typeof value !== 'string' || !(value in UiStates)) return;
+      setUiState(value as UiStates);
+      setEntryState(value as UiStates);
     },
-    forceEmail: (value: boolean) => setForceEmail(Boolean(value)),
-    altTitle: (value: boolean) => setAltTitle(Boolean(value)),
-    emailPermissionGranted: (value: boolean) =>
-      setEmailGranted(devCredentialsState.clientId, Boolean(value)),
+    forceEmail: (value: unknown) => setForceEmail(Boolean(value)),
+    altTitle: (value: unknown) => setAltTitle(Boolean(value)),
+    vehicles: (value: unknown) =>
+      setDevCredentialsState((prev) => ({
+        ...prev,
+        vehicleTokenIds: Array.isArray(value) ? value : [value],
+      })),
+    vehicleMakes: (value: unknown) =>
+      setDevCredentialsState((prev) => ({
+        ...prev,
+        vehicleMakes: Array.isArray(value) ? value : [value],
+      })),
+    powertrainTypes: (value: unknown) =>
+      setDevCredentialsState((prev) => ({
+        ...prev,
+        powertrainTypes: Array.isArray(value) ? value : [value],
+      })),
+    expirationDate: (value: unknown) =>
+      setDevCredentialsState((prev) => ({
+        ...prev,
+        expirationDate: parseExpirationDate(String(value)),
+      })),
+    region: (value: unknown) =>
+      setDevCredentialsState((prev) => ({
+        ...prev,
+        region: String(value).toUpperCase(),
+      })),
+    onboarding: (value: unknown) => setOnboardingEnabled(Boolean(String(value).length)),
   };
 
   const applyDevCredentialsConfig = (config: Record<string, unknown>) => {
-    const finalConfig = {
+    const finalConfig: Record<string, unknown> = {
       ...config,
       entryState: (config.entryState as UiStates) ?? UiStates.EMAIL_INPUT,
     };
+
     Object.entries(finalConfig).forEach(([key, value]) => {
       if (
         key in specialSetters &&
@@ -93,7 +119,7 @@ export const DevCredentialsProvider = ({
     const { emailPermissionGranted = false, ...parsedState } = JSON.parse(stateFromUrl);
 
     applyDevCredentialsConfig(parsedState);
-    setEmailGranted(devCredentialsState.clientId, emailPermissionGranted);
+    setEmailGranted(devCredentialsState.clientId!, emailPermissionGranted);
 
     return true;
   };
@@ -108,18 +134,24 @@ export const DevCredentialsProvider = ({
 
   const handleAuthInitMessage = (event: MessageEvent, stateFromUrl: string | null) => {
     const { eventType, entryState, ...sourceParams } = event.data;
+    console.log('Received message', event);
 
-    if (eventType === 'AUTH_INIT') {
-      console.log('Received AUTH_INIT message', event);
+    if (!(eventType in Event)) return;
+
+    const customParams: Partial<DevCredentialsContextProps> = {};
+
+    if (eventType === Event.AUTH_INIT) {
       const finalEntryState = stateFromUrl
         ? JSON.parse(stateFromUrl).entryState
         : entryState || UiStates.EMAIL_INPUT;
 
-      applyDevCredentialsConfig({
-        ...sourceParams,
-        entryState: finalEntryState,
-      });
+      customParams.entryState = finalEntryState;
     }
+
+    applyDevCredentialsConfig({
+      ...sourceParams,
+      ...customParams,
+    });
   };
 
   const processConfigByCID = async (cid: string | null) => {
@@ -171,11 +203,11 @@ export const DevCredentialsProvider = ({
       if (clientId) {
         const licenseData = await getDeveloperLicense(clientId);
         const alias = await getLicenseAlias(licenseData, clientId);
-        const isValid = await isValidDeveloperLicense(licenseData, redirectUri);
+        const isValid = await isValidDeveloperLicense(licenseData, redirectUri!);
         setDevCredentialsState((prev) => ({ ...prev, devLicenseAlias: alias }));
 
         if (isValid) {
-          createKernelSigner(clientId, clientId, redirectUri);
+          createKernelSigner(clientId, clientId, redirectUri!);
           setLoadingState(false);
         } else {
           setDevCredentialsState((prev) => ({ ...prev, invalidCredentials: true }));
@@ -188,7 +220,9 @@ export const DevCredentialsProvider = ({
   }, [devCredentialsState.clientId, devCredentialsState.redirectUri]);
 
   return (
-    <DevCredentialsContext.Provider value={devCredentialsState}>
+    <DevCredentialsContext.Provider
+      value={devCredentialsState as DevCredentialsContextProps}
+    >
       {children}
     </DevCredentialsContext.Provider>
   );
