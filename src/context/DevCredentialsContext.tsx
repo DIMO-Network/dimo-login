@@ -102,13 +102,14 @@ export const DevCredentialsProvider = ({
         : entryState || UiStates.EMAIL_INPUT;
 
       customParams.entryState = finalEntryState;
-      customParams.waitingForParams = false;
     }
 
     if (entryState in EventByUiState) {
       if (EventByUiState[entryState as keyof typeof EventByUiState] === eventType) {
         customParams.waitingForParams = false;
       }
+    } else {
+      customParams.waitingForParams = false;
     }
 
     applyDevCredentialsConfig({
