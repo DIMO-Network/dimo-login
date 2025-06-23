@@ -2,7 +2,8 @@ import { Header, Loader } from '../Shared';
 import { useAuthContext } from '../../context/AuthContext';
 import { FC, useEffect } from 'react';
 import { UiStates } from '../../enums';
-import { useUIManager } from '../../context/UIManagerContext';import debounce from 'lodash/debounce';
+import { useUIManager } from '../../context/UIManagerContext';
+import debounce from 'lodash/debounce';
 
 export const PasskeyLogin: FC = () => {
   const { completePasskeyLogin } = useAuthContext();
