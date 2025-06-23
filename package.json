@@ -36,8 +36,8 @@
     "build": "react-scripts build && npm run sentry:sourcemaps",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
+    "lint": "eslint . --ignore node_modules --ignore build",
+    "lint:fix": "eslint . --fix --ignore node_modules --ignore build",
     "lint:format": "prettier . --check --log-level warn --write \"./**/*.{js,ts,css,md,json,tsx}\"",
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org dimo-hp --project dimo-login ./build && sentry-cli sourcemaps upload --org dimo-hp --project dimo-login ./build"
   },
