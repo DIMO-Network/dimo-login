@@ -126,12 +126,7 @@ export const DevCredentialsProvider = ({
   };
 
   const applyDevCredentialsConfig = (config: Record<string, unknown>) => {
-    const finalConfig: Record<string, unknown> = {
-      ...config,
-      entryState: (config.entryState as UiStates) ?? UiStates.EMAIL_INPUT,
-    };
-
-    Object.entries(finalConfig).forEach(([key, value]) => {
+    Object.entries(config).forEach(([key, value]) => {
       if (
         key in specialSetters &&
         specialSetters[key as keyof typeof specialSetters] &&
@@ -241,7 +236,7 @@ export const DevCredentialsProvider = ({
     return () => {
       window.removeEventListener('message', handleAuthInitMessage);
     };
-  }, []);
+  }, [devCredentialsState.entryState]);
 
   useEffect(() => {
     const validateCredentials = async () => {
