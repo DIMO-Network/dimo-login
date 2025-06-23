@@ -1,13 +1,10 @@
 import { useEffect, type FC } from 'react';
 
 import VehicleThumbnail from '../../assets/images/vehicle-thumbnail.png';
-import { UiStates, useUIManager } from '../../context/UIManagerContext';
+import { UiStates } from '../../enums';
+import { useUIManager } from '../../context/UIManagerContext';
 import { useAuthContext } from '../../context/AuthContext';
-import {
-  generateIpfsSources,
-  getKernelSigner,
-  initializeIfNeeded,
-} from '../../services/turnkeyService';
+import { generateIpfsSources, getKernelSigner } from '../../services/turnkeyService';
 import { SimpleResult } from '../../models/resultTypes';
 import {
   getPayloadToSign,
@@ -19,7 +16,7 @@ import { SAMPLE_B64_IMAGE } from '../../utils/constants';
 
 export const MintVehicle: FC = () => {
   const { componentData, setLoadingState, setUiState, setComponentData } = useUIManager();
-  const { user, jwt } = useAuthContext();
+  const { user, jwt, validateSession } = useAuthContext();
 
   useEffect(() => {
     const processMint = async () => {
@@ -70,6 +67,8 @@ export const MintVehicle: FC = () => {
         }
       } catch (error) {
         console.error('Mint processing error:', error);
+      } finally {
+        setLoadingState(false);
       }
     };
 
@@ -77,7 +76,10 @@ export const MintVehicle: FC = () => {
   }, [componentData]);
 
   const handleSign = async (nft: IntegrationNft | MintVehicleNft) => {
-    await initializeIfNeeded(user.subOrganizationId);
+    const isValidSession = await validateSession();
+    if (!isValidSession) {
+      throw new Error('User does not have a valid session');
+    }
     const kernelSigner = getKernelSigner();
     const resp = await kernelSigner.signTypedData(nft);
     return resp;
@@ -87,7 +89,10 @@ export const MintVehicle: FC = () => {
     signature: string,
     userDeviceID: string,
   ): Promise<SimpleResult> => {
-    await initializeIfNeeded(user.subOrganizationId);
+    const isValidSession = await validateSession();
+    if (!isValidSession) {
+      throw new Error('User does not have a valid session');
+    }
     const expiration = 2933125200; //Placeholder for sacd input
     const permissions = 0; //Placeholder for sacd input
     const owner = user.smartContractAddress;

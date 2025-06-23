@@ -1,20 +1,12 @@
 import { ValidationFunction } from '../hooks/useErrorHandler';
-import { getParamFromUrlOrState } from '../utils/urlHelpers';
 
-const validateTransactionData: ValidationFunction = ({ urlParams, decodedState }) => {
-  const transactionData = getParamFromUrlOrState(
-    'transactionData',
-    urlParams,
-    decodedState,
-  );
-
+const validateTransactionData: ValidationFunction = ({ transactionData }) => {
   if (!transactionData) {
     return {
       isValid: false,
       error: {
         title: 'Missing Transaction Data',
-        message:
-          'Missing transaction data, please check the configuration and reload the page.',
+        message: 'Missing transaction data, please check the configuration and reload.',
       },
     };
   }

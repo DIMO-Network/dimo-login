@@ -1,5 +1,5 @@
 import { SACDTemplate } from '@dimo-network/transactions/dist/core/types/dimo';
-import { VehcilePermissionDescription } from '@dimo-network/transactions/dist/core/types/args';
+import { VehiclePermissionDescription } from '@dimo-network/transactions/dist/core/types/args';
 
 import { FetchPermissionsParams } from '../models/permissions';
 import {
@@ -34,9 +34,9 @@ export const getPermissionArray = (perms: bigint): string[] => {
   return getSacdPermissionArray(perms);
 };
 
-export const getDescription = (args: VehcilePermissionDescription): string => {
+export function getDescription(args: VehiclePermissionDescription): string {
   return getSacdDescription(args);
-};
+}
 
 export const getContractAttachmentLink = (
   region: keyof typeof POLICY_ATTACHMENT_CID_BY_REGION,

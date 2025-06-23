@@ -2,12 +2,12 @@ import React from 'react';
 import Header from '../Shared/Header';
 import PrimaryButton from '../Shared/PrimaryButton';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
-import { UiStates, useUIManager } from '../../context/UIManagerContext';
+import { UiStates } from '../../enums';
+import { useUIManager } from '../../context/UIManagerContext';
 import { useAuthContext } from '../../context/AuthContext';
 import { SetVehiclePermissions } from '@dimo-network/transactions';
 import {
   generateIpfsSources,
-  initializeIfNeeded,
   setVehiclePermissions,
 } from '../../services/turnkeyService';
 import { getPermsValue } from '../../services/permissionsService';
@@ -15,7 +15,7 @@ import { extendByYear, parseExpirationDate } from '../../utils/dateUtils';
 
 export const ManageVehicle: React.FC = () => {
   const { clientId } = useDevCredentials();
-  const { user } = useAuthContext();
+  const { validateSession } = useAuthContext();
   const {
     componentData: { vehicle, permissionTemplateId, permissions },
     setUiState,
@@ -33,7 +33,11 @@ export const ManageVehicle: React.FC = () => {
 
     setLoadingState(true, loadingMessage, true);
 
-    await initializeIfNeeded(user.subOrganizationId);
+    const hasValidSession = await validateSession();
+    if (!hasValidSession) {
+      setLoadingState(false);
+      return;
+    }
 
     const perms = getPermsValue(permissionTemplateId ?? '1', permissions);
 

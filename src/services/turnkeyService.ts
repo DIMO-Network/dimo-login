@@ -20,14 +20,29 @@ import {
 import { getWebAuthnAttestation } from '@turnkey/http';
 import { WebauthnStamper } from '@turnkey/webauthn-stamper';
 import { base64UrlEncode, generateRandomBuffer } from '../utils/cryptoUtils';
-import { VehcilePermissionDescription } from '@dimo-network/transactions/dist/core/types/args';
+import { VehiclePermissionDescription } from '@dimo-network/transactions/dist/core/types/args';
 import { PasskeyCreationResult } from '../models/resultTypes';
+import { ApiKeyStamper } from '@turnkey/api-key-stamper';
+import { uint8ArrayToHexString } from '@turnkey/encoding';
+import { decryptBundle, getPublicKey } from '@turnkey/crypto';
 
-const stamper = new WebauthnStamper({
+export const passkeyStamper = new WebauthnStamper({
   rpId: process.env.REACT_APP_RPCID_URL as string,
 });
 
 let kernelSigner: KernelSigner;
+
+export type TurnkeySessionData =
+  | {
+      sessionType: 'api_key';
+      embeddedKey: string;
+      credentialBundle: string;
+    }
+  | { sessionType: 'passkey' };
+
+export type TurnkeySessionDataWithExpiry = TurnkeySessionData & {
+  expiresAt: number;
+};
 
 export const createKernelSigner = (
   clientId: string,
@@ -107,16 +122,19 @@ export const createPasskey = async (email: string): Promise<PasskeyCreationResul
 };
 
 export const initializePasskey = async (subOrganizationId: string): Promise<void> => {
-  await kernelSigner.passkeyToSession(subOrganizationId, stamper);
+  await kernelSigner.passkeyToSession(subOrganizationId, passkeyStamper);
 };
 
-export const initializeIfNeeded = async (subOrganizationId: string): Promise<void> => {
-  try {
-    await kernelSigner.getActiveClient();
-  } catch (e) {
-    await initializePasskey(subOrganizationId);
-    console.log(kernelSigner.walletAddress);
-  }
+export const getApiKeyStamper = (args: {
+  credentialBundle: string;
+  embeddedKey: string;
+}) => {
+  const privateKey = decryptBundle(args.credentialBundle, args.embeddedKey);
+  const publicKey = uint8ArrayToHexString(getPublicKey(privateKey, true));
+  return new ApiKeyStamper({
+    apiPublicKey: publicKey,
+    apiPrivateKey: uint8ArrayToHexString(privateKey),
+  });
 };
 
 export const signChallenge = async (challenge: string): Promise<`0x${string}`> => {
@@ -236,7 +254,7 @@ export function getSacdValue(
   return sacdPermissionValue(sacdPerms);
 }
 
-export function getSacdDescription(args: VehcilePermissionDescription): string {
+export function getSacdDescription(args: VehiclePermissionDescription): string {
   return sacdDescription(args);
 }
 

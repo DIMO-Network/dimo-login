@@ -3,12 +3,16 @@ import debounce from 'lodash/debounce';
 
 import { Checkbox, ErrorMessage, Header, LegalNotice, LoadingContent } from '../Shared';
 import { CachedEmail, EmailInputForm } from './';
-import { fetchUserDetails } from '../../services/accountsService';
-import { setEmailGranted, getLoggedEmail } from '../../services/storageService';
+import {
+  fetchUserDetails,
+  setEmailGranted,
+  getLoggedEmail,
+  submitCodeExchange,
+} from '../../services';
 import { useAuthContext } from '../../context/AuthContext';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
-import { UiStates, useUIManager } from '../../context/UIManagerContext';
-import { submitCodeExchange } from '../../services/authService';
+import { UiStates } from '../../enums';
+import { useUIManager } from '../../context/UIManagerContext';
 import { decodeJwt } from '../../utils/jwtUtils';
 import { isValidEmail } from '../../utils/emailUtils';
 import { getForceEmail } from '../../stores/AuthStateStore';
@@ -26,13 +30,11 @@ interface EmailInputProps {
 }
 
 export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
-  const { authenticateUser, setUser } = useAuthContext();
+  const { setUser } = useAuthContext();
   const { clientId, devLicenseAlias, redirectUri } = useDevCredentials();
-  const { setUiState, entryState, error, setError, setComponentData, altTitle } =
-    useUIManager();
+  const { setUiState, error, setError, setComponentData, altTitle } = useUIManager();
   const { onboardingEnabled } = useOracles();
   const [email, setEmail] = useState('');
-  const [triggerAuth, setTriggerAuth] = useState(false);
   const [emailPermissionGranted, setEmailPermissionGranted] = useState(false);
   const [codeExchangeState, setCodeExchangeState] = useState<{
     isLoading: boolean;
@@ -54,7 +56,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       const userExistsResult = await fetchUserDetails(email);
       if (userExistsResult.success && userExistsResult.data.user) {
         setUser(userExistsResult.data.user);
-        setTriggerAuth(true);
+        setUiState(UiStates.PASSKEY_LOGIN);
         return true;
       }
       setUiState(UiStates.PASSKEY_GENERATOR, { setBack: true });
@@ -108,15 +110,6 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     });
   };
 
-  useEffect(() => {
-    // Only authenticate if `user` is set and authentication hasn't been triggered
-    if (triggerAuth) {
-      const emailToUse = String(email || getLoggedEmail(clientId));
-      authenticateUser(emailToUse, 'credentialBundle', entryState);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [triggerAuth]);
-
   const handleCodeExchangeError = useCallback(
     (errorMsg: string) => {
       setError(`Error doing code exchange: ${errorMsg}`);
@@ -138,6 +131,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       // if it causes problems, revisit resetting it
       setCodeExchangeState((prev) => ({
         ...prev,
+        isLoading: false,
         error: null,
       }));
       await processEmailSubmission(email);

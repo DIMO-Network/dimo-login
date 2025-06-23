@@ -1,4 +1,4 @@
-import { getParamFromUrlOrState } from '../utils/urlHelpers';
+import { AllParams } from '../types';
 import {
   ErrorMessage as GlobalErrorMessage,
   getGlobalError,
@@ -9,20 +9,16 @@ type ValidationResult = {
   error?: GlobalErrorMessage;
 };
 
-export type ValidationFunction = (params: {
-  urlParams: URLSearchParams;
-  decodedState: Record<string, unknown>;
-}) => ValidationResult;
+export type ValidationFunction = (params: AllParams) => ValidationResult;
 
 type UseErrorHandlerProps = {
-  invalidCredentials?: boolean;
   customValidations?: Record<string, ValidationFunction>;
-  entryState?: string;
+  params: AllParams;
 };
 
 const getValidationError = (
   validations: Record<string, ValidationFunction>,
-  params: { urlParams: URLSearchParams; decodedState: Record<string, unknown> },
+  params: AllParams,
 ): GlobalErrorMessage | undefined => {
   return Object.values(validations)
     .map((validation) => validation(params))
@@ -30,30 +26,19 @@ const getValidationError = (
 };
 
 export const useErrorHandler = ({
-  invalidCredentials,
   customValidations = {},
+  params,
 }: UseErrorHandlerProps): { error: GlobalErrorMessage | null } => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const state = urlParams.get('state');
-  const decodedState = state ? JSON.parse(decodeURIComponent(state)) : {};
-
-  const clientId = getParamFromUrlOrState('clientId', urlParams, decodedState);
-  const redirectUri = getParamFromUrlOrState('redirectUri', urlParams, decodedState);
-
   const globalError = getGlobalError({
-    missingClientId: !clientId,
-    missingRedirectUri: !redirectUri,
-    invalidCredentials: Boolean(invalidCredentials),
-    missingCredentials: !clientId || !redirectUri,
+    missingClientId: !Boolean(params.clientId),
+    missingRedirectUri: !Boolean(params.redirectUri),
+    invalidCredentials: Boolean(params.invalidCredentials),
   } as const);
 
   if (globalError) {
     return { error: globalError };
   }
-  const validationError = getValidationError(customValidations, {
-    urlParams,
-    decodedState,
-  });
+  const validationError = getValidationError(customValidations, params);
 
   return {
     error: validationError || null,

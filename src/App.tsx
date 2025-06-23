@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { initializeSession } from './services/sessionService';
 import { useAuthContext } from './context/AuthContext';
 import { useDevCredentials } from './context/DevCredentialsContext';
-import { UiStates, useUIManager } from './context/UIManagerContext';
+import { UiStates } from './enums';
+import { useUIManager } from './context/UIManagerContext';
 import { getValidationsForState } from './validations';
 
 import {
@@ -27,13 +28,15 @@ import {
   Logout,
 } from './components';
 import { Card } from './components/Shared/Card';
+import { useErrorHandler } from './hooks/useErrorHandler';
+import { PasskeyLogin } from './components/Auth/PasskeyLogin';
+import { PasskeyLoginFail } from './components/Auth/PasskeyLoginFail';
 
 import './App.css';
-import { useErrorHandler } from './hooks/useErrorHandler';
 
 const App = () => {
   const { setJwt, setUser, setUserInitialized, userInitialized } = useAuthContext();
-  const { clientId, invalidCredentials } = useDevCredentials();
+  const { clientId, devLicenseAlias, ...params } = useDevCredentials();
   const { uiState, setUiState, isLoading, entryState } = useUIManager() as {
     uiState: keyof typeof componentMap;
     setUiState: (state: UiStates) => void;
@@ -43,9 +46,12 @@ const App = () => {
   const [email, setEmail] = useState('');
 
   const { error } = useErrorHandler({
-    entryState,
-    invalidCredentials,
     customValidations: getValidationsForState(entryState || ''),
+    params: {
+      clientId,
+      devLicenseAlias,
+      ...params,
+    },
   });
 
   useEffect(() => {
@@ -63,7 +69,15 @@ const App = () => {
   }, [clientId]);
 
   if (error) {
-    return <ErrorScreen title={error.title} message={error.message} />;
+    return (
+      <ErrorScreen
+        title={error.title}
+        message={error.message.replace(
+          '<license_alias>',
+          devLicenseAlias || 'the application developer',
+        )}
+      />
+    );
   }
 
   if (isLoading || !userInitialized) {
@@ -72,7 +86,9 @@ const App = () => {
 
   const componentMap: Record<UiStates, React.ReactNode> = {
     [UiStates.EMAIL_INPUT]: <EmailInput onSubmit={setEmail} />,
+    [UiStates.PASSKEY_LOGIN]: <PasskeyLogin />,
     [UiStates.OTP_INPUT]: <OtpInput email={email} />,
+    [UiStates.PASSKEY_LOGIN_FAIL]: <PasskeyLoginFail email={email} />,
     [UiStates.PASSKEY_GENERATOR]: <PasskeyGeneration email={email} />,
     [UiStates.VEHICLE_MANAGER]: <VehicleManager />,
     [UiStates.MANAGE_VEHICLE]: <ManageVehicle />,

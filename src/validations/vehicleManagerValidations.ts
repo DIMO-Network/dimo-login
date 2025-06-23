@@ -1,37 +1,10 @@
 import { ValidationFunction } from '../hooks/useErrorHandler';
-import { getParamFromUrlOrState } from '../utils/urlHelpers';
-import { PERMISSIONS } from '../types/permissions';
-
-interface ValidationResult {
-  isValid: boolean;
-  error?: {
-    title: string;
-    message: string;
-  };
-}
-
-interface ValidationParams {
-  urlParams: URLSearchParams;
-  decodedState: Record<string, unknown>;
-}
-
-const validatePermissionString = (value: string): boolean =>
-  new RegExp(`^[01]{1,${Object.keys(PERMISSIONS).length}}$`).test(value);
+import { PERMISSIONS } from '../types';
 
 const validatePermissionTemplate: ValidationFunction = ({
-  urlParams,
-  decodedState,
-}: ValidationParams): ValidationResult => {
-  const permissionTemplateId = getParamFromUrlOrState(
-    'permissionTemplateId',
-    urlParams,
-    decodedState,
-  );
-
-  const permissions = getParamFromUrlOrState('permissions', urlParams, decodedState) as
-    | string
-    | undefined;
-
+  permissionTemplateId,
+  permissions,
+}) => {
   if (!permissionTemplateId && !permissions) {
     return {
       isValid: false,
@@ -44,14 +17,10 @@ const validatePermissionTemplate: ValidationFunction = ({
   return { isValid: true };
 };
 
-const validatePermissionParams = ({
-  urlParams,
-  decodedState,
-}: ValidationParams): ValidationResult => {
-  const permissions = getParamFromUrlOrState('permissions', urlParams, decodedState) as
-    | string
-    | undefined;
+const validatePermissionString = (value: string): boolean =>
+  new RegExp(`^[01]{1,${Object.keys(PERMISSIONS).length}}$`).test(value);
 
+const validatePermissionParams: ValidationFunction = ({ permissions }) => {
   if (permissions && !validatePermissionString(permissions)) {
     return {
       isValid: false,
