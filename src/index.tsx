@@ -38,13 +38,13 @@ root.render(
   <React.StrictMode>
     <ApolloProvider client={apolloClient}>
       <UIManagerProvider>
-        <DevCredentialsProvider>
-          <AuthProvider>
-            <GlobalOraclesProvider>
+        <GlobalOraclesProvider>
+          <DevCredentialsProvider>
+            <AuthProvider>
               <App />
-            </GlobalOraclesProvider>
-          </AuthProvider>
-        </DevCredentialsProvider>
+            </AuthProvider>
+          </DevCredentialsProvider>
+        </GlobalOraclesProvider>
       </UIManagerProvider>
     </ApolloProvider>
   </React.StrictMode>,

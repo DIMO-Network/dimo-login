@@ -21,7 +21,7 @@ import {
 import { UserObject } from '../models/user';
 import { backToThirdParty, sendMessageToReferrer } from './messageHandler';
 import { GenerateChallengeParams, SubmitChallengeParams } from '../models/web3';
-import { UiStates } from '../context/UIManagerContext';
+import { UiStates } from '../enums';
 import { TStamper } from '@turnkey/http/dist/base';
 import { ApiKeyStamper } from '@turnkey/api-key-stamper';
 
