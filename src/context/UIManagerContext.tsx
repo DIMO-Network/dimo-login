@@ -1,5 +1,7 @@
 import React, { createContext, ReactNode, useContext, useState } from 'react';
 
+import { UiStates } from '../enums';
+
 import useLoading from '../hooks/useLoading';
 
 interface UiStateOptionProps {
@@ -23,27 +25,6 @@ interface UIManagerContextProps {
   setError: React.Dispatch<React.SetStateAction<string | null>>;
   altTitle: boolean;
   setAltTitle: React.Dispatch<React.SetStateAction<boolean>>;
-}
-
-export enum UiStates {
-  EMAIL_INPUT = 'EMAIL_INPUT',
-  PASSKEY_LOGIN = 'PASSKEY_LOGIN',
-  PASSKEY_LOGIN_FAIL = 'PASSKEY_LOGIN_FAIL',
-  OTP_INPUT = 'OTP_INPUT',
-  PASSKEY_GENERATOR = 'PASSKEY_GENERATOR',
-  VEHICLE_MANAGER = 'VEHICLE_MANAGER',
-  MANAGE_VEHICLE = 'MANAGE_VEHICLE',
-  ADVANCED_TRANSACTION = 'ADVANCED_TRANSACTION',
-  TRANSACTION_SUCCESS = 'TRANSACTION_SUCCESS',
-  TRANSACTION_CANCELLED = 'TRANSACTION_CANCELLED',
-  VEHICLES_SHARED_SUCCESS = 'VEHICLES_SHARED_SUCCESS',
-  ADD_VEHICLE = 'ADD_VEHICLE',
-  COMPATIBILITY_CHECK = 'COMPATIBILITY_CHECK',
-  MINT_VEHICLE = 'MINT_VEHICLE',
-  CONNECT_DEVICE = 'CONNECT_DEVICE',
-  CONNECT_TESLA = 'CONNECT_TESLA',
-  SUCCESS = 'SUCCESS',
-  LOGOUT = 'LOGOUT',
 }
 
 const UIManagerContext = createContext<UIManagerContextProps | undefined>(undefined);

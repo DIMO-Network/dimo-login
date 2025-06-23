@@ -3,9 +3,10 @@ import countries from 'i18n-iso-countries'; // Install using npm install i18n-is
 import enLocale from 'i18n-iso-countries/langs/en.json';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 
-import { Card, Header, MakeModelYearTab, VinNumberTab } from '../Shared';
+import { Header, MakeModelYearTab, VinNumberTab } from '../Shared';
 import { getAppUrl } from '../../utils/urlHelpers';
-import { UiStates, useUIManager } from '../../context/UIManagerContext';
+import { UiStates } from '../../enums';
+import { useUIManager } from '../../context/UIManagerContext';
 import { supportedMakeModels } from '../../utils/tablelandUtils';
 
 // Register English country names

@@ -7,128 +7,26 @@ import { useAuthContext } from '../../context/AuthContext';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { fetchPermissionsFromId } from '../../services/permissionsService';
 import { Header, ErrorMessage } from '../Shared';
-import { sendMessageToReferrer } from '../../utils/messageHandler';
-import { isStandalone } from '../../utils/isStandalone';
 import { useUIManager } from '../../context/UIManagerContext';
-import { getDefaultExpirationDate, parseExpirationDate } from '../../utils/dateUtils';
 import SelectVehicles from './SelectVehicles';
-import { getAppUrl, getParamFromUrlOrState } from '../../utils/urlHelpers';
-import { useOracles } from '../../context/OraclesContext';
+import { getAppUrl } from '../../utils/urlHelpers';
+import { VehicleManagerMandatoryParams } from '../../types/params';
 
 export const VehicleManager: React.FC = () => {
   const { user } = useAuthContext();
-  const { clientId, devLicenseAlias, shareVehiclesSectionDescription } =
-    useDevCredentials();
-  const { setOnboardingEnabled } = useOracles();
+  const {
+    clientId,
+    devLicenseAlias,
+    shareVehiclesSectionDescription,
+    permissionTemplateId,
+    expirationDate,
+    region,
+  } = useDevCredentials<VehicleManagerMandatoryParams>();
   const { setComponentData, error, setError } = useUIManager();
 
   //Data from SDK
-  const [permissionTemplateId, setPermissionTemplateId] = useState<string | undefined>();
-  const [vehicleTokenIds, setVehicleTokenIds] = useState<string[] | undefined>();
-  const [vehicleMakes, setVehicleMakes] = useState<string[] | undefined>();
-  const [powertrainTypes, setPowertrainTypes] = useState<string[]>();
   const [permissionTemplate, setPermissionTemplate] = useState<SACDTemplate | null>(null);
-  const [region, setRegion] = useState<string | undefined>();
-
   const [isExpanded, setIsExpanded] = useState<boolean | undefined>(false);
-  const [expirationDate, setExpirationDate] = useState<BigInt>(
-    getDefaultExpirationDate(),
-  );
-
-  const handleStandaloneMode = () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const state = urlParams.get('state');
-    const decodedState = state ? JSON.parse(decodeURIComponent(state)) : {};
-
-    const permissionTemplateId = getParamFromUrlOrState(
-      'permissionTemplateId',
-      urlParams,
-      decodedState,
-    );
-    const expirationDate = getParamFromUrlOrState(
-      'expirationDate',
-      urlParams,
-      decodedState,
-    );
-    const vehicles = getParamFromUrlOrState('vehicles', urlParams, decodedState);
-    const vehicleMakes = getParamFromUrlOrState('vehicleMakes', urlParams, decodedState);
-    const onboarding = getParamFromUrlOrState('onboarding', urlParams, decodedState);
-    const powertrainTypesFromUrl = getParamFromUrlOrState(
-      'powertrainTypes',
-      urlParams,
-      decodedState,
-    );
-    const region = getParamFromUrlOrState('region', urlParams, decodedState);
-
-    if (permissionTemplateId) {
-      setPermissionTemplateId(permissionTemplateId as string);
-    }
-
-    if (vehicles) {
-      setVehicleTokenIds(Array.isArray(vehicles) ? vehicles : [vehicles]);
-    }
-
-    if (vehicleMakes) {
-      setVehicleMakes(Array.isArray(vehicleMakes) ? vehicleMakes : [vehicleMakes]);
-    }
-
-    if (expirationDate) {
-      setExpirationDate(parseExpirationDate(expirationDate as string));
-    }
-
-    if (powertrainTypesFromUrl) {
-      setPowertrainTypes(
-        Array.isArray(powertrainTypesFromUrl)
-          ? powertrainTypesFromUrl
-          : [powertrainTypesFromUrl],
-      );
-    }
-
-    if (region) {
-      setRegion((region as string).toUpperCase());
-    }
-
-    if (onboarding && onboarding.length > 0) {
-      setOnboardingEnabled(true);
-    }
-  };
-
-  const handleEmbedPopupMode = () => {
-    sendMessageToReferrer({ eventType: 'SHARE_VEHICLES_DATA' });
-
-    const handleMessage = (event: MessageEvent) => {
-      const {
-        eventType,
-        permissionTemplateId: permissionTemplateIdFromMessage,
-        vehicles: vehiclesFromMessage,
-        vehicleMakes: vehicleMakesFromMessage,
-        expirationDate: expirationDateFromMessage,
-        onboarding,
-        powertrainTypes: powertrainTypesFromMessage,
-        region: regionFromMessage,
-      } = event.data;
-
-      if (eventType === 'SHARE_VEHICLES_DATA') {
-        if (permissionTemplateIdFromMessage)
-          setPermissionTemplateId(permissionTemplateIdFromMessage);
-        if (vehiclesFromMessage) setVehicleTokenIds(vehiclesFromMessage);
-        if (vehicleMakesFromMessage) setVehicleMakes(vehicleMakesFromMessage);
-        if (expirationDateFromMessage)
-          setExpirationDate(parseExpirationDate(expirationDateFromMessage));
-        if (powertrainTypesFromMessage) {
-          setPowertrainTypes(powertrainTypesFromMessage);
-        }
-        if (regionFromMessage) setRegion(regionFromMessage.toUpperCase());
-        if (onboarding && onboarding.length > 0) setOnboardingEnabled(true);
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-
-    return () => {
-      window.removeEventListener('message', handleMessage);
-    };
-  };
 
   const fetchPermissions = async () => {
     if (permissionTemplateId) {
@@ -151,14 +49,6 @@ export const VehicleManager: React.FC = () => {
       }
     }
   };
-
-  useEffect(() => {
-    if (isStandalone()) {
-      handleStandaloneMode();
-    } else {
-      handleEmbedPopupMode();
-    }
-  }, []);
 
   useEffect(() => {
     Promise.all([fetchPermissions()]);
@@ -264,15 +154,7 @@ export const VehicleManager: React.FC = () => {
           </div>
         </>
 
-        {permissionTemplateId && (
-          <SelectVehicles
-            vehicleTokenIds={vehicleTokenIds}
-            vehicleMakes={vehicleMakes}
-            permissionTemplateId={permissionTemplateId}
-            expirationDate={expirationDate}
-            powertrainTypes={powertrainTypes}
-          />
-        )}
+        {permissionTemplateId && <SelectVehicles />}
       </div>
     </>
   );

@@ -1,49 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { useAuthContext } from '../../context/AuthContext';
 import { executeAdvancedTransaction } from '../../services/turnkeyService';
 import { sendTxnResponseToParent } from '../../utils/txnUtils';
 import { sendErrorToParent } from '../../utils/errorUtils';
-import { TransactionData } from '@dimo-network/transactions';
-import { sendMessageToReferrer } from '../../utils/messageHandler';
-import { UiStates, useUIManager } from '../../context/UIManagerContext';
+import { UiStates } from '../../enums';
+import { useUIManager } from '../../context/UIManagerContext';
 import { ErrorMessage, Header, PrimaryButton } from '../Shared';
 
 export const AdvancedTransaction: React.FC = () => {
-  const { redirectUri, utm } = useDevCredentials();
+  const { redirectUri, utm, transactionData } = useDevCredentials();
   const { setUiState, setComponentData, setLoadingState, error, setError } =
     useUIManager();
   const { jwt, validateSession } = useAuthContext();
-
-  const [transactionData, setTransactionData] = useState<TransactionData>();
-
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const transactionDataFromUrl = urlParams.get('transactionData');
-
-    if (transactionDataFromUrl != null) {
-      try {
-        const parsedTransactionData = JSON.parse(
-          decodeURIComponent(transactionDataFromUrl),
-        );
-
-        setTransactionData(parsedTransactionData);
-      } catch (error) {
-        console.error('Failed to parse transactionData:', error);
-      }
-    } else {
-      sendMessageToReferrer({ eventType: 'EXECUTE_ADVANCED_TRANSACTION' });
-
-      const handleMessage = (event: MessageEvent) => {
-        const { eventType, transactionData } = event.data;
-        if (eventType === 'EXECUTE_ADVANCED_TRANSACTION') {
-          setTransactionData(transactionData);
-        }
-      };
-      window.addEventListener('message', handleMessage);
-    }
-  }, []);
 
   const onApprove = async () => {
     setLoadingState(true, 'Executing Transaction', true);
@@ -77,7 +47,7 @@ export const AdvancedTransaction: React.FC = () => {
   const onReject = async () => {
     //This will send the message, and close the winodw
     //Doesn't currently handle redirecting
-    sendErrorToParent(`User Rejected the Transaction`, redirectUri!, utm, setUiState);
+    sendErrorToParent(`User Rejected the Transaction`, redirectUri, utm, setUiState);
   };
 
   return (
