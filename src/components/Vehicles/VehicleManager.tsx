@@ -10,6 +10,7 @@ import { Header, ErrorMessage } from '../Shared';
 import { useUIManager } from '../../context/UIManagerContext';
 import SelectVehicles from './SelectVehicles';
 import { getAppUrl } from '../../utils/urlHelpers';
+import { VehicleManagerMandatoryParams } from '../../types/params';
 
 export const VehicleManager: React.FC = () => {
   const { user } = useAuthContext();
@@ -20,7 +21,7 @@ export const VehicleManager: React.FC = () => {
     permissionTemplateId,
     expirationDate,
     region,
-  } = useDevCredentials();
+  } = useDevCredentials<VehicleManagerMandatoryParams>();
   const { setComponentData, error, setError } = useUIManager();
 
   //Data from SDK
@@ -33,8 +34,8 @@ export const VehicleManager: React.FC = () => {
         const permissionsParams: FetchPermissionsParams = {
           permissionTemplateId,
           clientId,
-          devLicenseAlias: devLicenseAlias!,
-          expirationDate: expirationDate!,
+          devLicenseAlias,
+          expirationDate,
           walletAddress: user.smartContractAddress,
           email: user.email,
           region: region?.toUpperCase(),
@@ -140,7 +141,7 @@ export const VehicleManager: React.FC = () => {
           <div className="description w-fit w-full mt-2 text-sm overflow-y-auto font-normal text-[#313131]">
             {renderPermissionDescription(
               permissionTemplate,
-              shareVehiclesSectionDescription!,
+              shareVehiclesSectionDescription,
             )}
           </div>
           <div className="w-full">
@@ -153,9 +154,7 @@ export const VehicleManager: React.FC = () => {
           </div>
         </>
 
-        {permissionTemplateId && (
-          <SelectVehicles permissionTemplateId={permissionTemplateId} />
-        )}
+        {permissionTemplateId && <SelectVehicles />}
       </div>
     </>
   );

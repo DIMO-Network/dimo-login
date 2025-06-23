@@ -11,8 +11,8 @@ export interface BaseParams {
   altTitle?: boolean;
   forceEmail?: boolean;
   configCID?: string;
-  newVehicleSectionDescription?: string;
-  shareVehiclesSectionDescription?: string;
+  newVehicleSectionDescription: string;
+  shareVehiclesSectionDescription: string;
 }
 
 export interface FetchedParams {
@@ -34,5 +34,13 @@ export interface AdvancedTransactionParams {
   transactionData: TransactionData;
 }
 export type AllParams = BaseParams &
-  Partial<FetchedParams> &
+  FetchedParams &
   Partial<VehicleManagerParams & AdvancedTransactionParams>;
+
+export type VehicleManagerMandatoryParams = BaseParams &
+  FetchedParams &
+  VehicleManagerParams;
+
+export type AdvancedTransactionMandatoryParams = BaseParams &
+  FetchedParams &
+  AdvancedTransactionParams;

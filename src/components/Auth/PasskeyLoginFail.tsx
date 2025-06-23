@@ -17,7 +17,7 @@ export const PasskeyLoginFail = ({ email }: { email: string }) => {
   return (
     <>
       <Header
-        title={getSignInTitle(devLicenseAlias!, {
+        title={getSignInTitle(devLicenseAlias, {
           altTitle: Boolean(altTitle),
         })}
         subtitle={appUrl.hostname}

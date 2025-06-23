@@ -47,7 +47,7 @@ export const AdvancedTransaction: React.FC = () => {
   const onReject = async () => {
     //This will send the message, and close the winodw
     //Doesn't currently handle redirecting
-    sendErrorToParent(`User Rejected the Transaction`, redirectUri!, utm, setUiState);
+    sendErrorToParent(`User Rejected the Transaction`, redirectUri, utm, setUiState);
   };
 
   return (

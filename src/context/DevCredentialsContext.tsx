@@ -28,14 +28,13 @@ import {
 } from '../services/identityService';
 import { setEmailGranted } from '../services/storageService';
 import { setForceEmail } from '../stores/AuthStateStore';
-import { parseExpirationDate } from '../utils/dateUtils';
+import { parseExpirationDate, getDefaultExpirationDate } from '../utils/dateUtils';
 import { useOracles } from './OraclesContext';
 import { useUIManager } from './UIManagerContext';
 import { TransactionData } from '@dimo-network/transactions';
 import { sendMessageToReferrer } from '../utils/messageHandler';
 
-
-const DEFAULT_CONTEXT = {
+const DEFAULT_CONTEXT: AllParams = {
   clientId: '',
   redirectUri: '',
   utm: '',
@@ -48,12 +47,12 @@ const DEFAULT_CONTEXT = {
   vehicleTokenIds: [],
   vehicleMakes: [],
   powertrainTypes: [],
-  expirationDate: BigInt(0),
+  expirationDate: getDefaultExpirationDate(),
+  newVehicleSectionDescription: '',
+  shareVehiclesSectionDescription: '',
 };
 
-const DevCredentialsContext = createContext<AllParams | undefined>(
-  DEFAULT_CONTEXT as AllParams,
-);
+const DevCredentialsContext = createContext<AllParams>(DEFAULT_CONTEXT);
 
 export const DevCredentialsProvider = ({
   children,
@@ -61,7 +60,7 @@ export const DevCredentialsProvider = ({
   children: ReactNode;
 }): ReactElement => {
   const [devCredentialsState, setDevCredentialsState] =
-    useState<Partial<AllParams>>(DEFAULT_CONTEXT);
+    useState<AllParams>(DEFAULT_CONTEXT);
   const { setUiState, setEntryState, setLoadingState, setAltTitle } = useUIManager();
   const { setOnboardingEnabled } = useOracles();
 
@@ -107,7 +106,9 @@ export const DevCredentialsProvider = ({
     expirationDate: (value: unknown) =>
       setDevCredentialsState((prev) => ({
         ...prev,
-        expirationDate: parseExpirationDate(String(value)),
+        expirationDate: value
+          ? parseExpirationDate(String(value))
+          : getDefaultExpirationDate(),
       })),
     region: (value: unknown) =>
       setDevCredentialsState((prev) => ({
@@ -136,7 +137,7 @@ export const DevCredentialsProvider = ({
         specialSetters[key as keyof typeof specialSetters] &&
         value !== undefined
       ) {
-        specialSetters[key as keyof typeof specialSetters](value as never);
+        specialSetters[key as keyof typeof specialSetters](value);
       } else {
         setDevCredentialsState((prev) => ({
           ...prev,
@@ -249,14 +250,14 @@ export const DevCredentialsProvider = ({
       if (clientId) {
         const licenseData = await getDeveloperLicense(clientId);
         const alias = await getLicenseAlias(licenseData, clientId);
-        const isValid = await isValidDeveloperLicense(licenseData, redirectUri!);
+        const isValid = await isValidDeveloperLicense(licenseData, redirectUri);
         setDevCredentialsState((prev) => ({
           ...prev,
           devLicenseAlias: alias,
         }));
 
         if (isValid) {
-          createKernelSigner(clientId, clientId, redirectUri!);
+          createKernelSigner(clientId, clientId, redirectUri);
           setLoadingState(false);
         } else {
           setDevCredentialsState((prev) => ({
@@ -272,16 +273,16 @@ export const DevCredentialsProvider = ({
   }, [devCredentialsState.clientId, devCredentialsState.redirectUri]);
 
   return (
-    <DevCredentialsContext.Provider value={devCredentialsState as AllParams}>
+    <DevCredentialsContext.Provider value={devCredentialsState}>
       {children}
     </DevCredentialsContext.Provider>
   );
 };
 
-export const useDevCredentials = () => {
+export const useDevCredentials = <T extends AllParams>() => {
   const context = useContext(DevCredentialsContext);
   if (!context) {
     throw new Error('useDevCredentials must be used within a DevCredentialsProvider');
   }
-  return context;
+  return context as T;
 };

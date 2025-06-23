@@ -24,12 +24,9 @@ import { ConnectedLoader } from '../Shared/Loader';
 import { EmptyState } from './EmptyState';
 import { ConnectCarButton } from '../Shared/ConnectCarButton';
 import { fetchVehiclesWithTransformation } from '../../services/vehicleService';
+import { VehicleManagerMandatoryParams } from '../../types/params';
 
-interface SelectVehiclesProps {
-  permissionTemplateId: string;
-}
-
-export const SelectVehicles: React.FC<SelectVehiclesProps> = ({ permissionTemplateId }) => {
+export const SelectVehicles: React.FC = () => {
   const { user, jwt, validateSession } = useAuthContext();
   const {
     clientId,
@@ -40,7 +37,8 @@ export const SelectVehicles: React.FC<SelectVehiclesProps> = ({ permissionTempla
     vehicleMakes,
     powertrainTypes,
     expirationDate,
-  } = useDevCredentials();
+    permissionTemplateId,
+  } = useDevCredentials<VehicleManagerMandatoryParams>();
   const { setUiState, setComponentData, setLoadingState, componentData, setError } =
     useUIManager();
   const [vehiclesLoading, setVehiclesLoading] = useState(true);
@@ -175,7 +173,7 @@ export const SelectVehicles: React.FC<SelectVehiclesProps> = ({ permissionTempla
       }
 
       const perms = getPermsValue(permissionTemplateId);
-      const sources = await generateIpfsSources(perms, clientId, expirationDate!);
+      const sources = await generateIpfsSources(perms, clientId, expirationDate);
       const basePermissions = createBasePermissions(perms, sources);
 
       if (unsharedTokenIds.length === 1) {
