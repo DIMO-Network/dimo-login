@@ -36,7 +36,7 @@ import './App.css';
 
 const App = () => {
   const { setJwt, setUser, setUserInitialized, userInitialized } = useAuthContext();
-  const { clientId, devLicenseAlias, ...params } = useDevCredentials();
+  const { clientId, devLicenseAlias, waitingForParams, ...params } = useDevCredentials();
   const { uiState, setUiState, isLoading, entryState } = useUIManager() as {
     uiState: keyof typeof componentMap;
     setUiState: (state: UiStates) => void;
@@ -50,6 +50,7 @@ const App = () => {
     params: {
       clientId,
       devLicenseAlias,
+      waitingForParams,
       ...params,
     },
   });
@@ -67,7 +68,7 @@ const App = () => {
     }
   }, [clientId]);
 
-  if (error) {
+  if (error && !waitingForParams) {
     return (
       <ErrorScreen
         title={error.title}
