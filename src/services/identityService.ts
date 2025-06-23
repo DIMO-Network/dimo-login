@@ -138,9 +138,8 @@ export const getDeveloperLicense = async (clientId: string) => {
     body: JSON.stringify({ query }),
   });
 
-  const {
-    data: { developerLicense },
-  } = await apiResponse.json();
+  const { data: developerLicenseData } = await apiResponse.json();
+  const { developerLicense } = developerLicenseData || {};
 
   if (!developerLicense) {
     console.error('No data found in the response.');
