@@ -1,82 +1,55 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import debounce from 'lodash/debounce';
+import React, { useState } from 'react';
 
-import { Checkbox, ErrorMessage, Header, LegalNotice, LoadingContent } from '../Shared';
+import { ErrorMessage, Header, LegalNotice, Loader } from '../Shared';
 import { CachedEmail, EmailInputForm } from './';
-import {
-  fetchUserDetails,
-  setEmailGranted,
-  getLoggedEmail,
-  submitCodeExchange,
-} from '../../services';
-import { useAuthContext } from '../../context/AuthContext';
+import { getLoggedEmail, setEmailGranted } from '../../services';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
-import { UiStates } from '../../enums';
 import { useUIManager } from '../../context/UIManagerContext';
 import { decodeJwt } from '../../utils/jwtUtils';
-import { isValidEmail } from '../../utils/emailUtils';
+import { validateEmail } from '../../utils/emailUtils';
 import { getForceEmail } from '../../stores/AuthStateStore';
 import { getAppUrl } from '../../utils/urlHelpers';
-import {
-  AuthProvider,
-  constructAuthUrl,
-  getOAuthRedirectUri,
-} from '../../utils/authUrls';
+import { AuthProvider, getOAuthRedirectUri } from '../../utils/authUrls';
 import { getKeyboardEventListener, getSignInTitle } from '../../utils/uiUtils';
-import { useOracles } from '../../context/OraclesContext';
+import {
+  useOAuthCodeExchange,
+  useConstructOAuthUrl,
+  useGoToLoginOrSignUp,
+} from '../../hooks';
+import { EmailPermissionCheckbox } from './EmailPermissionCheckbox';
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;
 }
 
 export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
-  const { setUser } = useAuthContext();
-  const { clientId, devLicenseAlias, redirectUri } = useDevCredentials();
-  const { setUiState, error, setError, setComponentData, altTitle } = useUIManager();
-  const { onboardingEnabled } = useOracles();
+  const { clientId, devLicenseAlias } = useDevCredentials();
+  const { error, setError, altTitle } = useUIManager();
   const [email, setEmail] = useState('');
   const [emailPermissionGranted, setEmailPermissionGranted] = useState(false);
-  const [codeExchangeState, setCodeExchangeState] = useState<{
-    isLoading: boolean;
-    error: string | null;
-    attempts: number;
-  }>({
-    isLoading: false,
-    error: null,
-    attempts: 0,
-  });
   const [showInput, setShowInput] = useState(!getLoggedEmail(clientId));
   const forceEmail = getForceEmail();
   const appUrl = getAppUrl();
+  const constructOAuthUrl = useConstructOAuthUrl();
+  const goToLoginOrSignUp = useGoToLoginOrSignUp();
 
-  const processEmailSubmission = useCallback(
-    async (email: string) => {
-      if (!email || !clientId) return;
-      onSubmit(email);
-      const userExistsResult = await fetchUserDetails(email);
-      if (userExistsResult.success && userExistsResult.data.user) {
-        setUser(userExistsResult.data.user);
-        setUiState(UiStates.PASSKEY_LOGIN);
-        return true;
-      }
-      setUiState(UiStates.PASSKEY_GENERATOR, { setBack: true });
-      return false;
-    },
-    [clientId, onSubmit, setUiState, setUser],
-  );
+  const handleSuccessfulEmailSubmission = async (email: string) => {
+    onSubmit(email);
+    goToLoginOrSignUp(email);
+  };
 
   const handleEmailInputSubmit = async () => {
     const emailToUse = String(email || getLoggedEmail(clientId));
-    if (!emailToUse || !isValidEmail(emailToUse)) {
-      setError('Please enter a valid email');
-      return;
-    }
-    if (forceEmail && !emailPermissionGranted) {
-      setError('Email sharing is required to proceed. Please check the box.');
-      return;
+    const validationError = validateEmail({
+      email: emailToUse,
+      emailPermissionGranted,
+      forceEmail,
+    });
+    if (validationError) {
+      return setError(validationError);
     }
     setEmailGranted(clientId, emailPermissionGranted);
-    await processEmailSubmission(emailToUse);
+    await handleSuccessfulEmailSubmission(emailToUse);
   };
 
   const handleSwitchAccount = () => {
@@ -90,98 +63,27 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       setError('Email sharing is required to proceed. Please check the box.');
       return;
     }
-
-    const urlParams = new URLSearchParams(window.location.search);
-    window.location.href = constructAuthUrl({
-      provider,
-      clientId,
-      redirectUri,
-      entryState: UiStates.EMAIL_INPUT,
-      expirationDate: urlParams.get('expirationDate'),
-      permissionTemplateId: urlParams.get('permissionTemplateId'),
-      utm: urlParams.getAll('utm'),
-      vehicleMakes: urlParams.getAll('vehicleMakes'),
-      vehicles: urlParams.getAll('vehicles'),
-      powertrainTypes: urlParams.getAll('powertrainTypes'),
-      onboarding: onboardingEnabled ? ['tesla'] : [], //TODO: Should have full onboarding array here
-      altTitle,
-      emailPermissionGranted,
-    });
+    window.location.href = constructOAuthUrl(provider, emailPermissionGranted);
   };
 
-  const handleCodeExchangeError = useCallback(
-    (errorMsg: string) => {
-      setError(`Error doing code exchange: ${errorMsg}`);
-      setCodeExchangeState((prev) => ({
-        ...prev,
-        isLoading: false,
-        error: errorMsg,
-      }));
-    },
-    [setError],
-  );
+  const handleToken = async (token: string) => {
+    const decodedJwt = decodeJwt(token);
+    if (!decodedJwt?.email) {
+      return setError('No email was found');
+    }
+    setEmail(decodedJwt.email);
+    await handleSuccessfulEmailSubmission(decodedJwt.email);
+  };
 
-  const handleCodeExchangeSuccess = useCallback(
-    async (email: string) => {
-      setEmail(email);
-      setComponentData({ emailValidated: email });
+  const { isExchanging } = useOAuthCodeExchange({
+    clientId: 'login-with-dimo',
+    redirectUri: getOAuthRedirectUri(),
+    onSuccess: (token) => handleToken(token),
+    onFailure: (error) => setError(error),
+  });
 
-      // purposely not resetting the loading state here because the UI becomes weird
-      // if it causes problems, revisit resetting it
-      setCodeExchangeState((prev) => ({
-        ...prev,
-        isLoading: false,
-        error: null,
-      }));
-      await processEmailSubmission(email);
-    },
-    [processEmailSubmission, setComponentData],
-  );
-
-  const handleOAuthCodeExchange = useCallback(
-    async (code: string) => {
-      setCodeExchangeState((prev) => ({
-        ...prev,
-        isLoading: true,
-        attempts: prev.attempts + 1,
-      }));
-      try {
-        const result = await submitCodeExchange({
-          clientId: 'login-with-dimo',
-          redirectUri: getOAuthRedirectUri(),
-          code,
-        });
-        if (!result.success) {
-          return handleCodeExchangeError(result.error);
-        }
-        const access_token = result.data.access_token;
-        const decodedJwt = decodeJwt(access_token);
-        if (!decodedJwt?.email) return handleCodeExchangeError('Failed to decode JWT');
-        await handleCodeExchangeSuccess(decodedJwt.email);
-      } catch (err: unknown) {
-        return handleCodeExchangeError((err as Error).message ?? 'unknown error');
-      }
-    },
-    [handleCodeExchangeError, handleCodeExchangeSuccess],
-  );
-
-  useEffect(() => {
-    const callback = debounce(() => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const codeFromUrl = urlParams.get('code');
-      if (!codeFromUrl) return;
-      if (!codeExchangeState.attempts) {
-        handleOAuthCodeExchange(codeFromUrl);
-      }
-    }, 500);
-    callback();
-    return () => {
-      callback.cancel();
-    };
-  }, [codeExchangeState.attempts, handleOAuthCodeExchange]);
-
-  if (codeExchangeState.isLoading) {
-    return <LoadingContent />;
+  if (isExchanging) {
+    return <Loader message={'Logging you in'} />;
   }
 
   return (
@@ -194,23 +96,11 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
         link={`${appUrl.protocol}//${appUrl.host}`}
       />
       {error && <ErrorMessage message={error} />}
-      <div className="flex justify-center items-center">
-        <label
-          htmlFor="share-email"
-          className="flex justify-center items-center text-sm mb-4 cursor-pointer"
-        >
-          <Checkbox
-            onChange={() => {
-              setEmailPermissionGranted(!emailPermissionGranted);
-            }}
-            name="share-email"
-            id="share-email"
-            className="mr-2"
-            checked={emailPermissionGranted}
-          />
-          I agree to share my email with {devLicenseAlias}
-        </label>
-      </div>
+      <EmailPermissionCheckbox
+        isChecked={emailPermissionGranted}
+        onChange={() => setEmailPermissionGranted((curIsGranted) => !curIsGranted)}
+        devLicenseAlias={devLicenseAlias}
+      />
       <div
         onKeyDown={getKeyboardEventListener('Enter', handleEmailInputSubmit)}
         className="frame9 flex flex-col items-center gap-[10px]"
@@ -233,5 +123,3 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     </>
   );
 };
-
-export default EmailInput;
