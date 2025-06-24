@@ -3,14 +3,35 @@ import debounce from 'lodash/debounce';
 import { submitCodeExchange } from '../services';
 import { captureException } from '@sentry/react';
 
+const USED_CODES_KEY = 'used_oauth_codes';
+
+function getUsedCodes(): string[] {
+  const raw = sessionStorage.getItem(USED_CODES_KEY);
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+function markCodeAsUsed(code: string) {
+  const codes = getUsedCodes();
+  if (!codes.includes(code)) {
+    codes.push(code);
+    sessionStorage.setItem(USED_CODES_KEY, JSON.stringify(codes));
+  }
+}
+
+function isCodeUsed(code: string): boolean {
+  return getUsedCodes().includes(code);
+}
+
 const getAuthCodeFromSearchParams = () => {
   const urlParams = new URLSearchParams(window.location.search);
   return urlParams.get('code');
 };
 
-// TODO - this is being re-run after attempting with an error
-// ie if the user logs in with a different account or something
-// try to make sure that this doesn't get re-run.
 export const useOAuthCodeExchange = ({
   clientId,
   redirectUri,
@@ -47,7 +68,7 @@ export const useOAuthCodeExchange = ({
 
   useEffect(() => {
     const handleCodeExchange = async () => {
-      if (!code) {
+      if (!code || isCodeUsed(code)) {
         return;
       }
       try {
@@ -57,6 +78,7 @@ export const useOAuthCodeExchange = ({
           clientId,
           redirectUri,
         });
+        markCodeAsUsed(code);
         onSuccess(accessToken);
       } catch (err) {
         captureException(err);
