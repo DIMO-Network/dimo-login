@@ -1,20 +1,21 @@
-import React, { useCallback, useState } from 'react';
+import React, { useState } from 'react';
 
 import { ErrorMessage, Header, LegalNotice, Loader } from '../Shared';
 import { CachedEmail, EmailInputForm } from './';
-import { fetchUserDetails, getLoggedEmail, setEmailGranted } from '../../services';
-import { useAuthContext } from '../../context/AuthContext';
+import { getLoggedEmail, setEmailGranted } from '../../services';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
-import { UiStates } from '../../enums';
 import { useUIManager } from '../../context/UIManagerContext';
 import { decodeJwt } from '../../utils/jwtUtils';
-import { isValidEmail } from '../../utils/emailUtils';
+import { validateEmail } from '../../utils/emailUtils';
 import { getForceEmail } from '../../stores/AuthStateStore';
 import { getAppUrl } from '../../utils/urlHelpers';
 import { AuthProvider, getOAuthRedirectUri } from '../../utils/authUrls';
 import { getKeyboardEventListener, getSignInTitle } from '../../utils/uiUtils';
-import { useOAuthCodeExchange } from '../../hooks';
-import { useConstructOAuthUrl } from '../hooks/useConstructOAuthUrl';
+import {
+  useOAuthCodeExchange,
+  useConstructOAuthUrl,
+  useProcessEmailSubmission,
+} from '../../hooks';
 import { EmailPermissionCheckbox } from './EmailPermissionCheckbox';
 
 interface EmailInputProps {
@@ -22,44 +23,33 @@ interface EmailInputProps {
 }
 
 export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
-  const { setUser } = useAuthContext();
   const { clientId, devLicenseAlias } = useDevCredentials();
-  const { setUiState, error, setError, altTitle } = useUIManager();
+  const { error, setError, altTitle } = useUIManager();
   const [email, setEmail] = useState('');
   const [emailPermissionGranted, setEmailPermissionGranted] = useState(false);
   const [showInput, setShowInput] = useState(!getLoggedEmail(clientId));
   const forceEmail = getForceEmail();
   const appUrl = getAppUrl();
   const constructOAuthUrl = useConstructOAuthUrl();
+  const processEmailSubmission = useProcessEmailSubmission();
 
-  const processEmailSubmission = useCallback(
-    async (email: string) => {
-      if (!email || !clientId) return;
-      onSubmit(email);
-      const userExistsResult = await fetchUserDetails(email);
-      if (userExistsResult.success && userExistsResult.data.user) {
-        setUser(userExistsResult.data.user);
-        setUiState(UiStates.PASSKEY_LOGIN);
-        return true;
-      }
-      setUiState(UiStates.PASSKEY_GENERATOR, { setBack: true });
-      return false;
-    },
-    [clientId, onSubmit, setUiState, setUser],
-  );
+  const handleSuccessfulEmailSubmission = async (email: string) => {
+    onSubmit(email);
+    processEmailSubmission(email);
+  };
 
   const handleEmailInputSubmit = async () => {
     const emailToUse = String(email || getLoggedEmail(clientId));
-    if (!emailToUse || !isValidEmail(emailToUse)) {
-      setError('Please enter a valid email');
-      return;
-    }
-    if (forceEmail && !emailPermissionGranted) {
-      setError('Email sharing is required to proceed. Please check the box.');
-      return;
+    const validationError = validateEmail({
+      email: emailToUse,
+      emailPermissionGranted,
+      forceEmail,
+    });
+    if (validationError) {
+      return setError(validationError);
     }
     setEmailGranted(clientId, emailPermissionGranted);
-    await processEmailSubmission(emailToUse);
+    await handleSuccessfulEmailSubmission(emailToUse);
   };
 
   const handleSwitchAccount = () => {
@@ -82,7 +72,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       return setError('No email was found');
     }
     setEmail(decodedJwt.email);
-    await processEmailSubmission(decodedJwt.email);
+    await handleSuccessfulEmailSubmission(decodedJwt.email);
   };
 
   const { isExchanging } = useOAuthCodeExchange({

@@ -1,8 +1,8 @@
-import { useDevCredentials } from '../../context/DevCredentialsContext';
-import { useOracles } from '../../context/OraclesContext';
-import { useUIManager } from '../../context/UIManagerContext';
-import { AuthProvider, constructAuthUrl } from '../../utils/authUrls';
-import { UiStates } from '../../enums';
+import { useDevCredentials } from '../context/DevCredentialsContext';
+import { useOracles } from '../context/OraclesContext';
+import { useUIManager } from '../context/UIManagerContext';
+import { AuthProvider, constructAuthUrl } from '../utils/authUrls';
+import { UiStates } from '../enums';
 
 export const useConstructOAuthUrl = () => {
   const { clientId, redirectUri } = useDevCredentials();

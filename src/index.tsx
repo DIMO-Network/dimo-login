@@ -61,3 +61,4 @@ window.onload = () => {
     sendMessageToReferrer({ eventType: 'READY' });
   }, 500);
 };
+export { validateEmail } from './utils/emailUtils';
