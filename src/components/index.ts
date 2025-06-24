@@ -4,3 +4,4 @@ export * from './Connections';
 export * from './Icons';
 export * from './Shared';
 export * from './Vehicles';
+export { useConstructOAuthUrl } from './hooks/useConstructOAuthUrl';

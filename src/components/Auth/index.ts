@@ -6,3 +6,4 @@ export * from './OtpInput';
 export * from './PasskeyGeneration';
 export * from './SuccessPage';
 export * from './PasskeyLoginFail';
+export { EmailPermissionCheckbox } from './EmailPermissionCheckbox';
