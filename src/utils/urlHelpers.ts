@@ -27,7 +27,7 @@ export const getAppUrl = () => {
 
     return new URL(referrer || 'https://dimo.org');
   } catch (error) {
-    console.error('Failed to parse appUrl state:', error);
+    // console.error('Failed to parse appUrl state:', error);
     return new URL('https://dimo.org');
   }
 };

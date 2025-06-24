@@ -14,10 +14,10 @@ export const PasskeyLogin: FC = () => {
       await completePasskeyLogin();
     } catch (err) {
       if (err instanceof Error) {
-        if (err.name === 'NotAllowedError') {
-          setUiState(UiStates.PASSKEY_LOGIN_FAIL);
-          return;
-        }
+        // if (err.name === 'NotAllowedError') {
+        setUiState(UiStates.PASSKEY_LOGIN_FAIL);
+        return;
+        // }
       }
       setError('Failed to login with passkey');
       setUiState(UiStates.EMAIL_INPUT);

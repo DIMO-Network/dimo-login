@@ -109,39 +109,59 @@ export const submitCodeExchange = async ({
   clientId,
   code,
   redirectUri,
-}: SubmitCodeExchangeParams): Promise<SubmitChallengeResult> => {
-  try {
-    // Construct the body using URLSearchParams for form-urlencoded
-    const formBody = new URLSearchParams({
-      client_id: clientId,
-      code,
-      grant_type: 'authorization_code', // Fixed value
-      redirect_uri: redirectUri,
-    });
-
-    const response = await fetch(`${DIMO_AUTH_BASE_URL}/token`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: formBody, // Send the form-encoded body
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      return {
-        success: false,
-        error: errorData.message || 'Failed to submit challenge',
-      };
-    }
-
-    const data = await response.json();
-    return { success: true, data: { access_token: data.access_token } };
-  } catch (error) {
-    console.error('Error submitting web3 challenge:', error);
-    return {
-      success: false,
-      error: 'An error occurred while submitting challenge',
-    };
+}: SubmitCodeExchangeParams): Promise<string> => {
+  console.log('calling submitCodeExchange', clientId, code, redirectUri);
+  const formBody = new URLSearchParams({
+    client_id: clientId,
+    code,
+    grant_type: 'authorization_code',
+    redirect_uri: redirectUri,
+  });
+  const response = await fetch(`${DIMO_AUTH_BASE_URL}/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: formBody,
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    console.log('error', errorData);
+    throw new Error(errorData.message || 'Failed to exchange token');
   }
+  const data = await response.json();
+  return data.access_token;
+  // try {
+  //   // Construct the body using URLSearchParams for form-urlencoded
+  //   const formBody = new URLSearchParams({
+  //     client_id: clientId,
+  //     code,
+  //     grant_type: 'authorization_code', // Fixed value
+  //     redirect_uri: redirectUri,
+  //   });
+  //
+  //   const response = await fetch(`${DIMO_AUTH_BASE_URL}/token`, {
+  //     method: 'POST',
+  //     headers: {
+  //       'Content-Type': 'application/x-www-form-urlencoded',
+  //     },
+  //     body: formBody, // Send the form-encoded body
+  //   });
+  //
+  //   if (!response.ok) {
+  //     const errorData = await response.json();
+  //     console.log('ERROR HERE', errorData);
+  //     return {
+  //       success: false,
+  //       error: errorData.message || 'Failed to submit challenge',
+  //     };
+  //   }
+  //
+  //   const data = await response.json();
+  //   return { success: true, data: { access_token: data.access_token } };
+  // } catch (error) {
+  //   console.error('Error submitting web3 challenge:', error);
+  //   return {
+  //     success: false,
+  //     error: 'An error occurred while submitting challenge',
+  //   };
+  // }
 };

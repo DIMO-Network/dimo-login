@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import debounce from 'lodash/debounce';
 
-import { Checkbox, ErrorMessage, Header, LegalNotice, LoadingContent } from '../Shared';
+import { Checkbox, ErrorMessage, Header, LegalNotice, Loader } from '../Shared';
 import { CachedEmail, EmailInputForm } from './';
 import {
   fetchUserDetails,
-  setEmailGranted,
   getLoggedEmail,
+  setEmailGranted,
   submitCodeExchange,
 } from '../../services';
 import { useAuthContext } from '../../context/AuthContext';
@@ -24,6 +24,7 @@ import {
 } from '../../utils/authUrls';
 import { getKeyboardEventListener, getSignInTitle } from '../../utils/uiUtils';
 import { useOracles } from '../../context/OraclesContext';
+import { captureException } from '@sentry/react';
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;
@@ -31,23 +32,14 @@ interface EmailInputProps {
 
 export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   const { setUser } = useAuthContext();
-  const { clientId, devLicenseAlias, redirectUri } = useDevCredentials();
-  const { setUiState, error, setError, setComponentData, altTitle } = useUIManager();
-  const { onboardingEnabled } = useOracles();
+  const { clientId, devLicenseAlias } = useDevCredentials();
+  const { setUiState, error, setError, altTitle } = useUIManager();
   const [email, setEmail] = useState('');
   const [emailPermissionGranted, setEmailPermissionGranted] = useState(false);
-  const [codeExchangeState, setCodeExchangeState] = useState<{
-    isLoading: boolean;
-    error: string | null;
-    attempts: number;
-  }>({
-    isLoading: false,
-    error: null,
-    attempts: 0,
-  });
   const [showInput, setShowInput] = useState(!getLoggedEmail(clientId));
   const forceEmail = getForceEmail();
   const appUrl = getAppUrl();
+  const constructOAuthUrl = useConstructOAuthUrl();
 
   const processEmailSubmission = useCallback(
     async (email: string) => {
@@ -90,98 +82,27 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       setError('Email sharing is required to proceed. Please check the box.');
       return;
     }
-
-    const urlParams = new URLSearchParams(window.location.search);
-    window.location.href = constructAuthUrl({
-      provider,
-      clientId,
-      redirectUri,
-      entryState: UiStates.EMAIL_INPUT,
-      expirationDate: urlParams.get('expirationDate'),
-      permissionTemplateId: urlParams.get('permissionTemplateId'),
-      utm: urlParams.getAll('utm'),
-      vehicleMakes: urlParams.getAll('vehicleMakes'),
-      vehicles: urlParams.getAll('vehicles'),
-      powertrainTypes: urlParams.getAll('powertrainTypes'),
-      onboarding: onboardingEnabled ? ['tesla'] : [], //TODO: Should have full onboarding array here
-      altTitle,
-      emailPermissionGranted,
-    });
+    window.location.href = constructOAuthUrl(provider, emailPermissionGranted);
   };
 
-  const handleCodeExchangeError = useCallback(
-    (errorMsg: string) => {
-      setError(`Error doing code exchange: ${errorMsg}`);
-      setCodeExchangeState((prev) => ({
-        ...prev,
-        isLoading: false,
-        error: errorMsg,
-      }));
-    },
-    [setError],
-  );
+  const handleToken = async (token: string) => {
+    const decodedJwt = decodeJwt(token);
+    if (!decodedJwt?.email) {
+      return setError('No email was found');
+    }
+    setEmail(decodedJwt.email);
+    await processEmailSubmission(decodedJwt.email);
+  };
 
-  const handleCodeExchangeSuccess = useCallback(
-    async (email: string) => {
-      setEmail(email);
-      setComponentData({ emailValidated: email });
+  const { isExchanging } = useOAuthCodeExchange({
+    clientId: 'login-with-dimo',
+    redirectUri: getOAuthRedirectUri(),
+    onSuccess: (token) => handleToken(token),
+    onFailure: (error) => setError(error),
+  });
 
-      // purposely not resetting the loading state here because the UI becomes weird
-      // if it causes problems, revisit resetting it
-      setCodeExchangeState((prev) => ({
-        ...prev,
-        isLoading: false,
-        error: null,
-      }));
-      await processEmailSubmission(email);
-    },
-    [processEmailSubmission, setComponentData],
-  );
-
-  const handleOAuthCodeExchange = useCallback(
-    async (code: string) => {
-      setCodeExchangeState((prev) => ({
-        ...prev,
-        isLoading: true,
-        attempts: prev.attempts + 1,
-      }));
-      try {
-        const result = await submitCodeExchange({
-          clientId: 'login-with-dimo',
-          redirectUri: getOAuthRedirectUri(),
-          code,
-        });
-        if (!result.success) {
-          return handleCodeExchangeError(result.error);
-        }
-        const access_token = result.data.access_token;
-        const decodedJwt = decodeJwt(access_token);
-        if (!decodedJwt?.email) return handleCodeExchangeError('Failed to decode JWT');
-        await handleCodeExchangeSuccess(decodedJwt.email);
-      } catch (err: unknown) {
-        return handleCodeExchangeError((err as Error).message ?? 'unknown error');
-      }
-    },
-    [handleCodeExchangeError, handleCodeExchangeSuccess],
-  );
-
-  useEffect(() => {
-    const callback = debounce(() => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const codeFromUrl = urlParams.get('code');
-      if (!codeFromUrl) return;
-      if (!codeExchangeState.attempts) {
-        handleOAuthCodeExchange(codeFromUrl);
-      }
-    }, 500);
-    callback();
-    return () => {
-      callback.cancel();
-    };
-  }, [codeExchangeState.attempts, handleOAuthCodeExchange]);
-
-  if (codeExchangeState.isLoading) {
-    return <LoadingContent />;
+  if (isExchanging) {
+    return <Loader message={'Logging you in'} />;
   }
 
   return (
@@ -232,6 +153,101 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       </div>
     </>
   );
+};
+
+const getAuthCodeFromSearchParams = () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get('code');
+};
+
+const useConstructOAuthUrl = () => {
+  const { clientId, redirectUri } = useDevCredentials();
+  const { onboardingEnabled } = useOracles();
+  const { altTitle } = useUIManager();
+
+  return (provider: AuthProvider, emailPermissionGranted: boolean) => {
+    const urlParams = new URLSearchParams(window.location.search);
+    return constructAuthUrl({
+      provider,
+      clientId,
+      redirectUri,
+      entryState: UiStates.EMAIL_INPUT,
+      expirationDate: urlParams.get('expirationDate'),
+      permissionTemplateId: urlParams.get('permissionTemplateId'),
+      utm: urlParams.getAll('utm'),
+      vehicleMakes: urlParams.getAll('vehicleMakes'),
+      vehicles: urlParams.getAll('vehicles'),
+      powertrainTypes: urlParams.getAll('powertrainTypes'),
+      onboarding: onboardingEnabled ? ['tesla'] : [], //TODO: Should have full onboarding array here
+      altTitle,
+      emailPermissionGranted,
+    });
+  };
+};
+
+// TODO - this is being re-run after attempting with an error
+// ie if the user logs in with a different account or something
+// try to make sure that this doesn't get re-run.
+const useOAuthCodeExchange = ({
+  clientId,
+  redirectUri,
+  onSuccess,
+  onFailure,
+}: {
+  clientId: string;
+  redirectUri: string;
+  onSuccess: (token: string) => void;
+  onFailure: (reason: string) => void;
+}) => {
+  const [code, setCode] = useState<string | null>(null);
+  const [isExchanging, setIsExchanging] = useState(false);
+
+  useEffect(() => {
+    const callback = debounce(() => {
+      const authCode = getAuthCodeFromSearchParams();
+      if (!authCode) return;
+      setCode(authCode);
+    }, 500);
+    callback();
+    return () => {
+      callback.cancel();
+    };
+  }, []);
+
+  const handleFailure = (err: unknown) => {
+    let msg = 'Error submitting code exchange';
+    if (err instanceof Error) {
+      msg = err.message || msg;
+    }
+    onFailure(msg);
+  };
+
+  useEffect(() => {
+    const handleCodeExchange = async () => {
+      if (!code) {
+        return;
+      }
+      try {
+        setIsExchanging(true);
+        const accessToken = await submitCodeExchange({
+          code,
+          clientId,
+          redirectUri,
+        });
+        onSuccess(accessToken);
+      } catch (err) {
+        captureException(err);
+        handleFailure(err);
+      } finally {
+        setIsExchanging(false);
+      }
+    };
+    handleCodeExchange();
+  }, [code]);
+
+  return {
+    isExchanging,
+  };
 };
 
 export default EmailInput;

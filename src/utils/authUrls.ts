@@ -2,7 +2,7 @@ export enum AuthProvider {
   TESLA = 'tesla',
   GOOGLE = 'google',
   APPLE = 'apple',
-  CONNECT = 'connect'
+  CONNECT = 'connect',
 }
 
 interface AuthUrlParams {
@@ -91,9 +91,10 @@ function getTeslaAuthUrl(params: AuthUrlParams): string {
 }
 
 export const getOAuthRedirectUri = () => {
-  return process.env.REACT_APP_ENVIRONMENT === 'prod'
-    ? 'https://login.dimo.org'
-    : 'https://login.dev.dimo.org';
+  return 'http://127.0.0.1:3000';
+  // return process.env.REACT_APP_ENVIRONMENT === 'prod'
+  //   ? 'https://login.dimo.org'
+  //   : 'https://login.dev.dimo.org';
 };
 
 function getEmailAuthUrl(params: AuthUrlParams): string {
