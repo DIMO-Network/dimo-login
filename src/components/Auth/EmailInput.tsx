@@ -14,7 +14,7 @@ import { getKeyboardEventListener, getSignInTitle } from '../../utils/uiUtils';
 import {
   useOAuthCodeExchange,
   useConstructOAuthUrl,
-  useProcessEmailSubmission,
+  useGoToLoginOrSignUp,
 } from '../../hooks';
 import { EmailPermissionCheckbox } from './EmailPermissionCheckbox';
 
@@ -31,11 +31,11 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   const forceEmail = getForceEmail();
   const appUrl = getAppUrl();
   const constructOAuthUrl = useConstructOAuthUrl();
-  const processEmailSubmission = useProcessEmailSubmission();
+  const goToLoginOrSignUp = useGoToLoginOrSignUp();
 
   const handleSuccessfulEmailSubmission = async (email: string) => {
     onSubmit(email);
-    processEmailSubmission(email);
+    goToLoginOrSignUp(email);
   };
 
   const handleEmailInputSubmit = async () => {

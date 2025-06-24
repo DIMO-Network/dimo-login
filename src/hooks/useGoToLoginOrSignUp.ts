@@ -3,7 +3,7 @@ import { useUIManager } from '../context/UIManagerContext';
 import { fetchUserDetails } from '../services';
 import { UiStates } from '../enums';
 
-export const useProcessEmailSubmission = () => {
+export const useGoToLoginOrSignUp = () => {
   const { setUser } = useAuthContext();
   const { setUiState } = useUIManager();
 
