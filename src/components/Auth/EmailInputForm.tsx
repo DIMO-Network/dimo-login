@@ -16,31 +16,29 @@ export const EmailInputForm: React.FC<EmailInputFormProps> = ({
   onEmailChange,
   onContinue,
   onProviderAuth,
-}) => {
-  return (
-    <>
-      <input
-        type="email"
-        value={email}
-        onChange={(e) => onEmailChange(e.target.value)}
-        placeholder="Enter your email"
-        className="p-2 border border-gray-300 rounded-md w-full lg:w-[440px]"
+}) => (
+  <>
+    <input
+      type="email"
+      value={email}
+      onChange={(e) => onEmailChange(e.target.value)}
+      placeholder="Enter your email"
+      className="p-2 border border-gray-300 rounded-md w-full lg:w-[440px]"
+    />
+    <PrimaryButton onClick={onContinue} width="w-full lg:w-[440px]">
+      Continue
+    </PrimaryButton>
+    <div className="flex flex-wrap sm:flex-nowrap justify-between gap-3 w-full">
+      <SSOButton
+        onClick={() => onProviderAuth(AuthProvider.GOOGLE)}
+        icon={<GoogleIcon />}
+        text="Sign in with Google"
       />
-      <PrimaryButton onClick={onContinue} width="w-full lg:w-[440px]">
-        Continue
-      </PrimaryButton>
-      <div className="flex flex-wrap sm:flex-nowrap justify-between gap-3 w-full">
-        <SSOButton
-          onClick={() => onProviderAuth(AuthProvider.GOOGLE)}
-          icon={<GoogleIcon />}
-          text="Sign in with Google"
-        />
-        <SSOButton
-          onClick={() => onProviderAuth(AuthProvider.APPLE)}
-          icon={<AppleIcon />}
-          text="Sign in with Apple"
-        />
-      </div>
-    </>
-  );
-};
+      <SSOButton
+        onClick={() => onProviderAuth(AuthProvider.APPLE)}
+        icon={<AppleIcon />}
+        text="Sign in with Apple"
+      />
+    </div>
+  </>
+);
