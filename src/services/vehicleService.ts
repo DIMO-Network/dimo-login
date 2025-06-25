@@ -32,7 +32,7 @@ const getMakeMatch = (vehicle: LocalVehicle, makes?: string[]) => {
   });
 };
 
-const getPowertrainTypeMatchNew = async (
+const getPowertrainTypesMatch = async (
   vehicle: LocalVehicle,
   powertrainTypes?: string[],
 ) => {
@@ -47,7 +47,7 @@ export const checkIfFiltersMatch = async (
   const { vehicleTokenIds, vehicleMakes, powertrainTypes } = filters;
   const tokenIdMatch = getTokenIdMatch(vehicle, vehicleTokenIds);
   const makeMatch = getMakeMatch(vehicle, vehicleMakes);
-  const powertrainTypeMatch = await getPowertrainTypeMatchNew(vehicle, powertrainTypes);
+  const powertrainTypeMatch = await getPowertrainTypesMatch(vehicle, powertrainTypes);
   return tokenIdMatch && makeMatch && powertrainTypeMatch;
 };
 

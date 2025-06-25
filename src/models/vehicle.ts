@@ -83,7 +83,7 @@ export class LocalVehicle {
   }
 
   async getPowertrainTypeMatch(powertrainTypes: string[]): Promise<boolean> {
-    const result = await fetchDeviceDefinition(this.vehicleNode.definition.id);
+    const result = await fetchDeviceDefinition('tesla_model-3_2021');
     if (result.deviceDefinition.attributes) {
       const powertrainType = result.deviceDefinition.attributes?.find(
         (it) => it.name === 'powertrain_type',
