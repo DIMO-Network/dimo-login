@@ -6,6 +6,7 @@ export interface BaseParams {
   clientId: string;
   redirectUri: string;
   waitingForParams: boolean;
+  waitingForDevLicense: boolean;
   apiKey: string;
   utm: string;
   entryState?: UiStates;

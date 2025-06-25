@@ -36,13 +36,8 @@ import './App.css';
 
 const App = () => {
   const { setJwt, setUser, setUserInitialized, userInitialized } = useAuthContext();
-  const { clientId, devLicenseAlias, waitingForParams, ...params } = useDevCredentials();
-  const { uiState, setUiState, isLoading, entryState } = useUIManager() as {
-    uiState: keyof typeof componentMap;
-    setUiState: (state: UiStates) => void;
-    isLoading: boolean;
-    entryState: UiStates;
-  };
+  const { clientId, devLicenseAlias, ...params } = useDevCredentials();
+  const { uiState, setUiState, isLoading, entryState } = useUIManager();
   const [email, setEmail] = useState('');
 
   const { error } = useErrorHandler({
@@ -50,7 +45,6 @@ const App = () => {
     params: {
       clientId,
       devLicenseAlias,
-      waitingForParams,
       ...params,
     },
   });
@@ -68,7 +62,11 @@ const App = () => {
     }
   }, [clientId]);
 
-  if (error && !waitingForParams) {
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+
+  if (error && !isLoading) {
     return (
       <ErrorScreen
         title={error.title}
@@ -78,10 +76,6 @@ const App = () => {
         )}
       />
     );
-  }
-
-  if (isLoading || !userInitialized) {
-    return <LoadingScreen />;
   }
 
   const componentMap: Record<UiStates, React.ReactNode> = {
