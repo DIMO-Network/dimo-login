@@ -111,7 +111,6 @@ export const fetchVehicles = async (
   if (result.error) {
     throw new Error(result.error.message);
   }
-  console.log('RESULT DATA', result.data);
   return { data: result.data };
 };
 
@@ -144,27 +143,6 @@ export const fetchDeviceDefinition = async (
     throw new Error(result.error.message);
   }
   return result.data;
-};
-
-const getPowertrainTypeFromDeviceDefinition = (deviceDefinition: DeviceDefinition) => {
-  const attribute = deviceDefinition.attributes?.find(
-    (it) => it.name === 'powertrain_type',
-  );
-  return attribute?.value;
-};
-
-const normalize = (value?: string) => value?.toUpperCase();
-
-export const getPowertrainTypeMatch = async (vehicle: any, powertrainTypes: string[]) => {
-  const normalizedPowertrainTypes = powertrainTypes.map(normalize);
-  const queryResult = await fetchDeviceDefinition(vehicle.definition.id);
-  const normalizedPowertrainType = normalize(
-    getPowertrainTypeFromDeviceDefinition(queryResult.deviceDefinition),
-  );
-  return !!(
-    normalizedPowertrainType &&
-    normalizedPowertrainTypes.includes(normalizedPowertrainType)
-  );
 };
 
 export const getDeveloperLicense = async (clientId: string) => {

@@ -1,6 +1,6 @@
-import { Vehicle, VehicleResponse } from '../models/vehicle';
+import { LocalVehicle, Vehicle, VehicleResponse } from '../models/vehicle';
 import { formatDate } from '../utils/dateUtils';
-import { fetchVehicles, getPowertrainTypeMatch, VehicleNode } from './identityService';
+import { fetchVehicles, VehicleNode } from './identityService';
 
 interface VehicleFilters {
   vehicleTokenIds?: string[];
@@ -16,22 +16,38 @@ type IParams = {
   filters?: VehicleFilters;
 };
 
+const getTokenIdMatch = (vehicle: LocalVehicle, tokenIds?: string[]) => {
+  if (!tokenIds?.length) return true;
+  return tokenIds.some(function (tokenId: string) {
+    // must be an anon function instead of an arrow func
+    return vehicle.getTokenIdMatch(tokenId);
+  });
+};
+
+const getMakeMatch = (vehicle: LocalVehicle, makes?: string[]) => {
+  if (!makes?.length) return true;
+  return makes.some(function (make) {
+    // must be an anon function instead of an arrow func
+    return vehicle.getMakeMatch(make);
+  });
+};
+
+const getPowertrainTypeMatchNew = async (
+  vehicle: LocalVehicle,
+  powertrainTypes?: string[],
+) => {
+  if (!powertrainTypes?.length) return true;
+  return await vehicle.getPowertrainTypeMatch(powertrainTypes);
+};
+
 export const checkForCompatability = async (
-  vehicle: VehicleNode,
+  vehicle: LocalVehicle,
   filters: VehicleFilters,
 ) => {
   const { vehicleTokenIds, vehicleMakes, powertrainTypes } = filters;
-  const tokenIdMatch = vehicleTokenIds?.length
-    ? vehicleTokenIds.includes(vehicle.tokenId.toString())
-    : true;
-  const makeMatch = vehicleMakes?.length
-    ? vehicleMakes.some(
-        (make) => make.toUpperCase() === vehicle.definition.make.toUpperCase(),
-      )
-    : true;
-  const powertrainTypeMatch = powertrainTypes?.length
-    ? await getPowertrainTypeMatch(vehicle, powertrainTypes)
-    : true;
+  const tokenIdMatch = getTokenIdMatch(vehicle, vehicleTokenIds);
+  const makeMatch = getMakeMatch(vehicle, vehicleMakes);
+  const powertrainTypeMatch = await getPowertrainTypeMatchNew(vehicle, powertrainTypes);
   return tokenIdMatch && makeMatch && powertrainTypeMatch;
 };
 
@@ -59,7 +75,10 @@ export const fetchVehiclesWithTransformation = async (
 
   const data = await fetchVehicles({ ownerAddress, cursor, direction });
   for (const vehicle of data.data.vehicles.nodes) {
-    const isCompatible = await checkForCompatability(vehicle, filters);
+    const isCompatible = await checkForCompatability(
+      new LocalVehicle(vehicle, targetGrantee),
+      filters,
+    );
     const transformedVehicle = transformVehicle(vehicle, targetGrantee);
     if (isCompatible) {
       compatibleVehicles.push(transformedVehicle);
