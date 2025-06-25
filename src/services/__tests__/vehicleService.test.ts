@@ -17,6 +17,7 @@ beforeEach(() => {
           nodes: [
             {
               tokenId: 1,
+              imageURI: 'http://image.url',
               definition: {
                 id: 'tesla_model_3_2019',
                 make: 'Tesla',
@@ -29,6 +30,7 @@ beforeEach(() => {
             },
             {
               tokenId: 2,
+              imageURI: 'http://image.url',
               definition: {
                 id: 'ford_bronco_2023',
                 make: 'Ford',
@@ -79,9 +81,9 @@ it('Only returns vehicles that match the tokenIds', async () => {
     filters: { vehicleTokenIds: ['1'] },
   });
   expect(data.compatibleVehicles.length).toEqual(1);
-  expect(data.compatibleVehicles[0].tokenId).toEqual(1);
+  expect(data.compatibleVehicles[0].tokenId).toEqual('1');
   expect(data.incompatibleVehicles.length).toEqual(1);
-  expect(data.incompatibleVehicles[0].tokenId).toEqual(2);
+  expect(data.incompatibleVehicles[0].tokenId).toEqual('2');
 });
 it('Only returns vehicles that match the make', async () => {
   const data = await fetchVehiclesWithTransformation({
@@ -154,4 +156,39 @@ it('Returns no vehicles if there are no matching powertrain types', async () => 
   });
   expect(data.compatibleVehicles.length).toEqual(0);
   expect(data.incompatibleVehicles.length).toEqual(2);
+});
+it('Returns vehicles with the correct shape in compatible and incompatible arrays', async () => {
+  const data = await fetchVehiclesWithTransformation({
+    ownerAddress: 'address',
+    targetGrantee: 'grantee',
+    cursor: '',
+    direction: '',
+    filters: {},
+  });
+  data.compatibleVehicles.forEach((vehicle) => {
+    expect(vehicle).toEqual(
+      expect.objectContaining({
+        tokenId: expect.any(String),
+        imageURI: expect.anything(),
+        shared: expect.any(Boolean),
+        expiresAt: expect.any(String),
+        make: expect.any(String),
+        model: expect.any(String),
+        year: expect.any(Number),
+      }),
+    );
+  });
+  data.incompatibleVehicles.forEach((vehicle) => {
+    expect(vehicle).toEqual(
+      expect.objectContaining({
+        tokenId: expect.any(String),
+        imageURI: expect.anything(),
+        shared: expect.any(Boolean),
+        expiresAt: expect.any(String),
+        make: expect.any(String),
+        model: expect.any(String),
+        year: expect.any(Number),
+      }),
+    );
+  });
 });

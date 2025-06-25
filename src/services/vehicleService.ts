@@ -1,62 +1,67 @@
 import { Vehicle, VehicleResponse } from '../models/vehicle';
 import { formatDate } from '../utils/dateUtils';
-import { fetchVehicles, getPowertrainTypeMatch } from './identityService';
+import { fetchVehicles, getPowertrainTypeMatch, VehicleNode } from './identityService';
+
+interface VehicleFilters {
+  vehicleTokenIds?: string[];
+  vehicleMakes?: string[];
+  powertrainTypes?: string[];
+}
 
 type IParams = {
   ownerAddress: string;
   targetGrantee: string;
   cursor: string;
   direction: string;
-  filters?: {
-    vehicleTokenIds?: string[];
-    vehicleMakes?: string[];
-    powertrainTypes?: string[];
+  filters?: VehicleFilters;
+};
+
+export const checkForCompatability = async (
+  vehicle: VehicleNode,
+  filters: VehicleFilters,
+) => {
+  const { vehicleTokenIds, vehicleMakes, powertrainTypes } = filters;
+  const tokenIdMatch = vehicleTokenIds?.length
+    ? vehicleTokenIds.includes(vehicle.tokenId.toString())
+    : true;
+  const makeMatch = vehicleMakes?.length
+    ? vehicleMakes.some(
+        (make) => make.toUpperCase() === vehicle.definition.make.toUpperCase(),
+      )
+    : true;
+  const powertrainTypeMatch = powertrainTypes?.length
+    ? await getPowertrainTypeMatch(vehicle, powertrainTypes)
+    : true;
+  return tokenIdMatch && makeMatch && powertrainTypeMatch;
+};
+
+const transformVehicle = (vehicle: VehicleNode, targetGrantee: string) => {
+  const sacdForGrantee = vehicle.sacds.nodes.find(
+    (sacd: any) => sacd.grantee === targetGrantee,
+  );
+  return {
+    tokenId: vehicle.tokenId.toString(),
+    imageURI: vehicle.imageURI,
+    shared: Boolean(sacdForGrantee),
+    expiresAt: sacdForGrantee ? formatDate(sacdForGrantee.expiresAt) : '',
+    make: vehicle.definition.make,
+    model: vehicle.definition.model,
+    year: vehicle.definition.year,
   };
 };
 
 export const fetchVehiclesWithTransformation = async (
   params: IParams,
 ): Promise<VehicleResponse> => {
-  const {
-    ownerAddress,
-    targetGrantee,
-    cursor,
-    direction,
-    filters: { vehicleTokenIds, vehicleMakes, powertrainTypes } = {},
-  } = params;
-  const data = await fetchVehicles({ ownerAddress, cursor, direction });
+  const { ownerAddress, targetGrantee, cursor, direction, filters = {} } = params;
   const compatibleVehicles: Vehicle[] = [];
   const incompatibleVehicles: Vehicle[] = [];
+
+  const data = await fetchVehicles({ ownerAddress, cursor, direction });
   for (const vehicle of data.data.vehicles.nodes) {
-    const tokenIdMatch = vehicleTokenIds?.length
-      ? vehicleTokenIds.includes(vehicle.tokenId.toString())
-      : true;
-
-    const makeMatch = vehicleMakes?.length
-      ? vehicleMakes.some(
-          (make) => make.toUpperCase() === vehicle.definition.make.toUpperCase(),
-        )
-      : true;
-    const powertrainTypeMatch = powertrainTypes?.length
-      ? await getPowertrainTypeMatch(vehicle, powertrainTypes)
-      : true;
-
-    const sacdForGrantee = vehicle.sacds.nodes.find(
-      (sacd: any) => sacd.grantee === targetGrantee,
-    );
-
-    const transformedVehicle = {
-      tokenId: vehicle.tokenId,
-      imageURI: vehicle.imageURI,
-      shared: Boolean(sacdForGrantee),
-      expiresAt: sacdForGrantee ? formatDate(sacdForGrantee.expiresAt) : '',
-      make: vehicle.definition.make,
-      model: vehicle.definition.model,
-      year: vehicle.definition.year,
-    };
-
-    // Add to compatible or incompatible based on the conditions
-    if (tokenIdMatch && makeMatch && powertrainTypeMatch) {
+    const isCompatible = await checkForCompatability(vehicle, filters);
+    const transformedVehicle = transformVehicle(vehicle, targetGrantee);
+    if (isCompatible) {
       compatibleVehicles.push(transformedVehicle);
     } else {
       incompatibleVehicles.push(transformedVehicle);

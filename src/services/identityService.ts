@@ -18,15 +18,21 @@ type IFetchVehicleParams = {
   direction: string;
 };
 
-export const fetchVehicles = async (params: IFetchVehicleParams) => {
-  const { ownerAddress, direction, cursor } = params;
-  const query = `
-  {
-    vehicles(filterBy: { owner: "${ownerAddress}" }, ${
-      direction === 'next'
-        ? `first: 100 ${cursor ? `, after: "${cursor}"` : ''}`
-        : `last: 100 ${cursor ? `, before: "${cursor}"` : ''}`
-    }) {
+const GET_VEHICLES = gql`
+  query GetVehicles(
+    $owner: Address!
+    $first: Int
+    $after: String
+    $last: Int
+    $before: String
+  ) {
+    vehicles(
+      filterBy: { owner: $owner }
+      first: $first
+      after: $after
+      last: $last
+      before: $before
+    ) {
       nodes {
         tokenId
         imageURI
@@ -47,20 +53,66 @@ export const fetchVehicles = async (params: IFetchVehicleParams) => {
         hasNextPage
         endCursor
         hasPreviousPage
-        startCursor        
+        startCursor
       }
     }
   }
 `;
 
-  const response = await fetch(GRAPHQL_ENDPOINT, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ query }),
+export type VehicleNode = {
+  tokenId: number;
+  imageURI: string;
+  definition: {
+    id: string;
+    make: string;
+    model: string;
+    year: number;
+  };
+  sacds: {
+    nodes: {
+      expiresAt: string;
+      grantee: string;
+    }[];
+  };
+};
+
+type VehiclesQueryResult = {
+  vehicles: {
+    nodes: VehicleNode[];
+    pageInfo: {
+      hasNextPage: boolean;
+      endCursor: string;
+      hasPreviousPage: boolean;
+      startCursor: string;
+    };
+  };
+};
+
+export const fetchVehicles = async (
+  params: IFetchVehicleParams,
+): Promise<{ data: VehiclesQueryResult }> => {
+  const { ownerAddress, direction, cursor } = params;
+  const variables: Record<string, any> = {
+    owner: ownerAddress,
+  };
+  if (direction === 'next') {
+    variables.first = 100;
+    if (cursor) variables.after = cursor;
+  } else {
+    variables.last = 100;
+    if (cursor) variables.before = cursor;
+  }
+
+  const result = await apolloClient.query<{ vehicles: VehiclesQueryResult['vehicles'] }>({
+    query: GET_VEHICLES,
+    variables,
+    fetchPolicy: 'network-only',
   });
-  return await response.json();
+  if (result.error) {
+    throw new Error(result.error.message);
+  }
+  console.log('RESULT DATA', result.data);
+  return { data: result.data };
 };
 
 const GET_DEVICE_DEFINITION_BY_ID = gql(`
@@ -81,7 +133,6 @@ type DeviceDefinition = {
   attributes?: { name: string; value: string }[] | null;
 };
 
-// TODO - ensure that this only gets called once per device definition ID
 export const fetchDeviceDefinition = async (
   deviceDefinitionId: string,
 ): Promise<GetDeviceDefinitionByIdQueryResult> => {
