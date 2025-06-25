@@ -47,6 +47,14 @@ export class LocalVehicle {
     return make.toLowerCase() === this.vehicleNode.definition.make.toLowerCase();
   }
 
+  get tokenId() {
+    return this.vehicleNode.tokenId;
+  }
+
+  get imageURI(): string {
+    return this.vehicleNode.imageURI;
+  }
+
   get make() {
     return this.vehicleNode.definition.make;
   }
