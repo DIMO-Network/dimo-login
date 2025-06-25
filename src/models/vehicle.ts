@@ -1,7 +1,7 @@
 import { fetchDeviceDefinition, VehicleNode } from '../services';
 
 export interface Vehicle {
-  tokenId: string;
+  tokenId: number;
   imageURI: string;
   make: string;
   model: string;

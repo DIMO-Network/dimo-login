@@ -53,7 +53,7 @@ export const checkForCompatability = async (
 
 const transformVehicle = (vehicle: LocalVehicle) => {
   return {
-    tokenId: vehicle.tokenId.toString(),
+    tokenId: vehicle.tokenId,
     imageURI: vehicle.imageURI,
     shared: vehicle.isShared,
     expiresAt: vehicle.expiresAt ? formatDate(vehicle.expiresAt) : '',
