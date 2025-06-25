@@ -209,6 +209,16 @@ export const SelectVehicles: React.FC = () => {
     setSelectedVehicles(allSelected ? [] : nonSharedVehicles);
   };
 
+  const onNext = () => {
+    setVehiclesLoading(true);
+    fetchVehicles();
+  };
+
+  const onPrevious = () => {
+    setVehiclesLoading(true);
+    fetchVehicles('previous');
+  };
+
   const noVehicles = vehicles.length === 0 && incompatibleVehicles.length === 0;
   const noCompatibleVehicles = vehicles.length === 0 && incompatibleVehicles.length > 0;
   const allShared = vehicles.length > 0 && vehicles.every((v) => v.shared);
@@ -218,16 +228,7 @@ export const SelectVehicles: React.FC = () => {
     <div className="flex flex-col w-full items-center justify-center box-border overflow-y-auto">
       {noVehicles && !vehiclesLoading && <EmptyState />}
 
-      {allShared && (
-        <div className="flex flex-col items-center">
-          <h2 className="text-gray-500 text-xl font-medium pt-2">
-            All vehicles have been shared
-          </h2>
-          <p className="text-sm">
-            You have already shared all your vehicles with {devLicenseAlias}.
-          </p>
-        </div>
-      )}
+      {allShared && <AllVehiclesShared devLicenseAlias={devLicenseAlias} />}
 
       {vehiclesLoading ? (
         <ConnectedLoader />
@@ -288,33 +289,12 @@ export const SelectVehicles: React.FC = () => {
             </>
           )}
 
-          {/* Pagination Buttons */}
-          {(hasNextPage || hasPreviousPage) && (
-            <div className="flex justify-center space-x-4 mt-4">
-              {hasPreviousPage && (
-                <PrimaryButton
-                  onClick={() => {
-                    setVehiclesLoading(true);
-                    fetchVehicles('previous');
-                  }}
-                  width="w-[214px]"
-                >
-                  Back
-                </PrimaryButton>
-              )}
-              {hasNextPage && (
-                <PrimaryButton
-                  onClick={() => {
-                    setVehiclesLoading(true);
-                    fetchVehicles();
-                  }}
-                  width="w-[214px]"
-                >
-                  Next
-                </PrimaryButton>
-              )}
-            </div>
-          )}
+          <PaginationButtons
+            hasNext={hasNextPage}
+            hasPrevious={hasPreviousPage}
+            onNext={onNext}
+            onPrevious={onPrevious}
+          />
         </div>
       )}
 
@@ -341,6 +321,49 @@ export const SelectVehicles: React.FC = () => {
           </>
         )}
       </div>
+    </div>
+  );
+};
+
+const PaginationButtons = ({
+  hasNext,
+  hasPrevious,
+  onPrevious,
+  onNext,
+}: {
+  hasNext: boolean;
+  hasPrevious: boolean;
+  onNext: () => void;
+  onPrevious: () => void;
+}) => {
+  if (!(hasNext || hasPrevious)) {
+    return null;
+  }
+  return (
+    <div className="flex justify-center space-x-4 mt-4">
+      {hasPrevious && (
+        <PrimaryButton onClick={onPrevious} width="w-[214px]">
+          Back
+        </PrimaryButton>
+      )}
+      {hasNext && (
+        <PrimaryButton onClick={onNext} width="w-[214px]">
+          Next
+        </PrimaryButton>
+      )}
+    </div>
+  );
+};
+
+const AllVehiclesShared = ({ devLicenseAlias }: { devLicenseAlias: string }) => {
+  return (
+    <div className="flex flex-col items-center">
+      <h2 className="text-gray-500 text-xl font-medium pt-2">
+        All vehicles have been shared
+      </h2>
+      <p className="text-sm">
+        You have already shared all your vehicles with {devLicenseAlias}.
+      </p>
     </div>
   );
 };
