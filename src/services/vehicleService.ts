@@ -40,7 +40,7 @@ const getPowertrainTypeMatchNew = async (
   return await vehicle.getPowertrainTypeMatch(powertrainTypes);
 };
 
-export const checkForCompatability = async (
+export const checkIfFiltersMatch = async (
   vehicle: LocalVehicle,
   filters: VehicleFilters,
 ) => {
@@ -73,7 +73,7 @@ const transformAndSortVehicles = async (
 
   for (const vehicle of vehicles) {
     const localVehicle = new LocalVehicle(vehicle, targetGrantee);
-    const isCompatible = await checkForCompatability(localVehicle, filters);
+    const isCompatible = await checkIfFiltersMatch(localVehicle, filters);
     const transformedVehicle = transformVehicle(localVehicle);
     if (isCompatible) {
       compatibleVehicles.push(transformedVehicle);
