@@ -1,61 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 
-import PrimaryButton from '../Shared/PrimaryButton';
-import Header from '../Shared/Header';
-import ErrorMessage from '../Shared/ErrorMessage';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { useAuthContext } from '../../context/AuthContext';
 import { executeAdvancedTransaction } from '../../services/turnkeyService';
-import ErrorScreen from '../Shared/ErrorScreen';
 import { sendTxnResponseToParent } from '../../utils/txnUtils';
 import { sendErrorToParent } from '../../utils/errorUtils';
-import { TransactionData } from '@dimo-network/transactions';
-import { sendMessageToReferrer } from '../../utils/messageHandler';
-import { UiStates, useUIManager } from '../../context/UIManagerContext';
+import { UiStates } from '../../enums';
+import { useUIManager } from '../../context/UIManagerContext';
+import { ErrorMessage, Header, PrimaryButton } from '../Shared';
 
 export const AdvancedTransaction: React.FC = () => {
-  const { redirectUri, utm } = useDevCredentials();
+  const { redirectUri, utm, transactionData } = useDevCredentials();
   const { setUiState, setComponentData, setLoadingState, error, setError } =
     useUIManager();
   const { jwt, validateSession } = useAuthContext();
-
-  const [transactionData, setTransactionData] = useState<TransactionData | undefined>();
-
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const transactionDataFromUrl = urlParams.get('transactionData');
-
-    if (transactionDataFromUrl != null) {
-      try {
-        const parsedTransactionData = JSON.parse(
-          decodeURIComponent(transactionDataFromUrl),
-        );
-
-        setTransactionData(parsedTransactionData);
-      } catch (error) {
-        console.error('Failed to parse transactionData:', error);
-      }
-    } else {
-      sendMessageToReferrer({ eventType: 'EXECUTE_ADVANCED_TRANSACTION' }); //Requests Data from SDK
-
-      const handleMessage = (event: MessageEvent) => {
-        const { eventType, transactionData } = event.data;
-        if (eventType === 'EXECUTE_ADVANCED_TRANSACTION') {
-          setTransactionData(transactionData);
-        }
-      };
-      window.addEventListener('message', handleMessage);
-    }
-  }, []);
-
-  if (!transactionData) {
-    return (
-      <ErrorScreen
-        title="Missing Transaction Data"
-        message="ABI not supported in URL. Please contact developer"
-      />
-    );
-  }
 
   const onApprove = async () => {
     setLoadingState(true, 'Executing Transaction', true);
@@ -66,10 +24,10 @@ export const AdvancedTransaction: React.FC = () => {
         return;
       }
       const receipt = await executeAdvancedTransaction(
-        transactionData.abi,
-        transactionData.functionName,
-        transactionData.args,
-        transactionData.value,
+        transactionData!.abi,
+        transactionData!.functionName,
+        transactionData!.args,
+        transactionData!.value,
       );
 
       //Send transaction hash to developer, and show user successful txn
@@ -89,7 +47,7 @@ export const AdvancedTransaction: React.FC = () => {
   const onReject = async () => {
     //This will send the message, and close the winodw
     //Doesn't currently handle redirecting
-    sendErrorToParent(`User Rejected the Transaction`, redirectUri!, utm, setUiState);
+    sendErrorToParent(`User Rejected the Transaction`, redirectUri, utm, setUiState);
   };
 
   return (
@@ -114,12 +72,12 @@ export const AdvancedTransaction: React.FC = () => {
 
       <div className="flex flex-col w-full gap-[8px] rounded-md text-sm">
         <p className="text-gray-600">ADDRESS:</p>
-        <p className="text-gray-600">{transactionData?.address}</p>
+        <p className="text-gray-600">{transactionData!.address}</p>
 
-        {transactionData.value && (
+        {transactionData!.value && (
           <>
             <p className="text-gray-600">VALUE:</p>
-            <p className="text-gray-600">{transactionData?.value?.toString()}</p>
+            <p className="text-gray-600">{transactionData!.value?.toString()}</p>
           </>
         )}
       </div>

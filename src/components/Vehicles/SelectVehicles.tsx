@@ -18,29 +18,27 @@ import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { getPermsValue } from '../../services/permissionsService';
 import PrimaryButton from '../Shared/PrimaryButton';
 import { backToThirdParty } from '../../utils/messageHandler';
-import { UiStates, useUIManager } from '../../context/UIManagerContext';
+import { UiStates } from '../../enums';
+import { useUIManager } from '../../context/UIManagerContext';
 import { ConnectedLoader } from '../Shared/Loader';
 import { EmptyState } from './EmptyState';
 import { ConnectCarButton } from '../Shared/ConnectCarButton';
 import { fetchVehiclesWithTransformation } from '../../services/vehicleService';
+import { VehicleManagerMandatoryParams } from '../../types/params';
 
-interface SelectVehiclesProps {
-  vehicleTokenIds: string[] | undefined; // Adjust the type based on your data
-  permissionTemplateId: string; // Adjust the type if necessary
-  vehicleMakes: string[] | undefined; // Adjust the type if necessary
-  expirationDate: BigInt;
-  powertrainTypes?: string[];
-}
-
-export const SelectVehicles: React.FC<SelectVehiclesProps> = ({
-  vehicleTokenIds,
-  permissionTemplateId,
-  vehicleMakes,
-  expirationDate,
-  powertrainTypes,
-}) => {
+export const SelectVehicles: React.FC = () => {
   const { user, jwt, validateSession } = useAuthContext();
-  const { clientId, redirectUri, utm, devLicenseAlias } = useDevCredentials();
+  const {
+    clientId,
+    redirectUri,
+    utm,
+    devLicenseAlias,
+    vehicleTokenIds,
+    vehicleMakes,
+    powertrainTypes,
+    expirationDate,
+    permissionTemplateId,
+  } = useDevCredentials<VehicleManagerMandatoryParams>();
   const { setUiState, setComponentData, setLoadingState, componentData, setError } =
     useUIManager();
   const [vehiclesLoading, setVehiclesLoading] = useState(true);

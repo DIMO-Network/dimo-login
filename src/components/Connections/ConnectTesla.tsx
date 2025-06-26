@@ -9,7 +9,8 @@ import {
   MintingStep,
 } from '../Shared';
 import { AuthProvider } from '../../utils/authUrls';
-import { UiStates, useUIManager } from '../../context/UIManagerContext';
+import { UiStates } from '../../enums';
+import { useUIManager } from '../../context/UIManagerContext';
 import { getAppUrl } from '../../utils/urlHelpers';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { constructAuthUrl } from '../../utils/authUrls';

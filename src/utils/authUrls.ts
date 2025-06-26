@@ -2,7 +2,7 @@ export enum AuthProvider {
   TESLA = 'tesla',
   GOOGLE = 'google',
   APPLE = 'apple',
-  CONNECT = 'connect'
+  CONNECT = 'connect',
 }
 
 interface AuthUrlParams {

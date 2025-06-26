@@ -3,7 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { initializeSession } from './services/sessionService';
 import { useAuthContext } from './context/AuthContext';
 import { useDevCredentials } from './context/DevCredentialsContext';
-import { UiStates, useUIManager } from './context/UIManagerContext';
+import { UiStates } from './enums';
+import { useUIManager } from './context/UIManagerContext';
+import { getValidationsForState } from './validations';
 
 import {
   AdvancedTransaction,
@@ -26,16 +28,26 @@ import {
   Logout,
 } from './components';
 import { Card } from './components/Shared/Card';
-
-import './App.css';
+import { useErrorHandler } from './hooks/useErrorHandler';
 import { PasskeyLogin } from './components/Auth/PasskeyLogin';
 import { PasskeyLoginFail } from './components/Auth/PasskeyLoginFail';
 
+import './App.css';
+
 const App = () => {
-  const { setJwt, setUser, setUserInitialized, userInitialized } = useAuthContext();
-  const { clientId, apiKey, redirectUri, invalidCredentials } = useDevCredentials();
+  const { setJwt, setUser, setUserInitialized } = useAuthContext();
+  const { clientId, devLicenseAlias, ...params } = useDevCredentials();
+  const { uiState, setUiState, isLoading, entryState } = useUIManager();
   const [email, setEmail] = useState('');
-  const { uiState, setUiState, isLoading } = useUIManager();
+
+  const { error } = useErrorHandler({
+    customValidations: getValidationsForState(entryState || ''),
+    params: {
+      clientId,
+      devLicenseAlias,
+      ...params,
+    },
+  });
 
   useEffect(() => {
     if (clientId) {
@@ -48,33 +60,26 @@ const App = () => {
         setUserInitialized,
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId]);
 
-  if (isLoading || !userInitialized) {
+  if (isLoading) {
     return <LoadingScreen />;
   }
 
-  if (invalidCredentials) {
+  if (error && !isLoading) {
     return (
       <ErrorScreen
-        title="Invalid App Credentials"
-        message="We're sorry, but it looks like there’s an issue with the app's credentials. This may be due to an invalid setup or unregistered access. Please reach out to the app's support team for assistance."
+        title={error.title}
+        message={error.message.replace(
+          '<license_alias>',
+          devLicenseAlias || 'the application developer',
+        )}
       />
     );
   }
 
-  if (!clientId || !apiKey || !redirectUri) {
-    return (
-      <ErrorScreen
-        title="Missing Credentials"
-        message="Please check the configuration and reload the page."
-      />
-    );
-  }
-
-  const componentMap: {
-    [key in UiStates]: React.ReactNode;
-  } = {
+  const componentMap: Record<UiStates, React.ReactNode> = {
     [UiStates.EMAIL_INPUT]: <EmailInput onSubmit={setEmail} />,
     [UiStates.PASSKEY_LOGIN]: <PasskeyLogin />,
     [UiStates.OTP_INPUT]: <OtpInput email={email} />,

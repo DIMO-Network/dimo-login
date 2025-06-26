@@ -1,7 +1,8 @@
 import React from 'react';
 
 import { Vehicle } from '../../models/vehicle';
-import { UiStates, useUIManager } from '../../context/UIManagerContext';
+import { UiStates } from '../../enums';
+import { useUIManager } from '../../context/UIManagerContext';
 import { Checkbox } from '../Shared/Checkbox';
 
 interface VehicleCardProps {

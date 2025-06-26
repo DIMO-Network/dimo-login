@@ -1,6 +1,7 @@
 import { type FC } from 'react';
 import { PlusIcon } from '../Icons';
-import { UiStates, useUIManager } from '../../context/UIManagerContext';
+import { UiStates } from '../../enums';
+import { useUIManager } from '../../context/UIManagerContext';
 import { useOracles } from '../../context/OraclesContext';
 
 export const ConnectCarButton: FC = () => {

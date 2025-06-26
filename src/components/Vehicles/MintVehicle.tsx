@@ -1,7 +1,8 @@
 import { useEffect, type FC } from 'react';
 
 import VehicleThumbnail from '../../assets/images/vehicle-thumbnail.png';
-import { UiStates, useUIManager } from '../../context/UIManagerContext';
+import { UiStates } from '../../enums';
+import { useUIManager } from '../../context/UIManagerContext';
 import { useAuthContext } from '../../context/AuthContext';
 import { generateIpfsSources, getKernelSigner } from '../../services/turnkeyService';
 import { SimpleResult } from '../../models/resultTypes';

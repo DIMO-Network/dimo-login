@@ -1,6 +1,7 @@
 import { UserObject } from '../models/user';
+import { jwtDecode } from 'jwt-decode';
 
-const DEFAULT_COOKIE_EXPIRATION_DAYS = 14; // Default expiration for cookies is 2 weeks
+const DEFAULT_COOKIE_EXPIRATION_DAYS = 14;
 
 export const storeJWTInCookies = (clientId: string, jwt: string): void => {
   document.cookie = createCookieString(`auth_token_${clientId}`, jwt);
@@ -8,11 +9,20 @@ export const storeJWTInCookies = (clientId: string, jwt: string): void => {
 
 export const TurnkeySessionKey = 'turnkey_session';
 
-const createCookieString = (name: string, value: string): string => {
-  const expirationDate = new Date();
-  expirationDate.setDate(expirationDate.getDate() + DEFAULT_COOKIE_EXPIRATION_DAYS);
+const getExpiration = (jwt: string) => {
+  let expirationDate = new Date();
+  const decoded = jwtDecode(jwt);
+  if (decoded.exp) {
+    expirationDate = new Date(decoded.exp * 1000);
+  } else {
+    expirationDate.setDate(expirationDate.getDate() + DEFAULT_COOKIE_EXPIRATION_DAYS);
+  }
+  return expirationDate;
+};
 
-  let cookieString = `${name}=${value}; expires=${expirationDate.toUTCString()}; path=/`;
+const createCookieString = (name: string, jwt: string): string => {
+  const expires = getExpiration(jwt);
+  let cookieString = `${name}=${jwt}; expires=${expires.toUTCString()}; path=/`;
   if (window.location.hostname !== 'localhost') {
     cookieString += '; SameSite=None; Secure';
   }

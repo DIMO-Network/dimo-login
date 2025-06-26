@@ -1,4 +1,4 @@
-import { UiStates } from '../context/UIManagerContext';
+import { UiStates } from '../enums';
 import { backToThirdParty, sendMessageToReferrer } from './messageHandler';
 
 export function sendErrorToParent(
