@@ -13,7 +13,7 @@ export const useSendAuthPayloadToParent = () => {
 
   return (
     extraPayload: Partial<AuthPayload> | null,
-    handleNavigation: (authPayload: any) => void,
+    onSuccess: (authPayload: any) => void,
   ) => {
     if (jwt && redirectUri && clientId) {
       const authPayloadWithVehicles = {
@@ -21,7 +21,7 @@ export const useSendAuthPayloadToParent = () => {
         ...extraPayload,
       };
       sendAuthPayloadToParent(authPayloadWithVehicles, redirectUri, () =>
-        handleNavigation(authPayloadWithVehicles),
+        onSuccess(authPayloadWithVehicles),
       );
     }
   };
