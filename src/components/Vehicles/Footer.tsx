@@ -3,12 +3,12 @@ import PrimaryButton from '../Shared/PrimaryButton';
 
 const Footer = ({
   canShare,
-  onContinue,
+  onCancel,
   onShare,
   selectedVehiclesCount,
 }: {
   canShare: boolean;
-  onContinue: () => void;
+  onCancel: () => void;
   onShare: () => void;
   selectedVehiclesCount: number;
 }) => {
@@ -18,11 +18,11 @@ const Footer = ({
         canShare ? 'justify-between' : 'justify-center'
       } w-full max-w-[440px] pt-4`}
     >
-      {!canShare && <PrimaryButton onClick={onContinue}>Continue</PrimaryButton>}
+      {!canShare && <PrimaryButton onClick={onCancel}>Continue</PrimaryButton>}
       {canShare && (
         <>
           <button
-            onClick={onContinue}
+            onClick={onCancel}
             className="bg-white font-medium text-[#09090B] border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500"
           >
             Cancel
@@ -36,4 +36,4 @@ const Footer = ({
   );
 };
 
-export default Footer; 
+export default Footer;

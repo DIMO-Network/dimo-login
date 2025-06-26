@@ -1,156 +1,132 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 
-import {
-  SetVehiclePermissions,
-  SetVehiclePermissionsBulk,
-} from '@dimo-network/transactions';
-
-import VehicleCard from './VehicleCard';
 import { useAuthContext } from '../../context/AuthContext';
 import { Vehicle } from '../../models/vehicle';
 import {
-  generateIpfsSources,
-  setVehiclePermissions,
-  setVehiclePermissionsBulk,
-} from '../../services/turnkeyService';
-import { buildAuthPayload, sendAuthPayloadToParent } from '../../utils/authUtils';
+  AuthPayload,
+  buildAuthPayload,
+  sendAuthPayloadToParent,
+} from '../../utils/authUtils';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
-import { getPermsValue } from '../../services/permissionsService';
-import PrimaryButton from '../Shared/PrimaryButton';
 import { backToThirdParty } from '../../utils/messageHandler';
-import { UiStates } from '../../enums';
 import { useUIManager } from '../../context/UIManagerContext';
 import { ConnectedLoader } from '../Shared/Loader';
 import { EmptyState } from './EmptyState';
-import { ConnectCarButton } from '../Shared/ConnectCarButton';
-import { fetchVehiclesWithTransformation } from '../../services/vehicleService';
-import { VehicleManagerMandatoryParams } from '../../types/params';
+import { VehicleManagerMandatoryParams } from '../../types';
 import CompatibleVehicles from './CompatibleVehicles';
 import IncompatibleVehicles from './IncompatibleVehicles';
 import Footer from './Footer';
 import useSelectVehicles from '../../hooks/useSelectVehicles';
-import useFetchVehicles from '../../hooks/useFetchVehicles';
+import { useFetchVehicles, useShareVehicles } from '../../hooks';
+import PaginationButtons from './PaginationButtons';
+import { AllVehiclesShared } from './AllVehiclesShared';
+import { captureException } from '@sentry/react';
+import { UiStates } from '../../enums';
 
-export const SelectVehicles: React.FC = () => {
-  const { user, jwt, validateSession } = useAuthContext();
-  const {
-    clientId,
-    redirectUri,
-    utm,
-    devLicenseAlias,
-    expirationDate,
-    permissionTemplateId,
-  } = useDevCredentials<VehicleManagerMandatoryParams>();
-  const { setUiState, setComponentData, setLoadingState, componentData, setError } =
-    useUIManager();
-  const [vehiclesLoading, setVehiclesLoading] = useState(true);
+const useSendAuthPayloadToParent = () => {
+  const { user, jwt } = useAuthContext();
+  const { clientId, redirectUri } = useDevCredentials<VehicleManagerMandatoryParams>();
 
-  const { fetchVehicles, vehicles, incompatibleVehicles, hasNextPage, hasPreviousPage } =
-    useFetchVehicles();
-  const {
-    selectedVehicles,
-    handleVehicleSelect,
-    clearSelectedVehicles,
-    handleToggleSelectAll,
-  } = useSelectVehicles(vehicles.filter((v) => !v.shared));
-
-  const sendJwtAfterPermissions = (handleNavigation: (authPayload: any) => void) => {
+  return (
+    extraPayload: Partial<AuthPayload> | null,
+    handleNavigation: (authPayload: any) => void,
+  ) => {
     if (jwt && redirectUri && clientId) {
-      const authPayload = buildAuthPayload(clientId, jwt, user);
       const authPayloadWithVehicles = {
-        ...authPayload,
-        sharedVehicles: selectedVehicles.map((vehicle: Vehicle) =>
-          vehicle.tokenId.toString(),
-        ),
+        ...buildAuthPayload(clientId, jwt, user),
+        ...extraPayload,
       };
       sendAuthPayloadToParent(authPayloadWithVehicles, redirectUri, () =>
         handleNavigation(authPayloadWithVehicles),
       );
     }
   };
+};
 
-  const handleContinue = () => {
-    sendJwtAfterPermissions((authPayload: any) => {
-      backToThirdParty(authPayload, redirectUri, utm);
-    });
+const useFinishShareVehicles = () => {
+  const { redirectUri, utm } = useDevCredentials<VehicleManagerMandatoryParams>();
+  const { setUiState, setComponentData } = useUIManager();
+  const sendAuthPayloadToParent = useSendAuthPayloadToParent();
+
+  const goToNextScreen = (sharedVehicles: Vehicle[]) => {
+    setComponentData({ action: 'shared', vehicles: sharedVehicles });
+    setUiState(UiStates.VEHICLES_SHARED_SUCCESS);
   };
 
-  const createBasePermissions = (perms: bigint, sources: string) => ({
-    grantee: clientId as `0x${string}`,
-    permissions: perms,
-    expiration: expirationDate,
-    source: sources,
-  });
+  return (sharedVehicles?: Vehicle[]) => {
+    sendAuthPayloadToParent(
+      {
+        sharedVehicles: sharedVehicles?.map((v) => v.tokenId.toString()),
+      },
+      (authPayload) => {
+        if (sharedVehicles?.length) {
+          return goToNextScreen(sharedVehicles);
+        }
+        backToThirdParty(authPayload, redirectUri, utm);
+      },
+    );
+  };
+};
 
-  const shareSingleVehicle = async (tokenId: string, basePermissions: any) => {
-    const vehiclePermissions: SetVehiclePermissions = {
-      ...basePermissions,
-      tokenId: BigInt(tokenId),
-    };
-    await setVehiclePermissions(vehiclePermissions);
+export const SelectVehicles: React.FC = () => {
+  const { devLicenseAlias } = useDevCredentials<VehicleManagerMandatoryParams>();
+  const { setLoadingState, setError } = useUIManager();
+  const {
+    fetchVehicles: _fetchVehicles,
+    vehicles,
+    incompatibleVehicles,
+    hasNextPage,
+    hasPreviousPage,
+  } = useFetchVehicles();
+  const {
+    selectedVehicles,
+    handleVehicleSelect,
+    handleToggleSelectAll,
+    clearSelectedVehicles,
+  } = useSelectVehicles(vehicles.filter((v) => !v.shared));
+  const handleShareVehicles = useShareVehicles();
+  const [isLoading, setIsLoading] = useState(false);
+  const finishShareVehicles = useFinishShareVehicles();
+
+  const fetchVehiclesWithUI = async (direction?: string) => {
+    try {
+      setIsLoading(true);
+      await _fetchVehicles(direction);
+    } catch (err) {
+      captureException(err);
+      setError('Could not fetch vehicles');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const shareMultipleVehicles = async (tokenIds: string[], basePermissions: any) => {
-    const bulkVehiclePermissions: SetVehiclePermissionsBulk = {
-      ...basePermissions,
-      tokenIds: tokenIds.map((id) => BigInt(id)),
-    };
-    await setVehiclePermissionsBulk(bulkVehiclePermissions);
-  };
+  useEffect(() => {
+    fetchVehiclesWithUI();
+  }, []);
 
   const handleShare = async () => {
-    if (!permissionTemplateId || selectedVehicles.length === 0 || !clientId) {
-      setError('No vehicles selected');
-      return;
-    }
-
-    setLoadingState(true, 'Sharing vehicles', true);
-
     try {
-      const hasValidSession = await validateSession();
-      if (!hasValidSession) {
-        return;
-      }
-      const unsharedTokenIds = selectedVehicles
-        .filter((vehicle) => !vehicle.shared)
-        .map((vehicle) => vehicle.tokenId.toString());
-
-      if (unsharedTokenIds.length === 0) {
-        setLoadingState(false);
-        return;
-      }
-
-      const perms = getPermsValue(permissionTemplateId);
-      const sources = await generateIpfsSources(perms, clientId, expirationDate);
-      const basePermissions = createBasePermissions(perms, sources);
-
-      if (unsharedTokenIds.length === 1) {
-        await shareSingleVehicle(unsharedTokenIds[0], basePermissions);
-      } else {
-        await shareMultipleVehicles(unsharedTokenIds, basePermissions);
-      }
-
-      sendJwtAfterPermissions((authPayload: any) => {
-        setComponentData({ action: 'shared', vehicles: selectedVehicles });
-        setUiState(UiStates.VEHICLES_SHARED_SUCCESS);
-        clearSelectedVehicles();
-      });
-    } catch (error) {
+      setLoadingState(true, 'Sharing vehicles', true);
+      await handleShareVehicles(selectedVehicles);
+      clearSelectedVehicles();
+      finishShareVehicles(selectedVehicles);
+    } catch (err) {
+      captureException(err);
       setError('Could not share vehicles');
-      console.error('Error sharing vehicles:', error);
     } finally {
       setLoadingState(false);
     }
   };
 
+  const onCancel = () => {
+    finishShareVehicles([]);
+  };
   const onNext = () => {
-    setVehiclesLoading(true);
-    fetchVehicles();
+    fetchVehiclesWithUI();
   };
 
   const onPrevious = () => {
-    setVehiclesLoading(true);
-    fetchVehicles('previous');
+    fetchVehiclesWithUI('previous');
   };
 
   const noVehicles = vehicles.length === 0 && incompatibleVehicles.length === 0;
@@ -160,11 +136,11 @@ export const SelectVehicles: React.FC = () => {
 
   return (
     <div className="flex flex-col w-full items-center justify-center box-border overflow-y-auto">
-      {noVehicles && !vehiclesLoading && <EmptyState />}
+      {noVehicles && !isLoading && <EmptyState />}
 
       {allShared && <AllVehiclesShared devLicenseAlias={devLicenseAlias} />}
 
-      {vehiclesLoading ? (
+      {isLoading ? (
         <ConnectedLoader />
       ) : (
         <div className="space-y-4 pt-4 max-h-[400px] overflow-auto w-full max-w-[440px]">
@@ -192,53 +168,10 @@ export const SelectVehicles: React.FC = () => {
       )}
       <Footer
         canShare={canShare}
-        onContinue={handleContinue}
+        onCancel={onCancel}
         onShare={handleShare}
         selectedVehiclesCount={selectedVehicles.length}
       />
-    </div>
-  );
-};
-
-const PaginationButtons = ({
-  hasNext,
-  hasPrevious,
-  onPrevious,
-  onNext,
-}: {
-  hasNext: boolean;
-  hasPrevious: boolean;
-  onNext: () => void;
-  onPrevious: () => void;
-}) => {
-  if (!(hasNext || hasPrevious)) {
-    return null;
-  }
-  return (
-    <div className="flex justify-center space-x-4 mt-4">
-      {hasPrevious && (
-        <PrimaryButton onClick={onPrevious} width="w-[214px]">
-          Back
-        </PrimaryButton>
-      )}
-      {hasNext && (
-        <PrimaryButton onClick={onNext} width="w-[214px]">
-          Next
-        </PrimaryButton>
-      )}
-    </div>
-  );
-};
-
-const AllVehiclesShared = ({ devLicenseAlias }: { devLicenseAlias: string }) => {
-  return (
-    <div className="flex flex-col items-center">
-      <h2 className="text-gray-500 text-xl font-medium pt-2">
-        All vehicles have been shared
-      </h2>
-      <p className="text-sm">
-        You have already shared all your vehicles with {devLicenseAlias}.
-      </p>
     </div>
   );
 };

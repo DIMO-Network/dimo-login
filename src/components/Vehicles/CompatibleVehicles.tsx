@@ -1,6 +1,7 @@
 import React from 'react';
 import VehicleCard from './VehicleCard';
 import { Vehicle } from '../../models/vehicle';
+import { ConnectCarButton } from '../Shared';
 
 const CompatibleVehicles = ({
   vehicles,
@@ -21,13 +22,15 @@ const CompatibleVehicles = ({
           onClick={onToggleSelectAll}
           className="bg-white text-xs w-[75px] text-[#09090B] border border-gray-300 pr-px pl-px py-1 rounded-full hover:border-gray-500"
         >
-          {vehicles.filter((vehicle) => !vehicle.shared).every((vehicle) => selectedVehicles.includes(vehicle))
+          {vehicles
+            .filter((vehicle) => !vehicle.shared)
+            .every((vehicle) => selectedVehicles.includes(vehicle))
             ? 'Deselect All'
             : 'Select All'}
         </button>
       </div>
       <div>
-        {/* ConnectCarButton should be rendered by parent if needed */}
+        <ConnectCarButton />
       </div>
       {vehicles.map((vehicle: Vehicle) => (
         <VehicleCard
@@ -43,4 +46,4 @@ const CompatibleVehicles = ({
   );
 };
 
-export default CompatibleVehicles; 
+export default CompatibleVehicles;

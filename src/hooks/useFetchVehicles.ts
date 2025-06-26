@@ -1,11 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuthContext } from '../context/AuthContext';
 import { useDevCredentials } from '../context/DevCredentialsContext';
 import { Vehicle } from '../models/vehicle';
-import { fetchVehiclesWithTransformation } from '../services/vehicleService';
-import { VehicleManagerMandatoryParams } from '../types/params';
+import { fetchVehiclesWithTransformation } from '../services';
+import { VehicleManagerMandatoryParams } from '../types';
 
-const useFetchVehicles = () => {
+export const useFetchVehicles = () => {
   const { user } = useAuthContext();
   const { clientId, vehicleTokenIds, vehicleMakes, powertrainTypes } =
     useDevCredentials<VehicleManagerMandatoryParams>();
@@ -13,16 +13,8 @@ const useFetchVehicles = () => {
   const [endCursor, setEndCursor] = useState('');
   const [hasNextPage, setHasNextPage] = useState(false);
   const [hasPreviousPage, setHasPreviousPage] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [incompatibleVehicles, setIncompatibleVehicles] = useState<Vehicle[]>([]);
-  const hasFetched = useRef(false);
-
-  useEffect(() => {
-    if (hasFetched.current) return;
-    hasFetched.current = true;
-    Promise.all([fetchVehicles()]);
-  }, []);
 
   const fetchVehicles = async (direction = 'next') => {
     const cursor = direction === 'next' ? endCursor : startCursor;
@@ -37,7 +29,6 @@ const useFetchVehicles = () => {
         powertrainTypes,
       },
     });
-    setIsLoading(false);
     setVehicles(transformedVehicles.compatibleVehicles);
     setIncompatibleVehicles(transformedVehicles.incompatibleVehicles);
     setEndCursor(transformedVehicles.endCursor);
@@ -50,10 +41,9 @@ const useFetchVehicles = () => {
     fetchVehicles,
     hasNextPage,
     hasPreviousPage,
-    isLoading,
     vehicles,
     incompatibleVehicles,
   };
 };
 
-export default useFetchVehicles; 
+export default useFetchVehicles;

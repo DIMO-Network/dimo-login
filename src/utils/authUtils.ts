@@ -54,13 +54,15 @@ export function buildAuthPayload(
   };
 }
 
+export interface AuthPayload {
+  token: string;
+  email?: string;
+  walletAddress: string;
+  sharedVehicles?: BigInt[] | string[];
+}
+
 export function sendAuthPayloadToParent(
-  payload: {
-    token: string;
-    email?: string;
-    walletAddress: string;
-    sharedVehicles?: BigInt[] | string[];
-  },
+  payload: AuthPayload,
   redirectUri: string,
   onSuccess: (payload: { token: string; email?: string; walletAddress: string }) => void,
 ) {
