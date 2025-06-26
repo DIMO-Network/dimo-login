@@ -35,7 +35,7 @@ import { PasskeyLoginFail } from './components/Auth/PasskeyLoginFail';
 import './App.css';
 
 const App = () => {
-  const { setJwt, setUser, setUserInitialized, userInitialized } = useAuthContext();
+  const { setJwt, setUser, setUserInitialized } = useAuthContext();
   const { clientId, devLicenseAlias, ...params } = useDevCredentials();
   const { uiState, setUiState, isLoading, entryState } = useUIManager();
   const [email, setEmail] = useState('');
@@ -60,6 +60,7 @@ const App = () => {
         setUserInitialized,
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId]);
 
   if (isLoading) {

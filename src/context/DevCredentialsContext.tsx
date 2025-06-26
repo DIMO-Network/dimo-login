@@ -61,13 +61,8 @@ export const DevCredentialsProvider = ({
     useParamsHandler(DEFAULT_CONTEXT);
   const { isLoading, setLoadingState } = useUIManager();
 
-  const {
-    clientId,
-    redirectUri,
-    waitingForParams,
-    waitingForDevLicense,
-    devLicenseAlias,
-  } = devCredentialsState;
+  const { clientId, redirectUri, waitingForParams, waitingForDevLicense, entryState } =
+    devCredentialsState;
 
   const parseStateFromUrl = () => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -161,6 +156,8 @@ export const DevCredentialsProvider = ({
       waitingForDevLicense: Boolean(clientId),
     });
 
+    if (!clientId) return;
+
     const licenseData = await getDeveloperLicense(clientId);
     const alias = await getLicenseAlias(licenseData, clientId);
     const isValid = await isValidDeveloperLicense(licenseData, redirectUri);
@@ -205,26 +202,22 @@ export const DevCredentialsProvider = ({
   useEffect(() => {
     setLoadingState(true, 'Waiting for credentials...');
     initAuthProcess();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entryState]);
 
   useEffect(() => {
-    if (clientId) {
-      validateCredentials();
-    } else {
-      applyDevCredentialsConfig({
-        waitingForDevLicense: false,
-      });
-    }
+    validateCredentials();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId]);
 
   useEffect(() => {
-    if (!waitingForParams && !waitingForDevLicense && (devLicenseAlias || !clientId)) {
-      setLoadingState(false);
-    }
+    const isLoading = waitingForParams || waitingForDevLicense;
+    setLoadingState(isLoading, 'Waiting for credentials...');
 
     return () => {
       window.removeEventListener('message', handleAuthInitMessage);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, waitingForParams, waitingForDevLicense, clientId]);
 
   return (
