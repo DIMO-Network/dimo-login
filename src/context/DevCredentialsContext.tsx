@@ -34,9 +34,10 @@ const DEFAULT_CONTEXT: AllParams = {
   clientId: '',
   redirectUri: '',
   waitingForParams: true,
+  waitingForDevLicense: true,
   utm: '',
   apiKey: 'api key',
-  invalidCredentials: false,
+  invalidCredentials: true,
   devLicenseAlias: '',
   entryState: UiStates.EMAIL_INPUT,
   altTitle: false,
@@ -58,30 +59,39 @@ export const DevCredentialsProvider = ({
 }): ReactElement => {
   const { devCredentialsState, applyDevCredentialsConfig } =
     useParamsHandler(DEFAULT_CONTEXT);
-  const { setLoadingState } = useUIManager();
+  const { isLoading, setLoadingState } = useUIManager();
 
-  const { entryState, clientId, redirectUri, waitingForParams, devLicenseAlias } =
+  const { clientId, redirectUri, waitingForParams, waitingForDevLicense, entryState } =
     devCredentialsState;
 
-  const parseStateFromUrl = (stateFromUrl: string | null) => {
-    if (!stateFromUrl) return false;
+  const parseStateFromUrl = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasState = urlParams.has('state');
+    const stateFromUrl = urlParams.get('state');
+    if (!hasState || !stateFromUrl) return false;
 
     const { emailPermissionGranted = false, ...parsedState } = JSON.parse(stateFromUrl);
 
-    applyDevCredentialsConfig(parsedState);
+    applyDevCredentialsConfig({
+      ...parsedState,
+      waitingForParams: false,
+    });
     setEmailGranted(devCredentialsState.clientId!, emailPermissionGranted);
-    applyDevCredentialsConfig({ waitingForParams: false });
 
     return true;
   };
 
-  const parseUrlParams = (urlParams: URLSearchParams) => {
+  const parseUrlParams = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasClientId = urlParams.has('clientId');
+
+    if (!hasClientId) return false;
+
     const parsedUrlParams = Object.fromEntries(urlParams.entries());
-
-    if (!parsedUrlParams.clientId) return false;
-
-    applyDevCredentialsConfig(parsedUrlParams);
-    applyDevCredentialsConfig({ waitingForParams: false });
+    applyDevCredentialsConfig({
+      ...parsedUrlParams,
+      waitingForParams: false,
+    });
 
     return true;
   };
@@ -118,13 +128,21 @@ export const DevCredentialsProvider = ({
     });
   };
 
-  const processConfigByCID = async (cid: string | null) => {
-    if (!cid) return false;
+  const processConfigByCID = async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasCID = urlParams.has('configCID');
+    const cid = urlParams.get('configCID');
+
+    if (!hasCID || !cid) return false;
+
     try {
       const config = await fetchConfigFromIPFS(cid);
 
-      applyDevCredentialsConfig(config);
-      applyDevCredentialsConfig({ waitingForParams: false });
+      applyDevCredentialsConfig({
+        ...config,
+        waitingForParams: false,
+        configCID: cid,
+      });
 
       return true;
     } catch (error) {
@@ -133,21 +151,38 @@ export const DevCredentialsProvider = ({
     }
   };
 
-  const initAuthProcess = async () => {
-    setLoadingState(true, 'Waiting for credentials...');
-    const urlParams = new URLSearchParams(window.location.search);
-    const stateFromUrl = urlParams.get('state');
-    const configCIDFromUrl = urlParams.get('configCID');
-
+  const validateCredentials = async () => {
     applyDevCredentialsConfig({
-      configCID: configCIDFromUrl || '',
+      waitingForDevLicense: Boolean(clientId),
     });
 
-    const isConfiguredByUrl =
-      (await processConfigByCID(configCIDFromUrl)) || parseUrlParams(urlParams);
+    if (!clientId) return;
+
+    const licenseData = await getDeveloperLicense(clientId);
+    const alias = await getLicenseAlias(licenseData, clientId);
+    const isValid = await isValidDeveloperLicense(licenseData, redirectUri);
+
+    applyDevCredentialsConfig({
+      devLicenseAlias: alias,
+      invalidCredentials: !isValid,
+      waitingForDevLicense: false,
+    });
+
+    if (!isValid) {
+      console.error('Invalid client ID or redirect URI.');
+      return;
+    }
+
+    createKernelSigner(clientId, clientId, redirectUri);
+  };
+
+  const initAuthProcess = async () => {
+    const isProcessedByCID = await processConfigByCID();
+    const isProcessedByUrl = parseUrlParams();
+    const isConfiguredByUrl = isProcessedByCID || isProcessedByUrl;
 
     // Recovering config from state for social sign-in
-    parseStateFromUrl(stateFromUrl);
+    parseStateFromUrl();
 
     if (!isConfiguredByUrl) {
       window.addEventListener('message', handleAuthInitMessage);
@@ -165,45 +200,25 @@ export const DevCredentialsProvider = ({
   };
 
   useEffect(() => {
+    setLoadingState(true, 'Waiting for credentials...');
     initAuthProcess();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entryState]);
+
+  useEffect(() => {
+    validateCredentials();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId]);
+
+  useEffect(() => {
+    const isLoading = waitingForParams || waitingForDevLicense;
+    setLoadingState(isLoading, 'Waiting for credentials...');
 
     return () => {
       window.removeEventListener('message', handleAuthInitMessage);
     };
-  }, [entryState]);
-
-  useEffect(() => {
-    const validateCredentials = async () => {
-      const { clientId, redirectUri } = devCredentialsState;
-
-      if (clientId) {
-        const licenseData = await getDeveloperLicense(clientId);
-        const alias = await getLicenseAlias(licenseData, clientId);
-        const isValid = await isValidDeveloperLicense(licenseData, redirectUri);
-        applyDevCredentialsConfig({
-          devLicenseAlias: alias,
-        });
-
-        if (isValid) {
-          createKernelSigner(clientId, clientId, redirectUri);
-        } else {
-          applyDevCredentialsConfig({
-            invalidCredentials: true,
-          });
-          console.error('Invalid client ID or redirect URI.');
-        }
-      }
-    };
-
-    validateCredentials();
-  }, [clientId, redirectUri]);
-
-  useEffect(() => {
-    const { waitingForParams, devLicenseAlias } = devCredentialsState;
-    if (!waitingForParams && !devLicenseAlias) {
-      setLoadingState(false);
-    }
-  }, [waitingForParams, devLicenseAlias]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, waitingForParams, waitingForDevLicense, clientId]);
 
   return (
     <DevCredentialsContext.Provider value={devCredentialsState}>
