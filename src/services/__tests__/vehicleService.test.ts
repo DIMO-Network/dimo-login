@@ -1,6 +1,10 @@
 import { fetchVehiclesWithTransformation } from '../vehicleService';
-import { fetchVehicles, getPowertrainTypeMatch } from '../identityService';
+import { fetchVehicles, fetchDeviceDefinition } from '../identityService';
 
+jest.mock('@dimo-network/transactions', () => ({
+  ENVIRONMENT: 'mock',
+  // add more mocked exports if needed
+}));
 jest.mock('../identityService');
 
 beforeEach(() => {
@@ -17,6 +21,7 @@ beforeEach(() => {
           nodes: [
             {
               tokenId: 1,
+              imageURI: 'http://image.url',
               definition: {
                 id: 'tesla_model_3_2019',
                 make: 'Tesla',
@@ -29,6 +34,7 @@ beforeEach(() => {
             },
             {
               tokenId: 2,
+              imageURI: 'http://image.url',
               definition: {
                 id: 'ford_bronco_2023',
                 make: 'Ford',
@@ -44,16 +50,32 @@ beforeEach(() => {
       },
     });
   });
-  (getPowertrainTypeMatch as jest.Mock).mockImplementation(
-    (vehicle: any, powertrainTypes: string[]) => {
-      if (vehicle.definition.id === 'tesla_model_3_2019') {
-        return powertrainTypes.includes('BEV');
-      }
-      if (vehicle.definition.id === 'ford_bronco_2023') {
-        return powertrainTypes.includes('ICE');
-      }
-    },
-  );
+  (fetchDeviceDefinition as jest.Mock).mockImplementation((deviceDefinitionId) => {
+    if (deviceDefinitionId === 'tesla_model_3_2019') {
+      return Promise.resolve({
+        deviceDefinition: {
+          attributes: [
+            {
+              name: 'powertrain_type',
+              value: 'BEV',
+            },
+          ],
+        },
+      });
+    }
+    if (deviceDefinitionId === 'ford_bronco_2023') {
+      return Promise.resolve({
+        deviceDefinition: {
+          attributes: [
+            {
+              name: 'powertrain_type',
+              value: 'ICE',
+            },
+          ],
+        },
+      });
+    }
+  });
 });
 
 afterEach(() => jest.restoreAllMocks());
@@ -79,9 +101,9 @@ it('Only returns vehicles that match the tokenIds', async () => {
     filters: { vehicleTokenIds: ['1'] },
   });
   expect(data.compatibleVehicles.length).toEqual(1);
-  expect(data.compatibleVehicles[0].tokenId).toEqual(1);
+  expect(data.compatibleVehicles[0].tokenId).toEqual('1');
   expect(data.incompatibleVehicles.length).toEqual(1);
-  expect(data.incompatibleVehicles[0].tokenId).toEqual(2);
+  expect(data.incompatibleVehicles[0].tokenId).toEqual('2');
 });
 it('Only returns vehicles that match the make', async () => {
   const data = await fetchVehiclesWithTransformation({
@@ -95,18 +117,6 @@ it('Only returns vehicles that match the make', async () => {
   expect(data.compatibleVehicles[0].make).toEqual('Ford');
   expect(data.incompatibleVehicles.length).toEqual(1);
   expect(data.incompatibleVehicles[0].make).toEqual('Tesla');
-});
-it('Calls getPowertrainTypeMatch with the correct args', async () => {
-  await fetchVehiclesWithTransformation({
-    cursor: '',
-    direction: '',
-    ownerAddress: '',
-    targetGrantee: '',
-    filters: { powertrainTypes: ['BEV'] },
-  });
-  expect(getPowertrainTypeMatch).toHaveBeenCalledTimes(2);
-  expect((getPowertrainTypeMatch as jest.Mock).mock.calls[0][1]).toEqual(['BEV']);
-  expect((getPowertrainTypeMatch as jest.Mock).mock.calls[1][1]).toEqual(['BEV']);
 });
 it('Returns both vehicles if powertrain types match both', async () => {
   const data = await fetchVehiclesWithTransformation({
@@ -154,4 +164,39 @@ it('Returns no vehicles if there are no matching powertrain types', async () => 
   });
   expect(data.compatibleVehicles.length).toEqual(0);
   expect(data.incompatibleVehicles.length).toEqual(2);
+});
+it('Returns vehicles with the correct shape in compatible and incompatible arrays', async () => {
+  const data = await fetchVehiclesWithTransformation({
+    ownerAddress: 'address',
+    targetGrantee: 'grantee',
+    cursor: '',
+    direction: '',
+    filters: {},
+  });
+  data.compatibleVehicles.forEach((vehicle) => {
+    expect(vehicle).toEqual(
+      expect.objectContaining({
+        tokenId: expect.any(String),
+        imageURI: expect.anything(),
+        shared: expect.any(Boolean),
+        expiresAt: expect.any(String),
+        make: expect.any(String),
+        model: expect.any(String),
+        year: expect.any(Number),
+      }),
+    );
+  });
+  data.incompatibleVehicles.forEach((vehicle) => {
+    expect(vehicle).toEqual(
+      expect.objectContaining({
+        tokenId: expect.any(String),
+        imageURI: expect.anything(),
+        shared: expect.any(Boolean),
+        expiresAt: expect.any(String),
+        make: expect.any(String),
+        model: expect.any(String),
+        year: expect.any(Number),
+      }),
+    );
+  });
 });

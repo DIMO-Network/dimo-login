@@ -113,7 +113,9 @@ export const SelectVehicles: React.FC = () => {
       const authPayload = buildAuthPayload(clientId, jwt, user);
       const authPayloadWithVehicles = {
         ...authPayload,
-        sharedVehicles: selectedVehicles.map((vehicle: Vehicle) => vehicle.tokenId),
+        sharedVehicles: selectedVehicles.map((vehicle: Vehicle) =>
+          vehicle.tokenId.toString(),
+        ),
       };
       sendAuthPayloadToParent(authPayloadWithVehicles, redirectUri, () =>
         handleNavigation(authPayloadWithVehicles),

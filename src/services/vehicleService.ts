@@ -1,67 +1,100 @@
-import { Vehicle, VehicleResponse } from '../models/vehicle';
+import { LocalVehicle, Vehicle, VehicleResponse } from '../models/vehicle';
 import { formatDate } from '../utils/dateUtils';
-import { fetchVehicles, getPowertrainTypeMatch } from './identityService';
+import { fetchVehicles, VehicleNode } from './identityService';
+
+interface VehicleFilters {
+  vehicleTokenIds?: string[];
+  vehicleMakes?: string[];
+  powertrainTypes?: string[];
+}
 
 type IParams = {
   ownerAddress: string;
   targetGrantee: string;
   cursor: string;
   direction: string;
-  filters?: {
-    vehicleTokenIds?: string[];
-    vehicleMakes?: string[];
-    powertrainTypes?: string[];
+  filters?: VehicleFilters;
+};
+
+const getTokenIdMatch = (vehicle: LocalVehicle, tokenIds?: string[]) => {
+  if (!tokenIds?.length) return true;
+  // must be an anon function instead of an arrow func
+  return tokenIds.some(function (tokenId: string) {
+    return vehicle.getTokenIdMatch(tokenId);
+  });
+};
+
+const getMakeMatch = (vehicle: LocalVehicle, makes?: string[]) => {
+  if (!makes?.length) return true;
+  // must be an anon function instead of an arrow func
+  return makes.some(function (make) {
+    return vehicle.getMakeMatch(make);
+  });
+};
+
+const getPowertrainTypeMatchNew = async (
+  vehicle: LocalVehicle,
+  powertrainTypes?: string[],
+) => {
+  if (!powertrainTypes?.length) return true;
+  return await vehicle.getPowertrainTypeMatch(powertrainTypes);
+};
+
+export const checkIfFiltersMatch = async (
+  vehicle: LocalVehicle,
+  filters: VehicleFilters,
+) => {
+  const { vehicleTokenIds, vehicleMakes, powertrainTypes } = filters;
+  const tokenIdMatch = getTokenIdMatch(vehicle, vehicleTokenIds);
+  const makeMatch = getMakeMatch(vehicle, vehicleMakes);
+  const powertrainTypeMatch = await getPowertrainTypeMatchNew(vehicle, powertrainTypes);
+  return tokenIdMatch && makeMatch && powertrainTypeMatch;
+};
+
+const transformVehicle = (vehicle: LocalVehicle) => {
+  return {
+    tokenId: vehicle.tokenId,
+    imageURI: vehicle.imageURI,
+    shared: vehicle.isShared,
+    expiresAt: vehicle.expiresAt ? formatDate(vehicle.expiresAt) : '',
+    make: vehicle.make,
+    model: vehicle.model,
+    year: vehicle.year,
   };
 };
 
-export const fetchVehiclesWithTransformation = async (
-  params: IParams,
-): Promise<VehicleResponse> => {
-  const {
-    ownerAddress,
-    targetGrantee,
-    cursor,
-    direction,
-    filters: { vehicleTokenIds, vehicleMakes, powertrainTypes } = {},
-  } = params;
-  const data = await fetchVehicles({ ownerAddress, cursor, direction });
+const transformAndSortVehicles = async (
+  vehicles: VehicleNode[],
+  targetGrantee: string,
+  filters: VehicleFilters,
+) => {
   const compatibleVehicles: Vehicle[] = [];
   const incompatibleVehicles: Vehicle[] = [];
-  for (const vehicle of data.data.vehicles.nodes) {
-    const tokenIdMatch = vehicleTokenIds?.length
-      ? vehicleTokenIds.includes(vehicle.tokenId.toString())
-      : true;
 
-    const makeMatch = vehicleMakes?.length
-      ? vehicleMakes.some(
-          (make) => make.toUpperCase() === vehicle.definition.make.toUpperCase(),
-        )
-      : true;
-    const powertrainTypeMatch = powertrainTypes?.length
-      ? await getPowertrainTypeMatch(vehicle, powertrainTypes)
-      : true;
-
-    const sacdForGrantee = vehicle.sacds.nodes.find(
-      (sacd: any) => sacd.grantee === targetGrantee,
-    );
-
-    const transformedVehicle = {
-      tokenId: vehicle.tokenId,
-      imageURI: vehicle.imageURI,
-      shared: Boolean(sacdForGrantee),
-      expiresAt: sacdForGrantee ? formatDate(sacdForGrantee.expiresAt) : '',
-      make: vehicle.definition.make,
-      model: vehicle.definition.model,
-      year: vehicle.definition.year,
-    };
-
-    // Add to compatible or incompatible based on the conditions
-    if (tokenIdMatch && makeMatch && powertrainTypeMatch) {
+  for (const vehicle of vehicles) {
+    const localVehicle = new LocalVehicle(vehicle, targetGrantee);
+    const isCompatible = await checkIfFiltersMatch(localVehicle, filters);
+    const transformedVehicle = transformVehicle(localVehicle);
+    if (isCompatible) {
       compatibleVehicles.push(transformedVehicle);
     } else {
       incompatibleVehicles.push(transformedVehicle);
     }
   }
+  return { compatibleVehicles, incompatibleVehicles };
+};
+
+export const fetchVehiclesWithTransformation = async (
+  params: IParams,
+): Promise<VehicleResponse> => {
+  const { ownerAddress, targetGrantee, cursor, direction, filters = {} } = params;
+
+  const data = await fetchVehicles({ ownerAddress, cursor, direction });
+  const { compatibleVehicles, incompatibleVehicles } = await transformAndSortVehicles(
+    data.data.vehicles.nodes,
+    targetGrantee,
+    filters,
+  );
 
   return {
     hasNextPage: data.data.vehicles.pageInfo.hasNextPage,
