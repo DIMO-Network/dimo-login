@@ -25,100 +25,11 @@ import { EmptyState } from './EmptyState';
 import { ConnectCarButton } from '../Shared/ConnectCarButton';
 import { fetchVehiclesWithTransformation } from '../../services/vehicleService';
 import { VehicleManagerMandatoryParams } from '../../types/params';
-
-const useSelectVehicles = (shareableVehicles: Vehicle[]) => {
-  const [selectedVehicles, setSelectedVehicles] = useState<Vehicle[]>([]);
-
-  const handleVehicleSelect = (vehicle: Vehicle) => {
-    setSelectedVehicles(
-      (prevSelected) =>
-        prevSelected.includes(vehicle)
-          ? prevSelected.filter((v) => v !== vehicle) // Deselect if already selected
-          : [...prevSelected, vehicle], // Add to selected if not already selected
-    );
-  };
-
-  const clearSelectedVehicles = () => {
-    setSelectedVehicles([]);
-  };
-
-  const handleToggleSelectAll = () => {
-    const allSelected = shareableVehicles.every((vehicle) =>
-      selectedVehicles.includes(vehicle),
-    );
-    setSelectedVehicles(allSelected ? [] : shareableVehicles);
-  };
-
-  return {
-    selectedVehicles,
-    handleVehicleSelect,
-    clearSelectedVehicles,
-    handleToggleSelectAll,
-  };
-};
-
-const useFetchVehicles = () => {
-  const { user } = useAuthContext();
-  const { clientId, vehicleTokenIds, vehicleMakes, powertrainTypes } =
-    useDevCredentials<VehicleManagerMandatoryParams>();
-  const [startCursor, setStartCursor] = useState('');
-  const [endCursor, setEndCursor] = useState('');
-  const [hasNextPage, setHasNextPage] = useState(false);
-  const [hasPreviousPage, setHasPreviousPage] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [incompatibleVehicles, setIncompatibleVehicles] = useState<Vehicle[]>([]);
-  const hasFetched = useRef(false);
-
-  useEffect(() => {
-    if (hasFetched.current) return; // Prevents re-execution, which happens in dev due to strict mode
-    hasFetched.current = true;
-
-    Promise.all([fetchVehicles()]);
-  }, []);
-
-  const fetchVehicles = async (direction = 'next') => {
-    const cursor = direction === 'next' ? endCursor : startCursor;
-    const transformedVehicles = await fetchVehiclesWithTransformation({
-      ownerAddress: user.smartContractAddress,
-      targetGrantee: clientId,
-      cursor,
-      direction,
-      filters: {
-        vehicleTokenIds,
-        vehicleMakes,
-        powertrainTypes,
-      },
-    });
-    setIsLoading(false);
-    setVehicles(transformedVehicles.compatibleVehicles);
-    setIncompatibleVehicles(transformedVehicles.incompatibleVehicles);
-    setEndCursor(transformedVehicles.endCursor);
-    setStartCursor(transformedVehicles.startCursor);
-    setHasPreviousPage(transformedVehicles.hasPreviousPage);
-    setHasNextPage(transformedVehicles.hasNextPage);
-  };
-
-  // TODO - how to take care of this logic?
-  // if (componentData && componentData.preSelectedVehicles) {
-  //   const matchedVehicle = transformedVehicles.compatibleVehicles.find(
-  //     (vehicle) =>
-  //       vehicle.tokenId.toString() === componentData.preSelectedVehicles[0],
-  //   );
-  //   if (matchedVehicle) {
-  //     handleVehicleSelect(matchedVehicle);
-  //   }
-  // }
-
-  return {
-    fetchVehicles,
-    hasNextPage,
-    hasPreviousPage,
-    isLoading,
-    vehicles,
-    incompatibleVehicles,
-  };
-};
+import CompatibleVehicles from './CompatibleVehicles';
+import IncompatibleVehicles from './IncompatibleVehicles';
+import Footer from './Footer';
+import useSelectVehicles from '../../hooks/useSelectVehicles';
+import useFetchVehicles from '../../hooks/useFetchVehicles';
 
 export const SelectVehicles: React.FC = () => {
   const { user, jwt, validateSession } = useAuthContext();
@@ -289,79 +200,6 @@ export const SelectVehicles: React.FC = () => {
   );
 };
 
-const CompatibleVehicles = ({
-  vehicles,
-  selectedVehicles,
-  onSelect,
-  onToggleSelectAll,
-}: {
-  vehicles: Vehicle[];
-  selectedVehicles: Vehicle[];
-  onSelect: (vehicle: Vehicle) => void;
-  onToggleSelectAll: () => void;
-}) => {
-  return (
-    <>
-      <div className="flex justify-between">
-        <h2 className="text-lg">Compatible</h2>
-        <button
-          onClick={onToggleSelectAll}
-          className="bg-white text-xs w-[75px] text-[#09090B] border border-gray-300 pr-px pl-px py-1 rounded-full hover:border-gray-500"
-        >
-          {vehicles
-            .filter((vehicle) => !vehicle.shared)
-            .every((vehicle) => selectedVehicles.includes(vehicle))
-            ? 'Deselect All'
-            : 'Select All'}
-        </button>
-      </div>
-
-      <div>
-        <ConnectCarButton />
-      </div>
-      {vehicles.map((vehicle: Vehicle) => (
-        <VehicleCard
-          key={vehicle.tokenId.toString()}
-          vehicle={vehicle}
-          isSelected={selectedVehicles.includes(vehicle)}
-          onSelect={() => onSelect(vehicle)}
-          disabled={false}
-          incompatible={false}
-        />
-      ))}
-    </>
-  );
-};
-
-const IncompatibleVehicles = ({
-  vehicles,
-  showConnectVehicleButton,
-}: {
-  vehicles: Vehicle[];
-  showConnectVehicleButton: boolean;
-}) => {
-  return (
-    <>
-      <h2 className="text-lg">Incompatible</h2>
-      {showConnectVehicleButton && (
-        <div>
-          <ConnectCarButton />
-        </div>
-      )}
-      {vehicles.map((vehicle: Vehicle) => (
-        <VehicleCard
-          key={vehicle.tokenId.toString()}
-          vehicle={vehicle}
-          isSelected={false} //Wont execute since disabled
-          onSelect={() => {}} //Wont execute since disabled
-          disabled={false}
-          incompatible={true}
-        />
-      ))}
-    </>
-  );
-};
-
 const PaginationButtons = ({
   hasNext,
   hasPrevious,
@@ -401,41 +239,6 @@ const AllVehiclesShared = ({ devLicenseAlias }: { devLicenseAlias: string }) => 
       <p className="text-sm">
         You have already shared all your vehicles with {devLicenseAlias}.
       </p>
-    </div>
-  );
-};
-
-const Footer = ({
-  canShare,
-  onContinue,
-  onShare,
-  selectedVehiclesCount,
-}: {
-  canShare: boolean;
-  onContinue: () => void;
-  onShare: () => void;
-  selectedVehiclesCount: number;
-}) => {
-  return (
-    <div
-      className={`grid grid-flow-col auto-cols-fr gap-4 ${
-        canShare ? 'justify-between' : 'justify-center'
-      } w-full max-w-[440px] pt-4`}
-    >
-      {!canShare && <PrimaryButton onClick={onContinue}>Continue</PrimaryButton>}
-      {canShare && (
-        <>
-          <button
-            onClick={onContinue}
-            className="bg-white font-medium text-[#09090B] border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500"
-          >
-            Cancel
-          </button>
-          <PrimaryButton onClick={onShare} disabled={selectedVehiclesCount === 0}>
-            Save changes
-          </PrimaryButton>
-        </>
-      )}
     </div>
   );
 };
