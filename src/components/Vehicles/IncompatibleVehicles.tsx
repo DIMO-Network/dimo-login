@@ -5,15 +5,15 @@ import { ConnectCarButton } from '../Shared/ConnectCarButton';
 
 const IncompatibleVehicles = ({
   vehicles,
-  showConnectVehicleButton,
+  canConnectVehicles,
 }: {
   vehicles: Vehicle[];
-  showConnectVehicleButton: boolean;
+  canConnectVehicles: boolean;
 }) => {
   return (
     <>
       <h2 className="text-lg">Incompatible</h2>
-      {showConnectVehicleButton && (
+      {canConnectVehicles && (
         <div>
           <ConnectCarButton />
         </div>
@@ -32,4 +32,4 @@ const IncompatibleVehicles = ({
   );
 };
 
-export default IncompatibleVehicles; 
+export default IncompatibleVehicles;

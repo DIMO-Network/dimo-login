@@ -5,14 +5,16 @@ import { ConnectCarButton } from '../Shared';
 
 const CompatibleVehicles = ({
   vehicles,
-  selectedVehicles,
   onSelect,
   onToggleSelectAll,
+  allSelected,
+  checkIfSelected,
 }: {
   vehicles: Vehicle[];
-  selectedVehicles: Vehicle[];
   onSelect: (vehicle: Vehicle) => void;
   onToggleSelectAll: () => void;
+  allSelected: boolean;
+  checkIfSelected: (vehicle: Vehicle) => boolean;
 }) => {
   return (
     <>
@@ -22,11 +24,7 @@ const CompatibleVehicles = ({
           onClick={onToggleSelectAll}
           className="bg-white text-xs w-[75px] text-[#09090B] border border-gray-300 pr-px pl-px py-1 rounded-full hover:border-gray-500"
         >
-          {vehicles
-            .filter((vehicle) => !vehicle.shared)
-            .every((vehicle) => selectedVehicles.includes(vehicle))
-            ? 'Deselect All'
-            : 'Select All'}
+          {allSelected ? 'Deselect All' : 'Select All'}
         </button>
       </div>
       <div>
@@ -36,7 +34,7 @@ const CompatibleVehicles = ({
         <VehicleCard
           key={vehicle.tokenId.toString()}
           vehicle={vehicle}
-          isSelected={selectedVehicles.includes(vehicle)}
+          isSelected={checkIfSelected(vehicle)}
           onSelect={() => onSelect(vehicle)}
           disabled={false}
           incompatible={false}

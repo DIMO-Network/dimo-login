@@ -23,12 +23,22 @@ const useSelectVehicles = (shareableVehicles: Vehicle[]) => {
     setSelectedVehicles(allSelected ? [] : shareableVehicles);
   };
 
+  const allSelected = shareableVehicles
+    .filter((vehicle) => !vehicle.shared)
+    .every((vehicle) => selectedVehicles.includes(vehicle));
+
+  const checkIfSelected = (vehicle: Vehicle) => {
+    return selectedVehicles.includes(vehicle);
+  };
+
   return {
     selectedVehicles,
     handleVehicleSelect,
     clearSelectedVehicles,
     handleToggleSelectAll,
+    allSelected,
+    checkIfSelected,
   };
 };
 
-export default useSelectVehicles; 
+export default useSelectVehicles;

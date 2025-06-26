@@ -28,6 +28,8 @@ export const SelectVehicles: React.FC = () => {
     handleVehicleSelect,
     handleToggleSelectAll,
     clearSelectedVehicles,
+    allSelected,
+    checkIfSelected,
   } = useSelectVehicles(vehicles.filter((v) => !v.shared));
   const handleShareVehicles = useShareVehicles();
   const [isLoading, setIsLoading] = useState(false);
@@ -93,15 +95,16 @@ export const SelectVehicles: React.FC = () => {
           {!!vehicles.length && (
             <CompatibleVehicles
               vehicles={vehicles}
-              selectedVehicles={selectedVehicles}
+              checkIfSelected={checkIfSelected}
               onSelect={handleVehicleSelect}
               onToggleSelectAll={handleToggleSelectAll}
+              allSelected={allSelected}
             />
           )}
           {!!incompatibleVehicles.length && (
             <IncompatibleVehicles
               vehicles={incompatibleVehicles}
-              showConnectVehicleButton={noCompatibleVehicles}
+              canConnectVehicles={noCompatibleVehicles}
             />
           )}
           <PaginationButtons
