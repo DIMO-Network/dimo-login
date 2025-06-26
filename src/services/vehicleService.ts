@@ -1,4 +1,4 @@
-import { VehicleResponse } from '../models/vehicle';
+import { LocalVehicle, VehicleResponse } from '../models/vehicle';
 import { fetchVehicles } from './identityService';
 import { IParams } from '../types';
 import { sortVehiclesByFilters, transformVehicles } from '../utils/vehicles';
@@ -8,17 +8,22 @@ export const fetchVehiclesWithTransformation = async (
 ): Promise<VehicleResponse> => {
   const { ownerAddress, targetGrantee, cursor, direction, filters = {} } = params;
 
-  const data = await fetchVehicles({ ownerAddress, cursor, direction });
+  const {
+    data: {
+      vehicles: { nodes, pageInfo },
+    },
+  } = await fetchVehicles({ ownerAddress, cursor, direction });
+
   const { compatibleVehicles, incompatibleVehicles } = await sortVehiclesByFilters(
-    data.data.vehicles.nodes,
+    nodes.map((vehicle) => new LocalVehicle(vehicle)),
     filters,
   );
 
   return {
-    hasNextPage: data.data.vehicles.pageInfo.hasNextPage,
-    hasPreviousPage: data.data.vehicles.pageInfo.hasPreviousPage,
-    startCursor: data.data.vehicles.pageInfo.startCursor || '',
-    endCursor: data.data.vehicles.pageInfo.endCursor || '',
+    hasNextPage: pageInfo.hasNextPage,
+    hasPreviousPage: pageInfo.hasPreviousPage,
+    startCursor: pageInfo.startCursor || '',
+    endCursor: pageInfo.endCursor || '',
     compatibleVehicles: transformVehicles(compatibleVehicles, targetGrantee),
     incompatibleVehicles: transformVehicles(incompatibleVehicles, targetGrantee),
   };

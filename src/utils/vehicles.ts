@@ -1,4 +1,3 @@
-import { VehicleNode } from '../services';
 import { VehicleFilters } from '../types';
 import { LocalVehicle, Vehicle } from '../models/vehicle';
 import { formatDate } from './dateUtils';
@@ -60,19 +59,18 @@ export const checkIfFiltersMatch = async (
 };
 
 export const sortVehiclesByFilters = async (
-  vehicles: VehicleNode[],
+  vehicles: LocalVehicle[],
   filters: VehicleFilters,
 ) => {
   const compatibleVehicles = [];
   const incompatibleVehicles = [];
 
   for (const vehicle of vehicles) {
-    const localVehicle = new LocalVehicle(vehicle);
-    const isCompatible = await checkIfFiltersMatch(localVehicle, filters);
+    const isCompatible = await checkIfFiltersMatch(vehicle, filters);
     if (isCompatible) {
-      compatibleVehicles.push(localVehicle);
+      compatibleVehicles.push(vehicle);
     } else {
-      incompatibleVehicles.push(localVehicle);
+      incompatibleVehicles.push(vehicle);
     }
   }
   return { compatibleVehicles, incompatibleVehicles };
