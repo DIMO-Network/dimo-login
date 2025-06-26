@@ -7,4 +7,3 @@ export * from './SelectVehicles';
 export * from './SuccessfulPermissions';
 export * from './VehicleCard';
 export * from './VehicleManager';
-export { AllVehiclesShared } from './AllVehiclesShared';

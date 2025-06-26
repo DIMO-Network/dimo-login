@@ -1,14 +1,5 @@
 import React, { useEffect, useState } from 'react';
-
-import { useAuthContext } from '../../context/AuthContext';
-import { Vehicle } from '../../models/vehicle';
-import {
-  AuthPayload,
-  buildAuthPayload,
-  sendAuthPayloadToParent,
-} from '../../utils/authUtils';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
-import { backToThirdParty } from '../../utils/messageHandler';
 import { useUIManager } from '../../context/UIManagerContext';
 import { ConnectedLoader } from '../Shared/Loader';
 import { EmptyState } from './EmptyState';
@@ -17,56 +8,10 @@ import CompatibleVehicles from './CompatibleVehicles';
 import IncompatibleVehicles from './IncompatibleVehicles';
 import Footer from './Footer';
 import useSelectVehicles from '../../hooks/useSelectVehicles';
-import { useFetchVehicles, useShareVehicles } from '../../hooks';
+import { useFetchVehicles, useFinishShareVehicles, useShareVehicles } from '../../hooks';
 import PaginationButtons from './PaginationButtons';
 import { AllVehiclesShared } from './AllVehiclesShared';
 import { captureException } from '@sentry/react';
-import { UiStates } from '../../enums';
-
-const useSendAuthPayloadToParent = () => {
-  const { user, jwt } = useAuthContext();
-  const { clientId, redirectUri } = useDevCredentials<VehicleManagerMandatoryParams>();
-
-  return (
-    extraPayload: Partial<AuthPayload> | null,
-    handleNavigation: (authPayload: any) => void,
-  ) => {
-    if (jwt && redirectUri && clientId) {
-      const authPayloadWithVehicles = {
-        ...buildAuthPayload(clientId, jwt, user),
-        ...extraPayload,
-      };
-      sendAuthPayloadToParent(authPayloadWithVehicles, redirectUri, () =>
-        handleNavigation(authPayloadWithVehicles),
-      );
-    }
-  };
-};
-
-const useFinishShareVehicles = () => {
-  const { redirectUri, utm } = useDevCredentials<VehicleManagerMandatoryParams>();
-  const { setUiState, setComponentData } = useUIManager();
-  const sendAuthPayloadToParent = useSendAuthPayloadToParent();
-
-  const goToNextScreen = (sharedVehicles: Vehicle[]) => {
-    setComponentData({ action: 'shared', vehicles: sharedVehicles });
-    setUiState(UiStates.VEHICLES_SHARED_SUCCESS);
-  };
-
-  return (sharedVehicles?: Vehicle[]) => {
-    sendAuthPayloadToParent(
-      {
-        sharedVehicles: sharedVehicles?.map((v) => v.tokenId.toString()),
-      },
-      (authPayload) => {
-        if (sharedVehicles?.length) {
-          return goToNextScreen(sharedVehicles);
-        }
-        backToThirdParty(authPayload, redirectUri, utm);
-      },
-    );
-  };
-};
 
 export const SelectVehicles: React.FC = () => {
   const { devLicenseAlias } = useDevCredentials<VehicleManagerMandatoryParams>();
@@ -121,6 +66,7 @@ export const SelectVehicles: React.FC = () => {
   const onCancel = () => {
     finishShareVehicles([]);
   };
+
   const onNext = () => {
     fetchVehiclesWithUI();
   };
