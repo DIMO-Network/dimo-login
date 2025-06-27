@@ -3,7 +3,7 @@ import { LocalVehicle, Vehicle } from '../models/vehicle';
 import { formatDate } from './dateUtils';
 
 const transformVehicle = (vehicle: LocalVehicle, grantee: string): Vehicle => {
-  const sacd = vehicle.sacdForGrantee(grantee);
+  const sacd = vehicle.getSacdForGrantee(grantee);
   return {
     ...vehicle.normalize(),
     shared: !!sacd,

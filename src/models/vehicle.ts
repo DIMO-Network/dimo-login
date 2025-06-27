@@ -57,7 +57,7 @@ export class LocalVehicle {
     return this.vehicleNode.definition.id;
   }
 
-  sacdForGrantee(grantee: string) {
+  getSacdForGrantee(grantee: string) {
     return this.vehicleNode.sacds.nodes.find((sacd) => sacd.grantee === grantee);
   }
 

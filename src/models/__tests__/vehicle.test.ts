@@ -39,11 +39,11 @@ describe('LocalVehicle', () => {
   });
 
   it('returns correct sacd for grantee', () => {
-    expect(localVehicle.sacdForGrantee('client-1')).toEqual({
+    expect(localVehicle.getSacdForGrantee('client-1')).toEqual({
       expiresAt: '2025-01-01T00:00:00Z',
       grantee: 'client-1',
     });
-    expect(localVehicle.sacdForGrantee('not-a-client')).toBeUndefined();
+    expect(localVehicle.getSacdForGrantee('not-a-client')).toBeUndefined();
   });
 
   it('normalizes vehicle data', () => {
