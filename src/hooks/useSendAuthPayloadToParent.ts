@@ -16,12 +16,12 @@ export const useSendAuthPayloadToParent = () => {
     onSuccess: (authPayload: any) => void,
   ) => {
     if (jwt && redirectUri && clientId) {
-      const authPayloadWithVehicles = {
+      const fullAuthPayload = {
         ...buildAuthPayload(clientId, jwt, user),
         ...extraPayload,
       };
-      sendAuthPayloadToParent(authPayloadWithVehicles, redirectUri, () =>
-        onSuccess(authPayloadWithVehicles),
+      sendAuthPayloadToParent(fullAuthPayload, redirectUri, () =>
+        onSuccess(fullAuthPayload),
       );
     }
   };
