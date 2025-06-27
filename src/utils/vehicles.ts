@@ -19,18 +19,12 @@ export const transformVehicles = (vehicles: LocalVehicle[], grantee: string) => 
 
 const checkTokenIdsFilter = (vehicle: LocalVehicle, tokenIds?: string[]) => {
   if (!tokenIds?.length) return true;
-  // must be an anon function instead of an arrow func
-  return tokenIds.some(function (tokenId: string) {
-    return vehicle.tokenId.toString() === tokenId;
-  });
+  return tokenIds.includes(vehicle.tokenId.toString());
 };
 
 const checkMakesFilter = (vehicle: LocalVehicle, makes?: string[]) => {
   if (!makes?.length) return true;
-  // must be an anon function instead of an arrow func
-  return makes.some(function (make) {
-    return vehicle.make.toLowerCase() === make.toLowerCase();
-  });
+  return makes.map((make) => make.toLowerCase()).includes(vehicle.make.toLowerCase());
 };
 
 const checkPowertrainTypesFilter = async (
