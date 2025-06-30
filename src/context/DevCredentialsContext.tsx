@@ -29,6 +29,7 @@ import { useUIManager } from './UIManagerContext';
 import { useParamsHandler } from '../hooks';
 import { getDefaultExpirationDate } from '../utils/dateUtils';
 import { sendMessageToReferrer } from '../utils/messageHandler';
+import { isStandalone } from '../utils/isStandalone';
 
 const DEFAULT_CONTEXT: AllParams = {
   clientId: '',
@@ -176,6 +177,23 @@ export const DevCredentialsProvider = ({
     createKernelSigner(clientId, clientId, redirectUri);
   };
 
+  const setupPopupConfig = () => {
+    if (isStandalone()) {
+      applyDevCredentialsConfig({
+        waitingForParams: false,
+      });
+      return;
+    }
+
+    window.addEventListener('message', handleAuthInitMessage);
+
+    if (entryState && entryState in EventByUiState) {
+      sendMessageToReferrer({
+        eventType: EventByUiState[entryState as keyof typeof EventByUiState],
+      });
+    }
+  };
+
   const initAuthProcess = async () => {
     const isProcessedByCID = await processConfigByCID();
     const isProcessedByUrl = parseUrlParams();
@@ -185,17 +203,7 @@ export const DevCredentialsProvider = ({
     parseStateFromUrl();
 
     if (!isConfiguredByUrl) {
-      window.addEventListener('message', handleAuthInitMessage);
-      const { entryState } = devCredentialsState;
-
-      if (entryState && entryState in EventByUiState) {
-        sendMessageToReferrer({
-          eventType: EventByUiState[entryState as keyof typeof EventByUiState],
-        });
-        applyDevCredentialsConfig({
-          waitingForParams: true,
-        });
-      }
+      setupPopupConfig();
     }
   };
 
