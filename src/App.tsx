@@ -35,14 +35,9 @@ import { PasskeyLoginFail } from './components/Auth/PasskeyLoginFail';
 import './App.css';
 
 const App = () => {
-  const { setJwt, setUser, setUserInitialized, userInitialized } = useAuthContext();
+  const { setJwt, setUser, setUserInitialized } = useAuthContext();
   const { clientId, devLicenseAlias, ...params } = useDevCredentials();
-  const { uiState, setUiState, isLoading, entryState } = useUIManager() as {
-    uiState: keyof typeof componentMap;
-    setUiState: (state: UiStates) => void;
-    isLoading: boolean;
-    entryState: UiStates;
-  };
+  const { uiState, setUiState, isLoading, entryState } = useUIManager();
   const [email, setEmail] = useState('');
 
   const { error } = useErrorHandler({
@@ -68,7 +63,11 @@ const App = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId]);
 
-  if (error) {
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+
+  if (error && !isLoading) {
     return (
       <ErrorScreen
         title={error.title}
@@ -78,10 +77,6 @@ const App = () => {
         )}
       />
     );
-  }
-
-  if (isLoading || !userInitialized) {
-    return <LoadingScreen />;
   }
 
   const componentMap: Record<UiStates, React.ReactNode> = {

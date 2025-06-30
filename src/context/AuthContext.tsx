@@ -35,6 +35,7 @@ import {
   getApiKeyStamper,
   getFromLocalStorage,
   initializePasskey,
+  passkeyStamper,
   removeFromLocalStorage,
   TurnkeySessionData,
   TurnkeySessionDataWithExpiry,
@@ -45,7 +46,7 @@ import { generateP256KeyPair } from '@turnkey/crypto';
 import { getKernelSigner } from '../services';
 
 interface AuthContextProps {
-  authenticateUser: (stamper: TStamper) => Promise<void>;
+  completePasskeyLogin: () => Promise<void>;
   user: UserObject;
   setUser: React.Dispatch<React.SetStateAction<UserObject>>;
   jwt: string;
@@ -129,8 +130,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
     });
   };
 
-  const handleAuthenticateUser = async (stamper: TStamper) => {
-    await loginToDIMO({ stamper, turnkeySessionData: { sessionType: 'passkey' } });
+  const completePasskeyLogin = async () => {
+    await loginToDIMO({
+      stamper: passkeyStamper,
+      turnkeySessionData: { sessionType: 'passkey' },
+    });
   };
 
   const completeOTPLogin = async (args: OTPAuthArgs) => {
@@ -195,7 +199,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
   return (
     <AuthContext.Provider
       value={{
-        authenticateUser: handleAuthenticateUser,
+        completePasskeyLogin,
         user,
         setUser,
         jwt,

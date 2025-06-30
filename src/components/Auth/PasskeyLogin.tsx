@@ -1,17 +1,17 @@
 import { Header, Loader } from '../Shared';
 import { useAuthContext } from '../../context/AuthContext';
 import { FC, useEffect } from 'react';
-import { passkeyStamper } from '../../services';
 import { UiStates } from '../../enums';
 import { useUIManager } from '../../context/UIManagerContext';
 import debounce from 'lodash/debounce';
 
 export const PasskeyLogin: FC = () => {
-  const { authenticateUser } = useAuthContext();
+  const { completePasskeyLogin } = useAuthContext();
   const { setError, setUiState } = useUIManager();
+
   const handleLoginWithPasskey = async () => {
     try {
-      await authenticateUser(passkeyStamper);
+      await completePasskeyLogin();
     } catch (err) {
       if (err instanceof Error) {
         if (err.name === 'NotAllowedError') {

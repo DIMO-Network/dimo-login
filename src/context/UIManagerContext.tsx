@@ -34,7 +34,7 @@ export const UIManagerProvider = ({ children }: { children: ReactNode }) => {
   const [prevUiStates, setPrevUiStates] = useState<UiStates[]>([]);
   const [entryState, setEntryState] = useState<UiStates>(UiStates.EMAIL_INPUT);
   const [componentData, setComponentData] = useState<any | null>(null); // Initial component data
-  const [isLoading, setLoadingState, loadingMessage] = useLoading(false);
+  const [isLoading, setLoadingState, loadingMessage] = useLoading(true);
   const [error, setError] = useState<string | null>(null);
   const [altTitle, setAltTitle] = useState<boolean>(false);
 
