@@ -1,6 +1,6 @@
 // sessionService.ts
 
-import { UiStates } from '../context/UIManagerContext';
+import { UiStates } from '../enums';
 import { UserObject } from '../models/user';
 import { getJWTFromCookies, getUserFromLocalStorage } from './storageService';
 import { isTokenExpired } from './tokenService';

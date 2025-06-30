@@ -11,175 +11,140 @@ import React, {
   createContext,
   useContext,
   ReactNode,
-  useState,
   useEffect,
   ReactElement,
 } from 'react';
 
+import { AllParams } from '../types';
 import { createKernelSigner } from '../services/turnkeyService';
-import { isStandalone } from '../utils/isStandalone';
-import { isValidClientId } from '../services/identityService';
-import { setEmailGranted } from '../services/storageService';
-import { setForceEmail } from '../stores/AuthStateStore';
-import { UiStates, useUIManager } from './UIManagerContext';
+import { Event, EventByUiState, UiStates } from '../enums';
 import { fetchConfigFromIPFS } from '../services';
+import {
+  getDeveloperLicense,
+  getLicenseAlias,
+  isValidDeveloperLicense,
+} from '../services/identityService';
+import { setEmailGranted } from '../services/storageService';
+import { useUIManager } from './UIManagerContext';
+import { useParamsHandler } from '../hooks';
+import { getDefaultExpirationDate } from '../utils/dateUtils';
+import { sendMessageToReferrer } from '../utils/messageHandler';
+import { isStandalone } from '../utils/isStandalone';
 
-interface DevCredentialsContextProps {
-  apiKey: string;
-  clientId: string;
-  devLicenseAlias: string;
-  invalidCredentials: boolean;
-  redirectUri: string;
-  utm: string;
-  configCID: string;
-  newVehicleSectionDescription: string;
-  shareVehiclesSectionDescription: string;
-}
+const DEFAULT_CONTEXT: AllParams = {
+  clientId: '',
+  redirectUri: '',
+  waitingForParams: true,
+  waitingForDevLicense: true,
+  utm: '',
+  apiKey: 'api key',
+  invalidCredentials: true,
+  devLicenseAlias: '',
+  entryState: UiStates.EMAIL_INPUT,
+  altTitle: false,
+  forceEmail: false,
+  vehicleTokenIds: [],
+  vehicleMakes: [],
+  powertrainTypes: [],
+  expirationDate: getDefaultExpirationDate(),
+  newVehicleSectionDescription: '',
+  shareVehiclesSectionDescription: '',
+};
 
-const DevCredentialsContext = createContext<DevCredentialsContextProps | undefined>(
-  undefined,
-);
+const DevCredentialsContext = createContext<AllParams>(DEFAULT_CONTEXT);
 
 export const DevCredentialsProvider = ({
   children,
 }: {
   children: ReactNode;
 }): ReactElement => {
-  const [devCredentialsState, setDevCredentialsState] = useState({
-    clientId: '',
-    apiKey: '',
-    redirectUri: '',
-    utm: '',
-    invalidCredentials: false,
-    devLicenseAlias: '',
-    configCID: '',
-    newVehicleSectionDescription: '',
-    shareVehiclesSectionDescription: '',
-  });
-  const { setUiState, setEntryState, setLoadingState, setAltTitle } = useUIManager();
+  const { devCredentialsState, applyDevCredentialsConfig } =
+    useParamsHandler(DEFAULT_CONTEXT);
+  const { isLoading, setLoadingState } = useUIManager();
 
-  const devCredentialsSetters = {
-    apiKey: (value: string) =>
-      setDevCredentialsState((prev) => ({ ...prev, apiKey: value })),
-    redirectUri: (value: string) =>
-      setDevCredentialsState((prev) => ({ ...prev, redirectUri: value })),
-    utm: (value: string) => setDevCredentialsState((prev) => ({ ...prev, utm: value })),
-    clientId: (value: string) =>
-      setDevCredentialsState((prev) => ({ ...prev, clientId: value })),
-    devLicenseAlias: (value: string) =>
-      setDevCredentialsState((prev) => ({ ...prev, devLicenseAlias: value })),
-    invalidCredentials: (value: boolean) =>
-      setDevCredentialsState((prev) => ({ ...prev, invalidCredentials: value })),
-    entryState: (value: UiStates) => {
-      setUiState(value);
-      setEntryState(value);
-    },
-    forceEmail: (value: boolean) => setForceEmail(Boolean(value)),
-    altTitle: (value: boolean) => setAltTitle(Boolean(value)),
-    configCID: (value: string) =>
-      setDevCredentialsState((prev) => ({ ...prev, configCID: value })),
-    newVehicleSectionDescription: (value: string) =>
-      setDevCredentialsState((prev) => ({
-        ...prev,
-        newVehicleSectionDescription: value,
-      })),
-    shareVehiclesSectionDescription: (value: string) =>
-      setDevCredentialsState((prev) => ({
-        ...prev,
-        shareVehiclesSectionDescription: value,
-      })),
-  };
+  const { clientId, redirectUri, waitingForParams, waitingForDevLicense, entryState } =
+    devCredentialsState;
 
-  const applyDevCredentialsConfig = (config: Record<string, unknown>) => {
-    const finalConfig = {
-      ...config,
-      entryState: (config.entryState as UiStates) ?? UiStates.EMAIL_INPUT,
-    };
-    Object.entries(finalConfig).forEach(([key, value]) => {
-      if (
-        key in devCredentialsSetters &&
-        devCredentialsSetters[key as keyof typeof devCredentialsSetters] &&
-        value !== undefined
-      ) {
-        devCredentialsSetters[key as keyof typeof devCredentialsSetters](value as never);
-      }
-    });
-  };
+  const parseStateFromUrl = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasState = urlParams.has('state');
+    const stateFromUrl = urlParams.get('state');
+    if (!hasState || !stateFromUrl) return false;
 
-  const parseStateFromUrl = (stateFromUrl: string | null) => {
-    if (!stateFromUrl) return false;
-
-    const {
-      clientId,
-      emailPermissionGranted = false,
-      redirectUri,
-      utm,
-      entryState = UiStates.EMAIL_INPUT,
-      altTitle,
-    } = JSON.parse(stateFromUrl);
-
-    setEmailGranted(clientId, emailPermissionGranted);
+    const { emailPermissionGranted = false, ...parsedState } = JSON.parse(stateFromUrl);
 
     applyDevCredentialsConfig({
-      clientId,
-      apiKey: 'api key',
-      redirectUri,
-      utm,
-      entryState,
-      altTitle,
+      ...parsedState,
+      waitingForParams: false,
+    });
+    setEmailGranted(devCredentialsState.clientId!, emailPermissionGranted);
+
+    return true;
+  };
+
+  const parseUrlParams = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasClientId = urlParams.has('clientId');
+
+    if (!hasClientId) return false;
+
+    const parsedUrlParams = Object.fromEntries(urlParams.entries());
+    applyDevCredentialsConfig({
+      ...parsedUrlParams,
+      waitingForParams: false,
     });
 
     return true;
   };
 
-  const parseUrlParams = (urlParams: URLSearchParams) => {
-    const clientIdFromUrl = urlParams.get('clientId');
-    const redirectUriFromUrl = urlParams.get('redirectUri');
+  const handleAuthInitMessage = (event: MessageEvent) => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const stateFromUrl = urlParams.get('state');
 
-    if (!clientIdFromUrl || !redirectUriFromUrl) return false;
+    const { eventType, entryState, ...sourceParams } = event.data;
 
-    applyDevCredentialsConfig({
-      clientId: clientIdFromUrl,
-      apiKey: 'api key',
-      redirectUri: redirectUriFromUrl,
-      entryState: urlParams.get('entryState') as UiStates,
-      forceEmail: urlParams.get('forceEmail') === 'true',
-      utm: urlParams.get('utm'),
-      altTitle: urlParams.get('altTitle') === 'true',
-    });
+    if (!(eventType in Event)) return;
 
-    return true;
-  };
+    const customParams: Partial<AllParams> = {};
 
-  const handleAuthInitMessage = (event: MessageEvent, stateFromUrl: string | null) => {
-    const { eventType, clientId, apiKey, redirectUri, entryState, forceEmail, altTitle } =
-      event.data;
-
-    if (eventType === 'AUTH_INIT') {
-      console.log('Received AUTH_INIT message', event);
+    if (eventType === Event.AUTH_INIT) {
       const finalEntryState = stateFromUrl
         ? JSON.parse(stateFromUrl).entryState
         : entryState || UiStates.EMAIL_INPUT;
 
-      applyDevCredentialsConfig({
-        clientId,
-        apiKey,
-        redirectUri,
-        entryState: finalEntryState,
-        forceEmail,
-        altTitle,
-      });
+      customParams.entryState = finalEntryState;
     }
+
+    if (entryState in EventByUiState) {
+      if (EventByUiState[entryState as keyof typeof EventByUiState] === eventType) {
+        customParams.waitingForParams = false;
+      }
+    } else {
+      customParams.waitingForParams = false;
+    }
+
+    applyDevCredentialsConfig({
+      ...sourceParams,
+      ...customParams,
+    });
   };
 
-  const processConfigByCID = async (cid: string | null) => {
-    if (!cid) return false;
+  const processConfigByCID = async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasCID = urlParams.has('configCID');
+    const cid = urlParams.get('configCID');
+
+    if (!hasCID || !cid) return false;
+
     try {
       const config = await fetchConfigFromIPFS(cid);
+
       applyDevCredentialsConfig({
         ...config,
-        apiKey: 'api key',
+        waitingForParams: false,
+        configCID: cid,
       });
+
       return true;
     } catch (error) {
       console.error('Failed to process configuration by CID:', error);
@@ -187,78 +152,93 @@ export const DevCredentialsProvider = ({
     }
   };
 
+  const validateCredentials = async () => {
+    applyDevCredentialsConfig({
+      waitingForDevLicense: Boolean(clientId),
+    });
+
+    if (!clientId) return;
+
+    const licenseData = await getDeveloperLicense(clientId);
+    const alias = await getLicenseAlias(licenseData, clientId);
+    const isValid = await isValidDeveloperLicense(licenseData, redirectUri);
+
+    applyDevCredentialsConfig({
+      devLicenseAlias: alias,
+      invalidCredentials: !isValid,
+      waitingForDevLicense: false,
+    });
+
+    if (!isValid) {
+      console.error('Invalid client ID or redirect URI.');
+      return;
+    }
+
+    createKernelSigner(clientId, clientId, redirectUri);
+  };
+
+  const setupPopupConfig = () => {
+    if (isStandalone()) {
+      applyDevCredentialsConfig({
+        waitingForParams: false,
+      });
+      return;
+    }
+
+    window.addEventListener('message', handleAuthInitMessage);
+
+    if (entryState && entryState in EventByUiState) {
+      sendMessageToReferrer({
+        eventType: EventByUiState[entryState as keyof typeof EventByUiState],
+      });
+    }
+  };
+
   const initAuthProcess = async () => {
-    setLoadingState(true, 'Waiting for credentials...');
-    const urlParams = new URLSearchParams(window.location.search);
-    const stateFromUrl = urlParams.get('state');
-    const configCIDFromUrl = urlParams.get('configCID');
-
-    devCredentialsSetters.configCID(configCIDFromUrl || '');
-
-    const isConfiguredByUrl =
-      (await processConfigByCID(configCIDFromUrl)) || parseUrlParams(urlParams);
+    const isProcessedByCID = await processConfigByCID();
+    const isProcessedByUrl = parseUrlParams();
+    const isConfiguredByUrl = isProcessedByCID || isProcessedByUrl;
 
     // Recovering config from state for social sign-in
-    parseStateFromUrl(stateFromUrl);
+    parseStateFromUrl();
 
     if (!isConfiguredByUrl) {
-      const messageHandler = (event: MessageEvent) =>
-        handleAuthInitMessage(event, stateFromUrl);
-      window.addEventListener('message', messageHandler);
-      return () => {
-        window.removeEventListener('message', messageHandler);
-      };
+      setupPopupConfig();
     }
   };
 
   useEffect(() => {
+    setLoadingState(true, 'Waiting for credentials...');
     initAuthProcess();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entryState]);
 
   useEffect(() => {
-    const validateCredentials = async () => {
-      const { clientId, redirectUri } = devCredentialsState;
-
-      if (clientId && redirectUri) {
-        const { isValid, alias } = await isValidClientId(clientId, redirectUri);
-        if (isValid) {
-          devCredentialsSetters.devLicenseAlias(alias);
-          createKernelSigner(clientId, clientId, redirectUri);
-          setLoadingState(false);
-        } else {
-          devCredentialsSetters.invalidCredentials(true);
-          console.error('Invalid client ID or redirect URI.');
-        }
-      }
-    };
-
     validateCredentials();
-  }, [devCredentialsState.clientId, devCredentialsState.redirectUri]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId]);
+
+  useEffect(() => {
+    const isLoading = waitingForParams || waitingForDevLicense;
+    setLoadingState(isLoading, 'Waiting for credentials...');
+
+    return () => {
+      window.removeEventListener('message', handleAuthInitMessage);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, waitingForParams, waitingForDevLicense, clientId]);
 
   return (
-    <DevCredentialsContext.Provider
-      value={{
-        apiKey: devCredentialsState.apiKey,
-        clientId: devCredentialsState.clientId,
-        devLicenseAlias: devCredentialsState.devLicenseAlias,
-        invalidCredentials: devCredentialsState.invalidCredentials,
-        redirectUri: devCredentialsState.redirectUri,
-        utm: devCredentialsState.utm,
-        configCID: devCredentialsState.configCID,
-        newVehicleSectionDescription: devCredentialsState.newVehicleSectionDescription,
-        shareVehiclesSectionDescription:
-          devCredentialsState.shareVehiclesSectionDescription,
-      }}
-    >
+    <DevCredentialsContext.Provider value={devCredentialsState}>
       {children}
     </DevCredentialsContext.Provider>
   );
 };
 
-export const useDevCredentials = () => {
+export const useDevCredentials = <T extends AllParams>() => {
   const context = useContext(DevCredentialsContext);
   if (!context) {
     throw new Error('useDevCredentials must be used within a DevCredentialsProvider');
   }
-  return context;
+  return context as T;
 };

@@ -20,7 +20,7 @@ import {
 import { getWebAuthnAttestation } from '@turnkey/http';
 import { WebauthnStamper } from '@turnkey/webauthn-stamper';
 import { base64UrlEncode, generateRandomBuffer } from '../utils/cryptoUtils';
-import { VehcilePermissionDescription } from '@dimo-network/transactions/dist/core/types/args';
+import { VehiclePermissionDescription } from '@dimo-network/transactions/dist/core/types/args';
 import { PasskeyCreationResult } from '../models/resultTypes';
 import { ApiKeyStamper } from '@turnkey/api-key-stamper';
 import { uint8ArrayToHexString } from '@turnkey/encoding';
@@ -254,7 +254,7 @@ export function getSacdValue(
   return sacdPermissionValue(sacdPerms);
 }
 
-export function getSacdDescription(args: VehcilePermissionDescription): string {
+export function getSacdDescription(args: VehiclePermissionDescription): string {
   return sacdDescription(args);
 }
 
