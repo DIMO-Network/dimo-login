@@ -38,6 +38,7 @@ export const SelectVehicles: React.FC = () => {
     powertrainTypes,
     expirationDate,
     permissionTemplateId,
+    permissions,
   } = useDevCredentials<VehicleManagerMandatoryParams>();
   const { setUiState, setComponentData, setLoadingState, componentData, setError } =
     useUIManager();
@@ -172,7 +173,7 @@ export const SelectVehicles: React.FC = () => {
         return;
       }
 
-      const perms = getPermsValue(permissionTemplateId);
+      const perms = getPermsValue(permissionTemplateId ?? '1', permissions);
       const sources = await generateIpfsSources(perms, clientId, expirationDate);
       const basePermissions = createBasePermissions(perms, sources);
 
