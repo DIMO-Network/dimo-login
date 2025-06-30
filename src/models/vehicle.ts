@@ -32,27 +32,13 @@ export interface MintVehicleVariables {
 
 export class LocalVehicle {
   private vehicleNode: VehicleNode;
-  private clientId: string;
 
-  constructor(vehicleNode: VehicleNode, clientId: string) {
+  constructor(vehicleNode: VehicleNode) {
     this.vehicleNode = vehicleNode;
-    this.clientId = clientId;
-  }
-
-  getTokenIdMatch(tokenId: string): boolean {
-    return tokenId === this.vehicleNode.tokenId.toString();
-  }
-
-  getMakeMatch(make: string): boolean {
-    return make.toLowerCase() === this.vehicleNode.definition.make.toLowerCase();
   }
 
   get tokenId() {
     return this.vehicleNode.tokenId;
-  }
-
-  get imageURI(): string {
-    return this.vehicleNode.imageURI;
   }
 
   get make() {
@@ -67,33 +53,29 @@ export class LocalVehicle {
     return this.vehicleNode.definition.year;
   }
 
-  get sacd() {
-    return this.vehicleNode.sacds.nodes.find((it) => it.grantee === this.clientId);
+  get definitionId() {
+    return this.vehicleNode.definition.id;
   }
 
-  get isShared(): boolean {
-    return Boolean(this.sacd);
+  getSacdForGrantee(grantee: string) {
+    return this.vehicleNode.sacds.nodes.find((sacd) => sacd.grantee === grantee);
   }
 
-  get expiresAt() {
-    if (this.sacd) {
-      return this.sacd.expiresAt;
-    }
-    return '';
+  normalize() {
+    return {
+      tokenId: this.tokenId,
+      imageURI: this.vehicleNode.imageURI,
+      make: this.make,
+      model: this.model,
+      year: this.year,
+    };
   }
 
-  async getPowertrainTypeMatch(powertrainTypes: string[]): Promise<boolean> {
-    const result = await fetchDeviceDefinition(this.vehicleNode.definition.id);
-    if (result.deviceDefinition.attributes) {
-      const powertrainType = result.deviceDefinition.attributes?.find(
-        (it) => it.name === 'powertrain_type',
-      );
-      if (powertrainType) {
-        return powertrainTypes
-          .map((val) => val.toLowerCase())
-          .includes(powertrainType.value.toLowerCase());
-      }
-    }
-    return false;
+  async getPowertrainType() {
+    const queryResult = await fetchDeviceDefinition(this.definitionId);
+    const powertrainType = queryResult.deviceDefinition.attributes?.find(
+      (att) => att.name === 'powertrain_type',
+    );
+    return powertrainType ? powertrainType.value : null;
   }
 }

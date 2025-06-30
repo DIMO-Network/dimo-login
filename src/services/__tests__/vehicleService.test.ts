@@ -101,9 +101,9 @@ it('Only returns vehicles that match the tokenIds', async () => {
     filters: { vehicleTokenIds: ['1'] },
   });
   expect(data.compatibleVehicles.length).toEqual(1);
-  expect(data.compatibleVehicles[0].tokenId).toEqual('1');
+  expect(data.compatibleVehicles[0].tokenId).toEqual(1);
   expect(data.incompatibleVehicles.length).toEqual(1);
-  expect(data.incompatibleVehicles[0].tokenId).toEqual('2');
+  expect(data.incompatibleVehicles[0].tokenId).toEqual(2);
 });
 it('Only returns vehicles that match the make', async () => {
   const data = await fetchVehiclesWithTransformation({
@@ -176,20 +176,7 @@ it('Returns vehicles with the correct shape in compatible and incompatible array
   data.compatibleVehicles.forEach((vehicle) => {
     expect(vehicle).toEqual(
       expect.objectContaining({
-        tokenId: expect.any(String),
-        imageURI: expect.anything(),
-        shared: expect.any(Boolean),
-        expiresAt: expect.any(String),
-        make: expect.any(String),
-        model: expect.any(String),
-        year: expect.any(Number),
-      }),
-    );
-  });
-  data.incompatibleVehicles.forEach((vehicle) => {
-    expect(vehicle).toEqual(
-      expect.objectContaining({
-        tokenId: expect.any(String),
+        tokenId: expect.any(Number),
         imageURI: expect.anything(),
         shared: expect.any(Boolean),
         expiresAt: expect.any(String),
@@ -200,3 +187,71 @@ it('Returns vehicles with the correct shape in compatible and incompatible array
     );
   });
 });
+it('Returns incompatible vehicles with the correct shape when no compatible vehicles are found with multiple filters', async () => {
+  const data = await fetchVehiclesWithTransformation({
+    cursor: '',
+    direction: '',
+    ownerAddress: '',
+    targetGrantee: '',
+    filters: { vehicleMakes: ['Tesla'], powertrainTypes: ['ICE'] },
+  });
+  expect(data.compatibleVehicles.length).toEqual(0);
+  expect(data.incompatibleVehicles.length).toEqual(2);
+  data.incompatibleVehicles.forEach((vehicle) => {
+    expect(vehicle).toEqual(
+      expect.objectContaining({
+        tokenId: expect.any(Number),
+        imageURI: expect.anything(),
+        shared: expect.any(Boolean),
+        expiresAt: expect.any(String),
+        make: expect.any(String),
+        model: expect.any(String),
+        year: expect.any(Number),
+      })
+    );
+  });
+});
+it('Returns vehicles that match both make and powertrain type filters', async () => {
+  const data = await fetchVehiclesWithTransformation({
+    cursor: '',
+    direction: '',
+    ownerAddress: '',
+    targetGrantee: '',
+    filters: { vehicleMakes: ['Tesla'], powertrainTypes: ['BEV'] },
+  });
+  expect(data.compatibleVehicles.length).toEqual(1);
+  expect(data.compatibleVehicles[0].make).toEqual('Tesla');
+  expect(data.compatibleVehicles[0].model).toEqual('Model 3');
+  expect(data.compatibleVehicles[0].year).toEqual(2019);
+  expect(data.compatibleVehicles[0].tokenId).toEqual(1);
+  expect(data.incompatibleVehicles.length).toEqual(1);
+  expect(data.incompatibleVehicles[0].make).toEqual('Ford');
+});
+it('Returns no vehicles if make and powertrain type filters do not overlap', async () => {
+  const data = await fetchVehiclesWithTransformation({
+    cursor: '',
+    direction: '',
+    ownerAddress: '',
+    targetGrantee: '',
+    filters: { vehicleMakes: ['Tesla'], powertrainTypes: ['ICE'] },
+  });
+  expect(data.compatibleVehicles.length).toEqual(0);
+  expect(data.incompatibleVehicles.length).toEqual(2);
+});
+it('Returns vehicles that match both tokenId and powertrain type filters', async () => {
+  const data = await fetchVehiclesWithTransformation({
+    cursor: '',
+    direction: '',
+    ownerAddress: '',
+    targetGrantee: '',
+    filters: { vehicleTokenIds: ['2'], powertrainTypes: ['ICE'] },
+  });
+  expect(data.compatibleVehicles.length).toEqual(1);
+  expect(data.compatibleVehicles[0].tokenId).toEqual(2);
+  expect(data.compatibleVehicles[0].make).toEqual('Ford');
+  expect(data.compatibleVehicles[0].model).toEqual('Bronco');
+  expect(data.compatibleVehicles[0].year).toEqual(2023);
+  expect(data.incompatibleVehicles.length).toEqual(1);
+  expect(data.incompatibleVehicles[0].tokenId).toEqual(1);
+});
+

@@ -24,82 +24,66 @@ describe('LocalVehicle', () => {
     },
   };
 
-  const clientId = 'client-1';
   let localVehicle: LocalVehicle;
 
   beforeEach(() => {
-    localVehicle = new LocalVehicle(mockVehicleNode as any, clientId);
+    localVehicle = new LocalVehicle(mockVehicleNode as any);
   });
 
-  it('matches tokenId correctly', () => {
-    expect(localVehicle.getTokenIdMatch('123')).toBe(true);
-    expect(localVehicle.getTokenIdMatch('999')).toBe(false);
-  });
-
-  it('matches make correctly (case-insensitive)', () => {
-    expect(localVehicle.getMakeMatch('tesla')).toBe(true);
-    expect(localVehicle.getMakeMatch('ford')).toBe(false);
-  });
-
-  it('returns make, model, and year', () => {
+  it('returns tokenId, make, model, year, and definitionId', () => {
+    expect(localVehicle.tokenId).toBe(123);
     expect(localVehicle.make).toBe('Tesla');
     expect(localVehicle.model).toBe('Model S');
     expect(localVehicle.year).toBe(2022);
+    expect(localVehicle.definitionId).toBe('mock_def_id');
   });
 
-  it('returns correct sacd for client', () => {
-    expect(localVehicle.sacd).toEqual({
+  it('returns correct sacd for grantee', () => {
+    expect(localVehicle.getSacdForGrantee('client-1')).toEqual({
       expiresAt: '2025-01-01T00:00:00Z',
       grantee: 'client-1',
     });
+    expect(localVehicle.getSacdForGrantee('not-a-client')).toBeUndefined();
   });
 
-  it('returns isShared true if sacd exists for client', () => {
-    expect(localVehicle.isShared).toBe(true);
-    const lv2 = new LocalVehicle(mockVehicleNode as any, 'not-a-client');
-    expect(lv2.isShared).toBe(false);
+  it('normalizes vehicle data', () => {
+    expect(localVehicle.normalize()).toEqual({
+      tokenId: 123,
+      imageURI: 'http://image.url',
+      make: 'Tesla',
+      model: 'Model S',
+      year: 2022,
+    });
   });
 
-  it('returns formatted expiresAt if sacd exists, else empty string', () => {
-    expect(localVehicle.expiresAt).toBe('2025-01-01T00:00:00Z');
-    const lv2 = new LocalVehicle(mockVehicleNode as any, 'not-a-client');
-    expect(lv2.expiresAt).toBe('');
-  });
-
-  describe('getPowertrainTypeMatch', () => {
+  describe('getPowertrainType', () => {
     beforeEach(() => {
-      jest
-        .spyOn(services, 'fetchDeviceDefinition')
-        .mockImplementation(async (id: string) => {
-          return {
-            deviceDefinition: {
-              attributes: [
-                { name: 'powertrain_type', value: 'BEV' },
-                { name: 'other', value: 'foo' },
-              ],
-            },
-          };
-        });
+      jest.spyOn(services, 'fetchDeviceDefinition').mockResolvedValue({
+        deviceDefinition: {
+          attributes: [
+            { name: 'powertrain_type', value: 'BEV' },
+            { name: 'other', value: 'foo' },
+          ],
+        },
+      } as any);
     });
     afterEach(() => {
       jest.restoreAllMocks();
     });
-    it('returns true if powertrain type matches (case-insensitive)', async () => {
-      await expect(localVehicle.getPowertrainTypeMatch(['bev'])).resolves.toBe(true);
-      await expect(localVehicle.getPowertrainTypeMatch(['BEV'])).resolves.toBe(true);
-      await expect(localVehicle.getPowertrainTypeMatch(['ICE'])).resolves.toBe(false);
+    it('returns the powertrain type if present', async () => {
+      await expect(localVehicle.getPowertrainType()).resolves.toBe('BEV');
     });
-    it('returns false if no powertrain_type attribute', async () => {
+    it('returns null if powertrain_type attribute is missing', async () => {
       (services.fetchDeviceDefinition as jest.Mock).mockResolvedValueOnce({
         deviceDefinition: { attributes: [{ name: 'other', value: 'foo' }] },
       });
-      await expect(localVehicle.getPowertrainTypeMatch(['BEV'])).resolves.toBe(false);
+      await expect(localVehicle.getPowertrainType()).resolves.toBeNull();
     });
-    it('returns false if attributes is undefined', async () => {
+    it('returns null if attributes is undefined', async () => {
       (services.fetchDeviceDefinition as jest.Mock).mockResolvedValueOnce({
         deviceDefinition: { attributes: undefined },
       });
-      await expect(localVehicle.getPowertrainTypeMatch(['BEV'])).resolves.toBe(false);
+      await expect(localVehicle.getPowertrainType()).resolves.toBeNull();
     });
   });
 });
