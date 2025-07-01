@@ -14,7 +14,7 @@ const transformVehicle = (vehicle: LocalVehicle, grantee: string): Vehicle => {
 export const transformVehicles = (vehicles: LocalVehicle[], grantee: string) => {
   return vehicles
     .map((vehicle) => transformVehicle(vehicle, grantee))
-    .sort((a: any, b: any) => Number(a.shared) - Number(b.shared));
+    .sort((a: any, b: any) => Number(b.shared) - Number(a.shared));
 };
 
 const checkTokenIdsFilter = (vehicle: LocalVehicle, tokenIds?: string[]) => {
