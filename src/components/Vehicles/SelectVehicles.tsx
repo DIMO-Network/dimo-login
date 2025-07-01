@@ -1,14 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { useUIManager } from '../../context/UIManagerContext';
-import { ConnectedLoader } from '../Shared/Loader';
+import { Loader } from '../Shared/Loader';
 import { EmptyState } from './EmptyState';
 import { VehicleManagerMandatoryParams } from '../../types';
 import CompatibleVehicles from './CompatibleVehicles';
 import IncompatibleVehicles from './IncompatibleVehicles';
 import Footer from './Footer';
 import useSelectVehicles from '../../hooks/useSelectVehicles';
-import { useFetchVehicles, useFinishShareVehicles, useShareVehicles } from '../../hooks';
+import {
+  isInvalidSessionError,
+  useFetchVehicles,
+  useFinishShareVehicles,
+  useShareVehicles,
+} from '../../hooks';
 import PaginationButtons from './PaginationButtons';
 import { AllVehiclesShared } from './AllVehiclesShared';
 import { captureException } from '@sentry/react';
@@ -59,7 +64,9 @@ export const SelectVehicles: React.FC = () => {
       finishShareVehicles(selectedVehicles);
     } catch (err) {
       captureException(err);
-      setError('Could not share vehicles');
+      if (!isInvalidSessionError(err)) {
+        captureException('Failed to share vehicles');
+      }
     } finally {
       setLoadingState(false);
     }
@@ -89,7 +96,7 @@ export const SelectVehicles: React.FC = () => {
       {allShared && <AllVehiclesShared devLicenseAlias={devLicenseAlias} />}
 
       {isLoading ? (
-        <ConnectedLoader />
+        <Loader message={'Sharing vehicles'} />
       ) : (
         <div className="space-y-4 pt-4 max-h-[400px] overflow-auto w-full max-w-[440px]">
           {!!vehicles.length && (

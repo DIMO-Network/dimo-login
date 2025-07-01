@@ -56,6 +56,10 @@ const getBasePermissions = async ({
   };
 };
 
+const INVALID_SESSION_ERROR = 'Invalid session';
+export const isInvalidSessionError = (err: unknown) =>
+  err instanceof Error && err.message === INVALID_SESSION_ERROR;
+
 export const useShareVehicles = () => {
   const { clientId, expirationDate, permissionTemplateId } =
     useDevCredentials<VehicleManagerMandatoryParams>();
@@ -70,10 +74,10 @@ export const useShareVehicles = () => {
 
   return async (vehicles: Vehicle[]) => {
     if (!vehicles.length) {
-      return;
+      throw new Error('No vehicles shared');
     }
     const isValid = await validate();
-    if (!isValid) return;
+    if (!isValid) throw new Error(INVALID_SESSION_ERROR);
     const tokenIds = vehicles.map((v) => v.tokenId.toString());
     const basePermissions = await getBasePermissions({
       clientId,
