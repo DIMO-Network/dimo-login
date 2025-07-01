@@ -211,7 +211,7 @@ export const DevCredentialsProvider = ({
     setLoadingState(true, 'Waiting for credentials...');
     initAuthProcess();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entryState]);
+  }, []);
 
   useEffect(() => {
     validateCredentials();
