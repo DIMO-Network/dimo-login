@@ -17,7 +17,7 @@ export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
   const specialSetters = {
     entryState: (value: unknown) => {
       if (typeof value !== 'string' || !(value in UiStates)) return;
-      setUiState(value as UiStates);
+      // setUiState(value as UiStates);
       setEntryState(value as UiStates);
       setDevCredentialsState((prev) => ({
         ...prev,

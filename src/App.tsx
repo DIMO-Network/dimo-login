@@ -58,6 +58,7 @@ const App = () => {
         uiState,
         setUiState,
         setUserInitialized,
+        entryState,
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
