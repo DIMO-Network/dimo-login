@@ -65,7 +65,7 @@ export const SelectVehicles: React.FC = () => {
     } catch (err) {
       captureException(err);
       if (!isInvalidSessionError(err)) {
-        captureException('Failed to share vehicles');
+        setError('Failed to share vehicles');
       }
     } finally {
       setLoadingState(false);
