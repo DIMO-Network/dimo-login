@@ -1,6 +1,6 @@
-import { VehicleFilters } from '../types';
+import { VehicleFilters, VehiclePermissionsAction } from '../types';
 import { LocalVehicle, Vehicle } from '../models/vehicle';
-import { formatDate } from './dateUtils';
+import { extendByYear, formatDate, parseExpirationDate } from './dateUtils';
 
 const transformVehicle = (vehicle: LocalVehicle, grantee: string): Vehicle => {
   const sacd = vehicle.getSacdForGrantee(grantee);
@@ -68,4 +68,14 @@ export const sortVehiclesByFilters = async (
     }
   }
   return { compatibleVehicles, incompatibleVehicles };
+};
+export const getNewExpirationDate = (
+  vehicle: Vehicle,
+  actionType: VehiclePermissionsAction,
+) => {
+  return actionType === 'revoke' ? BigInt(0) : extendExpirationDateByYear(vehicle);
+};
+const extendExpirationDateByYear = (vehicle: Vehicle) => {
+  const extendedDate = extendByYear(vehicle.expiresAt);
+  return parseExpirationDate(extendedDate);
 };

@@ -7,3 +7,4 @@ export * from './useFetchVehicles';
 export * from './useShareVehicles';
 export * from './useSendAuthPayloadToParent';
 export * from './useFinishShareVehicles';
+export * from './useUpdateVehiclePermissions';
