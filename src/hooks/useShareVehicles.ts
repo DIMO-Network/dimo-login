@@ -12,6 +12,7 @@ import {
 import { useDevCredentials } from '../context/DevCredentialsContext';
 import { VehicleManagerMandatoryParams } from '../types';
 import { useAuthContext } from '../context/AuthContext';
+import { INVALID_SESSION_ERROR } from '../utils/authUtils';
 
 const shareSingleVehicle = async (tokenId: string, basePermissions: any) => {
   const vehiclePermissions: SetVehiclePermissions = {
@@ -55,10 +56,6 @@ const getBasePermissions = async ({
     source,
   };
 };
-
-const INVALID_SESSION_ERROR = 'Invalid session';
-export const isInvalidSessionError = (err: unknown) =>
-  err instanceof Error && err.message === INVALID_SESSION_ERROR;
 
 export const useShareVehicles = () => {
   const { clientId, expirationDate, permissionTemplateId } =

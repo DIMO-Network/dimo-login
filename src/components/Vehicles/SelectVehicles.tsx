@@ -8,15 +8,11 @@ import CompatibleVehicles from './CompatibleVehicles';
 import IncompatibleVehicles from './IncompatibleVehicles';
 import Footer from './Footer';
 import useSelectVehicles from '../../hooks/useSelectVehicles';
-import {
-  isInvalidSessionError,
-  useFetchVehicles,
-  useFinishShareVehicles,
-  useShareVehicles,
-} from '../../hooks';
+import { useFetchVehicles, useFinishShareVehicles, useShareVehicles } from '../../hooks';
 import PaginationButtons from './PaginationButtons';
 import { AllVehiclesShared } from './AllVehiclesShared';
 import { captureException } from '@sentry/react';
+import { isInvalidSessionError } from '../../utils/authUtils';
 
 export const SelectVehicles: React.FC = () => {
   const { devLicenseAlias } = useDevCredentials<VehicleManagerMandatoryParams>();
