@@ -13,6 +13,7 @@ import React, {
   ReactNode,
   useEffect,
   ReactElement,
+  useState,
 } from 'react';
 
 import { AllParams } from '../types';
@@ -25,7 +26,6 @@ import {
   isValidDeveloperLicense,
 } from '../services/identityService';
 import { setEmailGranted } from '../services/storageService';
-import { useUIManager } from './UIManagerContext';
 import { useParamsHandler } from '../hooks';
 import { getDefaultExpirationDate } from '../utils/dateUtils';
 import { sendMessageToReferrer } from '../utils/messageHandler';
@@ -51,7 +51,20 @@ const DEFAULT_CONTEXT: AllParams = {
   shareVehiclesSectionDescription: '',
 };
 
-const DevCredentialsContext = createContext<AllParams>(DEFAULT_CONTEXT);
+interface LoadingState {
+  isLoading: boolean;
+  message: string;
+}
+
+const DEFAULT_LOADING_STATE: LoadingState = {
+  isLoading: true,
+  message: 'Waiting for credentials...',
+};
+
+const DevCredentialsContext = createContext<AllParams & { loadingState: LoadingState }>({
+  ...DEFAULT_CONTEXT,
+  loadingState: DEFAULT_LOADING_STATE,
+});
 
 export const DevCredentialsProvider = ({
   children,
@@ -60,7 +73,7 @@ export const DevCredentialsProvider = ({
 }): ReactElement => {
   const { devCredentialsState, applyDevCredentialsConfig } =
     useParamsHandler(DEFAULT_CONTEXT);
-  const { isLoading, setLoadingState } = useUIManager();
+  const [loadingState, setLoadingState] = useState(DEFAULT_LOADING_STATE);
 
   const { clientId, redirectUri, waitingForParams, waitingForDevLicense, entryState } =
     devCredentialsState;
@@ -203,7 +216,6 @@ export const DevCredentialsProvider = ({
   };
 
   useEffect(() => {
-    setLoadingState(true, 'Waiting for credentials...');
     initAuthProcess();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entryState]);
@@ -215,16 +227,16 @@ export const DevCredentialsProvider = ({
 
   useEffect(() => {
     const isLoading = waitingForParams || waitingForDevLicense;
-    setLoadingState(isLoading, 'Waiting for credentials...');
+    setLoadingState({ isLoading, message: 'Waiting for credentials...' });
 
     return () => {
       window.removeEventListener('message', handleAuthInitMessage);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, waitingForParams, waitingForDevLicense, clientId]);
+  }, [loadingState.isLoading, waitingForParams, waitingForDevLicense, clientId]);
 
   return (
-    <DevCredentialsContext.Provider value={devCredentialsState}>
+    <DevCredentialsContext.Provider value={{ ...devCredentialsState, loadingState }}>
       {children}
     </DevCredentialsContext.Provider>
   );
@@ -235,5 +247,5 @@ export const useDevCredentials = <T extends AllParams>() => {
   if (!context) {
     throw new Error('useDevCredentials must be used within a DevCredentialsProvider');
   }
-  return context as T;
+  return context as T & { loadingState: LoadingState };
 };

@@ -1,6 +1,6 @@
 import { useEffect, useState, type FC } from 'react';
 
-import { PrimaryButton, ConnectedLoader, Card, Header } from '../Shared';
+import { PrimaryButton, UIManagerLoader, Card, Header } from '../Shared';
 import { UiStates } from '../../enums';
 import { useUIManager } from '../../context/UIManagerContext';
 import { getAppUrl } from '../../utils/urlHelpers';
@@ -147,6 +147,7 @@ export const CompatibilityCheck: FC = () => {
       //We've already fetched the device definition
       fetchDeviceDefinition();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [componentData]);
 
   return (
@@ -180,7 +181,7 @@ export const CompatibilityCheck: FC = () => {
 
       {isChecking ? (
         <div>
-          <ConnectedLoader />
+          <UIManagerLoader />
         </div>
       ) : isCompatible ? (
         <div className="flex flex-col space-y-2 w-full px-4">

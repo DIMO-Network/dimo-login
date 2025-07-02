@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { useUIManager } from '../../context/UIManagerContext';
-import { ConnectedLoader } from '../Shared/Loader';
+import { UIManagerLoader } from '../Shared/Loader';
 import { EmptyState } from './EmptyState';
 import { VehicleManagerMandatoryParams } from '../../types';
 import CompatibleVehicles from './CompatibleVehicles';
@@ -49,6 +49,7 @@ export const SelectVehicles: React.FC = () => {
 
   useEffect(() => {
     fetchVehiclesWithUI();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleShare = async () => {
@@ -89,7 +90,7 @@ export const SelectVehicles: React.FC = () => {
       {allShared && <AllVehiclesShared devLicenseAlias={devLicenseAlias} />}
 
       {isLoading ? (
-        <ConnectedLoader />
+        <UIManagerLoader />
       ) : (
         <div className="space-y-4 pt-4 max-h-[400px] overflow-auto w-full max-w-[440px]">
           {!!vehicles.length && (

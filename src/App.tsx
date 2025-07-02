@@ -40,9 +40,10 @@ const App = () => {
     clientId,
     devLicenseAlias,
     entryState: incomingEntryState,
+    loadingState: { isLoading, message: loadingMessage },
     ...params
   } = useDevCredentials();
-  const { uiState, setUiState, isLoading, entryState } = useUIManager();
+  const { uiState, setUiState, entryState } = useUIManager();
   const [email, setEmail] = useState('');
 
   const { error } = useErrorHandler({
@@ -69,7 +70,7 @@ const App = () => {
   }, [clientId, incomingEntryState]);
 
   if (isLoading) {
-    return <LoadingScreen />;
+    return <LoadingScreen message={loadingMessage} />;
   }
 
   if (error && !isLoading) {

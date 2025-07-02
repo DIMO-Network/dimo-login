@@ -1,13 +1,17 @@
 import React from 'react';
 import { useUIManager } from '../../context/UIManagerContext';
 
-export const ConnectedLoader: React.FC = () => {
+export const UIManagerLoader: React.FC = () => {
   const { loadingMessage } = useUIManager();
 
   return <Loader message={loadingMessage} />;
 };
 
-export const Loader: React.FC<{ message?: string }> = ({ message }) => {
+export type LoaderProps = {
+  message?: string;
+};
+
+export const Loader: React.FC<LoaderProps> = ({ message }) => {
   return (
     <div className="flex flex-col items-center gap-10">
       {!!message && <div className="text-lg">{message}</div>}
@@ -20,4 +24,4 @@ export const Loader: React.FC<{ message?: string }> = ({ message }) => {
   );
 };
 
-export default ConnectedLoader;
+export default UIManagerLoader;
