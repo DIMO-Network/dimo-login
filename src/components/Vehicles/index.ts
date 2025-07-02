@@ -7,6 +7,3 @@ export * from './SelectVehicles';
 export * from './SuccessfulPermissions';
 export * from './VehicleCard';
 export * from './VehicleManager';
-export { ManageVehicleDetails } from './ManageVehicleDetails';
-export { ManageVehicleFooter } from './ManageVehicleFooter';
-export { FooterProps } from './ManageVehicleFooter';
