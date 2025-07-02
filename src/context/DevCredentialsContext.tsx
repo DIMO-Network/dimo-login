@@ -113,14 +113,15 @@ export const DevCredentialsProvider = ({
         : entryState || UiStates.EMAIL_INPUT;
 
       customParams.entryState = finalEntryState;
-    }
-
-    if (entryState in EventByUiState) {
-      if (EventByUiState[entryState as keyof typeof EventByUiState] === eventType) {
-        customParams.waitingForParams = false;
-      }
+      customParams.waitingForParams = finalEntryState in EventByUiState;
     } else {
       customParams.waitingForParams = false;
+    }
+
+    if (entryState && entryState in EventByUiState) {
+      sendMessageToReferrer({
+        eventType: EventByUiState[entryState as keyof typeof EventByUiState],
+      });
     }
 
     applyDevCredentialsConfig({
@@ -186,12 +187,6 @@ export const DevCredentialsProvider = ({
     }
 
     window.addEventListener('message', handleAuthInitMessage);
-
-    if (entryState && entryState in EventByUiState) {
-      sendMessageToReferrer({
-        eventType: EventByUiState[entryState as keyof typeof EventByUiState],
-      });
-    }
   };
 
   const initAuthProcess = async () => {
@@ -211,7 +206,7 @@ export const DevCredentialsProvider = ({
     setLoadingState(true, 'Waiting for credentials...');
     initAuthProcess();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [entryState]);
 
   useEffect(() => {
     validateCredentials();

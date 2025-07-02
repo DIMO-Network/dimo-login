@@ -36,7 +36,12 @@ import './App.css';
 
 const App = () => {
   const { setJwt, setUser } = useAuthContext();
-  const { clientId, devLicenseAlias, ...params } = useDevCredentials();
+  const {
+    clientId,
+    devLicenseAlias,
+    entryState: incomingEntryState,
+    ...params
+  } = useDevCredentials();
   const { uiState, setUiState, isLoading, entryState } = useUIManager();
   const [email, setEmail] = useState('');
 
@@ -45,6 +50,7 @@ const App = () => {
     params: {
       clientId,
       devLicenseAlias,
+      entryState: incomingEntryState,
       ...params,
     },
   });
@@ -60,7 +66,7 @@ const App = () => {
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId, uiState]);
+  }, [clientId, incomingEntryState]);
 
   if (isLoading) {
     return <LoadingScreen />;
