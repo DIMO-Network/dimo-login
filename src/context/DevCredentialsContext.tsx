@@ -127,14 +127,14 @@ export const DevCredentialsProvider = ({
 
       customParams.entryState = finalEntryState;
       customParams.waitingForParams = finalEntryState in EventByUiState;
+
+      if (entryState && entryState in EventByUiState) {
+        sendMessageToReferrer({
+          eventType: EventByUiState[entryState as keyof typeof EventByUiState],
+        });
+      }
     } else {
       customParams.waitingForParams = false;
-    }
-
-    if (entryState && entryState in EventByUiState) {
-      sendMessageToReferrer({
-        eventType: EventByUiState[entryState as keyof typeof EventByUiState],
-      });
     }
 
     applyDevCredentialsConfig({
