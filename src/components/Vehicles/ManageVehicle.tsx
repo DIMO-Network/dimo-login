@@ -12,6 +12,7 @@ import {
 } from '../../services/turnkeyService';
 import { getPermsValue } from '../../services/permissionsService';
 import { extendByYear, parseExpirationDate } from '../../utils/dateUtils';
+import { UIManagerLoader } from '../Shared';
 
 export const ManageVehicle: React.FC = () => {
   const { clientId } = useDevCredentials();
@@ -21,6 +22,7 @@ export const ManageVehicle: React.FC = () => {
     setUiState,
     setComponentData,
     setLoadingState,
+    isLoading,
   } = useUIManager();
 
   const handlePermissionUpdate = async (
@@ -74,6 +76,10 @@ export const ManageVehicle: React.FC = () => {
     const extendedExpirationDate = extendByYear(vehicle.expiresAt); // Extend expiration by 1 year
     await handlePermissionUpdate('extend', extendedExpirationDate);
   };
+
+  if (isLoading) {
+    return <UIManagerLoader />;
+  }
 
   return (
     <>

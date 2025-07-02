@@ -15,7 +15,7 @@ import { captureException } from '@sentry/react';
 
 export const SelectVehicles: React.FC = () => {
   const { devLicenseAlias } = useDevCredentials<VehicleManagerMandatoryParams>();
-  const { setLoadingState, setError } = useUIManager();
+  const { setLoadingState, setError, isLoading } = useUIManager();
   const {
     fetchVehicles: _fetchVehicles,
     vehicles,
@@ -32,18 +32,17 @@ export const SelectVehicles: React.FC = () => {
     checkIfSelected,
   } = useSelectVehicles(vehicles.filter((v) => !v.shared));
   const handleShareVehicles = useShareVehicles();
-  const [isLoading, setIsLoading] = useState(false);
   const finishShareVehicles = useFinishShareVehicles();
 
   const fetchVehiclesWithUI = async (direction?: string) => {
     try {
-      setIsLoading(true);
+      setLoadingState(true, 'Fetching vehicles', true);
       await _fetchVehicles(direction);
     } catch (err) {
       captureException(err);
       setError('Could not fetch vehicles');
     } finally {
-      setIsLoading(false);
+      setLoadingState(false);
     }
   };
 
@@ -82,6 +81,10 @@ export const SelectVehicles: React.FC = () => {
   const noCompatibleVehicles = vehicles.length === 0 && incompatibleVehicles.length > 0;
   const allShared = vehicles.length > 0 && vehicles.every((v) => v.shared);
   const canShare = vehicles.some((v) => !v.shared);
+
+  if (isLoading) {
+    return <UIManagerLoader />;
+  }
 
   return (
     <div className="flex flex-col w-full items-center justify-center box-border overflow-y-auto">
