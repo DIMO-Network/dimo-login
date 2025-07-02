@@ -75,7 +75,7 @@ export const DevCredentialsProvider = ({
     useParamsHandler(DEFAULT_CONTEXT);
   const [loadingState, setLoadingState] = useState(DEFAULT_LOADING_STATE);
 
-  const { clientId, redirectUri, waitingForParams, waitingForDevLicense, entryState } =
+  const { clientId, redirectUri, waitingForParams, waitingForDevLicense } =
     devCredentialsState;
 
   const parseStateFromUrl = () => {
@@ -128,9 +128,9 @@ export const DevCredentialsProvider = ({
       customParams.entryState = finalEntryState;
       customParams.waitingForParams = finalEntryState in EventByUiState;
 
-      if (entryState && entryState in EventByUiState) {
+      if (finalEntryState && finalEntryState in EventByUiState) {
         sendMessageToReferrer({
-          eventType: EventByUiState[entryState as keyof typeof EventByUiState],
+          eventType: EventByUiState[finalEntryState as keyof typeof EventByUiState],
         });
       }
     } else {
@@ -218,7 +218,7 @@ export const DevCredentialsProvider = ({
   useEffect(() => {
     initAuthProcess();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entryState]);
+  }, []);
 
   useEffect(() => {
     validateCredentials();
