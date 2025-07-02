@@ -3,7 +3,7 @@ import { UiStates } from '../../enums';
 import { useUIManager } from '../../context/UIManagerContext';
 import { isInvalidSessionError } from '../../utils/authUtils';
 import { captureException } from '@sentry/react';
-import { ErrorMessage, UIManagerLoader } from '../Shared';
+import { ConnectedLoader, ErrorMessage } from '../Shared';
 import { useUpdateVehiclePermissions } from '../../hooks';
 import { VehiclePermissionsAction } from '../../types';
 import { getNewExpirationDate } from '../../utils/vehicles';
@@ -66,7 +66,7 @@ export const ManageVehicle: React.FC = () => {
   };
 
   if (isLoading) {
-    return <UIManagerLoader />;
+    return <ConnectedLoader />;
   }
 
   return (
