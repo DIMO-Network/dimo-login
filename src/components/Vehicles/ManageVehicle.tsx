@@ -12,40 +12,32 @@ import {
 } from '../../services/turnkeyService';
 import { getPermsValue } from '../../services/permissionsService';
 import { extendByYear, parseExpirationDate } from '../../utils/dateUtils';
+import { Vehicle } from '../../models/vehicle';
+import { INVALID_SESSION_ERROR, isInvalidSessionError } from '../../utils/authUtils';
+import { captureException } from '@sentry/react';
+import { ErrorMessage, UIManagerLoader } from '../Shared';
 
-export const ManageVehicle: React.FC = () => {
-  const { clientId } = useDevCredentials();
+type VehiclePermissionsAction = 'revoke' | 'extend';
+
+const useUpdateVehiclePermissions = () => {
   const { validateSession } = useAuthContext();
-  const {
-    componentData: { vehicle, permissionTemplateId },
-    setUiState,
-    setComponentData,
-    setLoadingState,
-  } = useUIManager();
+  const { clientId } = useDevCredentials();
 
-  const handlePermissionUpdate = async (
-    actionType: 'revoke' | 'extend',
-    expirationDate: string,
-  ) => {
-    const loadingMessage =
-      actionType === 'revoke' ? 'Revoking vehicles' : 'Extending vehicles';
-    const newAction = actionType === 'revoke' ? 'revoked' : 'extended';
-
-    setLoadingState(true, loadingMessage, true);
-
+  return async ({
+    permissionTemplateId,
+    expiration,
+    vehicle,
+  }: {
+    permissionTemplateId: string;
+    expiration: bigint;
+    vehicle: Vehicle;
+  }) => {
     const hasValidSession = await validateSession();
     if (!hasValidSession) {
-      setLoadingState(false);
-      return;
+      throw new Error(INVALID_SESSION_ERROR);
     }
-
     const perms = getPermsValue(permissionTemplateId ? permissionTemplateId : '1');
-
-    const expiration =
-      actionType === 'revoke' ? BigInt(0) : parseExpirationDate(expirationDate);
-
     const sources = await generateIpfsSources(perms, clientId, expiration);
-
     const basePermissions = {
       grantee: clientId as `0x${string}`,
       permissions: perms,
@@ -55,26 +47,89 @@ export const ManageVehicle: React.FC = () => {
 
     const vehiclePermissions: SetVehiclePermissions = {
       ...basePermissions,
-      tokenId: vehicle.tokenId,
+      tokenId: BigInt(vehicle.tokenId),
     };
-
     await setVehiclePermissions(vehiclePermissions);
+  };
+};
+const getLoadingMessage = (actionType: VehiclePermissionsAction) => {
+  return actionType === 'revoke' ? 'Revoking vehicles' : 'Extending vehicles';
+};
+const getNewExpirationDate = (vehicle: Vehicle, actionType: VehiclePermissionsAction) => {
+  return actionType === 'revoke' ? BigInt(0) : extendExpirationDateByYear(vehicle);
+};
+
+const extendExpirationDateByYear = (vehicle: Vehicle) => {
+  const extendedDate = extendByYear(vehicle.expiresAt);
+  return parseExpirationDate(extendedDate);
+};
+
+export const ManageVehicle: React.FC = () => {
+  const {
+    componentData: { vehicle, permissionTemplateId },
+    setUiState,
+    setComponentData,
+    setLoadingState,
+    setError,
+    isLoading,
+    error,
+  } = useUIManager();
+  const updateVehiclePermissions = useUpdateVehiclePermissions();
+
+  const handlePermissionUpdateSuccess = (actionType: VehiclePermissionsAction) => {
+    const newAction = actionType === 'revoke' ? 'revoked' : 'extended';
     vehicle.shared = false;
     setComponentData({ action: newAction, vehicles: [vehicle] });
     setUiState(UiStates.VEHICLES_SHARED_SUCCESS);
-    setLoadingState(false);
   };
 
-  const handleRevoke = async () => {
-    const expirationDate = '0'; // Use current expiration for revoking
-    await handlePermissionUpdate('revoke', expirationDate);
+  const handlePermissionUpdate = async (actionType: VehiclePermissionsAction) => {
+    try {
+      setLoadingState(true, getLoadingMessage(actionType), true);
+      setError(null);
+      await updateVehiclePermissions({
+        permissionTemplateId,
+        expiration: getNewExpirationDate(vehicle, actionType),
+        vehicle: vehicle,
+      });
+      handlePermissionUpdateSuccess(actionType);
+    } catch (err) {
+      captureException(err);
+      if (!isInvalidSessionError(err)) {
+        setError('Error updating vehicle permissions');
+      }
+    } finally {
+      setLoadingState(false);
+    }
+  };
+
+  const handleRevoke = () => {
+    handlePermissionUpdate('revoke');
   };
 
   const handleExtend = async () => {
-    const extendedExpirationDate = extendByYear(vehicle.expiresAt); // Extend expiration by 1 year
-    await handlePermissionUpdate('extend', extendedExpirationDate);
+    handlePermissionUpdate('extend');
   };
 
+  if (isLoading) {
+    return <UIManagerLoader />;
+  }
+
+  return (
+    <>
+      <VehicleDetails vehicle={vehicle} />
+      {!!error && <ErrorMessage message={error} />}
+      <Footer onRevoke={handleRevoke} onExtend={handleExtend} />
+    </>
+  );
+};
+
+interface FooterProps {
+  onRevoke: () => void;
+  onExtend: () => void;
+}
+
+const VehicleDetails = ({ vehicle }: { vehicle: Vehicle }) => {
   return (
     <>
       <Header
@@ -92,20 +147,23 @@ export const ManageVehicle: React.FC = () => {
       />
 
       <p className="text-center mt-8">Shared until {vehicle.expiresAt}</p>
-
-      {/* Render buttons */}
-      <div className="flex mt-8 justify-center gap-2">
-        <button
-          onClick={handleRevoke}
-          className="font-medium justify-center px-4 py-2 w-[214px] rounded-3xl border border-gray-300 bg-white text-black hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400"
-        >
-          Stop Sharing
-        </button>
-        <PrimaryButton onClick={handleExtend} width="w-[214px]">
-          Extend (1 year)
-        </PrimaryButton>
-      </div>
     </>
+  );
+};
+
+const Footer = ({ onRevoke, onExtend }: FooterProps) => {
+  return (
+    <div className="flex mt-8 justify-center gap-2">
+      <button
+        onClick={onRevoke}
+        className="font-medium justify-center px-4 py-2 w-[214px] rounded-3xl border border-gray-300 bg-white text-black hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400"
+      >
+        Stop Sharing
+      </button>
+      <PrimaryButton onClick={onExtend} width="w-[214px]">
+        Extend (1 year)
+      </PrimaryButton>
+    </div>
   );
 };
 
