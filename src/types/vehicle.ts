@@ -20,3 +20,5 @@ export type IParams = {
   direction: string;
   filters?: VehicleFilters;
 };
+
+export type VehiclePermissionsAction = 'revoke' | 'extend';
