@@ -12,6 +12,7 @@ import {
 import { useDevCredentials } from '../context/DevCredentialsContext';
 import { VehicleManagerMandatoryParams } from '../types';
 import { useAuthContext } from '../context/AuthContext';
+import { INVALID_SESSION_ERROR } from '../utils/authUtils';
 
 const shareSingleVehicle = async (tokenId: string, basePermissions: any) => {
   const vehiclePermissions: SetVehiclePermissions = {
@@ -70,10 +71,10 @@ export const useShareVehicles = () => {
 
   return async (vehicles: Vehicle[]) => {
     if (!vehicles.length) {
-      return;
+      throw new Error('No vehicles shared');
     }
     const isValid = await validate();
-    if (!isValid) return;
+    if (!isValid) throw new Error(INVALID_SESSION_ERROR);
     const tokenIds = vehicles.map((v) => v.tokenId.toString());
     const basePermissions = await getBasePermissions({
       clientId,

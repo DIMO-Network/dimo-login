@@ -16,6 +16,12 @@ const CompatibleVehicles = ({
   allSelected: boolean;
   checkIfSelected: (vehicle: Vehicle) => boolean;
 }) => {
+  const handleSelect = (vehicle: Vehicle) => {
+    if (!vehicle.shared) {
+      onSelect(vehicle);
+    }
+  };
+
   return (
     <>
       <div className="flex justify-between">
@@ -35,7 +41,7 @@ const CompatibleVehicles = ({
           key={vehicle.tokenId.toString()}
           vehicle={vehicle}
           isSelected={checkIfSelected(vehicle)}
-          onSelect={() => onSelect(vehicle)}
+          onSelect={() => handleSelect(vehicle)}
           disabled={false}
           incompatible={false}
         />

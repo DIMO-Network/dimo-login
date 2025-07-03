@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { useUIManager } from '../../context/UIManagerContext';
-import { UIManagerLoader } from '../Shared/Loader';
+import { Loader } from '../Shared/Loader';
 import { EmptyState } from './EmptyState';
 import { VehicleManagerMandatoryParams } from '../../types';
 import CompatibleVehicles from './CompatibleVehicles';
@@ -12,6 +12,7 @@ import { useFetchVehicles, useFinishShareVehicles, useShareVehicles } from '../.
 import PaginationButtons from './PaginationButtons';
 import { AllVehiclesShared } from './AllVehiclesShared';
 import { captureException } from '@sentry/react';
+import { isInvalidSessionError } from '../../utils/authUtils';
 
 export const SelectVehicles: React.FC = () => {
   const { devLicenseAlias } = useDevCredentials<VehicleManagerMandatoryParams>();
@@ -59,7 +60,9 @@ export const SelectVehicles: React.FC = () => {
       finishShareVehicles(selectedVehicles);
     } catch (err) {
       captureException(err);
-      setError('Could not share vehicles');
+      if (!isInvalidSessionError(err)) {
+        setError('Failed to share vehicles');
+      }
     } finally {
       setLoadingState(false);
     }
@@ -82,10 +85,6 @@ export const SelectVehicles: React.FC = () => {
   const allShared = vehicles.length > 0 && vehicles.every((v) => v.shared);
   const canShare = vehicles.some((v) => !v.shared);
 
-  if (isLoading) {
-    return <UIManagerLoader />;
-  }
-
   return (
     <div className="flex flex-col w-full items-center justify-center box-border overflow-y-auto">
       {noVehicles && !isLoading && <EmptyState />}
@@ -93,7 +92,7 @@ export const SelectVehicles: React.FC = () => {
       {allShared && <AllVehiclesShared devLicenseAlias={devLicenseAlias} />}
 
       {isLoading ? (
-        <UIManagerLoader />
+        <Loader message={'Sharing vehicles'} />
       ) : (
         <div className="space-y-4 pt-4 max-h-[400px] overflow-auto w-full max-w-[440px]">
           {!!vehicles.length && (

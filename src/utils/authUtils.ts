@@ -9,13 +9,13 @@ import {
 } from '../services/turnkeyService';
 import {
   clearSessionData,
-  isEmailGranted,
   getJWTFromCookies,
   getUserFromLocalStorage,
+  isEmailGranted,
+  saveToLocalStorage,
+  setLoggedEmail,
   storeJWTInCookies,
   storeUserInLocalStorage,
-  setLoggedEmail,
-  saveToLocalStorage,
   TurnkeySessionKey,
 } from '../services/storageService';
 import { UserObject } from '../models/user';
@@ -260,3 +260,7 @@ export async function authenticateUser(
     turnkeySessionExpiration,
   };
 }
+
+export const INVALID_SESSION_ERROR = 'Invalid session';
+export const isInvalidSessionError = (err: unknown) =>
+  err instanceof Error && err.message === INVALID_SESSION_ERROR;
