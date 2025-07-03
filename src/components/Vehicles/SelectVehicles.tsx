@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { useUIManager } from '../../context/UIManagerContext';
-import { Loader } from '../Shared/Loader';
+import { UIManagerLoaderWrapper } from '../Shared';
 import { EmptyState } from './EmptyState';
 import { VehicleManagerMandatoryParams } from '../../types';
 import CompatibleVehicles from './CompatibleVehicles';
@@ -16,7 +16,7 @@ import { isInvalidSessionError } from '../../utils/authUtils';
 
 export const SelectVehicles: React.FC = () => {
   const { devLicenseAlias } = useDevCredentials<VehicleManagerMandatoryParams>();
-  const { setLoadingState, setError } = useUIManager();
+  const { setLoadingState, setError, isLoading } = useUIManager();
   const {
     fetchVehicles: _fetchVehicles,
     vehicles,
@@ -33,23 +33,23 @@ export const SelectVehicles: React.FC = () => {
     checkIfSelected,
   } = useSelectVehicles(vehicles.filter((v) => !v.shared));
   const handleShareVehicles = useShareVehicles();
-  const [isLoading, setIsLoading] = useState(false);
   const finishShareVehicles = useFinishShareVehicles();
 
   const fetchVehiclesWithUI = async (direction?: string) => {
     try {
-      setIsLoading(true);
+      setLoadingState(true, 'Fetching vehicles', true);
       await _fetchVehicles(direction);
     } catch (err) {
       captureException(err);
       setError('Could not fetch vehicles');
     } finally {
-      setIsLoading(false);
+      setLoadingState(false);
     }
   };
 
   useEffect(() => {
     fetchVehiclesWithUI();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleShare = async () => {
@@ -91,39 +91,39 @@ export const SelectVehicles: React.FC = () => {
 
       {allShared && <AllVehiclesShared devLicenseAlias={devLicenseAlias} />}
 
-      {isLoading ? (
-        <Loader message={'Sharing vehicles'} />
-      ) : (
-        <div className="space-y-4 pt-4 max-h-[400px] overflow-auto w-full max-w-[440px]">
-          {!!vehicles.length && (
-            <CompatibleVehicles
-              vehicles={vehicles}
-              checkIfSelected={checkIfSelected}
-              onSelect={handleVehicleSelect}
-              onToggleSelectAll={handleToggleSelectAll}
-              allSelected={allSelected}
+      <UIManagerLoaderWrapper>
+        <>
+          <div className="space-y-4 pt-4 max-h-[400px] overflow-auto w-full max-w-[440px]">
+            {!!vehicles.length && (
+              <CompatibleVehicles
+                vehicles={vehicles}
+                checkIfSelected={checkIfSelected}
+                onSelect={handleVehicleSelect}
+                onToggleSelectAll={handleToggleSelectAll}
+                allSelected={allSelected}
+              />
+            )}
+            {!!incompatibleVehicles.length && (
+              <IncompatibleVehicles
+                vehicles={incompatibleVehicles}
+                canConnectVehicles={noCompatibleVehicles}
+              />
+            )}
+            <PaginationButtons
+              hasNext={hasNextPage}
+              hasPrevious={hasPreviousPage}
+              onNext={onNext}
+              onPrevious={onPrevious}
             />
-          )}
-          {!!incompatibleVehicles.length && (
-            <IncompatibleVehicles
-              vehicles={incompatibleVehicles}
-              canConnectVehicles={noCompatibleVehicles}
-            />
-          )}
-          <PaginationButtons
-            hasNext={hasNextPage}
-            hasPrevious={hasPreviousPage}
-            onNext={onNext}
-            onPrevious={onPrevious}
+          </div>
+          <Footer
+            canShare={canShare}
+            onCancel={onCancel}
+            onShare={handleShare}
+            selectedVehiclesCount={selectedVehicles.length}
           />
-        </div>
-      )}
-      <Footer
-        canShare={canShare}
-        onCancel={onCancel}
-        onShare={handleShare}
-        selectedVehiclesCount={selectedVehicles.length}
-      />
+        </>
+      </UIManagerLoaderWrapper>
     </div>
   );
 };
