@@ -7,7 +7,7 @@ import { sendTxnResponseToParent } from '../../utils/txnUtils';
 import { sendErrorToParent } from '../../utils/errorUtils';
 import { UiStates } from '../../enums';
 import { useUIManager } from '../../context/UIManagerContext';
-import { ErrorMessage, Header, PrimaryButton } from '../Shared';
+import { ErrorMessage, Header, PrimaryButton, UIManagerLoaderWrapper } from '../Shared';
 
 export const AdvancedTransaction: React.FC = () => {
   const { redirectUri, utm, transactionData } = useDevCredentials();
@@ -51,7 +51,7 @@ export const AdvancedTransaction: React.FC = () => {
   };
 
   return (
-    <>
+    <UIManagerLoaderWrapper>
       <Header title="Advanced Transaction" subtitle="" />
       {error && <ErrorMessage message={error} />}
       <div className="flex flex-col gap-[12px] text-sm">
@@ -94,7 +94,7 @@ export const AdvancedTransaction: React.FC = () => {
           Approve
         </PrimaryButton>
       </div>
-    </>
+    </UIManagerLoaderWrapper>
   );
 };
 

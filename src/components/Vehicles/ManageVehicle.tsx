@@ -3,7 +3,7 @@ import { UiStates } from '../../enums';
 import { useUIManager } from '../../context/UIManagerContext';
 import { isInvalidSessionError } from '../../utils/authUtils';
 import { captureException } from '@sentry/react';
-import { UIManagerLoader, ErrorMessage } from '../Shared';
+import { UIManagerLoaderWrapper, ErrorMessage } from '../Shared';
 import { useUpdateVehiclePermissions } from '../../hooks';
 import { VehiclePermissionsAction } from '../../types';
 import { getNewExpirationDate } from '../../utils/vehicles';
@@ -21,7 +21,6 @@ export const ManageVehicle: React.FC = () => {
     setComponentData,
     setLoadingState,
     setError,
-    isLoading,
     error,
   } = useUIManager();
   const updateVehiclePermissions = useUpdateVehiclePermissions();
@@ -65,16 +64,12 @@ export const ManageVehicle: React.FC = () => {
     handlePermissionUpdate('extend');
   };
 
-  if (isLoading) {
-    return <UIManagerLoader />;
-  }
-
   return (
-    <>
+    <UIManagerLoaderWrapper>
       <ManageVehicleDetails vehicle={vehicle} />
       {!!error && <ErrorMessage message={error} />}
       <ManageVehicleFooter onRevoke={handleRevoke} onExtend={handleExtend} />
-    </>
+    </UIManagerLoaderWrapper>
   );
 };
 

@@ -138,7 +138,6 @@ export const CompatibilityCheck: FC = () => {
   };
 
   useEffect(() => {
-    // setLoadingState(false);
     if (!componentData) {
       setIsCompatible(false);
       return;

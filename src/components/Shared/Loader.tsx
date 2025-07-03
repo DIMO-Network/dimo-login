@@ -24,4 +24,13 @@ export const Loader: React.FC<LoaderProps> = ({ message }) => {
   );
 };
 
+export const UIManagerLoaderWrapper = ({ children }: { children: React.ReactNode }) => {
+  const { isLoading } = useUIManager();
+
+  if (isLoading) {
+    return <UIManagerLoader />;
+  }
+  return <>{children}</>;
+};
+
 export default UIManagerLoader;

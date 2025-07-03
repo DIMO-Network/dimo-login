@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { useUIManager } from '../../context/UIManagerContext';
-import { Loader } from '../Shared/Loader';
+import { UIManagerLoaderWrapper } from '../Shared';
 import { EmptyState } from './EmptyState';
 import { VehicleManagerMandatoryParams } from '../../types';
 import CompatibleVehicles from './CompatibleVehicles';
@@ -91,9 +91,7 @@ export const SelectVehicles: React.FC = () => {
 
       {allShared && <AllVehiclesShared devLicenseAlias={devLicenseAlias} />}
 
-      {isLoading ? (
-        <Loader message={'Sharing vehicles'} />
-      ) : (
+      <UIManagerLoaderWrapper>
         <div className="space-y-4 pt-4 max-h-[400px] overflow-auto w-full max-w-[440px]">
           {!!vehicles.length && (
             <CompatibleVehicles
@@ -117,7 +115,7 @@ export const SelectVehicles: React.FC = () => {
             onPrevious={onPrevious}
           />
         </div>
-      )}
+      </UIManagerLoaderWrapper>
       <Footer
         canShare={canShare}
         onCancel={onCancel}
