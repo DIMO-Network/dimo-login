@@ -92,36 +92,38 @@ export const SelectVehicles: React.FC = () => {
       {allShared && <AllVehiclesShared devLicenseAlias={devLicenseAlias} />}
 
       <UIManagerLoaderWrapper>
-        <div className="space-y-4 pt-4 max-h-[400px] overflow-auto w-full max-w-[440px]">
-          {!!vehicles.length && (
-            <CompatibleVehicles
-              vehicles={vehicles}
-              checkIfSelected={checkIfSelected}
-              onSelect={handleVehicleSelect}
-              onToggleSelectAll={handleToggleSelectAll}
-              allSelected={allSelected}
+        <>
+          <div className="space-y-4 pt-4 max-h-[400px] overflow-auto w-full max-w-[440px]">
+            {!!vehicles.length && (
+              <CompatibleVehicles
+                vehicles={vehicles}
+                checkIfSelected={checkIfSelected}
+                onSelect={handleVehicleSelect}
+                onToggleSelectAll={handleToggleSelectAll}
+                allSelected={allSelected}
+              />
+            )}
+            {!!incompatibleVehicles.length && (
+              <IncompatibleVehicles
+                vehicles={incompatibleVehicles}
+                canConnectVehicles={noCompatibleVehicles}
+              />
+            )}
+            <PaginationButtons
+              hasNext={hasNextPage}
+              hasPrevious={hasPreviousPage}
+              onNext={onNext}
+              onPrevious={onPrevious}
             />
-          )}
-          {!!incompatibleVehicles.length && (
-            <IncompatibleVehicles
-              vehicles={incompatibleVehicles}
-              canConnectVehicles={noCompatibleVehicles}
-            />
-          )}
-          <PaginationButtons
-            hasNext={hasNextPage}
-            hasPrevious={hasPreviousPage}
-            onNext={onNext}
-            onPrevious={onPrevious}
+          </div>
+          <Footer
+            canShare={canShare}
+            onCancel={onCancel}
+            onShare={handleShare}
+            selectedVehiclesCount={selectedVehicles.length}
           />
-        </div>
+        </>
       </UIManagerLoaderWrapper>
-      <Footer
-        canShare={canShare}
-        onCancel={onCancel}
-        onShare={handleShare}
-        selectedVehiclesCount={selectedVehicles.length}
-      />
     </div>
   );
 };
