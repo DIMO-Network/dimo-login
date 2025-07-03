@@ -35,9 +35,15 @@ import { PasskeyLoginFail } from './components/Auth/PasskeyLoginFail';
 import './App.css';
 
 const App = () => {
-  const { setJwt, setUser, setUserInitialized } = useAuthContext();
-  const { clientId, devLicenseAlias, ...params } = useDevCredentials();
-  const { uiState, setUiState, isLoading, entryState } = useUIManager();
+  const { setJwt, setUser } = useAuthContext();
+  const {
+    clientId,
+    devLicenseAlias,
+    entryState: incomingEntryState,
+    loadingState: { isLoading, message: loadingMessage },
+    ...params
+  } = useDevCredentials();
+  const { uiState, setUiState, entryState } = useUIManager();
   const [email, setEmail] = useState('');
 
   const { error } = useErrorHandler({
@@ -45,6 +51,7 @@ const App = () => {
     params: {
       clientId,
       devLicenseAlias,
+      entryState: incomingEntryState,
       ...params,
     },
   });
@@ -57,14 +64,13 @@ const App = () => {
         setUser,
         uiState,
         setUiState,
-        setUserInitialized,
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId]);
+  }, [clientId, incomingEntryState]);
 
   if (isLoading) {
-    return <LoadingScreen />;
+    return <LoadingScreen message={loadingMessage} />;
   }
 
   if (error && !isLoading) {

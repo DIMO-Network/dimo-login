@@ -12,7 +12,6 @@ type InitializeSessionParams = {
   setUser: (user: UserObject) => void;
   uiState: UiStates;
   setUiState: (step: UiStates) => void;
-  setUserInitialized: (initialized: boolean) => void;
 };
 
 export function initializeSession({
@@ -21,11 +20,9 @@ export function initializeSession({
   setUser,
   uiState,
   setUiState,
-  setUserInitialized,
 }: InitializeSessionParams): void {
   if (!clientId) {
     console.error('Client ID is missing. Cannot initialize session.');
-    setUserInitialized(true);
     return;
   }
 
@@ -43,6 +40,4 @@ export function initializeSession({
     // If JWT or user is invalid, reset the state
     setUiState(UiStates.EMAIL_INPUT);
   }
-
-  setUserInitialized(true);
 }

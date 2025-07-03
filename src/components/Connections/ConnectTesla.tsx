@@ -7,6 +7,7 @@ import {
   VirtualKeyStep,
   PollingVirtualKeyStep,
   MintingStep,
+  UIManagerLoaderWrapper,
 } from '../Shared';
 import { AuthProvider } from '../../utils/authUrls';
 import { UiStates } from '../../enums';
@@ -264,7 +265,7 @@ export const ConnectTesla: FC = () => {
   };
 
   return (
-    <>
+    <UIManagerLoaderWrapper>
       <Header
         title={STEP_CONTENT_MAP[step].title}
         subtitle={appUrl.hostname}
@@ -278,6 +279,6 @@ export const ConnectTesla: FC = () => {
           {STEP_CONTENT_MAP[step].buttonText}
         </PrimaryButton>
       </div>
-    </>
+    </UIManagerLoaderWrapper>
   );
 };
