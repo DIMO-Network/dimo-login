@@ -24,6 +24,7 @@ export interface FetchedParams {
 
 export interface VehicleManagerParams {
   permissionTemplateId: string;
+  permissions: string;
   vehicleTokenIds: string[];
   vehicleMakes: string[];
   expirationDate: BigInt;

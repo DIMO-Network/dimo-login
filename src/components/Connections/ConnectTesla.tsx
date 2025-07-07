@@ -58,6 +58,7 @@ export const ConnectTesla: FC = () => {
     if (authCode && !(componentData && componentData.permissionsGranted)) {
       handleAuthCode(authCode, decodedStateFromUrl.vehicleToAdd);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ✅ Main Tesla onboarding function
@@ -200,6 +201,7 @@ export const ConnectTesla: FC = () => {
         entryState: UiStates.CONNECT_TESLA,
         expirationDate: urlParams.get('expirationDate'),
         permissionTemplateId: urlParams.get('permissionTemplateId'),
+        permissions: urlParams.get('permissions'),
         utm: urlParams.getAll('utm'),
         vehicleMakes: urlParams.getAll('vehicleMakes'),
         vehicles: urlParams.getAll('vehicles'),

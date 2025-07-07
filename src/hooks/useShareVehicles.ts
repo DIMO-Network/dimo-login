@@ -37,18 +37,20 @@ const shareVehicles = async (tokenIds: string[], basePermissions: any) => {
 };
 
 interface Params {
-  permissionTemplateId: string;
+  permissionTemplateId?: string;
+  permissions?: string;
   clientId: string;
   expirationDate: BigInt;
 }
 
 const getBasePermissions = async ({
   permissionTemplateId,
+  permissions,
   clientId,
   expirationDate,
 }: Params) => {
-  const permissions = getPermsValue(permissionTemplateId);
-  const source = await generateIpfsSources(permissions, clientId, expirationDate);
+  const perms = getPermsValue(permissionTemplateId, permissions);
+  const source = await generateIpfsSources(perms, clientId, expirationDate);
   return {
     grantee: clientId as `0x${string}`,
     permissions,
@@ -58,7 +60,7 @@ const getBasePermissions = async ({
 };
 
 export const useShareVehicles = () => {
-  const { clientId, expirationDate, permissionTemplateId } =
+  const { clientId, expirationDate, permissionTemplateId, permissions } =
     useDevCredentials<VehicleManagerMandatoryParams>();
   const { validateSession } = useAuthContext();
 
@@ -79,6 +81,7 @@ export const useShareVehicles = () => {
     const basePermissions = await getBasePermissions({
       clientId,
       permissionTemplateId,
+      permissions,
       expirationDate,
     });
     return shareVehicles(tokenIds, basePermissions);
