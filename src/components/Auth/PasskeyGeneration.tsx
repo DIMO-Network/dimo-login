@@ -68,8 +68,8 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
   );
 };
 
-// Using a custom loader here instead of the ConnectedLoader
-// because the ConnectedLoader will un-render this component
+// Using a custom loader here instead of the UIManagerLoader
+// because the UIManagerLoader will un-render this component
 // and cause the useEffect to not behave as intended
 const CustomLoader = () => {
   return (

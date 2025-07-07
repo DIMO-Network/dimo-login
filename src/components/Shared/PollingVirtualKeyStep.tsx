@@ -1,9 +1,9 @@
 import React, { FC } from 'react';
-import { ConnectedLoader } from './Loader';
+import { UIManagerLoader } from './Loader';
 
 export const PollingVirtualKeyStep: FC = () => (
   <div className="py-10">
-    <ConnectedLoader />
+    <UIManagerLoader />
   </div>
 );
 
