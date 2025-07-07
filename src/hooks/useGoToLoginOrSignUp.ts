@@ -8,9 +8,9 @@ export const useGoToLoginOrSignUp = () => {
   const { setUiState } = useUIManager();
 
   return async (email: string) => {
-    const userExistsResult = await fetchUserDetails(email);
-    if (userExistsResult.success && userExistsResult.data.user) {
-      setUser(userExistsResult.data.user);
+    const userAccount = await fetchUserDetails(email);
+    if (userAccount) {
+      setUser(userAccount);
       return setUiState(UiStates.PASSKEY_LOGIN);
     }
     setUiState(UiStates.PASSKEY_GENERATOR, { setBack: true });

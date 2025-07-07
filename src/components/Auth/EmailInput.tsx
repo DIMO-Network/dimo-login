@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 
-import { ErrorMessage, Header, LegalNotice, Loader } from '../Shared';
+import {
+  ErrorMessage,
+  Header,
+  LegalNotice,
+  Loader,
+  UIManagerLoaderWrapper,
+} from '../Shared';
 import { CachedEmail, EmailInputForm } from './';
 import { getLoggedEmail, setEmailGranted } from '../../services';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
@@ -17,6 +23,7 @@ import {
   useGoToLoginOrSignUp,
 } from '../../hooks';
 import { EmailPermissionCheckbox } from './EmailPermissionCheckbox';
+import { captureException } from '@sentry/react';
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;
@@ -24,7 +31,7 @@ interface EmailInputProps {
 
 export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   const { clientId, devLicenseAlias } = useDevCredentials();
-  const { error, setError, altTitle } = useUIManager();
+  const { error, setError, altTitle, setLoadingState } = useUIManager();
   const [email, setEmail] = useState('');
   const [emailPermissionGranted, setEmailPermissionGranted] = useState(false);
   const [showInput, setShowInput] = useState(!getLoggedEmail(clientId));
@@ -34,8 +41,16 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   const goToLoginOrSignUp = useGoToLoginOrSignUp();
 
   const handleSuccessfulEmailSubmission = async (email: string) => {
-    onSubmit(email);
-    goToLoginOrSignUp(email);
+    try {
+      setLoadingState(true, 'Fetching your details', false);
+      onSubmit(email);
+      await goToLoginOrSignUp(email);
+    } catch (err) {
+      captureException(err);
+      setError('Could not fetch user details');
+    } finally {
+      setLoadingState(false);
+    }
   };
 
   const handleEmailInputSubmit = async () => {
@@ -87,7 +102,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   }
 
   return (
-    <>
+    <UIManagerLoaderWrapper>
       <Header
         title={getSignInTitle(devLicenseAlias, {
           altTitle: Boolean(altTitle),
@@ -120,6 +135,6 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
         )}
         <LegalNotice />
       </div>
-    </>
+    </UIManagerLoaderWrapper>
   );
 };

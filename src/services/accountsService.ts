@@ -1,15 +1,5 @@
-/**
- * accountsService.ts
- *
- * This service handles all requests related to the Dimo Accounts API, including
- * checking account existence and creating/linking accounts.
- * This service should only be called by AuthContext, or other Contexts
- *
- */
-
 import { CreateAccountParams } from '../models/account';
-import { CredentialResult, OtpResult, UserResult } from '../models/resultTypes';
-import { generateTargetPublicKey } from '../utils/cryptoUtils';
+import { CredentialResult, OtpResult } from '../models/resultTypes';
 import { UserObject } from '../models/user';
 
 const DIMO_ACCOUNTS_BASE_URL =
@@ -122,42 +112,27 @@ export const createAccount = async ({
   };
 };
 
-// src/services/authService.ts
-export const fetchUserDetails = async (email: string): Promise<UserResult> => {
-  try {
-    const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account/${email}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      return {
-        success: false,
-        error: errorData.message || 'Failed to fetch user details',
-      };
+export const fetchUserDetails = async (email: string): Promise<null | UserObject> => {
+  const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account/${email}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+  if (!response.ok) {
+    if (response.status === 404) {
+      return null;
     }
-
-    const { subOrganizationId, hasPasskey } = await response.json(); //This is to mock the wallet address and smart contract address not being returned
-
-    //Partial Construction of User Object, completed post connect
-    const userResponse = {
-      email,
-      subOrganizationId,
-      hasPasskey,
-      smartContractAddress: '',
-      walletAddress: '',
-      emailVerified: true,
-    };
-
-    return { success: true, data: { user: userResponse } };
-  } catch (error) {
-    console.error('Error fetching user details:', error);
-    return {
-      success: false,
-      error: 'An error occurred while fetching user details',
-    };
+    const data = await response.json();
+    throw new Error(data.message ?? 'Failed to fetch user details');
   }
+  const { subOrganizationId, hasPasskey } = await response.json();
+  return {
+    email,
+    subOrganizationId,
+    hasPasskey,
+    smartContractAddress: '',
+    walletAddress: '',
+    emailVerified: true,
+  };
 };
