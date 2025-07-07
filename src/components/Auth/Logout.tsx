@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 
 import { useUIManager } from '../../context/UIManagerContext';
-import { ConnectedLoader } from '../Shared';
+import { UIManagerLoader } from '../Shared';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { logout } from '../../utils/authUtils';
 
@@ -19,7 +19,7 @@ export const Logout = () => {
 
   return (
     <>
-      <ConnectedLoader />
+      <UIManagerLoader />
     </>
   );
 };

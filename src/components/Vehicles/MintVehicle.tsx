@@ -13,6 +13,7 @@ import {
 } from '../../services/dimoDevicesService';
 import { IntegrationNft, MintVehicleNft } from '../../models/typedData';
 import { SAMPLE_B64_IMAGE } from '../../utils/constants';
+import { UIManagerLoaderWrapper } from '../Shared';
 
 export const MintVehicle: FC = () => {
   const { componentData, setLoadingState, setUiState, setComponentData } = useUIManager();
@@ -116,7 +117,7 @@ export const MintVehicle: FC = () => {
   };
 
   return (
-    <>
+    <UIManagerLoaderWrapper>
       <img
         style={{ height: '40px', width: '40px' }}
         className="rounded-full object-cover mr-4"
@@ -131,6 +132,6 @@ export const MintVehicle: FC = () => {
         <p className="text-xl font-medium">Download the DIMO app now</p>
         <div className="flex flex-row gap-6"></div>
       </div>
-    </>
+    </UIManagerLoaderWrapper>
   );
 };

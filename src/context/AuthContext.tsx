@@ -51,8 +51,6 @@ interface AuthContextProps {
   setUser: React.Dispatch<React.SetStateAction<UserObject>>;
   jwt: string;
   setJwt: React.Dispatch<React.SetStateAction<string>>;
-  userInitialized: boolean;
-  setUserInitialized: React.Dispatch<React.SetStateAction<boolean>>;
   completeOTPLogin: (args: OTPAuthArgs) => Promise<void>;
   validateSession: () => Promise<null | boolean>;
   resetUser: () => void;
@@ -84,7 +82,6 @@ interface OTPAuthArgs {
 export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element => {
   const [user, setUser] = useState<UserObject>(defaultUser);
   const [jwt, setJwt] = useState<string>('');
-  const [userInitialized, setUserInitialized] = useState<boolean>(false);
   const { clientId, redirectUri, utm } = useDevCredentials();
   const { setUiState, entryState } = useUIManager();
 
@@ -204,8 +201,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
         setUser,
         jwt,
         setJwt,
-        userInitialized,
-        setUserInitialized,
         completeOTPLogin,
         validateSession,
         resetUser,
