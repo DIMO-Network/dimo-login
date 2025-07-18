@@ -1,12 +1,12 @@
 export interface GenerateChallengeParams {
-  clientId: string;
+  clientId: `0x${string}` | null;
   domain: string;
   scope: string;
   address: string;
 }
 
 export interface SubmitChallengeParams {
-  clientId: string;
+  clientId: `0x${string}` | null;
   domain: string;
   state: string;
   signature: string;

@@ -11,9 +11,8 @@ import {
   ContractType,
   KernelSigner,
   newKernelConfig,
+  Permission,
   sacdDescription,
-  sacdPermissionArray,
-  sacdPermissionValue,
   SetVehiclePermissions,
   SetVehiclePermissionsBulk,
 } from '@dimo-network/transactions';
@@ -147,15 +146,12 @@ export const signChallenge = async (challenge: string): Promise<`0x${string}`> =
 
 // Helper function to generate IPFS sources for one or more vehicles
 export const generateIpfsSources = async (
-  permissions: BigInt,
-  clientId: string,
+  permissions: Permission[],
+  clientId: `0x${string}` | null,
   expiration: BigInt,
 ): Promise<string> => {
   // Bulk vehicles
   const ipfsRes = await kernelSigner.signAndUploadSACDAgreement({
-    driverID: clientId,
-    appID: clientId,
-    appName: 'dimo-login', //TODO: Should be a constant, if we're assuming the same appName (however feels like this should be provided by the developer)
     expiration: expiration,
     permissions: permissions,
     grantee: clientId as `0x${string}`,
@@ -235,29 +231,6 @@ export async function executeAdvancedTransaction(
   return response.receipt.transactionHash;
 }
 
-//Exported helpers, to reduce other services to depend on the transactions SDK
-export function getSacdValue(
-  sacdPerms: Partial<
-    Record<
-      | 'NONLOCATION_TELEMETRY'
-      | 'COMMANDS'
-      | 'CURRENT_LOCATION'
-      | 'ALLTIME_LOCATION'
-      | 'CREDENTIALS'
-      | 'STREAMS'
-      | 'RAW_DATA'
-      | 'APPROXIMATE_LOCATION',
-      boolean
-    >
-  >,
-): bigint {
-  return sacdPermissionValue(sacdPerms);
-}
-
 export function getSacdDescription(args: VehiclePermissionDescription): string {
   return sacdDescription(args);
-}
-
-export function getSacdPermissionArray(permissionsObject: bigint): string[] {
-  return sacdPermissionArray(permissionsObject);
 }

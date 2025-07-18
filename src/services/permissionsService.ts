@@ -1,37 +1,23 @@
 import { SACDTemplate } from '@dimo-network/transactions/dist/core/types/dimo';
 import { VehiclePermissionDescription } from '@dimo-network/transactions/dist/core/types/args';
+import { Permission } from '@dimo-network/transactions';
+import { generatePermissionsSACDTemplate } from '@dimo-network/transactions/dist/core/actions/setPermissionsSACD';
 
 import { FetchPermissionsParams } from '../models/permissions';
-import {
-  getSacdDescription,
-  getSacdPermissionArray,
-  getSacdValue,
-} from './turnkeyService';
-import { formatBigIntAsReadableDate } from '../utils/dateUtils';
-import { PERMISSIONS, PermissionsObject } from '../types/permissions';
+import { getSacdDescription } from './turnkeyService';
 import { POLICY_ATTACHMENT_CID_BY_REGION } from '../enums';
 
-const createPermissionsObject = (permissionString: string): PermissionsObject =>
-  Object.fromEntries(
-    Object.keys(PERMISSIONS).map((key, index) => [
-      key,
+export const createPermissionsObject = (permissionString: string = ''): Permission[] => {
+  const permissionEntries = Object.entries(Permission)
+    .filter(([key]) => isNaN(Number(key)))
+    .map<[Permission, boolean]>(([, value], index) => [
+      value as Permission,
       (permissionString?.[index] ?? '0') === '1',
-    ]),
-  ) as PermissionsObject;
+    ]);
 
-export const getPermsValue = (
-  permissionTemplateId?: string,
-  permissions?: string,
-): bigint => {
-  let permissionString = permissions;
-  if (permissionTemplateId) {
-    permissionString = `1${permissionTemplateId === '1' ? '1' : '0'}1111`;
-  }
-  return getSacdValue(createPermissionsObject(permissionString as string));
-};
-
-export const getPermissionArray = (perms: bigint): string[] => {
-  return getSacdPermissionArray(perms);
+  return permissionEntries
+    .filter(([, isEnabled]) => isEnabled)
+    .map(([permission]) => permission);
 };
 
 export function getDescription(args: VehiclePermissionDescription): string {
@@ -58,21 +44,9 @@ export const fetchPermissionsFromId = async ({
   expirationDate,
   region,
 }: FetchPermissionsParams): Promise<SACDTemplate> => {
-  const templateId = '$uuid';
-
-  // Call helpers, that will communicate with the transactionService, which has access to the SDK
-  // Not necessary, but the abstraction makes it easier for us to mock responses etc
-  const permsValue = getPermsValue(permissionTemplateId, permissions);
-  const permissionArray = getPermissionArray(permsValue);
-
-  const currentTime = new Date();
-  const currentTimeBigInt = BigInt(Math.floor(currentTime.getTime() / 1000));
-
-  let permissionsString = ``;
-  for (const perm of permissionArray) {
-    permissionsString += `\n- ${perm}`;
+  if (!clientId || !walletAddress) {
+    throw new Error('Client ID or wallet address is required');
   }
-
   const contractAttachmentLink =
     region && region in POLICY_ATTACHMENT_CID_BY_REGION
       ? getContractAttachmentLink(region as keyof typeof POLICY_ATTACHMENT_CID_BY_REGION)
@@ -80,32 +54,15 @@ export const fetchPermissionsFromId = async ({
   console.log('contractAttachmentLink', contractAttachmentLink);
   console.log('region', region);
 
-  const description = `This contract gives permission for specific data access and control functions on the DIMO platform. Here’s what you’re agreeing to:\n\nContract Summary:\n- Grantor: ${email} (the entity giving permission).\n- Grantee: ${devLicenseAlias}  (the entity receiving permission).\n\n${contractAttachmentLink}\n\nPermissions Granted:${permissionsString}\n\nEffective Date: ${formatBigIntAsReadableDate(
-    currentTimeBigInt,
-  )} \n\nExpiration Date: ${formatBigIntAsReadableDate(
-    expirationDate,
-  )}.\n\nDetails:\n- This grant provides the grantee with access to specific vehicle data and control functions as specified above.\n- Created by DIMO Platform, version 1.0 of this contract template.\n\nBy signing, both parties agree to these terms and the specified access scope.`;
-
-  const template: SACDTemplate = {
-    specVersion: '1.0',
-    id: templateId,
-    type: 'org.dimo.permission.grant.v1',
-    datacontentype: 'application/json',
-    time: currentTime.toISOString(),
-    data: {
-      templateId: templateId,
-      version: '1.0',
-      grantor: walletAddress,
-      grantee: clientId,
-      scope: {
-        permissions: permissionArray,
-      },
-      effectiveAt: currentTime.toISOString(),
-      expiresAt: new Date(Number(expirationDate) * 1000).toISOString(),
-      attachments: [],
-      description,
-    },
-  };
+  const template = generatePermissionsSACDTemplate({
+    grantor: walletAddress,
+    grantee: clientId,
+    asset: 'did:',
+    permissions: createPermissionsObject(permissions || ''),
+    attachments: [],
+    expiration: expirationDate,
+  });
+  console.log('template', template);
 
   return template;
 };

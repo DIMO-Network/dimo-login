@@ -125,9 +125,9 @@ export const VehicleManager: React.FC = () => {
     permissionTemplate: SACDTemplate | null,
     shareCarsSectionDescription: string,
   ) => {
-    if (permissionTemplate?.data.description) {
-      return renderDescription(permissionTemplate.data.description);
-    }
+    // if (permissionTemplate?.data.description) {
+    //   return renderDescription(permissionTemplate.data.description);
+    // }
 
     let description =
       'The developer is requesting access to view your vehicle data. Select the vehicles you’d like to share access to.';

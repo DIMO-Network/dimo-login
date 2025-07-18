@@ -28,7 +28,7 @@ export const generateChallenge = async ({
 }: GenerateChallengeParams): Promise<GenerateChallengeResult> => {
   try {
     const queryParams = new URLSearchParams({
-      client_id: clientId,
+      client_id: String(clientId),
       domain: domain,
       scope: scope,
       response_type: 'code',
@@ -71,7 +71,7 @@ export const submitWeb3Challenge = async ({
   try {
     // Construct the body using URLSearchParams for form-urlencoded
     const formBody = new URLSearchParams({
-      client_id: clientId,
+      client_id: String(clientId),
       state: state,
       grant_type: 'authorization_code', // Fixed value
       domain: domain,
@@ -111,7 +111,7 @@ export const submitCodeExchange = async ({
   redirectUri,
 }: SubmitCodeExchangeParams): Promise<string> => {
   const formBody = new URLSearchParams({
-    client_id: clientId,
+    client_id: String(clientId),
     code,
     grant_type: 'authorization_code',
     redirect_uri: redirectUri,

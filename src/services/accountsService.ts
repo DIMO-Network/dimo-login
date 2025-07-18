@@ -116,8 +116,8 @@ export const createAccount = async ({
     email,
     subOrganizationId,
     hasPasskey,
-    smartContractAddress: '',
-    walletAddress: '',
+    smartContractAddress: null,
+    walletAddress: null,
     emailVerified: true,
   };
 };
@@ -147,8 +147,8 @@ export const fetchUserDetails = async (email: string): Promise<UserResult> => {
       email,
       subOrganizationId,
       hasPasskey,
-      smartContractAddress: '',
-      walletAddress: '',
+      smartContractAddress: null,
+      walletAddress: null,
       emailVerified: true,
     };
 

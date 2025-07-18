@@ -2,7 +2,11 @@ import { useAuthContext } from '../context/AuthContext';
 import { useDevCredentials } from '../context/DevCredentialsContext';
 import { Vehicle } from '../models/vehicle';
 import { INVALID_SESSION_ERROR } from '../utils/authUtils';
-import { generateIpfsSources, getPermsValue, setVehiclePermissions } from '../services';
+import {
+  createPermissionsObject,
+  generateIpfsSources,
+  setVehiclePermissions,
+} from '../services';
 import { SetVehiclePermissions } from '@dimo-network/transactions';
 
 type UpdateVehiclePermissionsParams = {
@@ -26,10 +30,7 @@ export const useUpdateVehiclePermissions = () => {
     if (!hasValidSession) {
       throw new Error(INVALID_SESSION_ERROR);
     }
-    const perms = getPermsValue(
-      permissionTemplateId ? permissionTemplateId : '1',
-      permissions,
-    );
+    const perms = createPermissionsObject(permissions);
     const sources = await generateIpfsSources(perms, clientId, expiration);
     const basePermissions = {
       grantee: clientId as `0x${string}`,
