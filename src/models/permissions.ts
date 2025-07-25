@@ -1,5 +1,6 @@
 export interface FetchPermissionsParams {
-  permissionTemplateId: string;
+  permissionTemplateId?: string;
+  permissions?: string;
   clientId: string;
   walletAddress: string;
   email: string;

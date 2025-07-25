@@ -19,6 +19,7 @@ export const VehicleManager: React.FC = () => {
     devLicenseAlias,
     shareVehiclesSectionDescription,
     permissionTemplateId,
+    permissions,
     expirationDate,
     region,
   } = useDevCredentials<VehicleManagerMandatoryParams>();
@@ -29,10 +30,11 @@ export const VehicleManager: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState<boolean | undefined>(false);
 
   const fetchPermissions = async () => {
-    if (permissionTemplateId) {
+    if (permissionTemplateId || permissions) {
       try {
         const permissionsParams: FetchPermissionsParams = {
           permissionTemplateId,
+          permissions,
           clientId,
           devLicenseAlias,
           expirationDate,
@@ -41,7 +43,10 @@ export const VehicleManager: React.FC = () => {
           region: region?.toUpperCase(),
         };
         const permissionTemplate = await fetchPermissionsFromId(permissionsParams);
-        setComponentData({ permissionTemplateId }); //So that manage vehicle has a permission template ID
+        setComponentData({
+          ...(permissionTemplateId && { permissionTemplateId }),
+          ...(permissions && { permissions }),
+        });
         setPermissionTemplate(permissionTemplate as SACDTemplate);
       } catch (error) {
         setError('Could not fetch permissions');
@@ -52,7 +57,14 @@ export const VehicleManager: React.FC = () => {
 
   useEffect(() => {
     Promise.all([fetchPermissions()]);
-  }, [user.smartContractAddress, clientId, permissionTemplateId, devLicenseAlias]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    user.smartContractAddress,
+    clientId,
+    permissionTemplateId,
+    permissions,
+    devLicenseAlias,
+  ]);
 
   const renderDescription = (description: string) => {
     const paragraphs = description.split('\n\n');
@@ -154,7 +166,7 @@ export const VehicleManager: React.FC = () => {
           </div>
         </>
 
-        {permissionTemplateId && <SelectVehicles />}
+        {(permissionTemplateId || permissions) && <SelectVehicles />}
       </div>
     </>
   );

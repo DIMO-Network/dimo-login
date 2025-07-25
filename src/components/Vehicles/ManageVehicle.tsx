@@ -16,7 +16,7 @@ const getLoadingMessage = (actionType: VehiclePermissionsAction) => {
 
 export const ManageVehicle: React.FC = () => {
   const {
-    componentData: { vehicle, permissionTemplateId },
+    componentData: { vehicle, permissionTemplateId, permissions },
     setUiState,
     setComponentData,
     setLoadingState,
@@ -45,6 +45,7 @@ export const ManageVehicle: React.FC = () => {
       setLoadingState(true, getLoadingMessage(actionType), true);
       await updateVehiclePermissions({
         permissionTemplateId,
+        permissions,
         expiration: getNewExpirationDate(vehicle, actionType),
         vehicle: vehicle,
       });

@@ -18,6 +18,7 @@ interface AuthUrlParams {
   onboarding?: string[];
   vehicles?: string[];
   permissionTemplateId?: string | null;
+  permissions?: string | null;
   expirationDate?: string | null;
   powertrainTypes?: string[];
   vehicleToAdd?: {
@@ -51,6 +52,7 @@ function buildStateParams(params: AuthUrlParams): Record<string, any> {
     entryState: params.entryState,
     expirationDate: params.expirationDate,
     permissionTemplateId: params.permissionTemplateId,
+    permissions: params.permissions,
     redirectUri: params.redirectUri,
     referrer: params.referrer ?? document.referrer,
     utm: params.utm ?? [],
