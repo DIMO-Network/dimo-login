@@ -45,7 +45,9 @@ export const getContractAttachmentLink = (
   if (!cid) {
     return '';
   }
-  return `<a href="https://${cid}.ipfs.w3s.link/agreement-${region.toLowerCase()}.pdf" target="_blank">Contract Attachment</a>`;
+  // BARRETT TODO: Revert back after DEMO
+  // return `<a href="https://${cid}.ipfs.w3s.link/agreement-${region.toLowerCase()}.pdf" target="_blank">Contract Attachment</a>`;
+  return `<a href="https://assets.dimo.org/ipfs/${cid}" target="_blank">Contract Attachment</a>`
 };
 
 export const fetchPermissionsFromId = async ({
@@ -102,7 +104,7 @@ export const fetchPermissionsFromId = async ({
       },
       effectiveAt: currentTime.toISOString(),
       expiresAt: new Date(Number(expirationDate) * 1000).toISOString(),
-      attachments: [],
+      attachments: [contractAttachmentLink],
       description,
     },
   };
