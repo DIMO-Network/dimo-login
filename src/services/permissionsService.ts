@@ -81,6 +81,8 @@ export const fetchPermissionsFromId = async ({
       : '';
   console.log('contractAttachmentLink', contractAttachmentLink);
   console.log('region', region);
+  const urlMatch = contractAttachmentLink.match(/href="([^"]*)"/);
+  const extractedAttachmentUrl = urlMatch ? urlMatch[1] : '';
 
   const description = `This contract gives permission for specific data access and control functions on the DIMO platform. Here’s what you’re agreeing to:\n\nContract Summary:\n- Grantor: ${email} (the entity giving permission).\n- Grantee: ${devLicenseAlias}  (the entity receiving permission).\n\n${contractAttachmentLink}\n\nPermissions Granted:${permissionsString}\n\nEffective Date: ${formatBigIntAsReadableDate(
     currentTimeBigInt,
@@ -104,10 +106,9 @@ export const fetchPermissionsFromId = async ({
       },
       effectiveAt: currentTime.toISOString(),
       expiresAt: new Date(Number(expirationDate) * 1000).toISOString(),
-      attachments: [contractAttachmentLink],
+      attachments: extractedAttachmentUrl ? [extractedAttachmentUrl] : [],
       description,
     },
   };
-
   return template;
 };
