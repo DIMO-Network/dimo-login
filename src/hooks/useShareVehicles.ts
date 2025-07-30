@@ -65,9 +65,15 @@ export const useShareVehicles = () => {
   const { validateSession } = useAuthContext();
 
   const validate = async () => {
-    if (!permissionTemplateId || !clientId) {
-      throw new Error('At least one of permissionTemplateId and clientId is missing');
+    if (!clientId) {
+      throw new Error('clientId is missing');
     }
+
+    const permissionExists = permissionTemplateId || permissions;
+    if (!permissionExists) {
+      throw new Error('No permissions provided');
+    }
+
     return !!(await validateSession());
   };
 
