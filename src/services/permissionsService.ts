@@ -50,6 +50,19 @@ export const getContractAttachmentLink = (
   return `<a href="https://assets.dimo.org/ipfs/${cid}" target="_blank">Contract Attachment</a>`
 };
 
+// New function to generate attachments array that can be reused
+export const generateAttachments = (region?: string): string[] => {
+  if (!region || !(region in POLICY_ATTACHMENT_CID_BY_REGION)) {
+    return [];
+  }
+  
+  const contractAttachmentLink = getContractAttachmentLink(region as keyof typeof POLICY_ATTACHMENT_CID_BY_REGION);
+  const urlMatch = contractAttachmentLink.match(/href="([^"]*)"/);
+  const extractedAttachmentUrl = urlMatch ? urlMatch[1] : '';
+  
+  return extractedAttachmentUrl ? [extractedAttachmentUrl] : [];
+};
+
 export const fetchPermissionsFromId = async ({
   permissionTemplateId,
   permissions,
@@ -87,7 +100,7 @@ export const fetchPermissionsFromId = async ({
   console.log('urlMatch:', urlMatch);
   console.log('extractedAttachmentUrl:', extractedAttachmentUrl);
 
-  const description = `This contract gives permission for specific data access and control functions on the DIMO platform. Here’s what you’re agreeing to:\n\nContract Summary:\n- Grantor: ${email} (the entity giving permission).\n- Grantee: ${devLicenseAlias}  (the entity receiving permission).\n\n${contractAttachmentLink}\n\nPermissions Granted:${permissionsString}\n\nEffective Date: ${formatBigIntAsReadableDate(
+  const description = `This contract gives permission for specific data access and control functions on the DIMO platform. Here's what you're agreeing to:\n\nContract Summary:\n- Grantor: ${email} (the entity giving permission).\n- Grantee: ${devLicenseAlias}  (the entity receiving permission).\n\n${contractAttachmentLink}\n\nPermissions Granted:${permissionsString}\n\nEffective Date: ${formatBigIntAsReadableDate(
     currentTimeBigInt,
   )} \n\nExpiration Date: ${formatBigIntAsReadableDate(
     expirationDate,
@@ -113,5 +126,9 @@ export const fetchPermissionsFromId = async ({
       description,
     },
   };
+  
+  console.log('Final template before return:', JSON.stringify(template, null, 2));
+  console.log('Template attachments:', template.data.attachments);
+  
   return template;
 };
