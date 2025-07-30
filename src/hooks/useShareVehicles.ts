@@ -17,6 +17,7 @@ import { INVALID_SESSION_ERROR } from '../utils/authUtils';
 const shareSingleVehicle = async (tokenId: string, basePermissions: any) => {
   const vehiclePermissions: SetVehiclePermissions = {
     ...basePermissions,
+    permissions: basePermissions.perms,
     tokenId: BigInt(tokenId),
   };
   await setVehiclePermissions(vehiclePermissions);
@@ -24,6 +25,7 @@ const shareSingleVehicle = async (tokenId: string, basePermissions: any) => {
 const shareMultipleVehicles = async (tokenIds: string[], basePermissions: any) => {
   const bulkVehiclePermissions: SetVehiclePermissionsBulk = {
     ...basePermissions,
+    permissions: basePermissions.perms,
     tokenIds: tokenIds.map((id) => BigInt(id)),
   };
   await setVehiclePermissionsBulk(bulkVehiclePermissions);
