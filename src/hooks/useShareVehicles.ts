@@ -53,7 +53,7 @@ const getBasePermissions = async ({
   const source = await generateIpfsSources(perms, clientId, expirationDate);
   return {
     grantee: clientId as `0x${string}`,
-    permissions,
+    perms,
     expiration: expirationDate,
     source,
   };
