@@ -157,6 +157,8 @@ export const generateIpfsSources = async (
     grantee: clientId as `0x${string}`,
     attachments: [],
     grantor: kernelSigner.smartContractAddress!,
+    // TODO: Add the asset based on the user
+    asset: 'did:',
   });
 
   return `ipfs://${ipfsRes.cid}`;

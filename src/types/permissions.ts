@@ -12,3 +12,17 @@ export const PERMISSIONS = Object.keys(PERMISSIONS_FROM_SDK).reduce(
 export type PermissionsObject = {
   [K in PermissionKey]: boolean;
 };
+
+export const PERMISSIONS_DESCRIPTION: Record<PermissionKey, string> = {
+  GetNonLocationHistory:
+    'NONLOCATION_TELEMETRY: non-location vehicle data such as fuel levels and odometer.',
+  ExecuteCommands:
+    'COMMANDS: ability to send commands to the vehicle such as lock and unlock.',
+  GetCurrentLocation: 'CURRENT_LOCATION: access to the vehicle current location.',
+  GetLocationHistory: 'ALLTIME_LOCATION: access to the vehicle full location history.',
+  GetVINCredential:
+    'CREDENTIALS: access to any stored credentials and attestations such as insurance and service records.',
+  GetLiveData: 'STREAMS: access to real-time data streams.',
+  GetRawData: 'RAW_DATA: access to raw payload data.',
+  GetApproximateLocation: 'APPROXIMATE_LOCATION: access to approximate vehicle location.',
+};
