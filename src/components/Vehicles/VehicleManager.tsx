@@ -1,14 +1,8 @@
 import React, { useEffect, useState } from 'react';
 
-import { SACDTemplate } from '@dimo-network/transactions/dist/core/types/dimo';
-
-import { FetchPermissionsParams } from '../../models/permissions';
 import { useAuthContext } from '../../context/AuthContext';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
-import {
-  fetchPermissionsFromId,
-  getDescription,
-} from '../../services/permissionsService';
+import { getDescription } from '../../services/permissionsService';
 import { Header, ErrorMessage } from '../Shared';
 import { useUIManager } from '../../context/UIManagerContext';
 import SelectVehicles from './SelectVehicles';
@@ -20,7 +14,6 @@ export const VehicleManager: React.FC = () => {
   const {
     clientId,
     devLicenseAlias,
-    shareVehiclesSectionDescription,
     permissionTemplateId,
     permissions,
     expirationDate,
@@ -29,29 +22,16 @@ export const VehicleManager: React.FC = () => {
   const { setComponentData, error, setError } = useUIManager();
 
   //Data from SDK
-  const [permissionTemplate, setPermissionTemplate] = useState<SACDTemplate | null>(null);
   const [templateDescription, setTemplateDescription] = useState<string>('');
   const [isExpanded, setIsExpanded] = useState<boolean | undefined>(false);
 
   const fetchPermissions = async () => {
     if (permissionTemplateId || permissions) {
       try {
-        const permissionsParams: FetchPermissionsParams = {
-          permissionTemplateId,
-          permissions,
-          clientId,
-          devLicenseAlias,
-          expirationDate,
-          walletAddress: user.smartContractAddress,
-          email: user.email,
-          region: region?.toUpperCase(),
-        };
-        const permissionTemplate = await fetchPermissionsFromId(permissionsParams);
         setComponentData({
           ...(permissionTemplateId && { permissionTemplateId }),
           ...(permissions && { permissions }),
         });
-        setPermissionTemplate(permissionTemplate as SACDTemplate);
         setTemplateDescription(
           getDescription({
             email: user.email,
