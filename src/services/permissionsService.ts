@@ -101,27 +101,3 @@ export const getContractAttachmentLink = (region?: string): string => {
     ];
   return `<a href="https://${cid}.ipfs.w3s.link/agreement-${region.toLowerCase()}.pdf" target="_blank">Contract Attachment</a>`;
 };
-
-export const fetchPermissionsFromId = async ({
-  permissionTemplateId,
-  permissions,
-  clientId,
-  walletAddress,
-  expirationDate,
-}: FetchPermissionsParams): Promise<SACDTemplate> => {
-  if (!clientId || !walletAddress) {
-    throw new Error('Client ID or wallet address is required');
-  }
-
-  const template = generatePermissionsSACDTemplate({
-    grantor: walletAddress,
-    grantee: clientId,
-    // TODO: Add the asset based on the user
-    asset: 'did:',
-    permissions: createPermissionsObject(permissions || '', permissionTemplateId),
-    attachments: [],
-    expiration: expirationDate,
-  });
-
-  return template;
-};
