@@ -107,30 +107,21 @@ export const fetchPermissionsFromId = async ({
   permissions,
   clientId,
   walletAddress,
-  email,
-  devLicenseAlias,
   expirationDate,
-  region,
 }: FetchPermissionsParams): Promise<SACDTemplate> => {
   if (!clientId || !walletAddress) {
     throw new Error('Client ID or wallet address is required');
   }
-  const contractAttachmentLink =
-    region && region in POLICY_ATTACHMENT_CID_BY_REGION
-      ? getContractAttachmentLink(region as keyof typeof POLICY_ATTACHMENT_CID_BY_REGION)
-      : '';
-  console.log('contractAttachmentLink', contractAttachmentLink);
-  console.log('region', region);
 
   const template = generatePermissionsSACDTemplate({
     grantor: walletAddress,
     grantee: clientId,
+    // TODO: Add the asset based on the user
     asset: 'did:',
     permissions: createPermissionsObject(permissions || '', permissionTemplateId),
     attachments: [],
     expiration: expirationDate,
   });
-  console.log('template', template);
 
   return template;
 };

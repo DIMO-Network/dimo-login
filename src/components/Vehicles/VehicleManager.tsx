@@ -37,6 +37,7 @@ export const VehicleManager: React.FC = () => {
             email: user.email,
             devLicenseAlias,
             permissions,
+            permissionTemplateId,
             expirationDate,
             region: region?.toUpperCase(),
           }),
