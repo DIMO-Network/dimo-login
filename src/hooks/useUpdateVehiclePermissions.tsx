@@ -30,7 +30,7 @@ export const useUpdateVehiclePermissions = () => {
     if (!hasValidSession) {
       throw new Error(INVALID_SESSION_ERROR);
     }
-    const perms = createPermissionsObject(permissions);
+    const perms = createPermissionsObject(permissions, permissionTemplateId);
     const sources = await generateIpfsSources(perms, clientId, expiration);
     const basePermissions = {
       grantee: clientId as `0x${string}`,

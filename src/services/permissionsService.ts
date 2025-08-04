@@ -7,12 +7,40 @@ import { POLICY_ATTACHMENT_CID_BY_REGION } from '../enums';
 import { formatBigIntAsReadableDate } from '../utils/dateUtils';
 import { PERMISSIONS_DESCRIPTION } from '../types';
 
-export const createPermissionsObject = (permissionString: string = ''): Permission[] => {
+const isPermissionAllowed = ({
+  permissionTemplateId,
+  permission,
+  currentPermissionString = '0',
+}: {
+  permissionTemplateId?: string;
+  permission: Permission;
+  currentPermissionString?: string;
+}) => {
+  let isSet = currentPermissionString === '1';
+
+  if (
+    permissionTemplateId &&
+    permission === Permission.ExecuteCommands &&
+    permissionTemplateId !== '1'
+  ) {
+    isSet = false;
+  }
+  return isSet;
+};
+
+export const createPermissionsObject = (
+  permissionString: string = '',
+  permissionTemplateId?: string,
+): Permission[] => {
   const permissionEntries = Object.entries(Permission)
     .filter(([key]) => isNaN(Number(key)))
     .map<[Permission, boolean]>(([, value], index) => [
       value as Permission,
-      (permissionString?.[index] ?? '0') === '1',
+      isPermissionAllowed({
+        permissionTemplateId,
+        permission: value as Permission,
+        currentPermissionString: permissionString[index],
+      }),
     ]);
 
   return permissionEntries
@@ -35,12 +63,20 @@ export const getDescription = (args: {
   email: string;
   devLicenseAlias: string;
   permissions: string;
+  permissionTemplateId?: string;
   expirationDate: BigInt;
   region?: string;
 }): string => {
-  const { email, devLicenseAlias, permissions, expirationDate, region } = args;
+  const {
+    email,
+    devLicenseAlias,
+    permissions,
+    permissionTemplateId,
+    expirationDate,
+    region,
+  } = args;
 
-  const perms = createPermissionsObject(permissions);
+  const perms = createPermissionsObject(permissions, permissionTemplateId);
   const contractAttachmentLink = getContractAttachmentLink(region);
   const currentTime = new Date();
   const currentTimeBigInt = BigInt(Math.floor(currentTime.getTime() / 1000));
@@ -90,7 +126,7 @@ export const fetchPermissionsFromId = async ({
     grantor: walletAddress,
     grantee: clientId,
     asset: 'did:',
-    permissions: createPermissionsObject(permissions || ''),
+    permissions: createPermissionsObject(permissions || '', permissionTemplateId),
     attachments: [],
     expiration: expirationDate,
   });
