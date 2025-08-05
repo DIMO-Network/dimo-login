@@ -3,7 +3,7 @@ import { useDevCredentials } from '../context/DevCredentialsContext';
 import { Vehicle } from '../models/vehicle';
 import { INVALID_SESSION_ERROR } from '../utils/authUtils';
 import {
-  createPermissionsObject,
+  createPermissionsFromParams,
   generateIpfsSources,
   setVehiclePermissions,
 } from '../services';
@@ -30,7 +30,7 @@ export const useUpdateVehiclePermissions = () => {
     if (!hasValidSession) {
       throw new Error(INVALID_SESSION_ERROR);
     }
-    const perms = createPermissionsObject(permissions, permissionTemplateId);
+    const perms = createPermissionsFromParams(permissions, permissionTemplateId);
     const sources = await generateIpfsSources(perms, clientId, expiration);
     const basePermissions = {
       grantee: clientId as `0x${string}`,

@@ -1,6 +1,6 @@
 import { Vehicle } from '../models/vehicle';
 import {
-  createPermissionsObject,
+  createPermissionsFromParams,
   generateIpfsSources,
   setVehiclePermissions,
   setVehiclePermissionsBulk,
@@ -49,7 +49,7 @@ const getBasePermissions = async ({
   clientId,
   expirationDate,
 }: Params) => {
-  const perms = createPermissionsObject(permissions, permissionTemplateId);
+  const perms = createPermissionsFromParams(permissions, permissionTemplateId);
   const source = await generateIpfsSources(perms, clientId, expirationDate);
   return {
     grantee: clientId as `0x${string}`,

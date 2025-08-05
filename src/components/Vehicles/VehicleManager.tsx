@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 
 import { useAuthContext } from '../../context/AuthContext';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
-import { getDescription } from '../../services/permissionsService';
+import { getTemplateDescription } from '../../services/permissionsService';
 import { Header, ErrorMessage } from '../Shared';
 import { useUIManager } from '../../context/UIManagerContext';
 import SelectVehicles from './SelectVehicles';
@@ -33,7 +33,7 @@ export const VehicleManager: React.FC = () => {
           ...(permissions && { permissions }),
         });
         setTemplateDescription(
-          getDescription({
+          getTemplateDescription({
             email: user.email,
             devLicenseAlias,
             permissions,
