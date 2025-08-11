@@ -24,6 +24,7 @@ import { PasskeyCreationResult } from '../models/resultTypes';
 import { ApiKeyStamper } from '@turnkey/api-key-stamper';
 import { uint8ArrayToHexString } from '@turnkey/encoding';
 import { decryptBundle, getPublicKey } from '@turnkey/crypto';
+import { Attachment } from '../types';
 
 export const passkeyStamper = new WebauthnStamper({
   rpId: process.env.REACT_APP_RPCID_URL as string,
@@ -149,7 +150,7 @@ export const generateIpfsSources = async (
   permissions: Permission[],
   clientId: `0x${string}` | null,
   expiration: BigInt,
-  attachments: string[] = [],
+  attachments: Attachment[] = [],
 ): Promise<string> => {
   console.log('generateIpfsSources - received attachments:', attachments);
   // Bulk vehicles

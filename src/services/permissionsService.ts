@@ -2,7 +2,7 @@ import { Permission } from '@dimo-network/transactions';
 
 import { POLICY_ATTACHMENT_CID_BY_REGION } from '../enums';
 import { formatBigIntAsReadableDate } from '../utils/dateUtils';
-import { PERMISSIONS, PERMISSIONS_DESCRIPTION } from '../types';
+import { Attachment, PERMISSIONS, PERMISSIONS_DESCRIPTION } from '../types';
 
 export const createPermissionsByTemplateId = (
   permissionTemplateId?: string,
@@ -51,7 +51,7 @@ export const createPermissionsFromParams = (
 };
 
 // New function to generate attachments array that can be reused
-export const generateAttachments = (region?: string): string[] => {
+export const generateAttachments = (region?: string): Attachment[] => {
   if (!region || !(region in POLICY_ATTACHMENT_CID_BY_REGION)) {
     return [];
   }
@@ -62,7 +62,16 @@ export const generateAttachments = (region?: string): string[] => {
   const urlMatch = contractAttachmentLink.match(/href="([^"]*)"/);
   const extractedAttachmentUrl = urlMatch ? urlMatch[1] : '';
 
-  return extractedAttachmentUrl ? [extractedAttachmentUrl] : [];
+  return extractedAttachmentUrl
+    ? [
+        {
+          name: 'Policy',
+          description: 'Policy Attachment',
+          contentType: 'application/pdf',
+          url: extractedAttachmentUrl,
+        },
+      ]
+    : [];
 };
 
 export const getPermissionsDescription = (permissions: Permission[]): string => {

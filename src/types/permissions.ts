@@ -26,3 +26,10 @@ export const PERMISSIONS_DESCRIPTION: Record<PermissionKey, string> = {
   GetRawData: 'RAW_DATA: access to raw payload data.',
   GetApproximateLocation: 'APPROXIMATE_LOCATION: access to approximate vehicle location.',
 };
+
+export type Attachment = {
+  name: string;
+  description: string;
+  contentType: string;
+  url: string;
+};
