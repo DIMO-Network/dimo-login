@@ -13,10 +13,12 @@ import { useDevCredentials } from '../context/DevCredentialsContext';
 import { VehicleManagerMandatoryParams } from '../types';
 import { useAuthContext } from '../context/AuthContext';
 import { INVALID_SESSION_ERROR } from '../utils/authUtils';
+import { generateAttachments } from '../services/permissionsService';
 
 const shareSingleVehicle = async (tokenId: string, basePermissions: any) => {
   const vehiclePermissions: SetVehiclePermissions = {
     ...basePermissions,
+    permissions: basePermissions.perms,
     tokenId: BigInt(tokenId),
   };
   await setVehiclePermissions(vehiclePermissions);
@@ -24,6 +26,7 @@ const shareSingleVehicle = async (tokenId: string, basePermissions: any) => {
 const shareMultipleVehicles = async (tokenIds: string[], basePermissions: any) => {
   const bulkVehiclePermissions: SetVehiclePermissionsBulk = {
     ...basePermissions,
+    permissions: basePermissions.perms,
     tokenIds: tokenIds.map((id) => BigInt(id)),
   };
   await setVehiclePermissionsBulk(bulkVehiclePermissions);
@@ -41,6 +44,7 @@ interface Params {
   permissions?: string;
   clientId: `0x${string}` | null;
   expirationDate: BigInt;
+  region?: string;
 }
 
 const getBasePermissions = async ({
@@ -48,26 +52,36 @@ const getBasePermissions = async ({
   permissions,
   clientId,
   expirationDate,
+  region,
 }: Params) => {
   const perms = createPermissionsFromParams(permissions, permissionTemplateId);
-  const source = await generateIpfsSources(perms, clientId, expirationDate);
+  console.log('useShareVehicles - region:', region);
+  const attachments = generateAttachments(region?.toUpperCase());
+  console.log('useShareVehicles - generated attachments:', attachments);
+  const source = await generateIpfsSources(perms, clientId, expirationDate, attachments);
   return {
     grantee: clientId as `0x${string}`,
-    permissions,
+    perms,
     expiration: expirationDate,
     source,
   };
 };
 
 export const useShareVehicles = () => {
-  const { clientId, expirationDate, permissionTemplateId, permissions } =
+  const { clientId, expirationDate, permissionTemplateId, permissions, region } =
     useDevCredentials<VehicleManagerMandatoryParams>();
   const { validateSession } = useAuthContext();
 
   const validate = async () => {
-    if (!permissionTemplateId || !clientId) {
-      throw new Error('At least one of permissionTemplateId and clientId is missing');
+    if (!clientId) {
+      throw new Error('clientId is missing');
     }
+
+    const permissionExists = permissionTemplateId || permissions;
+    if (!permissionExists) {
+      throw new Error('No permissions provided');
+    }
+
     return !!(await validateSession());
   };
 
@@ -83,6 +97,7 @@ export const useShareVehicles = () => {
       permissionTemplateId,
       permissions,
       expirationDate,
+      region,
     });
     return shareVehicles(tokenIds, basePermissions);
   };

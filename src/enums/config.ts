@@ -14,6 +14,9 @@ export enum HEADERS {
  * where the CIDs could be fetched or configured dynamically instead of being hardcoded.
  */
 export enum POLICY_ATTACHMENT_CID_BY_REGION {
-  US = 'bafybeihgtdpgnjj3tupbnzat5epidn2hzpvhexmcq24hlukizd4xlgopau',
-  EU = 'bafybeidvnxcdrtbb2y4kj5h3wuxzrah4tbazfeob3hnclzdwtvi6htikgu',
+  // BARRETT TODO: Revert back after DEMO
+  // US = 'bafybeihgtdpgnjj3tupbnzat5epidn2hzpvhexmcq24hlukizd4xlgopau',
+  // EU = 'bafybeidvnxcdrtbb2y4kj5h3wuxzrah4tbazfeob3hnclzdwtvi6htikgu',
+  US = 'QmPP5QCh662B4nW8nUcJLby7NKXuKy61mKwUmvXhxTrW6B',
+  EU = 'QmPzPkwyrHHQbgxcbvBACiy6PRdpKbVUHbZibAxVAsVdQg'
 }

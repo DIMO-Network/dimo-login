@@ -149,13 +149,15 @@ export const generateIpfsSources = async (
   permissions: Permission[],
   clientId: `0x${string}` | null,
   expiration: BigInt,
+  attachments: string[] = [],
 ): Promise<string> => {
+  console.log('generateIpfsSources - received attachments:', attachments);
   // Bulk vehicles
   const ipfsRes = await kernelSigner.signAndUploadSACDAgreement({
     expiration: expiration,
     permissions: permissions,
     grantee: clientId as `0x${string}`,
-    attachments: [],
+    attachments: attachments,
     grantor: kernelSigner.smartContractAddress!,
     // TODO: Add the asset based on the user
     asset: 'did:',

@@ -50,6 +50,21 @@ export const createPermissionsFromParams = (
   return createPermissionsByString(permissionString);
 };
 
+// New function to generate attachments array that can be reused
+export const generateAttachments = (region?: string): string[] => {
+  if (!region || !(region in POLICY_ATTACHMENT_CID_BY_REGION)) {
+    return [];
+  }
+
+  const contractAttachmentLink = getContractAttachmentLink(
+    region as keyof typeof POLICY_ATTACHMENT_CID_BY_REGION,
+  );
+  const urlMatch = contractAttachmentLink.match(/href="([^"]*)"/);
+  const extractedAttachmentUrl = urlMatch ? urlMatch[1] : '';
+
+  return extractedAttachmentUrl ? [extractedAttachmentUrl] : [];
+};
+
 export const getPermissionsDescription = (permissions: Permission[]): string => {
   return permissions
     .map(
@@ -82,7 +97,10 @@ export const getTemplateDescription = (args: {
   } = args;
 
   const perms = createPermissionsFromParams(permissions, permissionTemplateId);
-  const contractAttachmentLink = getContractAttachmentLink(region);
+  const contractAttachmentLink =
+    region && region in POLICY_ATTACHMENT_CID_BY_REGION
+      ? getContractAttachmentLink(region)
+      : '';
   const currentTime = new Date();
   const currentTimeBigInt = BigInt(Math.floor(currentTime.getTime() / 1000));
   const permissionsString = getPermissionsDescription(perms);
@@ -104,5 +122,8 @@ export const getContractAttachmentLink = (region?: string): string => {
     POLICY_ATTACHMENT_CID_BY_REGION[
       region as keyof typeof POLICY_ATTACHMENT_CID_BY_REGION
     ];
-  return `<a href="https://${cid}.ipfs.w3s.link/agreement-${region.toLowerCase()}.pdf" target="_blank">Contract Attachment</a>`;
+
+  // BARRETT TODO: Revert back after DEMO
+  // return `<a href="https://${cid}.ipfs.w3s.link/agreement-${region.toLowerCase()}.pdf" target="_blank">Contract Attachment</a>`;
+  return `<a href="https://assets.dimo.org/ipfs/${cid}" target="_blank">Contract Attachment</a>`;
 };
