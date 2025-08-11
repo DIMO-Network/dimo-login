@@ -7,7 +7,7 @@ export enum AuthProvider {
 
 interface AuthUrlParams {
   provider: AuthProvider;
-  clientId?: string;
+  clientId?: `0x${string}` | null;
   redirectUri: string;
   emailPermissionGranted?: boolean;
   altTitle?: boolean;

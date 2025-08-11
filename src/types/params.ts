@@ -3,7 +3,7 @@ import { TransactionData } from '@dimo-network/transactions';
 import { UiStates } from '../enums';
 
 export interface BaseParams {
-  clientId: string;
+  clientId: `0x${string}` | null;
   redirectUri: string;
   waitingForParams: boolean;
   waitingForDevLicense: boolean;

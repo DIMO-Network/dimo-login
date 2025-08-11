@@ -3,7 +3,7 @@ export interface UserObject {
   email: string;
   subOrganizationId: string;
   hasPasskey: boolean;
-  smartContractAddress: string;
-  walletAddress: string;
+  smartContractAddress: `0x${string}` | null;
+  walletAddress: `0x${string}` | null;
   emailVerified: boolean;
 }

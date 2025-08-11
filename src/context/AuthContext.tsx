@@ -61,10 +61,10 @@ const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 //This will be set on account creation partially, and completed on wallet connection
 const defaultUser: UserObject = {
   email: '',
-  smartContractAddress: '',
+  smartContractAddress: '0x',
   subOrganizationId: '',
   hasPasskey: false,
-  walletAddress: '',
+  walletAddress: '0x',
   emailVerified: false,
 };
 

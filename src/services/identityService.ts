@@ -13,7 +13,7 @@ const GRAPHQL_ENDPOINT =
   process.env.REACT_APP_DIMO_IDENTITY_URL || 'https://identity-api.dev.dimo.zone/query';
 
 type IFetchVehicleParams = {
-  ownerAddress: string;
+  ownerAddress: `0x${string}` | null;
   cursor: string;
   direction: string;
 };

@@ -97,7 +97,7 @@ export const MintVehicle: FC = () => {
     const expiration = 2933125200; //Placeholder for sacd input
     const permissions = 0; //Placeholder for sacd input
     const owner = user.smartContractAddress;
-    const ipfsRes = await generateIpfsSources(BigInt(0), owner, BigInt(expiration));
+    const ipfsRes = await generateIpfsSources([], owner, BigInt(expiration));
 
     return await mintVehicleWithSignature(
       {
