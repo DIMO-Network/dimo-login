@@ -10,6 +10,7 @@ export interface Vehicle {
   year: number;
   shared: boolean;
   expiresAt: string;
+  permissions: bigint;
 }
 
 export interface VehicleResponse {

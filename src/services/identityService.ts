@@ -46,6 +46,7 @@ const GET_VEHICLES = gql`
           nodes {
             expiresAt
             grantee
+            permissions
           }
         }
       }
@@ -71,6 +72,7 @@ export type VehicleNode = {
   sacds: {
     nodes: {
       expiresAt: string;
+      permissions: bigint;
       grantee: string;
     }[];
   };
