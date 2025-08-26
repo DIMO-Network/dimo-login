@@ -3,7 +3,6 @@ export * from './apollo';
 export * from './authService';
 export * from './deviceDefinitionsService';
 export * from './dimoDevicesService';
-export * from './dimoDriverService';
 export * from './identityService';
 export * from './ipfsService';
 export * from './permissionsService';

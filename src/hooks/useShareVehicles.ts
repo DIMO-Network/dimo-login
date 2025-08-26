@@ -1,7 +1,7 @@
 import { Vehicle } from '../models/vehicle';
 import {
+  createPermissionsFromParams,
   generateIpfsSources,
-  getPermsValue,
   setVehiclePermissions,
   setVehiclePermissionsBulk,
 } from '../services';
@@ -42,7 +42,7 @@ const shareVehicles = async (tokenIds: string[], basePermissions: any) => {
 interface Params {
   permissionTemplateId?: string;
   permissions?: string;
-  clientId: string;
+  clientId: `0x${string}` | null;
   expirationDate: BigInt;
   region?: string;
 }
@@ -54,7 +54,7 @@ const getBasePermissions = async ({
   expirationDate,
   region,
 }: Params) => {
-  const perms = getPermsValue(permissionTemplateId, permissions);
+  const perms = createPermissionsFromParams(permissions, permissionTemplateId);
   console.log('useShareVehicles - region:', region);
   const attachments = generateAttachments(region?.toUpperCase());
   console.log('useShareVehicles - generated attachments:', attachments);

@@ -1,11 +1,8 @@
 import React, { useEffect, useState } from 'react';
 
-import { SACDTemplate } from '@dimo-network/transactions/dist/core/types/dimo';
-
-import { FetchPermissionsParams } from '../../models/permissions';
 import { useAuthContext } from '../../context/AuthContext';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
-import { fetchPermissionsFromId } from '../../services/permissionsService';
+import { getTemplateDescription } from '../../services/permissionsService';
 import { Header, ErrorMessage } from '../Shared';
 import { useUIManager } from '../../context/UIManagerContext';
 import SelectVehicles from './SelectVehicles';
@@ -17,7 +14,6 @@ export const VehicleManager: React.FC = () => {
   const {
     clientId,
     devLicenseAlias,
-    shareVehiclesSectionDescription,
     permissionTemplateId,
     permissions,
     expirationDate,
@@ -26,28 +22,26 @@ export const VehicleManager: React.FC = () => {
   const { setComponentData, error, setError } = useUIManager();
 
   //Data from SDK
-  const [permissionTemplate, setPermissionTemplate] = useState<SACDTemplate | null>(null);
+  const [templateDescription, setTemplateDescription] = useState<string>('');
   const [isExpanded, setIsExpanded] = useState<boolean | undefined>(false);
 
   const fetchPermissions = async () => {
     if (permissionTemplateId || permissions) {
       try {
-        const permissionsParams: FetchPermissionsParams = {
-          permissionTemplateId,
-          permissions,
-          clientId,
-          devLicenseAlias,
-          expirationDate,
-          walletAddress: user.smartContractAddress,
-          email: user.email,
-          region: region?.toUpperCase(),
-        };
-        const permissionTemplate = await fetchPermissionsFromId(permissionsParams);
         setComponentData({
           ...(permissionTemplateId && { permissionTemplateId }),
           ...(permissions && { permissions }),
         });
-        setPermissionTemplate(permissionTemplate as SACDTemplate);
+        setTemplateDescription(
+          getTemplateDescription({
+            email: user.email,
+            devLicenseAlias,
+            permissions,
+            permissionTemplateId,
+            expirationDate,
+            region: region?.toUpperCase(),
+          }),
+        );
       } catch (error) {
         setError('Could not fetch permissions');
         console.error('Error fetching permissions:', error);
@@ -121,20 +115,8 @@ export const VehicleManager: React.FC = () => {
     );
   };
 
-  const renderPermissionDescription = (
-    permissionTemplate: SACDTemplate | null,
-    shareCarsSectionDescription: string,
-  ) => {
-    if (permissionTemplate?.data.description) {
-      return renderDescription(permissionTemplate.data.description);
-    }
-
-    let description =
-      'The developer is requesting access to view your vehicle data. Select the vehicles you’d like to share access to.';
-    if (shareCarsSectionDescription) {
-      description = shareCarsSectionDescription;
-    }
-    return <p>{description}</p>;
+  const renderPermissionDescription = () => {
+    return renderDescription(templateDescription);
   };
 
   const appUrl = getAppUrl();
@@ -151,10 +133,7 @@ export const VehicleManager: React.FC = () => {
 
         <>
           <div className="description w-fit w-full mt-2 text-sm overflow-y-auto font-normal text-[#313131]">
-            {renderPermissionDescription(
-              permissionTemplate,
-              shareVehiclesSectionDescription,
-            )}
+            {renderPermissionDescription()}
           </div>
           <div className="w-full">
             <button

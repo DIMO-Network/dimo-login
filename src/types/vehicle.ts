@@ -14,8 +14,8 @@ export interface VehicleFilters {
 }
 
 export type IParams = {
-  ownerAddress: string;
-  targetGrantee: string;
+  ownerAddress: `0x${string}` | null;
+  targetGrantee: `0x${string}` | null;
   cursor: string;
   direction: string;
   filters?: VehicleFilters;

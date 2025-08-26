@@ -1,104 +1,118 @@
-import { SACDTemplate } from '@dimo-network/transactions/dist/core/types/dimo';
-import { VehiclePermissionDescription } from '@dimo-network/transactions/dist/core/types/args';
+import { Permission } from '@dimo-network/transactions';
 
-import { FetchPermissionsParams } from '../models/permissions';
-import {
-  getSacdDescription,
-  getSacdPermissionArray,
-  getSacdValue,
-} from './turnkeyService';
-import { formatBigIntAsReadableDate } from '../utils/dateUtils';
-import { PERMISSIONS, PermissionsObject } from '../types/permissions';
 import { POLICY_ATTACHMENT_CID_BY_REGION } from '../enums';
+import { formatBigIntAsReadableDate } from '../utils/dateUtils';
+import { Attachment, PERMISSIONS, PERMISSIONS_DESCRIPTION } from '../types';
 
-const createPermissionsObject = (permissionString: string): PermissionsObject =>
-  Object.fromEntries(
-    Object.keys(PERMISSIONS).map((key, index) => [
-      key,
-      (permissionString?.[index] ?? '0') === '1',
-    ]),
-  ) as PermissionsObject;
-
-export const getPermsValue = (
+export const createPermissionsByTemplateId = (
   permissionTemplateId?: string,
-  permissions?: string,
-): bigint => {
-  let permissionString = permissions;
+): Permission[] => {
   if (permissionTemplateId) {
-    permissionString = `1${permissionTemplateId === '1' ? '1' : '0'}1111`;
+    const perms: Permission[] = [
+      Permission[PERMISSIONS.GetNonLocationHistory],
+      Permission[PERMISSIONS.GetCurrentLocation],
+      Permission[PERMISSIONS.GetLocationHistory],
+      Permission[PERMISSIONS.GetVINCredential],
+      Permission[PERMISSIONS.GetLiveData],
+    ];
+
+    if (permissionTemplateId === '1') {
+      perms.push(Permission[PERMISSIONS.ExecuteCommands]);
+    }
+
+    return perms;
   }
-  return getSacdValue(createPermissionsObject(permissionString as string));
+
+  return [];
 };
 
-export const getPermissionArray = (perms: bigint): string[] => {
-  return getSacdPermissionArray(perms);
+export const createPermissionsByString = (permissionString: string): Permission[] => {
+  const permissionEntries = Object.entries(PERMISSIONS)
+    .filter(([key]) => isNaN(Number(key)))
+    .map<[Permission, boolean]>(([, value], index) => [
+      Permission[value],
+      (permissionString[index] ?? '0') === '1',
+    ]);
+
+  return permissionEntries
+    .filter(([, isEnabled]) => isEnabled)
+    .map(([permission]) => permission);
 };
 
-export function getDescription(args: VehiclePermissionDescription): string {
-  return getSacdDescription(args);
-}
-
-export const getContractAttachmentLink = (
-  region: keyof typeof POLICY_ATTACHMENT_CID_BY_REGION,
-): string => {
-  const cid = POLICY_ATTACHMENT_CID_BY_REGION[region];
-  if (!cid) {
-    return '';
+export const createPermissionsFromParams = (
+  permissionString: string = '',
+  permissionTemplateId?: string,
+): Permission[] => {
+  if (permissionTemplateId) {
+    return createPermissionsByTemplateId(permissionTemplateId);
   }
-  // BARRETT TODO: Revert back after DEMO
-  // return `<a href="https://${cid}.ipfs.w3s.link/agreement-${region.toLowerCase()}.pdf" target="_blank">Contract Attachment</a>`;
-  return `<a href="https://assets.dimo.org/ipfs/${cid}" target="_blank">Contract Attachment</a>`
+
+  return createPermissionsByString(permissionString);
 };
 
 // New function to generate attachments array that can be reused
-export const generateAttachments = (region?: string): string[] => {
+export const generateAttachments = (region?: string): Attachment[] => {
   if (!region || !(region in POLICY_ATTACHMENT_CID_BY_REGION)) {
     return [];
   }
-  
-  const contractAttachmentLink = getContractAttachmentLink(region as keyof typeof POLICY_ATTACHMENT_CID_BY_REGION);
+
+  const contractAttachmentLink = getContractAttachmentLink(
+    region as keyof typeof POLICY_ATTACHMENT_CID_BY_REGION,
+  );
   const urlMatch = contractAttachmentLink.match(/href="([^"]*)"/);
   const extractedAttachmentUrl = urlMatch ? urlMatch[1] : '';
-  
-  return extractedAttachmentUrl ? [extractedAttachmentUrl] : [];
+
+  return extractedAttachmentUrl
+    ? [
+        {
+          name: 'Policy',
+          description: 'Policy Attachment',
+          contentType: 'application/pdf',
+          url: extractedAttachmentUrl,
+        },
+      ]
+    : [];
 };
 
-export const fetchPermissionsFromId = async ({
-  permissionTemplateId,
-  permissions,
-  clientId,
-  walletAddress,
-  email,
-  devLicenseAlias,
-  expirationDate,
-  region,
-}: FetchPermissionsParams): Promise<SACDTemplate> => {
-  const templateId = '$uuid';
+export const getPermissionsDescription = (permissions: Permission[]): string => {
+  return permissions
+    .map(
+      (permission) =>
+        `\n- ${
+          PERMISSIONS_DESCRIPTION[
+            Permission[permission] as unknown as keyof typeof PERMISSIONS_DESCRIPTION
+          ]
+        }`,
+    )
+    .filter((description) => !!description)
+    .join('');
+};
 
-  // Call helpers, that will communicate with the transactionService, which has access to the SDK
-  // Not necessary, but the abstraction makes it easier for us to mock responses etc
-  const permsValue = getPermsValue(permissionTemplateId, permissions);
-  const permissionArray = getPermissionArray(permsValue);
+export const getTemplateDescription = (args: {
+  email: string;
+  devLicenseAlias: string;
+  permissions: string;
+  permissionTemplateId?: string;
+  expirationDate: BigInt;
+  region?: string;
+}): string => {
+  const {
+    email,
+    devLicenseAlias,
+    permissions,
+    permissionTemplateId,
+    expirationDate,
+    region,
+  } = args;
 
-  const currentTime = new Date();
-  const currentTimeBigInt = BigInt(Math.floor(currentTime.getTime() / 1000));
-
-  let permissionsString = ``;
-  for (const perm of permissionArray) {
-    permissionsString += `\n- ${perm}`;
-  }
-
+  const perms = createPermissionsFromParams(permissions, permissionTemplateId);
   const contractAttachmentLink =
     region && region in POLICY_ATTACHMENT_CID_BY_REGION
-      ? getContractAttachmentLink(region as keyof typeof POLICY_ATTACHMENT_CID_BY_REGION)
+      ? getContractAttachmentLink(region)
       : '';
-  console.log('contractAttachmentLink', contractAttachmentLink);
-  console.log('region', region);
-  const urlMatch = contractAttachmentLink.match(/href="([^"]*)"/);
-  const extractedAttachmentUrl = urlMatch ? urlMatch[1] : '';
-  
-  console.log('urlMatch:', urlMatch);
-  console.log('extractedAttachmentUrl:', extractedAttachmentUrl);
+  const currentTime = new Date();
+  const currentTimeBigInt = BigInt(Math.floor(currentTime.getTime() / 1000));
+  const permissionsString = getPermissionsDescription(perms);
 
   const description = `This contract gives permission for specific data access and control functions on the DIMO platform. Here's what you're agreeing to:\n\nContract Summary:\n- Grantor: ${email} (the entity giving permission).\n- Grantee: ${devLicenseAlias}  (the entity receiving permission).\n\n${contractAttachmentLink}\n\nPermissions Granted:${permissionsString}\n\nEffective Date: ${formatBigIntAsReadableDate(
     currentTimeBigInt,
@@ -106,29 +120,19 @@ export const fetchPermissionsFromId = async ({
     expirationDate,
   )}.\n\nDetails:\n- This grant provides the grantee with access to specific vehicle data and control functions as specified above.\n- Created by DIMO Platform, version 1.0 of this contract template.\n\nBy signing, both parties agree to these terms and the specified access scope.`;
 
-  const template: SACDTemplate = {
-    specVersion: '1.0',
-    id: templateId,
-    type: 'org.dimo.permission.grant.v1',
-    datacontentype: 'application/json',
-    time: currentTime.toISOString(),
-    data: {
-      templateId: templateId,
-      version: '1.0',
-      grantor: walletAddress,
-      grantee: clientId,
-      scope: {
-        permissions: permissionArray,
-      },
-      effectiveAt: currentTime.toISOString(),
-      expiresAt: new Date(Number(expirationDate) * 1000).toISOString(),
-      attachments: extractedAttachmentUrl ? [extractedAttachmentUrl] : [],
-      description,
-    },
-  };
-  
-  console.log('Final template before return:', JSON.stringify(template, null, 2));
-  console.log('Template attachments:', template.data.attachments);
-  
-  return template;
+  return description;
+};
+
+export const getContractAttachmentLink = (region?: string): string => {
+  if (!region || region in POLICY_ATTACHMENT_CID_BY_REGION) {
+    return '';
+  }
+  const cid =
+    POLICY_ATTACHMENT_CID_BY_REGION[
+      region as keyof typeof POLICY_ATTACHMENT_CID_BY_REGION
+    ];
+
+  // BARRETT TODO: Revert back after DEMO
+  // return `<a href="https://${cid}.ipfs.w3s.link/agreement-${region.toLowerCase()}.pdf" target="_blank">Contract Attachment</a>`;
+  return `<a href="https://assets.dimo.org/ipfs/${cid}" target="_blank">Contract Attachment</a>`;
 };

@@ -1,3 +1,5 @@
+import { Permission } from '@dimo-network/transactions';
+
 import { fetchDeviceDefinition, VehicleNode } from '../services';
 
 export interface Vehicle {
@@ -27,7 +29,7 @@ export interface MintVehicleVariables {
   model: string;
   year: string;
   imageURI: string;
-  permissions: BigInt;
+  permissions: Permission[];
 }
 
 export class LocalVehicle {
@@ -57,7 +59,7 @@ export class LocalVehicle {
     return this.vehicleNode.definition.id;
   }
 
-  getSacdForGrantee(grantee: string) {
+  getSacdForGrantee(grantee: `0x${string}` | null) {
     return this.vehicleNode.sacds.nodes.find((sacd) => sacd.grantee === grantee);
   }
 

@@ -26,7 +26,7 @@ import { TStamper } from '@turnkey/http/dist/base';
 import { ApiKeyStamper } from '@turnkey/api-key-stamper';
 
 export function buildAuthPayload(
-  clientId: string,
+  clientId: `0x${string}` | null,
   jwt: string,
   userObj: UserObject,
 ): {
@@ -76,7 +76,7 @@ export function sendAuthPayloadToParent(
 }
 
 export function logout(
-  clientId: string,
+  clientId: `0x${string}` | null,
   redirectUri: string,
   utm: string,
   setUiState: (step: UiStates) => void,
@@ -97,7 +97,7 @@ export function createSession({
   user,
   turnkeySessionData,
 }: {
-  clientId: string;
+  clientId: `0x${string}` | null;
   jwt: string;
   user: UserObject;
   turnkeySessionData: TurnkeySessionDataWithExpiry;
@@ -122,7 +122,7 @@ export function handlePostAuthUIState({
   setUiState,
 }: {
   entryState: string;
-  clientId: string;
+  clientId: `0x${string}` | null;
   jwt: string;
   user: UserObject;
   redirectUri: string;
@@ -147,8 +147,8 @@ async function initializeKernelClient(
   subOrganizationId: string,
   stamper: TStamper,
 ): Promise<{
-  smartContractAddress: string;
-  walletAddress: string;
+  smartContractAddress: `0x${string}`;
+  walletAddress: `0x${string}`;
   turnkeySessionExpiration: number;
 }> {
   let expires: number;
@@ -176,7 +176,7 @@ export async function getChallenge({
   redirectUri,
   smartContractAddress,
 }: {
-  clientId: string;
+  clientId: `0x${string}` | null;
   redirectUri: string;
   smartContractAddress: string;
 }): Promise<{ challenge: string; state: string }> {
@@ -202,7 +202,7 @@ async function submitSignedChallenge({
   signature,
   state,
 }: {
-  clientId: string;
+  clientId: `0x${string}` | null;
   redirectUri: string;
   signature: string;
   state: string;
@@ -224,7 +224,7 @@ async function submitSignedChallenge({
 }
 
 export async function authenticateUser(
-  clientId: string,
+  clientId: `0x${string}` | null,
   redirectUri: string,
   subOrganizationId: string | null,
   stamper: TStamper,
