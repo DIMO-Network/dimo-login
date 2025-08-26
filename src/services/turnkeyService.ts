@@ -214,7 +214,18 @@ export async function setVehiclePermissionsBulk({
   }
 }
 
+// Parse the bigint values
+function parseParameters (rawValues: string[]): (string | bigint)[] {
+  return rawValues.map(v => {
+    if (/^-?\d+$/.test(v)) {
+      return BigInt(v);
+    }
+    return v;
+  });
+}
+
 export async function executeAdvancedTransaction(
+  address: `0x${string}`,
   abi: any,
   functionName: string,
   args: any[],
@@ -222,15 +233,13 @@ export async function executeAdvancedTransaction(
 ): Promise<`0x${string}`> {
   const response = await kernelSigner.executeTransaction({
     requireSignature: false,
-    data: [
-      {
-        address: kernelSigner.contractMapping[ContractType.DIMO_TOKEN].address,
-        value,
-        abi,
-        functionName,
-        args,
-      },
-    ],
+    data: {
+      address: address,
+      value: value,
+      abi: abi,
+      functionName: functionName,
+      args: parseParameters(args),
+    },
   });
 
   return response.receipt.transactionHash;
