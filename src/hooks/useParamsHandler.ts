@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { TransactionData } from '@dimo-network/transactions';
 
-import { AllParams } from '../types';
+import { AllParams, TransactionParams } from '../types';
 import { useUIManager } from '../context/UIManagerContext';
 import { useOracles } from '../context/OraclesContext';
 import { UiStates } from '../enums';
@@ -71,7 +70,7 @@ export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
         ...prev,
         transactionData: (typeof value === 'string'
           ? JSON.parse(decodeURIComponent(value))
-          : value) as TransactionData,
+          : value) as TransactionParams,
       })),
   };
 

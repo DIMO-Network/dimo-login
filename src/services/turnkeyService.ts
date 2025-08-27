@@ -224,18 +224,23 @@ function parseParameters (rawValues: string[]): (string | bigint)[] {
   });
 }
 
+function parseValue(rawValue?: bigint): BigInt {
+    if (!rawValue) return BigInt(0);
+    return BigInt(rawValue);
+}
+
 export async function executeAdvancedTransaction(
   address: `0x${string}`,
   abi: any,
   functionName: string,
   args: any[],
-  value?: BigInt,
+  value?: bigint,
 ): Promise<`0x${string}`> {
   const response = await kernelSigner.executeTransaction({
     requireSignature: false,
     data: {
       address: address,
-      value: value,
+      value: parseValue(value!),
       abi: abi,
       functionName: functionName,
       args: parseParameters(args),
