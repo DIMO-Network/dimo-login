@@ -6,7 +6,10 @@ interface VirtualKeyStepProps {
   vehicleToAdd?: TeslaVehicle;
 }
 
-export const VirtualKeyStep: FC<VirtualKeyStepProps> = ({ devLicenseAlias, vehicleToAdd }) => {
+export const VirtualKeyStep: FC<VirtualKeyStepProps> = ({
+  devLicenseAlias,
+  vehicleToAdd,
+}) => {
   const renderVehicleInfo = () => (
     <div className="flex items-center p-4 border rounded-2xl cursor-pointer transition hover:bg-gray-50 mt-6">
       <img

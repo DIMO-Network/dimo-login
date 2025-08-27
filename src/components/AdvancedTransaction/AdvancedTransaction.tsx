@@ -74,15 +74,17 @@ export const AdvancedTransaction: React.FC = () => {
       </div>
 
       <div className="flex flex-col w-full gap-[8px] rounded-md text-sm">
-        <p className="text-gray-600">ADDRESS:</p>
-        <p className="text-gray-600">{transactionData!.address}</p>
+        <>
+          <p className="text-gray-600">ADDRESS:</p>
+          <p className="text-gray-600">{transactionData!.address}</p>
 
-        {transactionData!.value && (
-          <>
-            <p className="text-gray-600">VALUE:</p>
-            <p className="text-gray-600">{transactionData!.value?.toString()}</p>
-          </>
-        )}
+          {transactionData!.value && (
+            <>
+              <p className="text-gray-600">VALUE:</p>
+              <p className="text-gray-600">{transactionData!.value?.toString()}</p>
+            </>
+          )}
+        </>
       </div>
 
       {/* Render buttons */}
@@ -102,4 +104,3 @@ export const AdvancedTransaction: React.FC = () => {
 };
 
 export default AdvancedTransaction;
-

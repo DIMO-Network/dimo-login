@@ -215,8 +215,8 @@ export async function setVehiclePermissionsBulk({
 }
 
 // Parse the bigint values
-function parseParameters (rawValues: string[]): (string | bigint)[] {
-  return rawValues.map(v => {
+function parseParameters(rawValues: string[]): (string | bigint)[] {
+  return rawValues.map((v) => {
     if (/^-?\d+$/.test(v)) {
       return BigInt(v);
     }
@@ -225,8 +225,8 @@ function parseParameters (rawValues: string[]): (string | bigint)[] {
 }
 
 function parseValue(rawValue?: bigint): BigInt {
-    if (!rawValue) return BigInt(0);
-    return BigInt(rawValue);
+  if (!rawValue) return BigInt(0);
+  return BigInt(rawValue);
 }
 
 export async function executeAdvancedTransaction(

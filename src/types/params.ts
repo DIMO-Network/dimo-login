@@ -31,13 +31,12 @@ export interface VehicleManagerParams {
   onboarding?: string;
 }
 
-
 export interface TransactionParams {
-  address: `0x${string}`
-  value?: bigint
-  abi: any
-  functionName: string
-  args: any[]
+  address: `0x${string}`;
+  value?: bigint;
+  abi: any;
+  functionName: string;
+  args: any[];
 }
 
 export interface AdvancedTransactionParams {
