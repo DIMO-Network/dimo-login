@@ -7,7 +7,7 @@ import { isTokenExpired } from './tokenService';
 
 // Define types for the function parameters
 type InitializeSessionParams = {
-  clientId: string | null;
+  clientId: `0x${string}` | null;
   setJwt: (jwt: string) => void;
   setUser: (user: UserObject) => void;
   uiState: UiStates;

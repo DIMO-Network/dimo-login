@@ -32,7 +32,7 @@ import { sendMessageToReferrer } from '../utils/messageHandler';
 import { isStandalone } from '../utils/isStandalone';
 
 const DEFAULT_CONTEXT: AllParams = {
-  clientId: '',
+  clientId: null,
   redirectUri: '',
   waitingForParams: true,
   waitingForDevLicense: true,

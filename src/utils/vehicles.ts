@@ -2,16 +2,23 @@ import { VehicleFilters, VehiclePermissionsAction } from '../types';
 import { LocalVehicle, Vehicle } from '../models/vehicle';
 import { extendByYear, formatDate, parseExpirationDate } from './dateUtils';
 
-const transformVehicle = (vehicle: LocalVehicle, grantee: string): Vehicle => {
+const transformVehicle = (
+  vehicle: LocalVehicle,
+  grantee: `0x${string}` | null,
+): Vehicle => {
   const sacd = vehicle.getSacdForGrantee(grantee);
   return {
     ...vehicle.normalize(),
+    permissions: sacd ? sacd.permissions : BigInt(0),
     shared: !!sacd,
     expiresAt: sacd ? formatDate(sacd.expiresAt) : '',
   };
 };
 
-export const transformVehicles = (vehicles: LocalVehicle[], grantee: string) => {
+export const transformVehicles = (
+  vehicles: LocalVehicle[],
+  grantee: `0x${string}` | null,
+) => {
   return vehicles
     .map((vehicle) => transformVehicle(vehicle, grantee))
     .sort((a: any, b: any) => Number(b.shared) - Number(a.shared));

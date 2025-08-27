@@ -31,4 +31,4 @@ const PaginationButtons = ({
   );
 };
 
-export default PaginationButtons; 
+export default PaginationButtons;

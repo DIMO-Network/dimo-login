@@ -15,6 +15,7 @@ import { ApolloProvider } from '@apollo/client';
 // Initialize Sentry
 Sentry.init({
   dsn: process.env.REACT_APP_SENTRY_DSN,
+  enableLogs: true,
   // Setting this option to true will send default PII data to Sentry.
   // For example, automatic IP address collection on events
   sendDefaultPii: true,
@@ -36,17 +37,19 @@ Sentry.init({
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(
   <React.StrictMode>
-    <ApolloProvider client={apolloClient}>
-      <UIManagerProvider>
-        <GlobalOraclesProvider>
-          <DevCredentialsProvider>
-            <AuthProvider>
-              <App />
-            </AuthProvider>
-          </DevCredentialsProvider>
-        </GlobalOraclesProvider>
-      </UIManagerProvider>
-    </ApolloProvider>
+    <Sentry.ErrorBoundary>
+      <ApolloProvider client={apolloClient}>
+        <UIManagerProvider>
+          <GlobalOraclesProvider>
+            <DevCredentialsProvider>
+              <AuthProvider>
+                <App />
+              </AuthProvider>
+            </DevCredentialsProvider>
+          </GlobalOraclesProvider>
+        </UIManagerProvider>
+      </ApolloProvider>
+    </Sentry.ErrorBoundary>
   </React.StrictMode>,
 );
 

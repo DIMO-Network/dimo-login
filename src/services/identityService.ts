@@ -13,7 +13,7 @@ const GRAPHQL_ENDPOINT =
   process.env.REACT_APP_DIMO_IDENTITY_URL || 'https://identity-api.dev.dimo.zone/query';
 
 type IFetchVehicleParams = {
-  ownerAddress: string;
+  ownerAddress: `0x${string}` | null;
   cursor: string;
   direction: string;
 };
@@ -47,6 +47,7 @@ const GET_VEHICLES = gql`
           nodes {
             expiresAt
             grantee
+            permissions
           }
         }
       }
@@ -73,6 +74,7 @@ export type VehicleNode = {
   sacds: {
     nodes: {
       expiresAt: string;
+      permissions: bigint;
       grantee: string;
     }[];
   };

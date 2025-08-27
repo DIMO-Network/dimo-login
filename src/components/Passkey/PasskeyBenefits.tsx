@@ -37,9 +37,7 @@ export const Benefits = () => {
 
 const Benefit = ({ title, description, Icon }: PasskeyBenefitProps) => {
   return (
-    <div
-      className="flex flex-col gap-2 w-full p-4 rounded-2xl cursor-pointer transition bg-gray-50 text-gray-500"
-    >
+    <div className="flex flex-col gap-2 w-full p-4 rounded-2xl cursor-pointer transition bg-gray-50 text-gray-500">
       <div className="flex flex-row gap-2 font-medium text-sm text-black">
         <Icon className="w-5 h-5" />
         <p>{title}</p>
@@ -49,4 +47,4 @@ const Benefit = ({ title, description, Icon }: PasskeyBenefitProps) => {
       </div>
     </div>
   );
-}; 
+};

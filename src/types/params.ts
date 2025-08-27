@@ -1,9 +1,7 @@
-import { TransactionData } from '@dimo-network/transactions';
-
 import { UiStates } from '../enums';
 
 export interface BaseParams {
-  clientId: string;
+  clientId: `0x${string}` | null;
   redirectUri: string;
   waitingForParams: boolean;
   waitingForDevLicense: boolean;
@@ -33,8 +31,16 @@ export interface VehicleManagerParams {
   onboarding?: string;
 }
 
+export interface TransactionParams {
+  address: `0x${string}`;
+  value?: bigint;
+  abi: any;
+  functionName: string;
+  args: any[];
+}
+
 export interface AdvancedTransactionParams {
-  transactionData: TransactionData;
+  transactionData: TransactionParams;
 }
 export type AllParams = BaseParams &
   FetchedParams &

@@ -211,7 +211,7 @@ it('Returns incompatible vehicles with the correct shape when no compatible vehi
         make: expect.any(String),
         model: expect.any(String),
         year: expect.any(Number),
-      })
+      }),
     );
   });
 });
@@ -258,4 +258,3 @@ it('Returns vehicles that match both tokenId and powertrain type filters', async
   expect(data.incompatibleVehicles.length).toEqual(1);
   expect(data.incompatibleVehicles[0].tokenId).toEqual(1);
 });
-

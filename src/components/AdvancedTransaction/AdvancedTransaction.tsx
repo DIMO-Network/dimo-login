@@ -8,6 +8,7 @@ import { sendErrorToParent } from '../../utils/errorUtils';
 import { UiStates } from '../../enums';
 import { useUIManager } from '../../context/UIManagerContext';
 import { ErrorMessage, Header, PrimaryButton, UIManagerLoaderWrapper } from '../Shared';
+import { captureException } from '@sentry/react';
 
 export const AdvancedTransaction: React.FC = () => {
   const { redirectUri, utm, transactionData } = useDevCredentials();
@@ -24,6 +25,7 @@ export const AdvancedTransaction: React.FC = () => {
         return;
       }
       const receipt = await executeAdvancedTransaction(
+        transactionData!.address,
         transactionData!.abi,
         transactionData!.functionName,
         transactionData!.args,
@@ -38,6 +40,7 @@ export const AdvancedTransaction: React.FC = () => {
       });
     } catch (e) {
       console.log(e);
+      captureException(e);
       setError('Could not execute transaction, please try again');
     } finally {
       setLoadingState(false);
@@ -71,15 +74,17 @@ export const AdvancedTransaction: React.FC = () => {
       </div>
 
       <div className="flex flex-col w-full gap-[8px] rounded-md text-sm">
-        <p className="text-gray-600">ADDRESS:</p>
-        <p className="text-gray-600">{transactionData!.address}</p>
+        <>
+          <p className="text-gray-600">ADDRESS:</p>
+          <p className="text-gray-600">{transactionData!.address}</p>
 
-        {transactionData!.value && (
-          <>
-            <p className="text-gray-600">VALUE:</p>
-            <p className="text-gray-600">{transactionData!.value?.toString()}</p>
-          </>
-        )}
+          {transactionData!.value && (
+            <>
+              <p className="text-gray-600">VALUE:</p>
+              <p className="text-gray-600">{transactionData!.value?.toString()}</p>
+            </>
+          )}
+        </>
       </div>
 
       {/* Render buttons */}
