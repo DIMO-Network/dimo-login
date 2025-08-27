@@ -4,7 +4,7 @@
   "private": true,
   "dependencies": {
     "@apollo/client": "^3.13.6",
-    "@dimo-network/transactions": "^0.1.93",
+    "@dimo-network/transactions": "^0.1.641",
     "@heroicons/react": "^2.1.5",
     "@sentry/cli": "^2.46.0",
     "@sentry/react": "^9.28.1",
