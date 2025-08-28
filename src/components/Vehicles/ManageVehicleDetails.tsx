@@ -21,7 +21,7 @@ export const ManageVehicleDetails = ({ vehicle }: { vehicle: Vehicle }) => {
     permissions: vehiclePermissions,
   } = vehicle;
   const hasUpdatedPerms = hasUpdatedPermissions(
-    BigInt(vehiclePermissions),
+    vehiclePermissions,
     permissions,
     permissionTemplateId,
   );
