@@ -38,7 +38,7 @@ export const VehicleCard: React.FC<VehicleCardProps> = ({
     permissions: vehiclePermissions,
   } = vehicle;
   const hasUpdatedPerms = hasUpdatedPermissions(
-    vehiclePermissions,
+    BigInt(vehiclePermissions),
     permissions,
     permissionTemplateId,
   );

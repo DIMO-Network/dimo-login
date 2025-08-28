@@ -9,7 +9,7 @@ const transformVehicle = (
   const sacd = vehicle.getSacdForGrantee(grantee);
   return {
     ...vehicle.normalize(),
-    permissions: sacd ? sacd.permissions : BigInt(0),
+    permissions: sacd ? sacd.permissions : '0',
     shared: !!sacd,
     expiresAt: sacd ? formatDate(sacd.expiresAt) : '',
   };
