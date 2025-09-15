@@ -15,8 +15,8 @@ export const SharedPermissionsNote: React.FC<SharedPermissionsNoteProps> = ({
 
   return (
     <p className="text-xs text-gray-500 mt-2">
-      <span className="font-semibold">Note:</span> Shared with old permissions, to update
-      it stop sharing and re-share
+      <span className="font-semibold">Note:</span> Shared with old permissions, update
+      them before continuing
     </p>
   );
 };

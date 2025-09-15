@@ -6,6 +6,7 @@ interface FooterProps {
   onCancel: () => void;
   onShare: () => void;
   selectedVehiclesCount: number;
+  onUpdatePermissions: () => void;
   hasVehicleWithOldPermissions: boolean;
 }
 
@@ -14,6 +15,7 @@ const Footer = ({
   onCancel,
   onShare,
   selectedVehiclesCount,
+  onUpdatePermissions,
   hasVehicleWithOldPermissions,
 }: FooterProps) => {
   const showContinueButton = !canShare;
@@ -46,8 +48,11 @@ const Footer = ({
 
   const renderUpdatePermissionsButton = () => {
     return (
-      <div className="flex flex-row gap-2">
-        <PrimaryButton onClick={onCancel} className="w-full">
+      <div className="flex flex-col gap-2 items-center">
+        <p className="text-xs text-gray-500">
+          There are vehicles with old permissions, update them before continuing
+        </p>
+        <PrimaryButton onClick={onUpdatePermissions} className="w-full">
           Update vehicles permissions
         </PrimaryButton>
       </div>

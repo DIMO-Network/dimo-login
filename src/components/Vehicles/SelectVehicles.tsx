@@ -69,6 +69,23 @@ export const SelectVehicles: React.FC = () => {
     }
   };
 
+  const handleUpdatePermissions = async () => {
+    try {
+      setLoadingState(true, 'Updating vehicles permissions', true);
+      const vehiclesWithOldPermissions = vehicles.filter(
+        ({ hasOldPermissions }) => hasOldPermissions,
+      );
+      await handleShareVehicles(vehiclesWithOldPermissions);
+    } catch (err) {
+      captureException(err);
+      if (!isInvalidSessionError(err)) {
+        setError('Failed to update vehicles permissions');
+      }
+    } finally {
+      setLoadingState(false);
+    }
+  };
+
   const onCancel = () => {
     finishShareVehicles([]);
   };
@@ -122,6 +139,7 @@ export const SelectVehicles: React.FC = () => {
             onCancel={onCancel}
             onShare={handleShare}
             selectedVehiclesCount={selectedVehicles.length}
+            onUpdatePermissions={handleUpdatePermissions}
             hasVehicleWithOldPermissions={hasVehicleWithOldPermissions}
           />
         </>
