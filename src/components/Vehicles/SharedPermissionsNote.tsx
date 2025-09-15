@@ -2,14 +2,14 @@ import React from 'react';
 
 interface SharedPermissionsNoteProps {
   shared: boolean;
-  hasUpdatedPermissions: boolean;
+  hasOldPermissions: boolean;
 }
 
 export const SharedPermissionsNote: React.FC<SharedPermissionsNoteProps> = ({
   shared,
-  hasUpdatedPermissions,
+  hasOldPermissions,
 }) => {
-  if (!shared || hasUpdatedPermissions) {
+  if (!shared || !hasOldPermissions) {
     return null;
   }
 

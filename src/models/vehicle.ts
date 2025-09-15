@@ -12,11 +12,13 @@ export interface Vehicle {
   shared: boolean;
   expiresAt: string;
   permissions: bigint;
+  hasOldPermissions: boolean;
 }
 
 export interface VehicleResponse {
   compatibleVehicles: Vehicle[];
   incompatibleVehicles: Vehicle[];
+  hasVehicleWithOldPermissions: boolean;
   hasNextPage: boolean;
   endCursor: string;
   hasPreviousPage: boolean;

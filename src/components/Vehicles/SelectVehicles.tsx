@@ -23,6 +23,7 @@ export const SelectVehicles: React.FC = () => {
     incompatibleVehicles,
     hasNextPage,
     hasPreviousPage,
+    hasVehicleWithOldPermissions,
   } = useFetchVehicles();
   const {
     selectedVehicles,
@@ -121,7 +122,7 @@ export const SelectVehicles: React.FC = () => {
             onCancel={onCancel}
             onShare={handleShare}
             selectedVehiclesCount={selectedVehicles.length}
-            hasOldPermissions={true}
+            hasVehicleWithOldPermissions={hasVehicleWithOldPermissions}
           />
         </>
       </UIManagerLoaderWrapper>

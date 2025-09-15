@@ -6,7 +6,7 @@ interface FooterProps {
   onCancel: () => void;
   onShare: () => void;
   selectedVehiclesCount: number;
-  hasOldPermissions: boolean;
+  hasVehicleWithOldPermissions: boolean;
 }
 
 const Footer = ({
@@ -14,11 +14,11 @@ const Footer = ({
   onCancel,
   onShare,
   selectedVehiclesCount,
-  hasOldPermissions,
+  hasVehicleWithOldPermissions,
 }: FooterProps) => {
   const showContinueButton = !canShare;
-  const showUpdatePermissionsButton = hasOldPermissions && canShare;
-  const showShareButtons = !hasOldPermissions && canShare;
+  const showUpdatePermissionsButton = hasVehicleWithOldPermissions && canShare;
+  const showShareButtons = !hasVehicleWithOldPermissions && canShare;
 
   const renderContinueButton = () => {
     return (

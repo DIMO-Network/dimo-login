@@ -3,10 +3,23 @@ import { fetchVehicles } from './identityService';
 import { IParams } from '../types';
 import { sortVehiclesByFilters, transformVehicles } from '../utils/vehicles';
 
+interface FetchVehiclesWithTransformationParams extends IParams {
+  permissionTemplateId: string;
+  permissions: string;
+}
+
 export const fetchVehiclesWithTransformation = async (
-  params: IParams,
+  params: FetchVehiclesWithTransformationParams,
 ): Promise<VehicleResponse> => {
-  const { ownerAddress, targetGrantee, cursor, direction, filters = {} } = params;
+  const {
+    ownerAddress,
+    targetGrantee,
+    cursor,
+    direction,
+    filters = {},
+    permissionTemplateId,
+    permissions,
+  } = params;
 
   const {
     data: {
@@ -19,12 +32,32 @@ export const fetchVehiclesWithTransformation = async (
     filters,
   );
 
+  const transformedCompatibleVehicles = transformVehicles({
+    vehicles: compatibleVehicles,
+    grantee: targetGrantee,
+    permissionTemplateId,
+    permissions,
+  });
+
+  const transformedIncompatibleVehicles = transformVehicles({
+    vehicles: incompatibleVehicles,
+    grantee: targetGrantee,
+    permissionTemplateId,
+    permissions,
+  });
+
+  const hasVehicleWithOldPermissions = [
+    ...transformedCompatibleVehicles,
+    ...transformedIncompatibleVehicles,
+  ].some((vehicle) => vehicle.hasOldPermissions);
+
   return {
     hasNextPage: pageInfo.hasNextPage,
     hasPreviousPage: pageInfo.hasPreviousPage,
     startCursor: pageInfo.startCursor || '',
     endCursor: pageInfo.endCursor || '',
-    compatibleVehicles: transformVehicles(compatibleVehicles, targetGrantee),
-    incompatibleVehicles: transformVehicles(incompatibleVehicles, targetGrantee),
+    compatibleVehicles: transformedCompatibleVehicles,
+    incompatibleVehicles: transformedIncompatibleVehicles,
+    hasVehicleWithOldPermissions,
   };
 };
