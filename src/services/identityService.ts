@@ -74,7 +74,7 @@ export type VehicleNode = {
   sacds: {
     nodes: {
       expiresAt: string;
-      permissions: bigint;
+      permissions: string;
       grantee: string;
     }[];
   };

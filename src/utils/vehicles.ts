@@ -17,7 +17,7 @@ const transformVehicle = ({
   permissions,
 }: TransformVehicleParams): Vehicle => {
   const sacd = vehicle.getSacdForGrantee(grantee);
-  const vehiclePermissions = sacd ? sacd.permissions : BigInt(0);
+  const vehiclePermissions = sacd ? sacd.permissions : '0';
   const updatedPermissions = hasUpdatedPermissions(
     vehiclePermissions,
     permissions,
