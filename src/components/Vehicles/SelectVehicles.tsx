@@ -121,6 +121,7 @@ export const SelectVehicles: React.FC = () => {
             onCancel={onCancel}
             onShare={handleShare}
             selectedVehiclesCount={selectedVehicles.length}
+            hasOldPermissions={true}
           />
         </>
       </UIManagerLoaderWrapper>
