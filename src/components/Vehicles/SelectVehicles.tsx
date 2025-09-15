@@ -23,6 +23,7 @@ export const SelectVehicles: React.FC = () => {
     incompatibleVehicles,
     hasNextPage,
     hasPreviousPage,
+    hasVehicleWithOldPermissions,
   } = useFetchVehicles();
   const {
     selectedVehicles,
@@ -62,6 +63,23 @@ export const SelectVehicles: React.FC = () => {
       captureException(err);
       if (!isInvalidSessionError(err)) {
         setError('Failed to share vehicles');
+      }
+    } finally {
+      setLoadingState(false);
+    }
+  };
+
+  const handleUpdatePermissions = async () => {
+    try {
+      setLoadingState(true, 'Updating vehicles permissions', true);
+      const vehiclesWithOldPermissions = vehicles.filter(
+        ({ hasOldPermissions }) => hasOldPermissions,
+      );
+      await handleShareVehicles(vehiclesWithOldPermissions);
+    } catch (err) {
+      captureException(err);
+      if (!isInvalidSessionError(err)) {
+        setError('Failed to update vehicles permissions');
       }
     } finally {
       setLoadingState(false);
@@ -121,6 +139,8 @@ export const SelectVehicles: React.FC = () => {
             onCancel={onCancel}
             onShare={handleShare}
             selectedVehiclesCount={selectedVehicles.length}
+            onUpdatePermissions={handleUpdatePermissions}
+            hasVehicleWithOldPermissions={hasVehicleWithOldPermissions}
           />
         </>
       </UIManagerLoaderWrapper>

@@ -1,26 +1,59 @@
 import { VehicleFilters, VehiclePermissionsAction } from '../types';
 import { LocalVehicle, Vehicle } from '../models/vehicle';
 import { extendByYear, formatDate, parseExpirationDate } from './dateUtils';
+import { hasUpdatedPermissions } from './permissions';
 
-const transformVehicle = (
-  vehicle: LocalVehicle,
-  grantee: `0x${string}` | null,
-): Vehicle => {
+interface TransformVehicleParams {
+  vehicle: LocalVehicle;
+  grantee: `0x${string}` | null;
+  permissionTemplateId: string;
+  permissions: string;
+}
+
+const transformVehicle = ({
+  vehicle,
+  grantee,
+  permissionTemplateId,
+  permissions,
+}: TransformVehicleParams): Vehicle => {
   const sacd = vehicle.getSacdForGrantee(grantee);
+  const vehiclePermissions = sacd ? sacd.permissions : '0';
+  const updatedPermissions = hasUpdatedPermissions(
+    vehiclePermissions,
+    permissions,
+    permissionTemplateId,
+  );
   return {
     ...vehicle.normalize(),
-    permissions: sacd ? sacd.permissions : '0',
+    permissions: vehiclePermissions,
     shared: !!sacd,
     expiresAt: sacd ? formatDate(sacd.expiresAt) : '',
+    hasOldPermissions: updatedPermissions,
   };
 };
 
-export const transformVehicles = (
-  vehicles: LocalVehicle[],
-  grantee: `0x${string}` | null,
-) => {
+interface TransformVehiclesParams {
+  vehicles: LocalVehicle[];
+  grantee: `0x${string}` | null;
+  permissionTemplateId: string;
+  permissions: string;
+}
+
+export const transformVehicles = ({
+  vehicles,
+  grantee,
+  permissionTemplateId,
+  permissions,
+}: TransformVehiclesParams) => {
   return vehicles
-    .map((vehicle) => transformVehicle(vehicle, grantee))
+    .map((vehicle) =>
+      transformVehicle({
+        vehicle,
+        grantee,
+        permissionTemplateId,
+        permissions,
+      }),
+    )
     .sort((a: any, b: any) => Number(b.shared) - Number(a.shared));
 };
 

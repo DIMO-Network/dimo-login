@@ -4,6 +4,7 @@ import { fetchDeviceDefinition, VehicleNode } from '../services';
 
 export interface Vehicle {
   tokenId: number;
+  tokenDID: string;
   imageURI: string;
   make: string;
   model: string;
@@ -11,11 +12,13 @@ export interface Vehicle {
   shared: boolean;
   expiresAt: string;
   permissions: string;
+  hasOldPermissions: boolean;
 }
 
 export interface VehicleResponse {
   compatibleVehicles: Vehicle[];
   incompatibleVehicles: Vehicle[];
+  hasVehicleWithOldPermissions: boolean;
   hasNextPage: boolean;
   endCursor: string;
   hasPreviousPage: boolean;
@@ -67,6 +70,7 @@ export class LocalVehicle {
   normalize() {
     return {
       tokenId: this.tokenId,
+      tokenDID: this.vehicleNode.tokenDID,
       imageURI: this.vehicleNode.imageURI,
       make: this.make,
       model: this.model,
