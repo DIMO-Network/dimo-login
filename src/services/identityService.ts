@@ -35,6 +35,7 @@ const GET_VEHICLES = gql`
     ) {
       nodes {
         tokenId
+        tokenDID
         imageURI
         definition {
           id
@@ -62,6 +63,7 @@ const GET_VEHICLES = gql`
 
 export type VehicleNode = {
   tokenId: number;
+  tokenDID: string;
   imageURI: string;
   definition: {
     id: string;

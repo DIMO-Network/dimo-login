@@ -9,6 +9,7 @@ jest.mock('@dimo-network/transactions', () => ({
 describe('LocalVehicle', () => {
   const mockVehicleNode = {
     tokenId: 123,
+    tokenDID: 'did:erc721:0xbA5738a18d83D41847dfFbDC6101d37C69c9B0cF:123',
     imageURI: 'http://image.url',
     definition: {
       id: 'mock_def_id',
@@ -49,6 +50,7 @@ describe('LocalVehicle', () => {
   it('normalizes vehicle data', () => {
     expect(localVehicle.normalize()).toEqual({
       tokenId: 123,
+      tokenDID: 'did:erc721:0xbA5738a18d83D41847dfFbDC6101d37C69c9B0cF:123',
       imageURI: 'http://image.url',
       make: 'Tesla',
       model: 'Model S',
