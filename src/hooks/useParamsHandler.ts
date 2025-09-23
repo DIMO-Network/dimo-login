@@ -7,6 +7,9 @@ import { UiStates } from '../enums';
 import { setForceEmail } from '../stores/AuthStateStore';
 import { parseExpirationDate, getDefaultExpirationDate } from '../utils/dateUtils';
 
+// Params that are handles empty values
+const DEFAULTED_PARAMS = ['expirationDate'];
+
 export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
   const [devCredentialsState, setDevCredentialsState] =
     useState<AllParams>(DEFAULT_CONTEXT);
@@ -74,12 +77,15 @@ export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
       })),
   };
 
+  const hasValidValue = (key: string, value: unknown) =>
+    DEFAULTED_PARAMS.includes(key) || value !== undefined;
+
   const applyDevCredentialsConfig = (config: Record<string, unknown>) => {
     Object.entries(config).forEach(([key, value]) => {
       if (
         key in specialSetters &&
         specialSetters[key as keyof typeof specialSetters] &&
-        value !== undefined
+        hasValidValue(key, value)
       ) {
         specialSetters[key as keyof typeof specialSetters](value);
       } else {
