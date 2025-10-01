@@ -101,7 +101,17 @@ export const DevCredentialsProvider = ({
 
     if (!hasClientId) return false;
 
-    const parsedUrlParams = Object.fromEntries(urlParams.entries());
+    const parsedUrlParams: Record<string, unknown> = {};
+
+    // @ts-ignore
+    for (const [key, value] of urlParams.entries()) {
+      if (parsedUrlParams[key]) {
+        // @ts-ignore
+        parsedUrlParams[key] = Array.isArray(parsedUrlParams[key]) ? [...parsedUrlParams[key], value] : [parsedUrlParams[key], value];
+      } else {
+        parsedUrlParams[key] = value;
+      }
+    }
     applyDevCredentialsConfig({
       ...parsedUrlParams,
       waitingForParams: false,
