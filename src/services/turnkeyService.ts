@@ -8,7 +8,6 @@
  */
 
 import {
-  ContractType,
   KernelSigner,
   newKernelConfig,
   Permission,
@@ -24,7 +23,7 @@ import { PasskeyCreationResult } from '../models/resultTypes';
 import { ApiKeyStamper } from '@turnkey/api-key-stamper';
 import { uint8ArrayToHexString } from '@turnkey/encoding';
 import { decryptBundle, getPublicKey } from '@turnkey/crypto';
-import { Attachment } from '../types';
+import { Attachment, CloudEventAgreement } from '../types';
 
 export const passkeyStamper = new WebauthnStamper({
   rpId: process.env.REACT_APP_RPCID_URL as string,
@@ -151,8 +150,13 @@ export const generateIpfsSources = async (
   clientId: `0x${string}` | null,
   expiration: BigInt,
   attachments: Attachment[] = [],
+  cloudEventAgreements?: CloudEventAgreement[],
+  dataversion?: string,
 ): Promise<string> => {
   console.log('generateIpfsSources - received attachments:', attachments);
+  console.log('generateIpfsSources - received cloudEventAgreements:', cloudEventAgreements);
+  console.log('generateIpfsSources - received dataversion:', dataversion);
+  
   // Bulk vehicles
   const ipfsRes = await kernelSigner.signAndUploadSACDAgreement({
     expiration: expiration,
@@ -162,6 +166,8 @@ export const generateIpfsSources = async (
     grantor: kernelSigner.smartContractAddress!,
     // TODO: Add the asset based on the user
     asset: 'did:',
+    ...(cloudEventAgreements && { cloudEventAgreements }),
+    ...(dataversion && { dataversion }),
   });
 
   return `ipfs://${ipfsRes.cid}`;
