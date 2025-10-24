@@ -33,3 +33,10 @@ export type Attachment = {
   contentType: string;
   url: string;
 };
+
+export type CloudEventAgreement = {
+  eventType?: string;
+  source: `0x${string}`;
+  ids: string[];
+  tags: string[];
+};
