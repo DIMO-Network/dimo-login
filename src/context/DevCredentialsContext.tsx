@@ -30,6 +30,7 @@ import { useParamsHandler } from '../hooks';
 import { getDefaultExpirationDate } from '../utils/dateUtils';
 import { sendMessageToReferrer } from '../utils/messageHandler';
 import { isStandalone } from '../utils/isStandalone';
+import { getConfigurationById } from '../services/configurationService';
 
 const DEFAULT_CONTEXT: AllParams = {
   clientId: null,
@@ -101,7 +102,17 @@ export const DevCredentialsProvider = ({
 
     if (!hasClientId) return false;
 
-    const parsedUrlParams = Object.fromEntries(urlParams.entries());
+    const parsedUrlParams: Record<string, unknown> = {};
+
+    // @ts-ignore
+    for (const [key, value] of urlParams.entries()) {
+      if (parsedUrlParams[key]) {
+        // @ts-ignore
+        parsedUrlParams[key] = Array.isArray(parsedUrlParams[key]) ? [...parsedUrlParams[key], value] : [parsedUrlParams[key], value];
+      } else {
+        parsedUrlParams[key] = value;
+      }
+    }
     applyDevCredentialsConfig({
       ...parsedUrlParams,
       waitingForParams: false,
@@ -166,6 +177,24 @@ export const DevCredentialsProvider = ({
     }
   };
 
+  const processConfigByConfigId = async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasConfigurationId = urlParams.has('configurationId');
+    const configurationId = urlParams.get('configurationId');
+    if (!hasConfigurationId || !configurationId) return false;
+
+    const config = await getConfigurationById(configurationId!);
+
+
+    applyDevCredentialsConfig({
+      ...config.configuration,
+      waitingForParams: false,
+      clientId: config.client_id,
+    });
+
+    return true;
+  };
+
   const validateCredentials = async () => {
     applyDevCredentialsConfig({
       waitingForDevLicense: Boolean(clientId),
@@ -203,9 +232,10 @@ export const DevCredentialsProvider = ({
   };
 
   const initAuthProcess = async () => {
+    const isProcessedByConfigId = await processConfigByConfigId();
     const isProcessedByCID = await processConfigByCID();
     const isProcessedByUrl = parseUrlParams();
-    const isConfiguredByUrl = isProcessedByCID || isProcessedByUrl;
+    const isConfiguredByUrl = isProcessedByCID || isProcessedByUrl || isProcessedByConfigId;
 
     // Recovering config from state for social sign-in
     parseStateFromUrl();
@@ -216,12 +246,12 @@ export const DevCredentialsProvider = ({
   };
 
   useEffect(() => {
-    initAuthProcess();
+    void initAuthProcess();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    validateCredentials();
+    void validateCredentials();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId]);
 

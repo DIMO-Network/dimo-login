@@ -4,6 +4,7 @@ import { fetchDeviceDefinition, VehicleNode } from '../services';
 
 export interface Vehicle {
   tokenId: number;
+  tokenDID: string;
   imageURI: string;
   make: string;
   model: string;
@@ -67,6 +68,7 @@ export class LocalVehicle {
   normalize() {
     return {
       tokenId: this.tokenId,
+      tokenDID: this.vehicleNode.tokenDID,
       imageURI: this.vehicleNode.imageURI,
       make: this.make,
       model: this.model,

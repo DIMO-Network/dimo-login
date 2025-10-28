@@ -21,6 +21,7 @@ beforeEach(() => {
           nodes: [
             {
               tokenId: 1,
+              tokenDID: 'did:erc721:0xbA5738a18d83D41847dfFbDC6101d37C69c9B0cF:1',
               imageURI: 'http://image.url',
               definition: {
                 id: 'tesla_model_3_2019',
@@ -34,6 +35,7 @@ beforeEach(() => {
             },
             {
               tokenId: 2,
+              tokenDID: 'did:erc721:0xbA5738a18d83D41847dfFbDC6101d37C69c9B0cF:2',
               imageURI: 'http://image.url',
               definition: {
                 id: 'ford_bronco_2023',
@@ -177,6 +179,7 @@ it('Returns vehicles with the correct shape in compatible and incompatible array
     expect(vehicle).toEqual(
       expect.objectContaining({
         tokenId: expect.any(Number),
+        tokenDID: expect.any(String),
         imageURI: expect.anything(),
         shared: expect.any(Boolean),
         expiresAt: expect.any(String),
@@ -201,6 +204,7 @@ it('Returns incompatible vehicles with the correct shape when no compatible vehi
     expect(vehicle).toEqual(
       expect.objectContaining({
         tokenId: expect.any(Number),
+        tokenDID: expect.any(String),
         imageURI: expect.anything(),
         shared: expect.any(Boolean),
         expiresAt: expect.any(String),
