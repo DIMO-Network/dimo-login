@@ -8,3 +8,6 @@ export * from './useShareVehicles';
 export * from './useSendAuthPayloadToParent';
 export * from './useFinishShareVehicles';
 export * from './useUpdateVehiclePermissions';
+export * from './useShareAccount';
+export * from './useUpdateAccountPermissions';
+export * from './useFinishShareAccount';

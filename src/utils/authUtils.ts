@@ -29,10 +29,16 @@ export function buildAuthPayload(
   clientId: `0x${string}` | null,
   jwt: string,
   userObj: UserObject,
+  additionalData?: {
+    sharedVehicles?: BigInt[] | string[];
+    accountShared?: boolean;
+  },
 ): {
   token: string;
   email?: string;
   walletAddress: string;
+  sharedVehicles?: BigInt[] | string[];
+  accountShared?: boolean;
 } {
   //Won't send to SDK until these are set in cookies/storage (may not work in incognito though?)
   const token = getJWTFromCookies(clientId) || jwt;
@@ -51,6 +57,7 @@ export function buildAuthPayload(
     token,
     walletAddress: user.smartContractAddress,
     email: emailGranted ? user.email : undefined,
+    ...additionalData,
   };
 }
 
@@ -59,6 +66,7 @@ export interface AuthPayload {
   email?: string;
   walletAddress: string;
   sharedVehicles?: BigInt[] | string[];
+  accountShared?: boolean;
 }
 
 export function sendAuthPayloadToParent(
@@ -138,6 +146,8 @@ export function handlePostAuthUIState({
   } else if (entryState === UiStates.VEHICLE_MANAGER) {
     //Note: If the user is unauthenticated but the vehicle manager is the entry state, the payload will be sent to parent in the vehicle manager, after vehicles are shared
     setUiState(UiStates.VEHICLE_MANAGER); //Move to vehicle manager
+  } else if (entryState === UiStates.ACCOUNT_MANAGER) {
+    setUiState(UiStates.ACCOUNT_MANAGER); //Move to account manager
   } else if (entryState === UiStates.ADVANCED_TRANSACTION) {
     setUiState(UiStates.ADVANCED_TRANSACTION);
   }

@@ -14,6 +14,7 @@ import {
   sacdDescription,
   SetVehiclePermissions,
   SetVehiclePermissionsBulk,
+  SetAccountPermissions,
 } from '@dimo-network/transactions';
 import { getWebAuthnAttestation } from '@turnkey/http';
 import { WebauthnStamper } from '@turnkey/webauthn-stamper';
@@ -216,6 +217,29 @@ export async function setVehiclePermissionsBulk({
     console.log('Vehicle permissions set successfully');
   } catch (error) {
     console.error('Error setting vehicle permissions:', error);
+    throw error;
+  }
+}
+
+export async function setAccountPermissions({
+  grantee,
+  permissions,
+  expiration,
+  source,
+  templateId,
+}: SetAccountPermissions): Promise<void> {
+  try {
+    // Call the kernelSigner's setAccountPermissions with the prepared payload
+    await kernelSigner.setAccountPermissions({
+      grantee,
+      permissions,
+      expiration,
+      source,
+      templateId,
+    });
+    console.log('Account permissions set successfully');
+  } catch (error) {
+    console.error('Error setting account permissions:', error);
     throw error;
   }
 }
