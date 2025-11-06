@@ -1,4 +1,5 @@
 import { UiStates } from '../enums';
+import { CloudEventAgreement } from './permissions';
 
 export interface BaseParams {
   clientId: `0x${string}` | null;
@@ -29,6 +30,7 @@ export interface VehicleManagerParams {
   powertrainTypes: string[];
   region?: string;
   onboarding?: string;
+  attestation?: CloudEventAgreement
 }
 
 export interface TransactionParams {

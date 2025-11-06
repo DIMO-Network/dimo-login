@@ -2,7 +2,13 @@ import { Permission } from '@dimo-network/transactions';
 
 import { POLICY_ATTACHMENT_CID_BY_REGION } from '../enums';
 import { formatBigIntAsReadableDate } from '../utils/dateUtils';
-import { Attachment, PERMISSIONS, PERMISSIONS_DESCRIPTION } from '../types';
+import {
+  Attachment,
+  CloudEventAgreement,
+  PERMISSIONS,
+  PERMISSIONS_DESCRIPTION,
+} from '../types';
+import { ATTESTATION_FILE_TAGS } from '../types/filetags';
 
 export const createPermissionsByTemplateId = (
   permissionTemplateId?: string,
@@ -88,11 +94,22 @@ export const getPermissionsDescription = (permissions: Permission[]): string => 
     .join('');
 };
 
+export const getFilesRequestedString = (fileTags: string[]): string => {
+  if (!fileTags) {
+    return '\n- NONE';
+  }
+
+  return fileTags.map(
+    (tag) => `\n- ${ATTESTATION_FILE_TAGS[tag]}`,
+  ).join('\n');
+}
+
 export const getTemplateDescription = (args: {
   email: string;
   devLicenseAlias: string;
   permissions: string;
   permissionTemplateId?: string;
+  fileTags: string[];
   expirationDate: BigInt;
   region?: string;
 }): string => {
@@ -101,6 +118,7 @@ export const getTemplateDescription = (args: {
     devLicenseAlias,
     permissions,
     permissionTemplateId,
+    fileTags,
     expirationDate,
     region,
   } = args;
@@ -113,12 +131,31 @@ export const getTemplateDescription = (args: {
   const currentTime = new Date();
   const currentTimeBigInt = BigInt(Math.floor(currentTime.getTime() / 1000));
   const permissionsString = getPermissionsDescription(perms);
+  const filesRequestedString = getFilesRequestedString(fileTags);
 
-  const description = `This contract gives permission for specific data access and control functions on the DIMO platform. Here's what you're agreeing to:\n\nContract Summary:\n- Grantor: ${email} (the entity giving permission).\n- Grantee: ${devLicenseAlias}  (the entity receiving permission).\n\n${contractAttachmentLink}\n\nPermissions Granted:${permissionsString}\n\nEffective Date: ${formatBigIntAsReadableDate(
-    currentTimeBigInt,
-  )} \n\nExpiration Date: ${formatBigIntAsReadableDate(
-    expirationDate,
-  )}.\n\nDetails:\n- This grant provides the grantee with access to specific vehicle data and control functions as specified above.\n- Created by DIMO Platform, version 1.0 of this contract template.\n\nBy signing, both parties agree to these terms and the specified access scope.`;
+  const description = [
+    "This contract gives permission for specific data access and control functions on the DIMO platform.",
+    "Here's what you're agreeing to:",
+    "",
+    "Contract Summary:",
+    `- Grantor: ${email} (the entity giving permission).`,
+    `- Grantee: ${devLicenseAlias} (the entity receiving permission).`,
+    "",
+    contractAttachmentLink,
+    "",
+    `Permissions Granted: ${permissionsString}`,
+    "",
+    `Files Requested: ${filesRequestedString}`,
+    "",
+    `Effective Date: ${formatBigIntAsReadableDate(currentTimeBigInt)}`,
+    `Expiration Date: ${formatBigIntAsReadableDate(expirationDate)}.`,
+    "",
+    "Details:",
+    "- This grant provides the grantee with access to specific vehicle data and control functions as specified above.",
+    "- Created by DIMO Platform, version 1.0 of this contract template.",
+    "",
+    "By signing, both parties agree to these terms and the specified access scope.",
+  ].join("\n");
 
   return description;
 };
