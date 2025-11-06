@@ -30,7 +30,7 @@ export interface VehicleManagerParams {
   powertrainTypes: string[];
   region?: string;
   onboarding?: string;
-  attestation?: CloudEventAgreement
+  cloudEvent?: CloudEventAgreement
 }
 
 export interface TransactionParams {

@@ -72,7 +72,7 @@ export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
           ? JSON.parse(decodeURIComponent(value))
           : value) as TransactionParams,
       })),
-    attestation: (value: unknown) =>
+    cloudEvent: (value: unknown) =>
       setDevCredentialsState((prev) => ({
         ...prev,
         attestation: (typeof value === 'string' ? JSON.parse(decodeURIComponent(value)) : value) as CloudEventAgreement,

@@ -101,7 +101,7 @@ export const getFilesRequestedString = (fileTags: string[] | undefined): string 
 
   return fileTags.map(
     (tag) => `\n- ${ATTESTATION_FILE_TAGS[tag]}`,
-  ).join('\n');
+  ).join('');
 }
 
 export const getTemplateDescription = (args: {
