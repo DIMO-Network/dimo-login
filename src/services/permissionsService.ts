@@ -94,7 +94,7 @@ export const getPermissionsDescription = (permissions: Permission[]): string => 
     .join('');
 };
 
-export const getFilesRequestedString = (fileTags: string[]): string => {
+export const getFilesRequestedString = (fileTags: string[] | undefined): string => {
   if (!fileTags) {
     return '\n- NONE';
   }
@@ -109,7 +109,7 @@ export const getTemplateDescription = (args: {
   devLicenseAlias: string;
   permissions: string;
   permissionTemplateId?: string;
-  fileTags: string[];
+  fileTags: string[] | undefined;
   expirationDate: BigInt;
   region?: string;
 }): string => {
