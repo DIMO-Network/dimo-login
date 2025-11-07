@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { AllParams, TransactionParams } from '../types';
+import { AllParams, CloudEventAgreement, TransactionParams } from '../types';
 import { useUIManager } from '../context/UIManagerContext';
 import { useOracles } from '../context/OraclesContext';
 import { UiStates } from '../enums';
@@ -72,6 +72,11 @@ export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
           ? JSON.parse(decodeURIComponent(value))
           : value) as TransactionParams,
       })),
+    cloudEvent: (value: unknown) =>
+      setDevCredentialsState((prev) => ({
+        ...prev,
+        cloudEvent: (typeof value === 'string' ? JSON.parse(decodeURIComponent(value)) : value) as CloudEventAgreement,
+      }))
   };
 
   const applyDevCredentialsConfig = (config: Record<string, unknown>) => {

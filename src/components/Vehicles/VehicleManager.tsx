@@ -16,6 +16,7 @@ export const VehicleManager: React.FC = () => {
     devLicenseAlias,
     permissionTemplateId,
     permissions,
+    cloudEvent,
     expirationDate,
     region,
   } = useDevCredentials<VehicleManagerMandatoryParams>();
@@ -38,6 +39,7 @@ export const VehicleManager: React.FC = () => {
             devLicenseAlias,
             permissions,
             permissionTemplateId,
+            fileTags: cloudEvent?.tags,
             expirationDate,
             region: region?.toUpperCase(),
           }),

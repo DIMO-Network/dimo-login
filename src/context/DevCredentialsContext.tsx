@@ -185,7 +185,6 @@ export const DevCredentialsProvider = ({
 
     const config = await getConfigurationById(configurationId!);
 
-
     applyDevCredentialsConfig({
       ...config.configuration,
       waitingForParams: false,
