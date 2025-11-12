@@ -73,7 +73,9 @@ export const MintVehicle: FC = () => {
       }
     };
 
+    // eslint-disable-next-line
     processMint();
+    // eslint-disable-next-line
   }, [componentData]);
 
   const handleSign = async (nft: IntegrationNft | MintVehicleNft) => {

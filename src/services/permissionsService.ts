@@ -4,7 +4,6 @@ import { POLICY_ATTACHMENT_CID_BY_REGION } from '../enums';
 import { formatBigIntAsReadableDate } from '../utils/dateUtils';
 import {
   Attachment,
-  CloudEventAgreement,
   PERMISSIONS,
   PERMISSIONS_DESCRIPTION,
 } from '../types';

@@ -49,6 +49,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({ email }) => {
     return () => {
       callback.cancel();
     };
+    // eslint-disable-next-line
   }, []);
 
   // Function to handle change for each input

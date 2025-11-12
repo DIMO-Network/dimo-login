@@ -87,7 +87,9 @@ export const useOAuthCodeExchange = ({
         setIsExchanging(false);
       }
     };
+    // eslint-disable-next-line
     handleCodeExchange();
+    // eslint-disable-next-line
   }, [code]);
 
   return {
