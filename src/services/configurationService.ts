@@ -4,9 +4,13 @@ export interface Configuration {
   configuration: Record<string, string | number | boolean>;
 }
 
-export async function getConfigurationById(configurationId: string): Promise<Configuration>{
+export async function getConfigurationById(
+  configurationId: string,
+): Promise<Configuration> {
   try {
-    const response = await fetch(`${process.env.REACT_APP_DEVELOPER_CONSOLE_URL}/api/configurations/${configurationId}`);
+    const response = await fetch(
+      `${process.env.REACT_APP_DEVELOPER_CONSOLE_URL}/api/configurations/${configurationId}`,
+    );
 
     if (!response.ok) {
       throw new Error(response.statusText);
@@ -15,7 +19,7 @@ export async function getConfigurationById(configurationId: string): Promise<Con
     const remoteConfiguration: { configuration: Configuration } = await response.json();
 
     return remoteConfiguration.configuration;
-  } catch (e: unknown){
+  } catch (e: unknown) {
     console.error(e);
     throw e;
   }

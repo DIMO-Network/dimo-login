@@ -99,10 +99,8 @@ export const getFilesRequestedString = (fileTags: string[] | undefined): string 
     return '\n- NONE';
   }
 
-  return fileTags.map(
-    (tag) => `\n- ${ATTESTATION_FILE_TAGS[tag]}`,
-  ).join('');
-}
+  return fileTags.map((tag) => `\n- ${ATTESTATION_FILE_TAGS[tag]}`).join('');
+};
 
 export const getTemplateDescription = (args: {
   email: string;
@@ -134,28 +132,28 @@ export const getTemplateDescription = (args: {
   const filesRequestedString = getFilesRequestedString(fileTags);
 
   const description = [
-    "This contract gives permission for specific data access and control functions on the DIMO platform.",
+    'This contract gives permission for specific data access and control functions on the DIMO platform.',
     "Here's what you're agreeing to:",
-    "",
-    "Contract Summary:",
+    '',
+    'Contract Summary:',
     `- Grantor: ${email} (the entity giving permission).`,
     `- Grantee: ${devLicenseAlias} (the entity receiving permission).`,
-    "",
+    '',
     contractAttachmentLink,
-    "",
+    '',
     `Permissions Granted: ${permissionsString}`,
-    "",
+    '',
     `Files Requested: ${filesRequestedString}`,
-    "",
+    '',
     `Effective Date: ${formatBigIntAsReadableDate(currentTimeBigInt)}`,
     `Expiration Date: ${formatBigIntAsReadableDate(expirationDate)}.`,
-    "",
-    "Details:",
-    "- This grant provides the grantee with access to specific vehicle data and control functions as specified above.",
-    "- Created by DIMO Platform, version 1.0 of this contract template.",
-    "",
-    "By signing, both parties agree to these terms and the specified access scope.",
-  ].join("\n");
+    '',
+    'Details:',
+    '- This grant provides the grantee with access to specific vehicle data and control functions as specified above.',
+    '- Created by DIMO Platform, version 1.0 of this contract template.',
+    '',
+    'By signing, both parties agree to these terms and the specified access scope.',
+  ].join('\n');
 
   return description;
 };

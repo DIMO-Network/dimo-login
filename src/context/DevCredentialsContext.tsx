@@ -108,7 +108,9 @@ export const DevCredentialsProvider = ({
     for (const [key, value] of urlParams.entries()) {
       if (parsedUrlParams[key]) {
         // @ts-ignore
-        parsedUrlParams[key] = Array.isArray(parsedUrlParams[key]) ? [...parsedUrlParams[key], value] : [parsedUrlParams[key], value];
+        parsedUrlParams[key] = Array.isArray(parsedUrlParams[key])
+          ? [...parsedUrlParams[key], value]
+          : [parsedUrlParams[key], value];
       } else {
         parsedUrlParams[key] = value;
       }
@@ -234,7 +236,8 @@ export const DevCredentialsProvider = ({
     const isProcessedByConfigId = await processConfigByConfigId();
     const isProcessedByCID = await processConfigByCID();
     const isProcessedByUrl = parseUrlParams();
-    const isConfiguredByUrl = isProcessedByCID || isProcessedByUrl || isProcessedByConfigId;
+    const isConfiguredByUrl =
+      isProcessedByCID || isProcessedByUrl || isProcessedByConfigId;
 
     // Recovering config from state for social sign-in
     parseStateFromUrl();

@@ -153,7 +153,6 @@ export const generateIpfsSources = async (
   cloudEventAgreements?: CloudEventAgreement[],
   dataversion?: string,
 ): Promise<string> => {
-
   // Bulk vehicles
   const ipfsRes = await kernelSigner.signAndUploadSACDAgreement({
     expiration: expiration,
