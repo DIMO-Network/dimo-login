@@ -107,8 +107,8 @@ export const DevCredentialsProvider = ({
     // @ts-ignore
     for (const [key, value] of urlParams.entries()) {
       if (parsedUrlParams[key]) {
-        // @ts-ignore
         parsedUrlParams[key] = Array.isArray(parsedUrlParams[key])
+          // @ts-ignore
           ? [...parsedUrlParams[key], value]
           : [parsedUrlParams[key], value];
       } else {
