@@ -7,7 +7,7 @@ import { UiStates } from '../enums';
 import { backToThirdParty } from '../utils/messageHandler';
 
 export const useFinishShareVehicles = () => {
-  const { redirectUri, utm } = useDevCredentials<VehicleManagerMandatoryParams>();
+  const { redirectUri, utm, permissionScope } = useDevCredentials<VehicleManagerMandatoryParams>();
   const { setUiState, setComponentData } = useUIManager();
   const sendAuthPayloadToParent = useSendAuthPayloadToParent();
 
@@ -17,6 +17,15 @@ export const useFinishShareVehicles = () => {
   };
 
   return (sharedVehicles?: Vehicle[]) => {
+    // Check if we need to continue to account permissions
+    if (permissionScope === 'both') {
+      // Store shared vehicles for later and navigate to account manager
+      setComponentData({ sharedVehicles });
+      setUiState(UiStates.ACCOUNT_MANAGER);
+      return;
+    }
+
+    // Original behavior for vehicle-only flow
     sendAuthPayloadToParent(
       {
         sharedVehicles: sharedVehicles?.map((v) => v.tokenId.toString()),

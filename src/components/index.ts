@@ -1,3 +1,4 @@
+export * from './Account';
 export * from './AdvancedTransaction';
 export * from './Auth';
 export * from './Connections';

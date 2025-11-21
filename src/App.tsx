@@ -26,6 +26,9 @@ import {
   ConnectDevice,
   ConnectTesla,
   Logout,
+  AccountManager,
+  ManageAccount,
+  AccountSharedSuccess,
 } from './components';
 import { Card } from './components/Shared/Card';
 import { useErrorHandler } from './hooks/useErrorHandler';
@@ -64,6 +67,7 @@ const App = () => {
         setUser,
         uiState,
         setUiState,
+        entryState: incomingEntryState,
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -104,6 +108,9 @@ const App = () => {
     [UiStates.TRANSACTION_CANCELLED]: <CancelledTransaction />,
     [UiStates.SUCCESS]: <SuccessPage />,
     [UiStates.LOGOUT]: <Logout />,
+    [UiStates.ACCOUNT_MANAGER]: <AccountManager />,
+    [UiStates.MANAGE_ACCOUNT]: <ManageAccount />,
+    [UiStates.ACCOUNT_SHARED_SUCCESS]: <AccountSharedSuccess />,
   };
 
   return (

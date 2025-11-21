@@ -4,14 +4,14 @@
   "private": true,
   "dependencies": {
     "@apollo/client": "^3.13.6",
-    "@dimo-network/transactions": "^0.1.95",
+    "@dimo-network/transactions": "^0.2.6",
     "@heroicons/react": "^2.1.5",
     "@sentry/cli": "^2.46.0",
     "@sentry/react": "^9.28.1",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
-    "@turnkey/http": "^2.22.0",
+    "@turnkey/http": "^3.15.0",
     "@types/jest": "^27.5.2",
     "@types/node": "^16.18.114",
     "@types/react": "^18.3.11",
@@ -30,13 +30,12 @@
     "web-vitals": "^2.1.4"
   },
   "overrides": {
-    "react-refresh": "0.14.2",
-    "@turnkey/http": "^2.22.0"
+    "react-refresh": "0.14.2"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build && npm run sentry:sourcemaps",
-    "test": "react-scripts test",
+    "start": "craco start",
+    "build": "craco build && npm run sentry:sourcemaps",
+    "test": "craco test",
     "eject": "react-scripts eject",
     "lint": "eslint . --ignore node_modules --ignore build",
     "lint:fix": "eslint . --fix --ignore node_modules --ignore build",
@@ -62,10 +61,14 @@
     ]
   },
   "devDependencies": {
+    "@craco/craco": "^7.1.0",
     "@types/lodash": "^4.17.16",
     "autoprefixer": "^10.4.20",
+    "crypto-browserify": "^3.12.1",
     "postcss": "^8.4.47",
     "prettier": "3.5.3",
+    "process": "^0.11.10",
+    "stream-browserify": "^3.0.0",
     "tailwindcss": "^3.4.14"
   }
 }

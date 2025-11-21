@@ -82,8 +82,8 @@ interface OTPAuthArgs {
 export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element => {
   const [user, setUser] = useState<UserObject>(defaultUser);
   const [jwt, setJwt] = useState<string>('');
-  const { clientId, redirectUri, utm } = useDevCredentials();
-  const { setUiState, entryState } = useUIManager();
+  const { clientId, redirectUri, utm, entryState } = useDevCredentials();
+  const { setUiState } = useUIManager();
 
   const resetUser = () => {
     setUser(defaultUser);
@@ -117,7 +117,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
     });
 
     handlePostAuthUIState({
-      entryState,
+      entryState: entryState || UiStates.EMAIL_INPUT,
       clientId,
       redirectUri,
       utm,

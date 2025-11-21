@@ -12,6 +12,7 @@ type InitializeSessionParams = {
   setUser: (user: UserObject) => void;
   uiState: UiStates;
   setUiState: (step: UiStates) => void;
+  entryState?: string;
 };
 
 export function initializeSession({
@@ -20,6 +21,7 @@ export function initializeSession({
   setUser,
   uiState,
   setUiState,
+  entryState,
 }: InitializeSessionParams): void {
   if (!clientId) {
     console.error('Client ID is missing. Cannot initialize session.');
@@ -33,8 +35,19 @@ export function initializeSession({
     setJwt(jwt);
     setUser(user);
 
+    // If user has an existing session, route them based on entryState
     if (uiState === UiStates.EMAIL_INPUT) {
-      setUiState(UiStates.SUCCESS);
+      // Determine where to route based on entryState
+      if (entryState === UiStates.VEHICLE_MANAGER) {
+        setUiState(UiStates.VEHICLE_MANAGER);
+      } else if (entryState === UiStates.ACCOUNT_MANAGER) {
+        setUiState(UiStates.ACCOUNT_MANAGER);
+      } else if (entryState === UiStates.ADVANCED_TRANSACTION) {
+        setUiState(UiStates.ADVANCED_TRANSACTION);
+      } else {
+        // Default: Complete auth immediately (backward compatible)
+        setUiState(UiStates.SUCCESS);
+      }
     }
   } else {
     // If JWT or user is invalid, reset the state

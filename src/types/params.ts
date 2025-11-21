@@ -33,6 +33,21 @@ export interface VehicleManagerParams {
   cloudEvent?: CloudEventAgreement
 }
 
+export interface AccountManagerParams {
+  permissionTemplateId: string;
+  permissions: string;
+  expirationDate: BigInt;
+  region?: string;
+}
+
+export interface PermissionScopeParams {
+  permissionScope?: 'vehicle' | 'account' | 'both';
+  vehiclePermissions?: string;
+  vehiclePermissionTemplateId?: string;
+  accountPermissions?: string;
+  accountPermissionTemplateId?: string;
+}
+
 export interface TransactionParams {
   address: `0x${string}`;
   value?: bigint;
@@ -46,11 +61,17 @@ export interface AdvancedTransactionParams {
 }
 export type AllParams = BaseParams &
   FetchedParams &
-  Partial<VehicleManagerParams & AdvancedTransactionParams>;
+  Partial<VehicleManagerParams & AccountManagerParams & AdvancedTransactionParams & PermissionScopeParams>;
 
 export type VehicleManagerMandatoryParams = BaseParams &
   FetchedParams &
-  VehicleManagerParams;
+  VehicleManagerParams &
+  Partial<PermissionScopeParams>;
+
+export type AccountManagerMandatoryParams = BaseParams &
+  FetchedParams &
+  AccountManagerParams &
+  Partial<PermissionScopeParams>;
 
 export type AdvancedTransactionMandatoryParams = BaseParams &
   FetchedParams &
