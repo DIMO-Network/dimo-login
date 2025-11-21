@@ -100,6 +100,12 @@ export const DevCredentialsProvider = ({
     const urlParams = new URLSearchParams(window.location.search);
     const hasClientId = urlParams.has('clientId');
 
+    // DEBUG-SACD: Log URL parameter parsing
+    console.log('🔵 DEBUG-SACD: DevCredentials - parseUrlParams:', {
+      hasClientId,
+      allParams: Object.fromEntries(urlParams.entries()),
+    });
+
     if (!hasClientId) return false;
 
     const parsedUrlParams: Record<string, unknown> = {};
@@ -110,9 +116,21 @@ export const DevCredentialsProvider = ({
         // @ts-ignore
         parsedUrlParams[key] = Array.isArray(parsedUrlParams[key]) ? [...parsedUrlParams[key], value] : [parsedUrlParams[key], value];
       } else {
-        parsedUrlParams[key] = value;
+        // Special handling for attestationTags: parse comma-separated string as array
+        if (key === 'attestationTags' && typeof value === 'string') {
+          parsedUrlParams[key] = value.split(',').map(tag => tag.trim());
+        } else {
+          parsedUrlParams[key] = value;
+        }
       }
     }
+
+    // DEBUG-SACD: Log parsed URL params
+    console.log('🟢 DEBUG-SACD: DevCredentials - Parsed URL params:', parsedUrlParams);
+    if (parsedUrlParams.attestationTags) {
+      console.log('🟢 DEBUG-SACD: DevCredentials - Attestation tags parsed as array:', parsedUrlParams.attestationTags);
+    }
+
     applyDevCredentialsConfig({
       ...parsedUrlParams,
       waitingForParams: false,
@@ -181,10 +199,22 @@ export const DevCredentialsProvider = ({
     const urlParams = new URLSearchParams(window.location.search);
     const hasConfigurationId = urlParams.has('configurationId');
     const configurationId = urlParams.get('configurationId');
+
+    // DEBUG-SACD: Log configuration fetching
+    console.log('🔵 DEBUG-SACD: DevCredentials - processConfigByConfigId:', {
+      hasConfigurationId,
+      configurationId,
+    });
+
     if (!hasConfigurationId || !configurationId) return false;
 
     const config = await getConfigurationById(configurationId!);
 
+    // DEBUG-SACD: Log fetched configuration
+    console.log('🟢 DEBUG-SACD: DevCredentials - Configuration fetched from configurationId:', {
+      client_id: config.client_id,
+      configuration: config.configuration,
+    });
 
     applyDevCredentialsConfig({
       ...config.configuration,

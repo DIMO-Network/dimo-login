@@ -36,6 +36,7 @@ export interface AccountManagerParams {
   permissions: string;
   expirationDate: BigInt;
   region?: string;
+  attestationTags?: string[];  // Tags for attestations to share (drivers_license, insurance, etc.)
 }
 
 export interface PermissionScopeParams {

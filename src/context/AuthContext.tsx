@@ -116,6 +116,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element
       turnkeySessionData: { ...turnkeySessionData, expiresAt: turnkeySessionExpiration },
     });
 
+    // DEBUG-SACD: Log entryState routing
+    console.log('🔵 DEBUG-SACD: AuthContext - Routing after authentication:', {
+      entryState: entryState || UiStates.EMAIL_INPUT,
+      isAccountManager: entryState === UiStates.ACCOUNT_MANAGER,
+      isVehicleManager: entryState === UiStates.VEHICLE_MANAGER,
+    });
+
     handlePostAuthUIState({
       entryState: entryState || UiStates.EMAIL_INPUT,
       clientId,

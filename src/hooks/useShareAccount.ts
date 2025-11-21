@@ -37,13 +37,48 @@ export const useShareAccount = () => {
     const isValid = await validate();
     if (!isValid) throw new Error(INVALID_SESSION_ERROR);
 
+    // DEBUG-SACD: Log account sharing flow start
+    console.log('🔵 DEBUG-SACD: useShareAccount - Starting account sharing');
+    console.log('  - accountConfig:', accountConfig);
+    console.log('  - devCredentials:', devCredentials);
+
     const perms = createPermissionsFromParams(
       accountConfig.permissions,
       accountConfig.permissionTemplateId,
     );
-    const attachments = generateAttachments(region?.toUpperCase());
-    const source = await generateIpfsSources(perms, clientId, expirationDate, attachments);
 
+    // DEBUG-SACD: Log permissions created
+    console.log('🔵 DEBUG-SACD: useShareAccount - Permissions created:', perms);
+
+    const attachments = generateAttachments(region?.toUpperCase());
+
+    // DEBUG-SACD: Check for attestation tags
+    const attestationTags = devCredentials.attestationTags;
+    console.log('🔵 DEBUG-SACD: useShareAccount - Attestation tags from config:', attestationTags);
+
+    // Generate cloudEventAgreements from attestationTags
+    // Use wildcards for source and ids, specific tags for filtering
+    const cloudEventAgreements =
+      attestationTags && attestationTags.length > 0
+        ? attestationTags.map((tag) => ({
+            eventType: 'dimo.attestation',
+            source: '*' as `0x${string}`,  // Wildcard: all sources
+            ids: ['*'],                     // Wildcard: all attestation IDs
+            tags: [tag],                    // Specific tag (drivers_license, insurance, etc.)
+          }))
+        : undefined;
+
+    console.log('🔵 DEBUG-SACD: useShareAccount - CloudEvent agreements generated:', cloudEventAgreements);
+
+    const source = await generateIpfsSources(
+      perms,
+      clientId,
+      expirationDate,
+      attachments,
+      cloudEventAgreements,
+    );
+
+    // DEBUG-SACD: Log account permissions about to be set
     const accountPermissions: SetAccountPermissions = {
       grantee: clientId as `0x${string}`,
       permissions: perms,
@@ -53,7 +88,9 @@ export const useShareAccount = () => {
         ? BigInt(accountConfig.permissionTemplateId)
         : BigInt(0),
     };
+    console.log('🔵 DEBUG-SACD: useShareAccount - Account permissions object:', accountPermissions);
 
     await setAccountPermissions(accountPermissions);
+    console.log('🟢 DEBUG-SACD: useShareAccount - Account sharing completed');
   };
 };

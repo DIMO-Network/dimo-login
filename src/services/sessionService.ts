@@ -35,22 +35,35 @@ export function initializeSession({
     setJwt(jwt);
     setUser(user);
 
+    // DEBUG-SACD: Log session initialization
+    console.log('🔵 DEBUG-SACD: sessionService - Existing session found:', {
+      hasJwt: !!jwt,
+      hasUser: !!user,
+      currentUiState: uiState,
+      entryState: entryState,
+    });
+
     // If user has an existing session, route them based on entryState
     if (uiState === UiStates.EMAIL_INPUT) {
       // Determine where to route based on entryState
       if (entryState === UiStates.VEHICLE_MANAGER) {
+        console.log('🔵 DEBUG-SACD: sessionService - Routing to VEHICLE_MANAGER');
         setUiState(UiStates.VEHICLE_MANAGER);
       } else if (entryState === UiStates.ACCOUNT_MANAGER) {
+        console.log('🔵 DEBUG-SACD: sessionService - Routing to ACCOUNT_MANAGER');
         setUiState(UiStates.ACCOUNT_MANAGER);
       } else if (entryState === UiStates.ADVANCED_TRANSACTION) {
+        console.log('🔵 DEBUG-SACD: sessionService - Routing to ADVANCED_TRANSACTION');
         setUiState(UiStates.ADVANCED_TRANSACTION);
       } else {
         // Default: Complete auth immediately (backward compatible)
+        console.log('🔵 DEBUG-SACD: sessionService - Routing to SUCCESS (default)');
         setUiState(UiStates.SUCCESS);
       }
     }
   } else {
     // If JWT or user is invalid, reset the state
+    console.log('🔵 DEBUG-SACD: sessionService - No valid session, routing to EMAIL_INPUT');
     setUiState(UiStates.EMAIL_INPUT);
   }
 }

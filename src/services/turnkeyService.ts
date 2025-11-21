@@ -157,10 +157,15 @@ export const generateIpfsSources = async (
   cloudEventAgreements?: CloudEventAgreement[],
   dataversion?: string,
 ): Promise<string> => {
-  console.log('generateIpfsSources - received attachments:', attachments);
-  console.log('generateIpfsSources - received cloudEventAgreements:', cloudEventAgreements);
-  console.log('generateIpfsSources - received dataversion:', dataversion);
-  
+  // DEBUG-SACD: Log all parameters for SACD generation
+  console.log('🔵 DEBUG-SACD: generateIpfsSources called with:');
+  console.log('  - permissions:', permissions);
+  console.log('  - clientId:', clientId);
+  console.log('  - expiration:', expiration.toString());
+  console.log('  - attachments:', attachments);
+  console.log('  - cloudEventAgreements:', cloudEventAgreements);
+  console.log('  - dataversion:', dataversion);
+
   // Bulk vehicles
   const ipfsRes = await kernelSigner.signAndUploadSACDAgreement({
     expiration: expiration,
@@ -172,6 +177,12 @@ export const generateIpfsSources = async (
     asset: 'did:',
     ...(cloudEventAgreements && { cloudEventAgreements }),
     ...(dataversion && { dataversion }),
+  });
+
+  // DEBUG-SACD: Log IPFS upload result
+  console.log('🟢 DEBUG-SACD: SACD uploaded to IPFS:', {
+    cid: ipfsRes.cid,
+    fullSource: `ipfs://${ipfsRes.cid}`,
   });
 
   return `ipfs://${ipfsRes.cid}`;
@@ -208,14 +219,25 @@ export async function setVehiclePermissionsBulk(args: SetVehiclePermissionsBulk)
 
 export async function setAccountPermissions(args: SetAccountPermissions): Promise<void> {
   try {
+    // DEBUG-SACD: Log account permissions parameters
+    console.log('🔵 DEBUG-SACD: setAccountPermissions called with:', {
+      grantee: args.grantee,
+      permissions: args.permissions,
+      expiration: args.expiration.toString(),
+      templateId: args.templateId.toString(),
+      source: args.source,
+    });
+
     const client = await kernelSigner.getActiveClient();
     const environment = process.env.REACT_APP_ENVIRONMENT;
 
     // Call the SDK's setAccountPermissions with the client
     await sdkSetAccountPermissions(args, client, environment);
-    console.log('Account permissions set successfully');
+
+    // DEBUG-SACD: Log success
+    console.log('🟢 DEBUG-SACD: Account permissions set successfully');
   } catch (error) {
-    console.error('Error setting account permissions:', error);
+    console.error('🔴 DEBUG-SACD: Error setting account permissions:', error);
     throw error;
   }
 }
