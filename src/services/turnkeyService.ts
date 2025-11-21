@@ -15,7 +15,10 @@ import {
   SetVehiclePermissions,
   SetVehiclePermissionsBulk,
   SetAccountPermissions,
+  setAccountPermissions as sdkSetAccountPermissions,
+  setVehiclePermissions as sdkSetVehiclePermissions,
 } from '@dimo-network/transactions';
+import { setVehiclePermissionsBulk as sdkSetVehiclePermissionsBulk } from '@dimo-network/transactions/dist/core/actions/setPermissionsSACD.js';
 import { getWebAuthnAttestation } from '@turnkey/http';
 import { WebauthnStamper } from '@turnkey/webauthn-stamper';
 import { base64UrlEncode, generateRandomBuffer } from '../utils/cryptoUtils';
@@ -23,7 +26,7 @@ import { VehiclePermissionDescription } from '@dimo-network/transactions/dist/co
 import { PasskeyCreationResult } from '../models/resultTypes';
 import { ApiKeyStamper } from '@turnkey/api-key-stamper';
 import { uint8ArrayToHexString } from '@turnkey/encoding';
-import { decryptBundle, getPublicKey } from '@turnkey/crypto';
+import { decryptCredentialBundle, getPublicKey } from '@turnkey/crypto';
 import { Attachment, CloudEventAgreement } from '../types';
 
 export const passkeyStamper = new WebauthnStamper({
@@ -129,11 +132,11 @@ export const getApiKeyStamper = (args: {
   credentialBundle: string;
   embeddedKey: string;
 }) => {
-  const privateKey = decryptBundle(args.credentialBundle, args.embeddedKey);
+  const privateKey = decryptCredentialBundle(args.credentialBundle, args.embeddedKey);
   const publicKey = uint8ArrayToHexString(getPublicKey(privateKey, true));
   return new ApiKeyStamper({
     apiPublicKey: publicKey,
-    apiPrivateKey: uint8ArrayToHexString(privateKey),
+    apiPrivateKey: privateKey, // Already a hex string from decryptCredentialBundle
   });
 };
 
@@ -175,22 +178,13 @@ export const generateIpfsSources = async (
 };
 
 // Define the bridge function in your Turnkey Service
-export async function setVehiclePermissions({
-  tokenId,
-  grantee,
-  permissions,
-  expiration,
-  source,
-}: SetVehiclePermissions): Promise<void> {
+export async function setVehiclePermissions(args: SetVehiclePermissions): Promise<void> {
   try {
-    // Call the kernelClient's setVehiclePermissions with the prepared payload
-    await kernelSigner.setVehiclePermissions({
-      tokenId,
-      grantee,
-      permissions,
-      expiration,
-      source,
-    });
+    const client = await kernelSigner.getActiveClient();
+    const environment = process.env.REACT_APP_ENVIRONMENT;
+
+    // Call the SDK's setVehiclePermissions with the client
+    await sdkSetVehiclePermissions(args, client, environment);
     console.log('Vehicle permissions set successfully');
   } catch (error) {
     console.error('Error setting vehicle permissions:', error);
@@ -198,22 +192,13 @@ export async function setVehiclePermissions({
   }
 }
 
-export async function setVehiclePermissionsBulk({
-  tokenIds,
-  grantee,
-  permissions,
-  expiration,
-  source,
-}: SetVehiclePermissionsBulk): Promise<void> {
+export async function setVehiclePermissionsBulk(args: SetVehiclePermissionsBulk): Promise<void> {
   try {
-    // Call the kernelClient's setVehiclePermissionsBulk with the prepared payload
-    await kernelSigner.setVehiclePermissionsBulk({
-      tokenIds,
-      grantee,
-      permissions,
-      expiration,
-      source,
-    });
+    const client = await kernelSigner.getActiveClient();
+    const environment = process.env.REACT_APP_ENVIRONMENT;
+
+    // Call the SDK's setVehiclePermissionsBulk with the client
+    await sdkSetVehiclePermissionsBulk(args, client, environment);
     console.log('Vehicle permissions set successfully');
   } catch (error) {
     console.error('Error setting vehicle permissions:', error);
@@ -221,22 +206,13 @@ export async function setVehiclePermissionsBulk({
   }
 }
 
-export async function setAccountPermissions({
-  grantee,
-  permissions,
-  expiration,
-  source,
-  templateId,
-}: SetAccountPermissions): Promise<void> {
+export async function setAccountPermissions(args: SetAccountPermissions): Promise<void> {
   try {
-    // Call the kernelSigner's setAccountPermissions with the prepared payload
-    await kernelSigner.setAccountPermissions({
-      grantee,
-      permissions,
-      expiration,
-      source,
-      templateId,
-    });
+    const client = await kernelSigner.getActiveClient();
+    const environment = process.env.REACT_APP_ENVIRONMENT;
+
+    // Call the SDK's setAccountPermissions with the client
+    await sdkSetAccountPermissions(args, client, environment);
     console.log('Account permissions set successfully');
   } catch (error) {
     console.error('Error setting account permissions:', error);

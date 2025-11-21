@@ -26,7 +26,7 @@ export function sendMessageToReferrer(data: object) {
 }
 
 export function backToThirdParty(
-  payload: Record<string, string | number | boolean>,
+  payload: Record<string, string | number | boolean | string[] | BigInt[]>,
   redirectUri: string,
   utm: string,
   handleEmbed?: () => void,
@@ -35,7 +35,12 @@ export function backToThirdParty(
     // Redirect with payload in query params
     const redirectUriWithUtm = getRedirectUriWithUtm(redirectUri, utm || '');
     Object.entries(payload).forEach(([key, value]) => {
-      redirectUriWithUtm.searchParams.set(key, String(value));
+      if (Array.isArray(value)) {
+        // Handle arrays by serializing to JSON string
+        redirectUriWithUtm.searchParams.set(key, JSON.stringify(value.map(v => String(v))));
+      } else {
+        redirectUriWithUtm.searchParams.set(key, String(value));
+      }
     });
 
     window.location.href = redirectUriWithUtm.toString();

@@ -51,7 +51,7 @@ export const useShareAccount = () => {
       source,
       templateId: accountConfig.permissionTemplateId
         ? BigInt(accountConfig.permissionTemplateId)
-        : undefined,
+        : BigInt(0),
     };
 
     await setAccountPermissions(accountPermissions);

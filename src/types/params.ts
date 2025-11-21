@@ -63,11 +63,13 @@ export type AllParams = BaseParams &
 
 export type VehicleManagerMandatoryParams = BaseParams &
   FetchedParams &
-  VehicleManagerParams;
+  VehicleManagerParams &
+  Partial<PermissionScopeParams>;
 
 export type AccountManagerMandatoryParams = BaseParams &
   FetchedParams &
-  AccountManagerParams;
+  AccountManagerParams &
+  Partial<PermissionScopeParams>;
 
 export type AdvancedTransactionMandatoryParams = BaseParams &
   FetchedParams &

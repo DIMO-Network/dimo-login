@@ -36,7 +36,7 @@ export const useUpdateAccountPermissions = () => {
       permissions: perms,
       expiration,
       source: sources,
-      templateId: permissionTemplateId ? BigInt(permissionTemplateId) : undefined,
+      templateId: permissionTemplateId ? BigInt(permissionTemplateId) : BigInt(0),
     };
 
     await setAccountPermissions(accountPermissions);
