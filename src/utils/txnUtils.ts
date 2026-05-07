@@ -15,3 +15,19 @@ export function sendTxnResponseToParent(
 
   onSuccess(transactionHash);
 }
+
+export function sendSignatureResponseToParent(
+  signature: `0x${string}`,
+  signer: `0x${string}`,
+  token: string,
+  onSuccess: (signature: `0x${string}`) => void,
+) {
+  sendMessageToReferrer({
+    eventType: 'messageResponse',
+    token,
+    signature,
+    signer,
+  });
+
+  onSuccess(signature);
+}

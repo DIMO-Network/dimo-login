@@ -140,6 +140,8 @@ export function handlePostAuthUIState({
     setUiState(UiStates.VEHICLE_MANAGER); //Move to vehicle manager
   } else if (entryState === UiStates.ADVANCED_TRANSACTION) {
     setUiState(UiStates.ADVANCED_TRANSACTION);
+  } else if (entryState === UiStates.SIGN_MESSAGE) {
+    setUiState(UiStates.SIGN_MESSAGE);
   }
 }
 

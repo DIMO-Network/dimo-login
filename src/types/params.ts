@@ -44,9 +44,19 @@ export interface TransactionParams {
 export interface AdvancedTransactionParams {
   transactionData: TransactionParams;
 }
+
+export interface SignMessageData {
+  message: string;
+  isHex: boolean;
+}
+
+export interface SignMessageParams {
+  messageData: SignMessageData;
+}
+
 export type AllParams = BaseParams &
   FetchedParams &
-  Partial<VehicleManagerParams & AdvancedTransactionParams>;
+  Partial<VehicleManagerParams & AdvancedTransactionParams & SignMessageParams>;
 
 export type VehicleManagerMandatoryParams = BaseParams &
   FetchedParams &
@@ -55,3 +65,5 @@ export type VehicleManagerMandatoryParams = BaseParams &
 export type AdvancedTransactionMandatoryParams = BaseParams &
   FetchedParams &
   AdvancedTransactionParams;
+
+export type SignMessageMandatoryParams = BaseParams & FetchedParams & SignMessageParams;

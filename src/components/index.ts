@@ -3,4 +3,5 @@ export * from './Auth';
 export * from './Connections';
 export * from './Icons';
 export * from './Shared';
+export * from './SignMessage';
 export * from './Vehicles';

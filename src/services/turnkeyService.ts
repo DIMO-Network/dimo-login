@@ -231,6 +231,28 @@ function parseValue(rawValue?: bigint): BigInt {
   return BigInt(rawValue);
 }
 
+export async function signArbitraryMessage(
+  message: string,
+  isHex: boolean,
+): Promise<{ signature: `0x${string}`; signer: `0x${string}` }> {
+  const signer = kernelSigner.kernelAddress;
+  if (!signer) {
+    throw new Error('Kernel address unavailable; user is not authenticated.');
+  }
+
+  let signature: `0x${string}`;
+  if (isHex) {
+    const client = await kernelSigner.getActiveClient();
+    signature = await client.signMessage({
+      message: { raw: message as `0x${string}` },
+    });
+  } else {
+    signature = await kernelSigner.signChallenge(message);
+  }
+
+  return { signature, signer };
+}
+
 export async function executeAdvancedTransaction(
   address: `0x${string}`,
   abi: any,

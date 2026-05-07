@@ -13,7 +13,53 @@ export const SuccessfulTransaction: React.FC = () => {
   const { componentData } = useUIManager();
   const { jwt } = useAuthContext();
 
-  if (!componentData.transactionHash) {
+  const isSignature = componentData?.flowKind === 'signature';
+
+  if (isSignature) {
+    if (!componentData.signature) {
+      return (
+        <ErrorContent
+          title="Missing Signature"
+          message="Message was not successfully signed."
+        />
+      );
+    }
+
+    const handleCopy = () => {
+      void navigator.clipboard.writeText(componentData.signature);
+    };
+
+    const handleBackToThirdParty = () => {
+      const payload = {
+        signature: componentData.signature,
+        signer: componentData.signer,
+        token: jwt,
+      };
+      backToThirdParty(payload, redirectUri, utm);
+    };
+
+    return (
+      <>
+        <Header title="Message Signed!" subtitle="" />
+        <div className="space-y-4 w-full">
+          {!isEmbed() && (
+            <div className="flex justify-center">
+              <PrimaryButton onClick={handleBackToThirdParty} width="w-64">
+                Back to {devLicenseAlias}
+              </PrimaryButton>
+            </div>
+          )}
+          <div className="flex justify-center">
+            <PrimaryButton onClick={handleCopy} width="w-64">
+              Copy Signature
+            </PrimaryButton>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (!componentData?.transactionHash) {
     return (
       <ErrorContent
         title="Missing Transaction Hash"

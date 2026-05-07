@@ -1,6 +1,11 @@
 import { useState } from 'react';
 
-import { AllParams, CloudEventAgreement, TransactionParams } from '../types';
+import {
+  AllParams,
+  CloudEventAgreement,
+  SignMessageData,
+  TransactionParams,
+} from '../types';
 import { useUIManager } from '../context/UIManagerContext';
 import { useOracles } from '../context/OraclesContext';
 import { UiStates } from '../enums';
@@ -71,6 +76,13 @@ export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
         transactionData: (typeof value === 'string'
           ? JSON.parse(decodeURIComponent(value))
           : value) as TransactionParams,
+      })),
+    messageData: (value: unknown) =>
+      setDevCredentialsState((prev) => ({
+        ...prev,
+        messageData: (typeof value === 'string'
+          ? JSON.parse(decodeURIComponent(value))
+          : value) as SignMessageData,
       })),
     cloudEvent: (value: unknown) =>
       setDevCredentialsState((prev) => ({
