@@ -70,6 +70,7 @@ const App = () => {
     params: {
       clientId,
       devLicenseAlias,
+      oemBrand,
       entryState: incomingEntryState,
       ...params,
     },
