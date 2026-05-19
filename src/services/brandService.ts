@@ -21,6 +21,8 @@ export interface OemBrand {
   logoUrl: string | null;
   /** Square icon — resolved HTTPS URL ready to drop into <img src>. */
   iconUrl: string | null;
+  /** 7-char hex (#RRGGBB) or null. Drives popup CTA + focus-ring color. */
+  primaryColor: string | null;
 }
 
 const PROD_BASE = 'https://console-api.dimo.org';
@@ -37,6 +39,7 @@ interface BrandResponse {
   iconCid?: string | null;
   logoUrl?: string | null;
   iconUrl?: string | null;
+  primaryColor?: string | null;
 }
 
 export async function fetchOemBrand(clientId: string): Promise<OemBrand | null> {
@@ -51,6 +54,7 @@ export async function fetchOemBrand(clientId: string): Promise<OemBrand | null> 
       name: body.name,
       logoUrl: body.logoUrl ?? null,
       iconUrl: body.iconUrl ?? null,
+      primaryColor: body.primaryColor ?? null,
     };
   } catch {
     return null;
