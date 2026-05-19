@@ -25,6 +25,8 @@ export interface OemBrand {
   primaryColor: string | null;
 }
 
+const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
+
 const PROD_BASE = 'https://console-api.dimo.org';
 const DEV_BASE = 'https://console-api.dev.dimo.org';
 
@@ -54,7 +56,10 @@ export async function fetchOemBrand(clientId: string): Promise<OemBrand | null> 
       name: body.name,
       logoUrl: body.logoUrl ?? null,
       iconUrl: body.iconUrl ?? null,
-      primaryColor: body.primaryColor ?? null,
+      primaryColor:
+        body.primaryColor && HEX_COLOR_RE.test(body.primaryColor)
+          ? body.primaryColor
+          : null,
     };
   } catch {
     return null;
