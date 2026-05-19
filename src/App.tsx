@@ -32,6 +32,7 @@ import { Card } from './components/Shared/Card';
 import { useErrorHandler } from './hooks/useErrorHandler';
 import { PasskeyLogin } from './components/Auth/PasskeyLogin';
 import { PasskeyLoginFail } from './components/Auth/PasskeyLoginFail';
+import { readableTextOn } from './utils/colorContrast';
 
 import './App.css';
 
@@ -125,8 +126,24 @@ const App = () => {
     [UiStates.LOGOUT]: <Logout />,
   };
 
+  // Expose the OEM brand color (and a readable text color computed from it)
+  // as CSS custom properties on the popup root. PrimaryButton + focus-ring
+  // styles read from these vars and fall back to DIMO defaults when null.
+  // Setting the vars in one place avoids threading brand props through every
+  // component that needs to recolor.
+  const brandColor = oemBrand?.primaryColor ?? null;
+  const brandStyle = brandColor
+    ? ({
+        ['--popup-brand-color' as string]: brandColor,
+        ['--popup-brand-text' as string]: readableTextOn(brandColor),
+      } as React.CSSProperties)
+    : undefined;
+
   return (
-    <div className="flex h-screen pt-2 items-center justify-center bg-white md:bg-[#F7F7F7]">
+    <div
+      className="flex h-screen pt-2 items-center justify-center bg-white md:bg-[#F7F7F7]"
+      style={brandStyle}
+    >
       <Card
         width="w-full max-w-[600px]"
         height="min-h-[308px]"
