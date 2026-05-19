@@ -44,11 +44,18 @@ interface BrandResponse {
   primaryColor?: string | null;
 }
 
+const FETCH_TIMEOUT_MS = 3000;
+
 export async function fetchOemBrand(clientId: string): Promise<OemBrand | null> {
   if (!clientId) return null;
   const url = `${consoleApiBase()}/api/brand?clientId=${encodeURIComponent(clientId)}`;
+  // Bounded so a slow console-api can't stall the popup init: the auth flow
+  // joins the brand fetch with the identity fetch in a Promise.all, and any
+  // hang here delays every login by the network's default timeout.
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
   try {
-    const r = await fetch(url);
+    const r = await fetch(url, { signal: ctrl.signal });
     if (!r.ok) return null;
     const body = (await r.json()) as BrandResponse;
     if (!body.name) return null;
@@ -63,5 +70,7 @@ export async function fetchOemBrand(clientId: string): Promise<OemBrand | null> 
     };
   } catch {
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
