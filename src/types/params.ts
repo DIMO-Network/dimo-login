@@ -1,4 +1,5 @@
 import { UiStates } from '../enums';
+import { OemBrand } from '../services/brandService';
 import { CloudEventAgreement } from './permissions';
 
 export interface BaseParams {
@@ -19,6 +20,13 @@ export interface BaseParams {
 export interface FetchedParams {
   devLicenseAlias: string;
   invalidCredentials: boolean;
+  /**
+   * OEM brand record fetched from console-api keyed on `clientId`. Drives the
+   * Header logo + title + document.title. `null` while still loading or if
+   * no brand is configured for this license; the UI falls back to default
+   * DIMO chrome.
+   */
+  oemBrand: OemBrand | null;
 }
 
 export interface VehicleManagerParams {

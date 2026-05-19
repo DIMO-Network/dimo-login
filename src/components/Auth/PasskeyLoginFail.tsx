@@ -9,7 +9,7 @@ import { clearLoggedEmail } from '../../services';
 import { useAuthContext } from '../../context/AuthContext';
 
 export const PasskeyLoginFail = ({ email }: { email: string }) => {
-  const { devLicenseAlias, clientId } = useDevCredentials();
+  const { devLicenseAlias, clientId, oemBrand } = useDevCredentials();
   const { altTitle, setUiState, setError } = useUIManager();
   const { resetUser } = useAuthContext();
   const appUrl = getAppUrl();
@@ -19,6 +19,7 @@ export const PasskeyLoginFail = ({ email }: { email: string }) => {
       <Header
         title={getSignInTitle(devLicenseAlias, {
           altTitle: Boolean(altTitle),
+          brandName: oemBrand?.name ?? null,
         })}
         subtitle={appUrl.hostname}
         link={`${appUrl.protocol}//${appUrl.host}`}

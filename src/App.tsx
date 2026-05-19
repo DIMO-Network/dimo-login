@@ -35,17 +35,34 @@ import { PasskeyLoginFail } from './components/Auth/PasskeyLoginFail';
 
 import './App.css';
 
+const DEFAULT_DOCUMENT_TITLE = 'Login with DIMO';
+
 const App = () => {
   const { setJwt, setUser } = useAuthContext();
   const {
     clientId,
     devLicenseAlias,
+    oemBrand,
     entryState: incomingEntryState,
     loadingState: { isLoading, message: loadingMessage },
     ...params
   } = useDevCredentials();
   const { uiState, setUiState, entryState } = useUIManager();
   const [email, setEmail] = useState('');
+
+  // Bind document.title to the OEM brand when one is loaded. Restores the
+  // default DIMO title if the popup unmounts (covers in-flight branding
+  // changes without leaking previous OEM names across mounts).
+  useEffect(() => {
+    if (oemBrand?.name) {
+      document.title = `Sign in with ${oemBrand.name}`;
+    } else {
+      document.title = DEFAULT_DOCUMENT_TITLE;
+    }
+    return () => {
+      document.title = DEFAULT_DOCUMENT_TITLE;
+    };
+  }, [oemBrand?.name]);
 
   const { error } = useErrorHandler({
     customValidations: getValidationsForState(entryState || ''),
