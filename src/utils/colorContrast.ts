@@ -14,5 +14,6 @@ export function readableTextOn(hex: string | null | undefined): '#ffffff' | '#00
     return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
   };
   const luma = 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b);
-  return luma > 0.5 ? '#000000' : '#ffffff';
+  // Crossover where contrast with white equals contrast with black: sqrt(1.05 * 0.05) - 0.05
+  return luma > 0.179 ? '#000000' : '#ffffff';
 }

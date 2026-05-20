@@ -46,6 +46,15 @@ interface BrandResponse {
 
 const FETCH_TIMEOUT_MS = 3000;
 
+function safeHttpsUrl(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  try {
+    return new URL(raw).protocol === 'https:' ? raw : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchOemBrand(clientId: string): Promise<OemBrand | null> {
   if (!clientId) return null;
   const url = `${consoleApiBase()}/api/brand?clientId=${encodeURIComponent(clientId)}`;
@@ -61,8 +70,8 @@ export async function fetchOemBrand(clientId: string): Promise<OemBrand | null> 
     if (!body.name) return null;
     return {
       name: body.name,
-      logoUrl: body.logoUrl ?? null,
-      iconUrl: body.iconUrl ?? null,
+      logoUrl: safeHttpsUrl(body.logoUrl),
+      iconUrl: safeHttpsUrl(body.iconUrl),
       primaryColor:
         body.primaryColor && HEX_COLOR_RE.test(body.primaryColor)
           ? body.primaryColor
