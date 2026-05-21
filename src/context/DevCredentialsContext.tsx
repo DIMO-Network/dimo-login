@@ -25,6 +25,7 @@ import {
   getLicenseAlias,
   isValidDeveloperLicense,
 } from '../services/identityService';
+import { fetchOemBrand } from '../services/brandService';
 import { setEmailGranted } from '../services/storageService';
 import { useParamsHandler } from '../hooks';
 import { getDefaultExpirationDate } from '../utils/dateUtils';
@@ -41,6 +42,7 @@ const DEFAULT_CONTEXT: AllParams = {
   apiKey: 'api key',
   invalidCredentials: true,
   devLicenseAlias: '',
+  oemBrand: null,
   entryState: UiStates.EMAIL_INPUT,
   altTitle: false,
   forceEmail: false,
@@ -203,12 +205,19 @@ export const DevCredentialsProvider = ({
 
     if (!clientId) return;
 
-    const licenseData = await getDeveloperLicense(clientId);
+    // Brand fetch runs in parallel with identity-api lookups so the OEM logo
+    // can paint as soon as both the license check and brand-record fetch
+    // finish — no extra round-trip latency added to the existing flow.
+    const [licenseData, brand] = await Promise.all([
+      getDeveloperLicense(clientId),
+      fetchOemBrand(clientId),
+    ]);
     const alias = await getLicenseAlias(licenseData, clientId);
     const isValid = await isValidDeveloperLicense(licenseData, redirectUri);
 
     applyDevCredentialsConfig({
       devLicenseAlias: alias,
+      oemBrand: brand,
       invalidCredentials: !isValid,
       waitingForDevLicense: false,
     });

@@ -32,14 +32,18 @@ import { Card } from './components/Shared/Card';
 import { useErrorHandler } from './hooks/useErrorHandler';
 import { PasskeyLogin } from './components/Auth/PasskeyLogin';
 import { PasskeyLoginFail } from './components/Auth/PasskeyLoginFail';
+import { readableTextOn } from './utils/colorContrast';
 
 import './App.css';
+
+const DEFAULT_DOCUMENT_TITLE = 'Login with DIMO';
 
 const App = () => {
   const { setJwt, setUser } = useAuthContext();
   const {
     clientId,
     devLicenseAlias,
+    oemBrand,
     entryState: incomingEntryState,
     loadingState: { isLoading, message: loadingMessage },
     ...params
@@ -47,11 +51,26 @@ const App = () => {
   const { uiState, setUiState, entryState } = useUIManager();
   const [email, setEmail] = useState('');
 
+  // Bind document.title to the OEM brand when one is loaded. Restores the
+  // default DIMO title if the popup unmounts (covers in-flight branding
+  // changes without leaking previous OEM names across mounts).
+  useEffect(() => {
+    if (oemBrand?.name) {
+      document.title = `Sign in with ${oemBrand.name}`;
+    } else {
+      document.title = DEFAULT_DOCUMENT_TITLE;
+    }
+    return () => {
+      document.title = DEFAULT_DOCUMENT_TITLE;
+    };
+  }, [oemBrand?.name]);
+
   const { error } = useErrorHandler({
     customValidations: getValidationsForState(entryState || ''),
     params: {
       clientId,
       devLicenseAlias,
+      oemBrand,
       entryState: incomingEntryState,
       ...params,
     },
@@ -108,8 +127,24 @@ const App = () => {
     [UiStates.LOGOUT]: <Logout />,
   };
 
+  // Expose the OEM brand color (and a readable text color computed from it)
+  // as CSS custom properties on the popup root. PrimaryButton + focus-ring
+  // styles read from these vars and fall back to DIMO defaults when null.
+  // Setting the vars in one place avoids threading brand props through every
+  // component that needs to recolor.
+  const brandColor = oemBrand?.primaryColor ?? null;
+  const brandStyle = brandColor
+    ? ({
+        ['--popup-brand-color' as string]: brandColor,
+        ['--popup-brand-text' as string]: readableTextOn(brandColor),
+      } as React.CSSProperties)
+    : undefined;
+
   return (
-    <div className="flex h-screen pt-2 items-center justify-center bg-white md:bg-[#F7F7F7]">
+    <div
+      className="flex h-screen pt-2 items-center justify-center bg-white md:bg-[#F7F7F7]"
+      style={brandStyle}
+    >
       <Card
         width="w-full max-w-[600px]"
         height="min-h-[308px]"

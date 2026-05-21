@@ -30,7 +30,7 @@ interface EmailInputProps {
 }
 
 export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
-  const { clientId, devLicenseAlias } = useDevCredentials();
+  const { clientId, devLicenseAlias, oemBrand } = useDevCredentials();
   const { error, setError, altTitle, setLoadingState } = useUIManager();
   const [email, setEmail] = useState('');
   const [emailPermissionGranted, setEmailPermissionGranted] = useState(false);
@@ -106,6 +106,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       <Header
         title={getSignInTitle(devLicenseAlias, {
           altTitle: Boolean(altTitle),
+          brandName: oemBrand?.name ?? null,
         })}
         subtitle={appUrl.hostname}
         link={`${appUrl.protocol}//${appUrl.host}`}
