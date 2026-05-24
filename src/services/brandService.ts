@@ -55,9 +55,11 @@ function safeHttpsUrl(raw: string | null | undefined): string | null {
   }
 }
 
-export async function fetchOemBrand(clientId: string): Promise<OemBrand | null> {
+export async function fetchOemBrand(clientId: string, brandName?: string | null): Promise<OemBrand | null> {
   if (!clientId) return null;
-  const url = `${consoleApiBase()}/api/brand?clientId=${encodeURIComponent(clientId)}`;
+  const params = new URLSearchParams({ clientId });
+  if (brandName) params.set('brandName', brandName);
+  const url = `${consoleApiBase()}/api/brand?${params.toString()}`;
   // Bounded so a slow console-api can't stall the popup init: the auth flow
   // joins the brand fetch with the identity fetch in a Promise.all, and any
   // hang here delays every login by the network's default timeout.
