@@ -208,9 +208,10 @@ export const DevCredentialsProvider = ({
     // Brand fetch runs in parallel with identity-api lookups so the OEM logo
     // can paint as soon as both the license check and brand-record fetch
     // finish — no extra round-trip latency added to the existing flow.
+    const brandName = new URLSearchParams(window.location.search).get('brandName');
     const [licenseData, brand] = await Promise.all([
       getDeveloperLicense(clientId),
-      fetchOemBrand(clientId),
+      fetchOemBrand(clientId, brandName),
     ]);
     const alias = await getLicenseAlias(licenseData, clientId);
     const isValid = await isValidDeveloperLicense(licenseData, redirectUri);
