@@ -25,7 +25,7 @@ import {
   getLicenseAlias,
   isValidDeveloperLicense,
 } from '../services/identityService';
-import { fetchOemBrand } from '../services/brandService';
+import { fetchOemBrand, readCachedBrand } from '../services/brandService';
 import { setEmailGranted } from '../services/storageService';
 import { useParamsHandler } from '../hooks';
 import { getDefaultExpirationDate } from '../utils/dateUtils';
@@ -204,6 +204,15 @@ export const DevCredentialsProvider = ({
     });
 
     if (!clientId) return;
+
+    // Paint the last-known OEM logo immediately (from localStorage) so the
+    // "Waiting for credentials…" loading screen is branded instead of flashing
+    // the default DIMO mark while the brand fetch below is in flight. The live
+    // fetch still runs and overwrites this with the canonical record.
+    const cachedBrand = readCachedBrand(clientId);
+    if (cachedBrand) {
+      applyDevCredentialsConfig({ oemBrand: cachedBrand });
+    }
 
     // Brand fetch runs in parallel with identity-api lookups so the OEM logo
     // can paint as soon as both the license check and brand-record fetch

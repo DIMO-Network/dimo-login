@@ -46,6 +46,47 @@ interface BrandResponse {
 
 const FETCH_TIMEOUT_MS = 3000;
 
+// The brand is keyed on the public `clientId`, so caching it client-side is
+// safe (no secrets) and lets the popup paint the OEM logo on the very first
+// frame of a return visit — eliminating the flash of the default DIMO mark
+// while `fetchOemBrand` is in flight during the "Waiting for credentials…"
+// loading window. The live fetch always runs and overwrites the cache, so
+// staleness is bounded to a single initial paint.
+const CACHE_PREFIX = 'dimo:oemBrand:';
+
+function cacheKey(clientId: string): string {
+  return CACHE_PREFIX + clientId.toLowerCase();
+}
+
+/** Synchronous read of the last-known brand for `clientId`, or null. */
+export function readCachedBrand(clientId: string): OemBrand | null {
+  if (!clientId) return null;
+  try {
+    const raw = localStorage.getItem(cacheKey(clientId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as OemBrand;
+    return parsed && typeof parsed.name === 'string' ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedBrand(clientId: string, brand: OemBrand): void {
+  try {
+    localStorage.setItem(cacheKey(clientId), JSON.stringify(brand));
+  } catch {
+    // private mode / quota — caching is best-effort, never block on it.
+  }
+}
+
+function clearCachedBrand(clientId: string): void {
+  try {
+    localStorage.removeItem(cacheKey(clientId));
+  } catch {
+    // ignore
+  }
+}
+
 function safeHttpsUrl(raw: string | null | undefined): string | null {
   if (!raw) return null;
   try {
@@ -67,10 +108,19 @@ export async function fetchOemBrand(clientId: string, brandName?: string | null)
   const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
   try {
     const r = await fetch(url, { signal: ctrl.signal });
-    if (!r.ok) return null;
+    if (!r.ok) {
+      // A confirmed 404 means the brand was removed — drop the stale cache so
+      // the logo reverts to DIMO. Other failures (5xx) are transient: keep the
+      // last-known-good cache so a flaky console-api doesn't unbrand the popup.
+      if (r.status === 404) clearCachedBrand(clientId);
+      return null;
+    }
     const body = (await r.json()) as BrandResponse;
-    if (!body.name) return null;
-    return {
+    if (!body.name) {
+      clearCachedBrand(clientId);
+      return null;
+    }
+    const brand: OemBrand = {
       name: body.name,
       logoUrl: safeHttpsUrl(body.logoUrl),
       iconUrl: safeHttpsUrl(body.iconUrl),
@@ -79,6 +129,8 @@ export async function fetchOemBrand(clientId: string, brandName?: string | null)
           ? body.primaryColor
           : null,
     };
+    writeCachedBrand(clientId, brand);
+    return brand;
   } catch {
     return null;
   } finally {
