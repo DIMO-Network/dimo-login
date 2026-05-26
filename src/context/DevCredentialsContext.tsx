@@ -32,6 +32,7 @@ import { getDefaultExpirationDate } from '../utils/dateUtils';
 import { sendMessageToReferrer } from '../utils/messageHandler';
 import { isStandalone } from '../utils/isStandalone';
 import { getConfigurationById } from '../services/configurationService';
+import { filterMessageParams } from '../utils/messageParams';
 
 const DEFAULT_CONTEXT: AllParams = {
   clientId: null,
@@ -152,8 +153,12 @@ export const DevCredentialsProvider = ({
       customParams.waitingForParams = false;
     }
 
+    // Allowlist the inbound payload: a postMessage can come from any window, so
+    // only keys the app legitimately acts on are written to state. Internal
+    // control flags (waitingForDevLicense, invalidCredentials, oemBrand, …) and
+    // unknown keys are dropped. customParams is app-computed, not from the wire.
     applyDevCredentialsConfig({
-      ...sourceParams,
+      ...filterMessageParams(sourceParams),
       ...customParams,
     });
   };
