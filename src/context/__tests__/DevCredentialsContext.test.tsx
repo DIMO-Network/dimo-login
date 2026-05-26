@@ -1,7 +1,7 @@
 import React from 'react';
-import { render, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 
-import { DevCredentialsProvider } from '../DevCredentialsContext';
+import { DevCredentialsProvider, useDevCredentials } from '../DevCredentialsContext';
 import { UIManagerProvider } from '../UIManagerContext';
 import { GlobalOraclesProvider } from '../OraclesContext';
 import { fetchOemBrand } from '../../services/brandService';
@@ -36,12 +36,21 @@ jest.mock('../../hooks', () => ({
 const CLIENT_ID = '0xb92d74B468B4047289AEa7c9B953066E39768C16';
 const fetchOemBrandMock = fetchOemBrand as jest.Mock;
 
-const renderProvider = () =>
+// Surfaces a single state key so tests can assert what did (and didn't) land in
+// devCredentialsState after a postMessage.
+const StateProbe = ({ probeKey }: { probeKey: string }) => {
+  const value = useDevCredentials<Record<string, unknown>>();
+  return (
+    <span data-testid="probe">{JSON.stringify(value[probeKey] ?? null)}</span>
+  );
+};
+
+const renderProvider = (probeKey = 'clientId') =>
   render(
     <UIManagerProvider>
       <GlobalOraclesProvider>
         <DevCredentialsProvider>
-          <div data-testid="child" />
+          <StateProbe probeKey={probeKey} />
         </DevCredentialsProvider>
       </GlobalOraclesProvider>
     </UIManagerProvider>,
@@ -102,5 +111,14 @@ describe('DevCredentialsContext brand forwarding', () => {
         'SomeOtherLicenseBrand',
       ),
     );
+  });
+
+  it('popup: drops a non-allowlisted key from the AUTH_INIT payload', async () => {
+    renderProvider('injectedKey');
+    await dispatchAuthInit({ clientId: CLIENT_ID, injectedKey: 'pwn' });
+
+    // wait until the message has been processed (clientId drives the brand fetch)
+    await waitFor(() => expect(fetchOemBrandMock).toHaveBeenCalled());
+    expect(screen.getByTestId('probe').textContent).toBe('null');
   });
 });
