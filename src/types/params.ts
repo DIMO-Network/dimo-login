@@ -13,6 +13,14 @@ export interface BaseParams {
   altTitle?: boolean;
   forceEmail?: boolean;
   configCID?: string;
+  /**
+   * Brand the relying party selected, forwarded by the SDK — a URL query param
+   * in redirect mode, a field on the AUTH_INIT message in popup mode. Keys the
+   * console-api brand lookup (`clientId + brandName`) to a specific OEM instead
+   * of the license default. `clientId`-scoped server-side, so a site can only
+   * select among brands it owns.
+   */
+  brandName?: string | null;
   newVehicleSectionDescription: string;
   shareVehiclesSectionDescription: string;
 }

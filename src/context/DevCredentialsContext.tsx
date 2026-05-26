@@ -78,7 +78,7 @@ export const DevCredentialsProvider = ({
     useParamsHandler(DEFAULT_CONTEXT);
   const [loadingState, setLoadingState] = useState(DEFAULT_LOADING_STATE);
 
-  const { clientId, redirectUri, waitingForParams, waitingForDevLicense } =
+  const { clientId, redirectUri, waitingForParams, waitingForDevLicense, brandName } =
     devCredentialsState;
 
   const parseStateFromUrl = () => {
@@ -217,7 +217,12 @@ export const DevCredentialsProvider = ({
     // Brand fetch runs in parallel with identity-api lookups so the OEM logo
     // can paint as soon as both the license check and brand-record fetch
     // finish — no extra round-trip latency added to the existing flow.
-    const brandName = new URLSearchParams(window.location.search).get('brandName');
+    //
+    // brandName comes from state, not the URL: popup mode opens at the bare
+    // base URL (no query string), so the SDK delivers brandName via the
+    // AUTH_INIT postMessage. State is the one place both transports converge —
+    // applyDevCredentialsConfig deposits it there in the same batch that sets
+    // clientId. Reading the URL here would silently drop the popup case.
     const [licenseData, brand] = await Promise.all([
       getDeveloperLicense(clientId),
       fetchOemBrand(clientId, brandName),
