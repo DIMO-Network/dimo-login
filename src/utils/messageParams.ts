@@ -14,10 +14,21 @@
  * `types/params.ts`. Internal/computed fields (`waitingForParams`,
  * `waitingForDevLicense`, `invalidCredentials`, `devLicenseAlias`, `oemBrand`)
  * are deliberately excluded — they are never accepted from the wire.
+ *
+ * Verified against the login-with-dimo SDK (sdk/src/utils/eventHandler.ts):
+ *   AUTH_INIT message → clientId, redirectUri, apiKey, entryState, forceEmail,
+ *                       brandName, altTitle
+ *   action message    → DimoActionPayload: permissionTemplateId, vehicles,
+ *                       vehicleMakes, onboarding, expirationDate, utm,
+ *                       powertrainTypes, permissions, transactionData, messageData
+ * Every SDK-sent key is covered below. The remaining keys (configCID, region,
+ * cloudEvent, vehicleTokenIds, *SectionDescription) are app-side params from the
+ * config-CID/configurationId flows or special-setter aliases (vehicles →
+ * vehicleTokenIds), not sent over postMessage but kept as legitimate state.
  */
 
 export const ALLOWED_MESSAGE_PARAM_KEYS = new Set<string>([
-  // Identity / routing
+  // Identity / routing  (SDK AUTH_INIT: clientId, redirectUri, apiKey, entryState)
   'clientId',
   'redirectUri',
   'apiKey',
@@ -25,12 +36,12 @@ export const ALLOWED_MESSAGE_PARAM_KEYS = new Set<string>([
   'configCID',
   'entryState',
   'brandName',
-  // UI behavior
+  // UI behavior  (SDK AUTH_INIT: altTitle, forceEmail)
   'altTitle',
   'forceEmail',
   'newVehicleSectionDescription',
   'shareVehiclesSectionDescription',
-  // Vehicle sharing flow
+  // Vehicle sharing flow  (SDK action payload)
   'permissionTemplateId',
   'permissions',
   'vehicles',
@@ -41,7 +52,7 @@ export const ALLOWED_MESSAGE_PARAM_KEYS = new Set<string>([
   'region',
   'onboarding',
   'cloudEvent',
-  // Advanced transaction / sign message flows
+  // Advanced transaction / sign message flows  (SDK action payload)
   'transactionData',
   'messageData',
 ]);
