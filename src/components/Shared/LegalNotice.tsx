@@ -1,6 +1,22 @@
 import React from 'react';
 
-export const LegalNotice: React.FC = () => {
+const DEFAULT_TOS_URL = 'https://dimo.org/legal/terms-of-use';
+
+const safeHttpsUrl = (url?: string): string => {
+  if (!url) return DEFAULT_TOS_URL;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:' ? url : DEFAULT_TOS_URL;
+  } catch {
+    return DEFAULT_TOS_URL;
+  }
+};
+
+interface LegalNoticeProps {
+  tosUrl?: string;
+}
+
+export const LegalNotice: React.FC<LegalNoticeProps> = ({ tosUrl }) => {
   const renderLink = (href: string, text: string) => (
     <a href={href} className="underline whitespace-nowrap">
       {text}
@@ -12,7 +28,7 @@ export const LegalNotice: React.FC = () => {
       By continuing you agree to our&nbsp;
       {renderLink('https://dimo.org/legal/privacy-policy', 'Privacy Policy')}
       &nbsp;and&nbsp;
-      {renderLink('https://dimo.org/legal/terms-of-use', 'Terms of Service')}
+      {renderLink(safeHttpsUrl(tosUrl), 'Terms of Service')}
     </p>
   );
 };

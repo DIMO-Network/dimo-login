@@ -36,9 +36,10 @@ export const ALLOWED_MESSAGE_PARAM_KEYS = new Set<string>([
   'configCID',
   'entryState',
   'brandName',
-  // UI behavior  (SDK AUTH_INIT: altTitle, forceEmail)
+  // UI behavior  (SDK AUTH_INIT: altTitle, forceEmail, tosUrl)
   'altTitle',
   'forceEmail',
+  'tosUrl',
   'newVehicleSectionDescription',
   'shareVehiclesSectionDescription',
   // Vehicle sharing flow  (SDK action payload)

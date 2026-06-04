@@ -30,7 +30,7 @@ interface EmailInputProps {
 }
 
 export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
-  const { clientId, devLicenseAlias, oemBrand } = useDevCredentials();
+  const { clientId, devLicenseAlias, oemBrand, tosUrl } = useDevCredentials();
   const { error, setError, altTitle, setLoadingState } = useUIManager();
   const [email, setEmail] = useState('');
   const [emailPermissionGranted, setEmailPermissionGranted] = useState(false);
@@ -134,7 +134,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
             onSwitchAccount={handleSwitchAccount}
           />
         )}
-        <LegalNotice />
+        <LegalNotice tosUrl={tosUrl} />
       </div>
     </UIManagerLoaderWrapper>
   );
