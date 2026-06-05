@@ -15,7 +15,8 @@ import { captureException } from '@sentry/react';
 import { isInvalidSessionError } from '../../utils/authUtils';
 
 export const SelectVehicles: React.FC = () => {
-  const { devLicenseAlias } = useDevCredentials<VehicleManagerMandatoryParams>();
+  const { devLicenseAlias, tosUrl, oemBrand } = useDevCredentials<VehicleManagerMandatoryParams>();
+  const brandName = oemBrand?.name || devLicenseAlias || undefined;
   const { setLoadingState, setError, isLoading } = useUIManager();
   const {
     fetchVehicles: _fetchVehicles,
@@ -89,7 +90,7 @@ export const SelectVehicles: React.FC = () => {
     <div className="flex flex-col w-full items-center justify-center box-border overflow-y-auto">
       {noVehicles && !isLoading && <EmptyState />}
 
-      {allShared && <AllVehiclesShared devLicenseAlias={devLicenseAlias} />}
+      {allShared && <AllVehiclesShared devLicenseAlias={oemBrand?.name || devLicenseAlias} />}
 
       <UIManagerLoaderWrapper>
         <>
@@ -121,6 +122,8 @@ export const SelectVehicles: React.FC = () => {
             onCancel={onCancel}
             onShare={handleShare}
             selectedVehiclesCount={selectedVehicles.length}
+            tosUrl={tosUrl}
+            brandName={brandName}
           />
         </>
       </UIManagerLoaderWrapper>

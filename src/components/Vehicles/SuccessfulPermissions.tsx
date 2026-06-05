@@ -12,7 +12,8 @@ import VehicleCard from './VehicleCard';
 import { isEmbed } from '../../utils/isEmbed';
 
 export const SuccessfulPermissions: React.FC = () => {
-  const { redirectUri, utm, devLicenseAlias, clientId } = useDevCredentials();
+  const { redirectUri, utm, devLicenseAlias, clientId, oemBrand } = useDevCredentials();
+  const displayName = oemBrand?.name || devLicenseAlias;
   const { jwt, user } = useAuthContext();
   const {
     componentData: { vehicles, action },
@@ -57,7 +58,7 @@ export const SuccessfulPermissions: React.FC = () => {
         {!isEmbed() && (
           <div className="flex justify-center w-full">
             <PrimaryButton onClick={handleBackToThirdParty} width="sm:w-64 w-full">
-              Back to {devLicenseAlias}
+              Back to {displayName}
             </PrimaryButton>
           </div>
         )}

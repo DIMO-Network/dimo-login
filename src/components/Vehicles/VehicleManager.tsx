@@ -14,12 +14,14 @@ export const VehicleManager: React.FC = () => {
   const {
     clientId,
     devLicenseAlias,
+    oemBrand,
     permissionTemplateId,
     permissions,
     cloudEvent,
     expirationDate,
     region,
   } = useDevCredentials<VehicleManagerMandatoryParams>();
+  const displayName = oemBrand?.name || devLicenseAlias;
   const { setComponentData, error, setError } = useUIManager();
 
   //Data from SDK
@@ -36,7 +38,7 @@ export const VehicleManager: React.FC = () => {
         setTemplateDescription(
           getTemplateDescription({
             email: user.email,
-            devLicenseAlias,
+            devLicenseAlias: displayName,
             permissions,
             permissionTemplateId,
             fileTags: cloudEvent?.tags,
@@ -126,7 +128,7 @@ export const VehicleManager: React.FC = () => {
   return (
     <>
       <Header
-        title={`${devLicenseAlias} wants to use DIMO to connect to your vehicles data`}
+        title={`${displayName} wants to use DIMO to connect to your vehicles data`}
         subtitle={appUrl.hostname}
         link={`${appUrl.protocol}//${appUrl.host}`}
       />

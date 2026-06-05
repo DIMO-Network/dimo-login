@@ -9,7 +9,8 @@ import { useDevCredentials } from '../../context/DevCredentialsContext';
 
 export const ConnectDevice: FC = () => {
   const { componentData, goBack } = useUIManager(); // Access the manage function from the context
-  const { devLicenseAlias } = useDevCredentials();
+  const { devLicenseAlias, oemBrand } = useDevCredentials();
+  const displayName = oemBrand?.name || devLicenseAlias;
   const appUrl = getAppUrl();
 
   return (
@@ -22,7 +23,7 @@ export const ConnectDevice: FC = () => {
 
       {/* Text Wrapper - Restrict Width */}
       <div className="max-w-[480px] text-gray-600 text-sm text-center">
-        A physical adapter is required to connect this car to {devLicenseAlias}. Device
+        A physical adapter is required to connect this car to {displayName}. Device
         connection is currently only supported inside the DIMO Mobile app.
       </div>
 

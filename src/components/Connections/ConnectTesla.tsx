@@ -37,7 +37,8 @@ export const ConnectTesla: FC = () => {
   const { componentData, setUiState, setLoadingState, setComponentData } = useUIManager();
   const [step, setStep] = useState<TeslaOnboardingStep>(TeslaOnboardingStep.PERMISSIONS);
   const [vehicleToAdd, setVehicleToAdd] = useState<TeslaVehicle>();
-  const { devLicenseAlias, clientId, redirectUri } = useDevCredentials();
+  const { devLicenseAlias, clientId, redirectUri, oemBrand } = useDevCredentials();
+  const displayName = oemBrand?.name || devLicenseAlias;
   const { jwt } = useAuthContext();
   const appUrl = getAppUrl();
 
@@ -274,7 +275,7 @@ export const ConnectTesla: FC = () => {
         link={`${appUrl.protocol}//${appUrl.host}`}
       />
 
-      {renderStep(step, devLicenseAlias, vehicleToAdd)}
+      {renderStep(step, displayName, vehicleToAdd)}
 
       <div className="flex flex-col w-full mt-3">
         <PrimaryButton onClick={handleNextStep} width="w-full py-3">

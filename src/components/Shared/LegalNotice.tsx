@@ -14,18 +14,21 @@ const safeHttpsUrl = (url?: string): string => {
 
 interface LegalNoticeProps {
   tosUrl?: string;
+  brandName?: string;
 }
 
-export const LegalNotice: React.FC<LegalNoticeProps> = ({ tosUrl }) => {
+export const LegalNotice: React.FC<LegalNoticeProps> = ({ tosUrl, brandName }) => {
   const renderLink = (href: string, text: string) => (
     <a href={href} className="underline whitespace-nowrap">
       {text}
     </a>
   );
 
+  const owner = brandName ? `${brandName}'s` : 'our';
+
   return (
     <p className="flex flex-wrap justify-center text-center text-xs text-gray-500">
-      By continuing you agree to our&nbsp;
+      By continuing you agree to {owner}&nbsp;
       {renderLink('https://dimo.org/legal/privacy-policy', 'Privacy Policy')}
       &nbsp;and&nbsp;
       {renderLink(safeHttpsUrl(tosUrl), 'Terms of Service')}
