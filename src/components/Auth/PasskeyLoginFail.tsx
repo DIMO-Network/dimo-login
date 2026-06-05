@@ -9,7 +9,7 @@ import { clearLoggedEmail } from '../../services';
 import { useAuthContext } from '../../context/AuthContext';
 
 export const PasskeyLoginFail = ({ email }: { email: string }) => {
-  const { devLicenseAlias, clientId, oemBrand, tosUrl } = useDevCredentials();
+  const { devLicenseAlias, clientId, oemBrand, tosUrl, privacyPolicyUrl } = useDevCredentials();
   const brandName = oemBrand?.name || devLicenseAlias || undefined;
   const { altTitle, setUiState, setError } = useUIManager();
   const { resetUser } = useAuthContext();
@@ -59,7 +59,7 @@ export const PasskeyLoginFail = ({ email }: { email: string }) => {
           Login to a different account
         </SecondaryButton>
       </div>
-      <LegalNotice tosUrl={tosUrl} brandName={brandName} />
+      <LegalNotice tosUrl={tosUrl} privacyPolicyUrl={privacyPolicyUrl} brandName={brandName} />
     </>
   );
 };

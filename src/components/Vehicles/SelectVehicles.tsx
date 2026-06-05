@@ -15,7 +15,7 @@ import { captureException } from '@sentry/react';
 import { isInvalidSessionError } from '../../utils/authUtils';
 
 export const SelectVehicles: React.FC = () => {
-  const { devLicenseAlias, tosUrl, oemBrand } = useDevCredentials<VehicleManagerMandatoryParams>();
+  const { devLicenseAlias, tosUrl, privacyPolicyUrl, oemBrand } = useDevCredentials<VehicleManagerMandatoryParams>();
   const brandName = oemBrand?.name || devLicenseAlias || undefined;
   const { setLoadingState, setError, isLoading } = useUIManager();
   const {
@@ -123,6 +123,7 @@ export const SelectVehicles: React.FC = () => {
             onShare={handleShare}
             selectedVehiclesCount={selectedVehicles.length}
             tosUrl={tosUrl}
+            privacyPolicyUrl={privacyPolicyUrl}
             brandName={brandName}
           />
         </>

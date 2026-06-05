@@ -8,6 +8,7 @@ const Footer = ({
   onShare,
   selectedVehiclesCount,
   tosUrl,
+  privacyPolicyUrl,
   brandName,
 }: {
   canShare: boolean;
@@ -15,11 +16,12 @@ const Footer = ({
   onShare: () => void;
   selectedVehiclesCount: number;
   tosUrl?: string;
+  privacyPolicyUrl?: string;
   brandName?: string;
 }) => {
   return (
     <div className="flex flex-col items-center gap-3 w-full max-w-[440px] pt-4">
-      <LegalNotice tosUrl={tosUrl} brandName={brandName} />
+      <LegalNotice tosUrl={tosUrl} privacyPolicyUrl={privacyPolicyUrl} brandName={brandName} />
       <div
         className={`grid grid-flow-col auto-cols-fr gap-4 ${
           canShare ? 'justify-between' : 'justify-center'
