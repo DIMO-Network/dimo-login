@@ -22,7 +22,7 @@ import { VehiclePermissionDescription } from '@dimo-network/transactions/dist/co
 import { PasskeyCreationResult } from '../models/resultTypes';
 import { ApiKeyStamper } from '@turnkey/api-key-stamper';
 import { uint8ArrayToHexString } from '@turnkey/encoding';
-import { decryptBundle, getPublicKey } from '@turnkey/crypto';
+import { decryptCredentialBundle, getPublicKey } from '@turnkey/crypto';
 import { Attachment, CloudEventAgreement } from '../types';
 
 export const passkeyStamper = new WebauthnStamper({
@@ -128,11 +128,15 @@ export const getApiKeyStamper = (args: {
   credentialBundle: string;
   embeddedKey: string;
 }) => {
-  const privateKey = decryptBundle(args.credentialBundle, args.embeddedKey);
+  // @turnkey/crypto 2.x renamed `decryptBundle` (returned a Uint8Array private
+  // key) to `decryptCredentialBundle`, which returns the private key as a hex
+  // string. getPublicKey accepts the hex string directly, and the stamper takes
+  // the hex private key as-is.
+  const privateKey = decryptCredentialBundle(args.credentialBundle, args.embeddedKey);
   const publicKey = uint8ArrayToHexString(getPublicKey(privateKey, true));
   return new ApiKeyStamper({
     apiPublicKey: publicKey,
-    apiPrivateKey: uint8ArrayToHexString(privateKey),
+    apiPrivateKey: privateKey,
   });
 };
 
