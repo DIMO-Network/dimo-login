@@ -26,6 +26,14 @@ import { ApiKeyStamper } from '@turnkey/api-key-stamper';
 import { uint8ArrayToHexString } from '@turnkey/encoding';
 import { decryptCredentialBundle, getPublicKey } from '@turnkey/crypto';
 import { Attachment, CloudEventAgreement } from '../types';
+import { withTimeout } from '../utils/withTimeout';
+
+// Bound every KernelSigner call (bundler/paymaster/RPC + user-op receipt). 90s is
+// generous for an on-chain user operation but still finite — on expiry the caller
+// surfaces an error instead of an eternal spinner. NOTE: the user operation may
+// still land on-chain after the timeout; callers should treat expiry as "unknown,
+// retry/refresh" rather than "definitely failed".
+const KERNEL_OP_TIMEOUT_MS = 90_000;
 
 export const passkeyStamper = new WebauthnStamper({
   rpId: process.env.REACT_APP_RPCID_URL as string,
@@ -70,7 +78,11 @@ export const getKernelSigner = (): KernelSigner => {
 };
 
 export const getKernelSignerClient = async () => {
-  return await kernelSigner.getActiveClient();
+  return await withTimeout(
+    kernelSigner.getActiveClient(),
+    KERNEL_OP_TIMEOUT_MS,
+    'getActiveClient',
+  );
 };
 
 export const getSmartContractAddress = (): `0x${string}` | undefined => {
@@ -145,7 +157,11 @@ export const getApiKeyStamper = (args: {
 export const signChallenge = async (challenge: string): Promise<`0x${string}`> => {
   //This is triggering a turnkey API request to sign a raw payload
   //Notes on signature, turnkey api returns an ecdsa signature, which the kernel client is handling
-  const signature = await kernelSigner.signChallenge(challenge);
+  const signature = await withTimeout(
+    kernelSigner.signChallenge(challenge),
+    KERNEL_OP_TIMEOUT_MS,
+    'signChallenge',
+  );
 
   return signature;
 };
@@ -160,17 +176,21 @@ export const generateIpfsSources = async (
   dataversion?: string,
 ): Promise<string> => {
   // Bulk vehicles
-  const ipfsRes = await kernelSigner.signAndUploadSACDAgreement({
-    expiration: expiration,
-    permissions: permissions,
-    grantee: clientId as `0x${string}`,
-    attachments: attachments,
-    grantor: kernelSigner.smartContractAddress!,
-    // TODO: Add the asset based on the user
-    asset: 'did:',
-    ...(cloudEventAgreements && { cloudEventAgreements }),
-    ...(dataversion && { dataversion }),
-  });
+  const ipfsRes = await withTimeout(
+    kernelSigner.signAndUploadSACDAgreement({
+      expiration: expiration,
+      permissions: permissions,
+      grantee: clientId as `0x${string}`,
+      attachments: attachments,
+      grantor: kernelSigner.smartContractAddress!,
+      // TODO: Add the asset based on the user
+      asset: 'did:',
+      ...(cloudEventAgreements && { cloudEventAgreements }),
+      ...(dataversion && { dataversion }),
+    }),
+    KERNEL_OP_TIMEOUT_MS,
+    'signAndUploadSACDAgreement',
+  );
 
   return `ipfs://${ipfsRes.cid}`;
 };
@@ -184,15 +204,19 @@ export const generateAccountIpfsSource = async (
   expiration: BigInt,
 ): Promise<string> => {
   const grantor = kernelSigner.smartContractAddress!;
-  const ipfsRes = await kernelSigner.signAndUploadSACDAgreement({
-    expiration,
-    permissions,
-    grantee: clientId as `0x${string}`,
-    attachments: [],
-    grantor,
-    asset: `did:ethr:137:${grantor}`,
-    cloudEventAgreements: buildDriverDocAgreements(grantor),
-  });
+  const ipfsRes = await withTimeout(
+    kernelSigner.signAndUploadSACDAgreement({
+      expiration,
+      permissions,
+      grantee: clientId as `0x${string}`,
+      attachments: [],
+      grantor,
+      asset: `did:ethr:137:${grantor}`,
+      cloudEventAgreements: buildDriverDocAgreements(grantor),
+    }),
+    KERNEL_OP_TIMEOUT_MS,
+    'signAndUploadSACDAgreement(account)',
+  );
   return `ipfs://${ipfsRes.cid}`;
 };
 
@@ -206,13 +230,17 @@ export async function setVehiclePermissions({
 }: SetVehiclePermissions): Promise<void> {
   try {
     // Call the kernelClient's setVehiclePermissions with the prepared payload
-    await kernelSigner.setVehiclePermissions({
-      tokenId,
-      grantee,
-      permissions,
-      expiration,
-      source,
-    });
+    await withTimeout(
+      kernelSigner.setVehiclePermissions({
+        tokenId,
+        grantee,
+        permissions,
+        expiration,
+        source,
+      }),
+      KERNEL_OP_TIMEOUT_MS,
+      'setVehiclePermissions',
+    );
     console.log('Vehicle permissions set successfully');
   } catch (error) {
     console.error('Error setting vehicle permissions:', error);
@@ -229,13 +257,17 @@ export async function setVehiclePermissionsBulk({
 }: SetVehiclePermissionsBulk): Promise<void> {
   try {
     // Call the kernelClient's setVehiclePermissionsBulk with the prepared payload
-    await kernelSigner.setVehiclePermissionsBulk({
-      tokenIds,
-      grantee,
-      permissions,
-      expiration,
-      source,
-    });
+    await withTimeout(
+      kernelSigner.setVehiclePermissionsBulk({
+        tokenIds,
+        grantee,
+        permissions,
+        expiration,
+        source,
+      }),
+      KERNEL_OP_TIMEOUT_MS,
+      'setVehiclePermissionsBulk',
+    );
     console.log('Vehicle permissions set successfully');
   } catch (error) {
     console.error('Error setting vehicle permissions:', error);
@@ -253,13 +285,17 @@ export async function setAccountPermissions({
   source,
 }: SetAccountPermissions): Promise<void> {
   try {
-    await kernelSigner.setAccountPermissions({
-      grantee,
-      permissions,
-      expiration,
-      templateId,
-      source,
-    });
+    await withTimeout(
+      kernelSigner.setAccountPermissions({
+        grantee,
+        permissions,
+        expiration,
+        templateId,
+        source,
+      }),
+      KERNEL_OP_TIMEOUT_MS,
+      'setAccountPermissions',
+    );
     console.log('Account permissions set successfully');
   } catch (error) {
     console.error('Error setting account permissions:', error);
@@ -293,12 +329,22 @@ export async function signArbitraryMessage(
 
   let signature: `0x${string}`;
   if (isHex) {
-    const client = await kernelSigner.getActiveClient();
-    signature = await client.signMessage({
-      message: { raw: message as `0x${string}` },
-    });
+    const client = await withTimeout(
+      kernelSigner.getActiveClient(),
+      KERNEL_OP_TIMEOUT_MS,
+      'getActiveClient',
+    );
+    signature = await withTimeout(
+      client.signMessage({ message: { raw: message as `0x${string}` } }),
+      KERNEL_OP_TIMEOUT_MS,
+      'signMessage',
+    );
   } else {
-    signature = await kernelSigner.signChallenge(message);
+    signature = await withTimeout(
+      kernelSigner.signChallenge(message),
+      KERNEL_OP_TIMEOUT_MS,
+      'signChallenge',
+    );
   }
 
   return { signature, signer };
@@ -311,16 +357,20 @@ export async function executeAdvancedTransaction(
   args: any[],
   value?: bigint,
 ): Promise<`0x${string}`> {
-  const response = await kernelSigner.executeTransaction({
-    requireSignature: false,
-    data: {
-      address: address,
-      value: parseValue(value!),
-      abi: abi,
-      functionName: functionName,
-      args: parseParameters(args),
-    },
-  });
+  const response = await withTimeout(
+    kernelSigner.executeTransaction({
+      requireSignature: false,
+      data: {
+        address: address,
+        value: parseValue(value!),
+        abi: abi,
+        functionName: functionName,
+        args: parseParameters(args),
+      },
+    }),
+    KERNEL_OP_TIMEOUT_MS,
+    'executeTransaction',
+  );
 
   return response.receipt.transactionHash;
 }

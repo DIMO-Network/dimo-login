@@ -212,6 +212,13 @@ export const DevCredentialsProvider = ({
   };
 
   const validateCredentials = async () => {
+    // Guard against overlapping runs: a late AUTH_INIT can change clientId while a
+    // previous validation is still awaiting, and the slower run would otherwise
+    // overwrite the newer one's state out of order. Each run claims a sequence
+    // number and bails if a newer run has started.
+    const seq = ++validateSeqRef.current;
+    const isStale = () => seq !== validateSeqRef.current;
+
     applyDevCredentialsConfig({
       waitingForDevLicense: Boolean(clientId),
     });
@@ -240,8 +247,11 @@ export const DevCredentialsProvider = ({
       getDeveloperLicense(clientId),
       fetchOemBrand(clientId, brandName),
     ]);
+    if (isStale()) return;
     const alias = await getLicenseAlias(licenseData, clientId);
+    if (isStale()) return;
     const isValid = await isValidDeveloperLicense(licenseData, redirectUri);
+    if (isStale()) return;
 
     applyDevCredentialsConfig({
       devLicenseAlias: alias,
@@ -275,6 +285,10 @@ export const DevCredentialsProvider = ({
   // closure and removed a different per-render closure, so it never detached).
   const handleAuthInitMessageRef = useRef(handleAuthInitMessage);
   handleAuthInitMessageRef.current = handleAuthInitMessage;
+
+  // Monotonic counter so an in-flight validateCredentials run can detect it has
+  // been superseded by a newer clientId and stop writing stale state.
+  const validateSeqRef = useRef(0);
 
   const initAuthProcess = async () => {
     const isProcessedByConfigId = await processConfigByConfigId();

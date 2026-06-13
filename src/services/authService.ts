@@ -17,6 +17,7 @@ import {
   SubmitChallengeParams,
   SubmitCodeExchangeParams,
 } from '../models/web3';
+import { fetchWithTimeout } from '../utils/withTimeout';
 
 const DIMO_AUTH_BASE_URL = process.env.REACT_APP_DIMO_AUTH_URL;
 
@@ -35,7 +36,7 @@ export const generateChallenge = async ({
       address: address,
     });
 
-    const response = await fetch(`${DIMO_AUTH_BASE_URL}/auth/web3/generate_challenge`, {
+    const response = await fetchWithTimeout(`${DIMO_AUTH_BASE_URL}/auth/web3/generate_challenge`, {
       method: 'POST', // Changed to GET since we are passing query params
       body: queryParams,
       headers: {
@@ -78,7 +79,7 @@ export const submitWeb3Challenge = async ({
       signature: signature, // The 0x-prefixed signature obtained from Step 2
     });
 
-    const response = await fetch(`${DIMO_AUTH_BASE_URL}/auth/web3/submit_challenge`, {
+    const response = await fetchWithTimeout(`${DIMO_AUTH_BASE_URL}/auth/web3/submit_challenge`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
