@@ -12,9 +12,11 @@ import {
   newKernelConfig,
   Permission,
   sacdDescription,
+  SetAccountPermissions,
   SetVehiclePermissions,
   SetVehiclePermissionsBulk,
 } from '@dimo-network/transactions';
+import { buildDriverDocAgreements } from './accountDocumentAgreements';
 import { getWebAuthnAttestation } from '@turnkey/http';
 import { WebauthnStamper } from '@turnkey/webauthn-stamper';
 import { base64UrlEncode, generateRandomBuffer } from '../utils/cryptoUtils';
@@ -173,6 +175,27 @@ export const generateIpfsSources = async (
   return `ipfs://${ipfsRes.cid}`;
 };
 
+// Account-level SACD source: grants document cloudevents on the user's account
+// DID (did:ethr:137:<grantor>), not on a vehicle. Mirrors generateIpfsSources but
+// carries the driver-document agreements and the correct account asset DID.
+export const generateAccountIpfsSource = async (
+  permissions: Permission[],
+  clientId: `0x${string}` | null,
+  expiration: BigInt,
+): Promise<string> => {
+  const grantor = kernelSigner.smartContractAddress!;
+  const ipfsRes = await kernelSigner.signAndUploadSACDAgreement({
+    expiration,
+    permissions,
+    grantee: clientId as `0x${string}`,
+    attachments: [],
+    grantor,
+    asset: `did:ethr:137:${grantor}`,
+    cloudEventAgreements: buildDriverDocAgreements(grantor),
+  });
+  return `ipfs://${ipfsRes.cid}`;
+};
+
 // Define the bridge function in your Turnkey Service
 export async function setVehiclePermissions({
   tokenId,
@@ -216,6 +239,30 @@ export async function setVehiclePermissionsBulk({
     console.log('Vehicle permissions set successfully');
   } catch (error) {
     console.error('Error setting vehicle permissions:', error);
+    throw error;
+  }
+}
+
+// Account-level SACD grant bridge. templateId is required by the SDK type
+// (callers pass 0n for the explicit-permissions + cloudEventAgreements path).
+export async function setAccountPermissions({
+  grantee,
+  permissions,
+  expiration,
+  templateId,
+  source,
+}: SetAccountPermissions): Promise<void> {
+  try {
+    await kernelSigner.setAccountPermissions({
+      grantee,
+      permissions,
+      expiration,
+      templateId,
+      source,
+    });
+    console.log('Account permissions set successfully');
+  } catch (error) {
+    console.error('Error setting account permissions:', error);
     throw error;
   }
 }
