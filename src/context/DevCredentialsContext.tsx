@@ -14,6 +14,7 @@ import React, {
   useEffect,
   ReactElement,
   useState,
+  useRef,
 } from 'react';
 
 import { AllParams } from '../types';
@@ -64,6 +65,13 @@ const DEFAULT_LOADING_STATE: LoadingState = {
   isLoading: true,
   message: 'Waiting for credentials...',
 };
+
+// If the SDK's AUTH_INIT never arrives (raced the listener attach, dropped, or
+// the parent missed our initial READY), re-announce READY a few times so the
+// SDK re-posts credentials instead of leaving the popup stuck on
+// "Waiting for credentials…" forever.
+const HANDSHAKE_RETRY_INTERVAL_MS = 2000;
+const HANDSHAKE_RETRY_LIMIT = 5;
 
 const DevCredentialsContext = createContext<AllParams & { loadingState: LoadingState }>({
   ...DEFAULT_CONTEXT,
@@ -255,11 +263,18 @@ export const DevCredentialsProvider = ({
       applyDevCredentialsConfig({
         waitingForParams: false,
       });
-      return;
     }
-
-    window.addEventListener('message', handleAuthInitMessage);
+    // Note: the 'message' listener is attached synchronously at mount (see the
+    // mount effect below), NOT here — registering it here ran only after the
+    // awaited config resolution in initAuthProcess, so a fast AUTH_INIT could
+    // land before the listener existed and be dropped, hanging the popup.
   };
+
+  // Always-latest handler behind a stable ref so the mount effect can attach a
+  // single listener whose identity never changes (the previous code added one
+  // closure and removed a different per-render closure, so it never detached).
+  const handleAuthInitMessageRef = useRef(handleAuthInitMessage);
+  handleAuthInitMessageRef.current = handleAuthInitMessage;
 
   const initAuthProcess = async () => {
     const isProcessedByConfigId = await processConfigByConfigId();
@@ -277,9 +292,32 @@ export const DevCredentialsProvider = ({
   };
 
   useEffect(() => {
+    // Attach the AUTH_INIT listener BEFORE kicking off any awaited config work,
+    // so a fast AUTH_INIT can never land in the gap. The listener identity is
+    // stable (delegates to the ref), so its cleanup reliably removes it.
+    const onMessage = (event: MessageEvent) => handleAuthInitMessageRef.current(event);
+    if (!isStandalone()) {
+      window.addEventListener('message', onMessage);
+    }
     void initAuthProcess();
+    return () => window.removeEventListener('message', onMessage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Handshake fallback: while still waiting for params (popup/embed only),
+  // re-announce READY on an interval until the SDK responds or we hit the cap.
+  // This is what breaks the intermittent "stuck on Waiting for credentials…"
+  // deadlock when the initial AUTH_INIT is missed.
+  useEffect(() => {
+    if (isStandalone() || !waitingForParams) return;
+    let attempts = 0;
+    const id = setInterval(() => {
+      attempts += 1;
+      sendMessageToReferrer({ eventType: 'READY' });
+      if (attempts >= HANDSHAKE_RETRY_LIMIT) clearInterval(id);
+    }, HANDSHAKE_RETRY_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [waitingForParams]);
 
   useEffect(() => {
     void validateCredentials();
@@ -287,14 +325,11 @@ export const DevCredentialsProvider = ({
   }, [clientId]);
 
   useEffect(() => {
-    const isLoading = waitingForParams || waitingForDevLicense;
-    setLoadingState({ isLoading, message: 'Waiting for credentials...' });
-
-    return () => {
-      window.removeEventListener('message', handleAuthInitMessage);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadingState.isLoading, waitingForParams, waitingForDevLicense, clientId]);
+    setLoadingState({
+      isLoading: waitingForParams || waitingForDevLicense,
+      message: 'Waiting for credentials...',
+    });
+  }, [waitingForParams, waitingForDevLicense]);
 
   return (
     <DevCredentialsContext.Provider value={{ ...devCredentialsState, loadingState }}>
