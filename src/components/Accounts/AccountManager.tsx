@@ -7,6 +7,7 @@ import { Header, ErrorMessage, PrimaryButton, UIManagerLoaderWrapper } from '../
 import { useShareAccounts } from '../../hooks/useShareAccounts';
 import { useFinishShareAccounts } from '../../hooks/useFinishShareAccounts';
 import { isInvalidSessionError } from '../../utils/authUtils';
+import { sendErrorToParent } from '../../utils/errorUtils';
 import { getAppUrl } from '../../utils/urlHelpers';
 import { AccountManagerMandatoryParams } from '../../types';
 
@@ -14,8 +15,9 @@ import { AccountManagerMandatoryParams } from '../../types';
 // Renders the documents the renter is about to share (driver's license +
 // insurance card) and an Allow/Cancel footer that signs the account SACD.
 export const AccountManager: React.FC = () => {
-  const { devLicenseAlias } = useDevCredentials<AccountManagerMandatoryParams>();
-  const { setLoadingState, setError, error } = useUIManager();
+  const { devLicenseAlias, redirectUri, utm } =
+    useDevCredentials<AccountManagerMandatoryParams>();
+  const { setLoadingState, setError, error, setUiState } = useUIManager();
   const shareAccounts = useShareAccounts();
   const finishShareAccounts = useFinishShareAccounts();
 
@@ -40,7 +42,9 @@ export const AccountManager: React.FC = () => {
   };
 
   const onCancel = () => {
-    finishShareAccounts();
+    // Cancel must NOT report success — notify the developer of the rejection and
+    // navigate to the cancelled screen (mirrors sendErrorToParent on other flows).
+    sendErrorToParent('User cancelled document sharing', redirectUri, utm, setUiState);
   };
 
   return (
