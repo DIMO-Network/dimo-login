@@ -59,6 +59,9 @@ export interface AuthPayload {
   email?: string;
   walletAddress: string;
   sharedVehicles?: BigInt[] | string[];
+  // Account-sharing lane: surfaced to the SDK on a successful account grant.
+  accountGranted?: boolean;
+  transactionHash?: string;
 }
 
 export function sendAuthPayloadToParent(
