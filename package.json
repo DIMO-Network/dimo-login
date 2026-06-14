@@ -35,7 +35,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build && npm run sentry:sourcemaps",
+    "build": "craco build && npm run sentry:sourcemaps",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "lint": "eslint . --ignore node_modules --ignore build",
@@ -62,6 +62,7 @@
     ]
   },
   "devDependencies": {
+    "@craco/craco": "^7.1.0",
     "@types/lodash": "^4.17.16",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.47",

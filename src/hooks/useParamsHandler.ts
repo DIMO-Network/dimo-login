@@ -106,7 +106,7 @@ export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
         // repeated message) doesn't fire a fresh setState per key and trigger a
         // full-tree re-render storm. Returning `prev` lets React skip the update.
         setDevCredentialsState((prev) =>
-          (prev as Record<string, unknown>)[key] === value
+          (prev as unknown as Record<string, unknown>)[key] === value
             ? prev
             : { ...prev, [key]: value },
         );
