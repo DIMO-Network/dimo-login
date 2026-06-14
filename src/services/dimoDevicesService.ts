@@ -272,6 +272,7 @@ export const checkIntegrationInfo = async (
 export const waitForTokenId = async (
   deviceId: string,
   jwt: string,
+  signal?: AbortSignal,
 ): Promise<number | null> => {
   let foundTokenId: number | null = null;
 
@@ -283,6 +284,7 @@ export const waitForTokenId = async (
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${jwt}`,
         },
+        signal,
       });
 
       if (!response.ok) {
@@ -306,6 +308,6 @@ export const waitForTokenId = async (
     }
   };
 
-  const success = await pollForCondition(fetchTokenId);
+  const success = await pollForCondition(fetchTokenId, 10, 5000, signal);
   return success ? foundTokenId : null; // Return the stored tokenId or null if not found
 };
