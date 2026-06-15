@@ -55,6 +55,13 @@ export interface VehicleManagerParams {
   cloudEvent?: CloudEventAgreement;
 }
 
+export interface AccountManagerParams {
+  permissionTemplateId?: string;
+  permissions?: string;
+  expirationDate: BigInt;
+  cloudEvent?: CloudEventAgreement;
+}
+
 export interface TransactionParams {
   address: `0x${string}`;
   value?: bigint;
@@ -83,6 +90,10 @@ export type AllParams = BaseParams &
 export type VehicleManagerMandatoryParams = BaseParams &
   FetchedParams &
   VehicleManagerParams;
+
+export type AccountManagerMandatoryParams = BaseParams &
+  FetchedParams &
+  AccountManagerParams;
 
 export type AdvancedTransactionMandatoryParams = BaseParams &
   FetchedParams &

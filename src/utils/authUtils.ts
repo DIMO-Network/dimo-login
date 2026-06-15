@@ -59,6 +59,9 @@ export interface AuthPayload {
   email?: string;
   walletAddress: string;
   sharedVehicles?: BigInt[] | string[];
+  // Account-sharing lane: surfaced to the SDK on a successful account grant.
+  accountGranted?: boolean;
+  transactionHash?: string;
 }
 
 export function sendAuthPayloadToParent(
@@ -138,6 +141,9 @@ export function handlePostAuthUIState({
   } else if (entryState === UiStates.VEHICLE_MANAGER) {
     //Note: If the user is unauthenticated but the vehicle manager is the entry state, the payload will be sent to parent in the vehicle manager, after vehicles are shared
     setUiState(UiStates.VEHICLE_MANAGER); //Move to vehicle manager
+  } else if (entryState === UiStates.ACCOUNT_MANAGER) {
+    //Note: If the user is unauthenticated but the account manager is the entry state, the payload will be sent to parent in the account manager, after the account SACD is signed
+    setUiState(UiStates.ACCOUNT_MANAGER); //Move to account manager
   } else if (entryState === UiStates.ADVANCED_TRANSACTION) {
     setUiState(UiStates.ADVANCED_TRANSACTION);
   } else if (entryState === UiStates.SIGN_MESSAGE) {

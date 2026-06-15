@@ -20,6 +20,9 @@ export const MintVehicle: FC = () => {
   const { user, jwt, validateSession } = useAuthContext();
 
   useEffect(() => {
+    // Abort the token-id polling (and skip post-poll state writes) if this step
+    // unmounts mid-flight, so it stops hitting the API against a dead component.
+    const controller = new AbortController();
     const processMint = async () => {
       try {
         setLoadingState(true, 'Creating vehicle...', true);
@@ -56,9 +59,9 @@ export const MintVehicle: FC = () => {
         }
 
         //Poll for Token ID
-        const tokenId = await waitForTokenId(userDeviceID, jwt);
+        const tokenId = await waitForTokenId(userDeviceID, jwt, controller.signal);
 
-        if (tokenId) {
+        if (tokenId && !controller.signal.aborted) {
           setComponentData({
             ...componentData,
             preSelectedVehicles: [tokenId.toString()],
@@ -75,6 +78,7 @@ export const MintVehicle: FC = () => {
 
     // eslint-disable-next-line
     processMint();
+    return () => controller.abort();
     // eslint-disable-next-line
   }, [componentData]);
 

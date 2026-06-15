@@ -8,6 +8,8 @@ import { useUIManager } from './context/UIManagerContext';
 import { getValidationsForState } from './validations';
 
 import {
+  AccountManager,
+  AccountPermissionsSuccess,
   AdvancedTransaction,
   CancelledTransaction,
   EmailInput,
@@ -117,6 +119,8 @@ const App = () => {
     [UiStates.SIGN_MESSAGE]: <SignMessage />,
     [UiStates.TRANSACTION_SUCCESS]: <SuccessfulTransaction />,
     [UiStates.VEHICLES_SHARED_SUCCESS]: <SuccessfulPermissions />,
+    [UiStates.ACCOUNT_MANAGER]: <AccountManager />,
+    [UiStates.ACCOUNT_PERMISSIONS_SUCCESS]: <AccountPermissionsSuccess />,
     [UiStates.ADD_VEHICLE]: <AddVehicle />,
     [UiStates.COMPATIBILITY_CHECK]: <CompatibilityCheck />,
     [UiStates.MINT_VEHICLE]: <MintVehicle />,

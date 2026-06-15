@@ -102,10 +102,14 @@ export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
       ) {
         specialSetters[key as keyof typeof specialSetters](value);
       } else {
-        setDevCredentialsState((prev) => ({
-          ...prev,
-          [key]: value,
-        }));
+        // Bail out when the value is unchanged so a re-delivered AUTH_INIT (or a
+        // repeated message) doesn't fire a fresh setState per key and trigger a
+        // full-tree re-render storm. Returning `prev` lets React skip the update.
+        setDevCredentialsState((prev) =>
+          (prev as unknown as Record<string, unknown>)[key] === value
+            ? prev
+            : { ...prev, [key]: value },
+        );
       }
     });
   };

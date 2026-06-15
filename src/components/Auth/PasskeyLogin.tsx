@@ -5,22 +5,42 @@ import { UiStates } from '../../enums';
 import { useUIManager } from '../../context/UIManagerContext';
 import debounce from 'lodash/debounce';
 
+// The passkey chain (WebAuthn prompt → Turnkey → KernelSigner → bundler/RPC →
+// challenge → JWT) has no internal timeout, and this component renders only a
+// spinner. If the passkey sheet is dismissed without a clean reject, or the
+// bundler/RPC stalls, the loader would otherwise spin forever. Cap it.
+const PASSKEY_TIMEOUT_MS = 60_000;
+
 export const PasskeyLogin: FC = () => {
   const { completePasskeyLogin } = useAuthContext();
   const { setError, setUiState } = useUIManager();
 
   const handleLoginWithPasskey = async () => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
     try {
-      await completePasskeyLogin();
+      await Promise.race([
+        completePasskeyLogin(),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(
+            () => reject(new DOMException('Passkey login timed out', 'TimeoutError')),
+            PASSKEY_TIMEOUT_MS,
+          );
+        }),
+      ]);
     } catch (err) {
-      if (err instanceof Error) {
-        if (err.name === 'NotAllowedError') {
-          setUiState(UiStates.PASSKEY_LOGIN_FAIL);
-          return;
-        }
+      // Treat user-cancel and timeout/abort alike: route to the retry screen
+      // rather than dropping the user on a dead spinner or the email screen.
+      if (
+        err instanceof Error &&
+        ['NotAllowedError', 'AbortError', 'TimeoutError'].includes(err.name)
+      ) {
+        setUiState(UiStates.PASSKEY_LOGIN_FAIL);
+        return;
       }
       setError('Failed to login with passkey');
       setUiState(UiStates.EMAIL_INPUT);
+    } finally {
+      clearTimeout(timer);
     }
   };
 

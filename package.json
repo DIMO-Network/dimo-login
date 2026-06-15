@@ -4,14 +4,14 @@
   "private": true,
   "dependencies": {
     "@apollo/client": "^3.13.6",
-    "@dimo-network/transactions": "^0.1.95",
+    "@dimo-network/transactions": "^0.3.2",
     "@heroicons/react": "^2.1.5",
     "@sentry/cli": "^2.46.0",
     "@sentry/react": "^9.28.1",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
-    "@turnkey/http": "^2.22.0",
+    "@turnkey/http": "^4.1.1",
     "@types/jest": "^27.5.2",
     "@types/node": "^16.18.114",
     "@types/react": "^18.3.11",
@@ -31,11 +31,11 @@
   },
   "overrides": {
     "react-refresh": "0.14.2",
-    "@turnkey/http": "^2.22.0"
+    "@turnkey/http": "^4.1.1"
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "if [ -z \"$SENTRY_AUTH_TOKEN\" ]; then GENERATE_SOURCEMAP=false react-scripts build; else react-scripts build && npm run sentry:sourcemaps; fi",
+    "build": "if [ -z \"$SENTRY_AUTH_TOKEN\" ]; then GENERATE_SOURCEMAP=false craco build; else craco build && npm run sentry:sourcemaps; fi",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "lint": "eslint . --ignore node_modules --ignore build",
@@ -62,6 +62,7 @@
     ]
   },
   "devDependencies": {
+    "@craco/craco": "^7.1.0",
     "@types/lodash": "^4.17.16",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.47",
