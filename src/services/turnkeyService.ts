@@ -196,14 +196,18 @@ export const generateIpfsSources = async (
 };
 
 // Account-level SACD source: grants document cloudevents on the user's account
-// DID (did:ethr:137:<grantor>), not on a vehicle. Mirrors generateIpfsSources but
-// carries the driver-document agreements and the correct account asset DID.
+// DID (did:ethr:<chainId>:<grantor>), not on a vehicle. Mirrors generateIpfsSources
+// but carries the driver-document agreements and the correct account asset DID.
 export const generateAccountIpfsSource = async (
   permissions: Permission[],
   clientId: `0x${string}` | null,
   expiration: BigInt,
 ): Promise<string> => {
   const grantor = kernelSigner.smartContractAddress!;
+  // Use the signer's actual chain (polygon=137 in prod, polygonAmoy=80002 in dev)
+  // so the asset DID matches the chain the grant is executed on — hardcoding 137
+  // orphaned the grant on non-prod environments.
+  const chainId = kernelSigner.chain.id;
   const ipfsRes = await withTimeout(
     kernelSigner.signAndUploadSACDAgreement({
       expiration,
@@ -211,7 +215,7 @@ export const generateAccountIpfsSource = async (
       grantee: clientId as `0x${string}`,
       attachments: [],
       grantor,
-      asset: `did:ethr:137:${grantor}`,
+      asset: `did:ethr:${chainId}:${grantor}`,
       cloudEventAgreements: buildDriverDocAgreements(grantor),
     }),
     KERNEL_OP_TIMEOUT_MS,
