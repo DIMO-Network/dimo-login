@@ -31,7 +31,7 @@ export const AccountPermissionsSuccess: React.FC = () => {
           driver's license and insurance card until you revoke access.
         </p>
       </div>
-      <div className="flex fex-col">
+      <div className="flex flex-col">
         {!isEmbed() && (
           <div className="flex justify-center w-full">
             <PrimaryButton onClick={handleBackToThirdParty} width="sm:w-64 w-full">
