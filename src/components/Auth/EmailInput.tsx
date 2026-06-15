@@ -30,7 +30,8 @@ interface EmailInputProps {
 }
 
 export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
-  const { clientId, devLicenseAlias, oemBrand } = useDevCredentials();
+  const { clientId, devLicenseAlias, oemBrand, tosUrl, privacyPolicyUrl } = useDevCredentials();
+  const brandName = oemBrand?.name || devLicenseAlias || undefined;
   const { error, setError, altTitle, setLoadingState } = useUIManager();
   const [email, setEmail] = useState('');
   const [emailPermissionGranted, setEmailPermissionGranted] = useState(false);
@@ -115,7 +116,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       <EmailPermissionCheckbox
         isChecked={emailPermissionGranted}
         onChange={() => setEmailPermissionGranted((curIsGranted) => !curIsGranted)}
-        devLicenseAlias={devLicenseAlias}
+        devLicenseAlias={brandName || devLicenseAlias}
       />
       <div
         onKeyDown={getKeyboardEventListener('Enter', handleEmailInputSubmit)}
@@ -134,7 +135,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
             onSwitchAccount={handleSwitchAccount}
           />
         )}
-        <LegalNotice />
+        <LegalNotice tosUrl={tosUrl} privacyPolicyUrl={privacyPolicyUrl} brandName={brandName} />
       </div>
     </UIManagerLoaderWrapper>
   );

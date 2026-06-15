@@ -35,7 +35,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "craco build && npm run sentry:sourcemaps",
+    "build": "if [ -z \"$SENTRY_AUTH_TOKEN\" ]; then GENERATE_SOURCEMAP=false craco build; else craco build && npm run sentry:sourcemaps; fi",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "lint": "eslint . --ignore node_modules --ignore build",

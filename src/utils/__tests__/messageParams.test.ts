@@ -54,6 +54,8 @@ describe('filterMessageParams', () => {
       'cloudEvent',
       'transactionData',
       'messageData',
+      'tosUrl',
+      'privacyPolicyUrl',
     ].forEach((key) => expect(ALLOWED_MESSAGE_PARAM_KEYS.has(key)).toBe(true));
   });
 });

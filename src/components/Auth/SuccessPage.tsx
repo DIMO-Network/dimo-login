@@ -11,7 +11,8 @@ import { backToThirdParty } from '../../utils/messageHandler';
 
 export const SuccessPage: React.FC = () => {
   const { user, jwt } = useAuthContext(); // Should be set on session init
-  const { redirectUri, utm, clientId, devLicenseAlias } = useDevCredentials();
+  const { redirectUri, utm, clientId, devLicenseAlias, oemBrand } = useDevCredentials();
+  const displayName = oemBrand?.name || devLicenseAlias;
   const { setUiState } = useUIManager();
 
   const sendJwtAfterPermissions = () => {
@@ -40,7 +41,7 @@ export const SuccessPage: React.FC = () => {
         {!isEmbed() && (
           <div className="flex justify-center">
             <PrimaryButton onClick={handleContinue} width="w-64">
-              Back to {devLicenseAlias}
+              Back to {displayName}
             </PrimaryButton>
           </div>
         )}

@@ -21,6 +21,12 @@ export interface BaseParams {
    * select among brands it owns.
    */
   brandName?: string | null;
+  /** Custom Terms of Service URL supplied by the relying party. When set, the
+   * legal notice swaps the default DIMO ToS link for this URL. */
+  tosUrl?: string;
+  /** Custom Privacy Policy URL supplied by the relying party. When set, the
+   * legal notice swaps the default DIMO Privacy Policy link for this URL. */
+  privacyPolicyUrl?: string;
   newVehicleSectionDescription: string;
   shareVehiclesSectionDescription: string;
 }
