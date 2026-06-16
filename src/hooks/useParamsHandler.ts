@@ -95,10 +95,14 @@ export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
 
   const applyDevCredentialsConfig = (config: Record<string, unknown>) => {
     Object.entries(config).forEach(([key, value]) => {
+      // An incoming `undefined` means "not provided" by the SDK payload — never
+      // write it, or it clobbers the defaults in DEFAULT_CONTEXT. (e.g. a missing
+      // expirationDate would overwrite the 100-year default with undefined, which
+      // the account SACD builder then feeds to `new Date()` → "Invalid Date".)
+      if (value === undefined) return;
       if (
         key in specialSetters &&
-        specialSetters[key as keyof typeof specialSetters] &&
-        value !== undefined
+        specialSetters[key as keyof typeof specialSetters]
       ) {
         specialSetters[key as keyof typeof specialSetters](value);
       } else {
