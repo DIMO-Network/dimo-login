@@ -32,9 +32,15 @@ export const AccountManager: React.FC = () => {
       await shareAccounts();
       finishShareAccounts();
     } catch (err) {
+      // Log the real error to the console — captureException ships it to Sentry,
+      // but that request is often blocked (content blockers/CORS), leaving only
+      // the opaque "Failed to share documents". This makes the cause legible.
+      // eslint-disable-next-line no-console
+      console.error('Account document sharing failed:', err);
       captureException(err);
       if (!isInvalidSessionError(err)) {
-        setError('Failed to share documents');
+        const detail = err instanceof Error ? err.message : String(err);
+        setError(`Failed to share documents: ${detail}`);
       }
     } finally {
       setLoadingState(false);
