@@ -4,10 +4,7 @@ import { Vehicle } from '../../models/vehicle';
 import { UiStates } from '../../enums';
 import { useUIManager } from '../../context/UIManagerContext';
 import { Checkbox } from '../Shared/Checkbox';
-import { useDevCredentials } from '../../context/DevCredentialsContext';
-import { VehicleManagerMandatoryParams } from '../../types';
 import { SharedPermissionsNote } from './';
-import { hasUpdatedPermissions } from '../../utils/permissions';
 
 interface VehicleCardProps {
   vehicle: Vehicle;
@@ -25,23 +22,8 @@ export const VehicleCard: React.FC<VehicleCardProps> = ({
   incompatible,
 }) => {
   const { componentData, setComponentData, setUiState } = useUIManager();
-  const { permissions, permissionTemplateId } =
-    useDevCredentials<VehicleManagerMandatoryParams>();
 
-  const {
-    tokenId,
-    shared,
-    model,
-    make,
-    year,
-    expiresAt,
-    permissions: vehiclePermissions,
-  } = vehicle;
-  const hasUpdatedPerms = hasUpdatedPermissions(
-    vehiclePermissions,
-    permissions,
-    permissionTemplateId,
-  );
+  const { tokenId, shared, model, make, year, expiresAt, hasOldPermissions } = vehicle;
 
   const handleManageClick = (e: React.MouseEvent) => {
     setComponentData({ ...componentData, vehicle }); //Retains permissionTemplateID for Manage Vehicle
@@ -103,7 +85,7 @@ export const VehicleCard: React.FC<VehicleCardProps> = ({
         <div className="text-sm text-gray-500 font-medium">ID: {tokenId.toString()}</div>
         {shared && <div className="text-sm text-gray-500">Shared Until: {expiresAt}</div>}
 
-        <SharedPermissionsNote shared={shared} hasUpdatedPermissions={hasUpdatedPerms} />
+        <SharedPermissionsNote shared={shared} hasOldPermissions={hasOldPermissions} />
       </label>
 
       {/* Manage Vehicle */}

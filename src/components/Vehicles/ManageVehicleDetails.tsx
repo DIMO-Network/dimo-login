@@ -3,28 +3,9 @@ import React from 'react';
 import { Vehicle } from '../../models/vehicle';
 import Header from '../Shared/Header';
 import { SharedPermissionsNote } from './';
-import { useDevCredentials } from '../../context/DevCredentialsContext';
-import { VehicleManagerMandatoryParams } from '../../types';
-import { hasUpdatedPermissions } from '../../utils/permissions';
 
 export const ManageVehicleDetails = ({ vehicle }: { vehicle: Vehicle }) => {
-  const { permissions, permissionTemplateId } =
-    useDevCredentials<VehicleManagerMandatoryParams>();
-
-  const {
-    tokenId,
-    shared,
-    expiresAt,
-    make,
-    model,
-    year,
-    permissions: vehiclePermissions,
-  } = vehicle;
-  const hasUpdatedPerms = hasUpdatedPermissions(
-    vehiclePermissions,
-    permissions,
-    permissionTemplateId,
-  );
+  const { tokenId, shared, expiresAt, make, model, year, hasOldPermissions } = vehicle;
 
   return (
     <>
@@ -41,7 +22,7 @@ export const ManageVehicleDetails = ({ vehicle }: { vehicle: Vehicle }) => {
 
       <p className="text-center mt-8">Shared until {expiresAt}</p>
 
-      <SharedPermissionsNote shared={shared} hasUpdatedPermissions={hasUpdatedPerms} />
+      <SharedPermissionsNote shared={shared} hasOldPermissions={hasOldPermissions} />
     </>
   );
 };

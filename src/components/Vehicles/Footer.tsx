@@ -1,37 +1,69 @@
 import React from 'react';
 import PrimaryButton from '../Shared/PrimaryButton';
 
+interface FooterProps {
+  canShare: boolean;
+  onCancel: () => void;
+  onShare: () => void;
+  selectedVehiclesCount: number;
+  onUpdatePermissions: () => void;
+  hasVehicleWithOldPermissions: boolean;
+}
+
 const Footer = ({
   canShare,
   onCancel,
   onShare,
   selectedVehiclesCount,
-}: {
-  canShare: boolean;
-  onCancel: () => void;
-  onShare: () => void;
-  selectedVehiclesCount: number;
-}) => {
+  onUpdatePermissions,
+  hasVehicleWithOldPermissions,
+}: FooterProps) => {
+  const showContinueButton = !canShare;
+  const showUpdatePermissionsButton = hasVehicleWithOldPermissions && canShare;
+  const showShareButtons = !hasVehicleWithOldPermissions && canShare;
+
+  const renderContinueButton = () => {
+    return (
+      <div className="flex flex-row gap-2 justify-center">
+        <PrimaryButton onClick={onCancel}>Continue</PrimaryButton>
+      </div>
+    );
+  };
+
+  const renderCancelAndShareButtons = () => {
+    return (
+      <div className="grid grid-cols-2 gap-4 justify-between">
+        <button
+          onClick={onCancel}
+          className="bg-white font-medium text-[#09090B] border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500"
+        >
+          Cancel
+        </button>
+        <PrimaryButton onClick={onShare} disabled={selectedVehiclesCount === 0}>
+          Save changes
+        </PrimaryButton>
+      </div>
+    );
+  };
+
+  const renderUpdatePermissionsButton = () => {
+    return (
+      <div className="flex flex-col gap-2 items-center">
+        <p className="text-xs text-gray-500">
+          There are vehicles with old permissions, update them before continuing
+        </p>
+        <PrimaryButton onClick={onUpdatePermissions} className="w-full">
+          Update vehicles permissions
+        </PrimaryButton>
+      </div>
+    );
+  };
+
   return (
-    <div
-      className={`grid grid-flow-col auto-cols-fr gap-4 ${
-        canShare ? 'justify-between' : 'justify-center'
-      } w-full max-w-[440px] pt-4`}
-    >
-      {!canShare && <PrimaryButton onClick={onCancel}>Continue</PrimaryButton>}
-      {canShare && (
-        <>
-          <button
-            onClick={onCancel}
-            className="bg-white font-medium text-[#09090B] border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500"
-          >
-            Cancel
-          </button>
-          <PrimaryButton onClick={onShare} disabled={selectedVehiclesCount === 0}>
-            Save changes
-          </PrimaryButton>
-        </>
-      )}
+    <div className={`flex flex-col gap-4 w-full max-w-[440px] pt-4`}>
+      {showContinueButton && renderContinueButton()}
+      {showUpdatePermissionsButton && renderUpdatePermissionsButton()}
+      {showShareButtons && renderCancelAndShareButtons()}
     </div>
   );
 };

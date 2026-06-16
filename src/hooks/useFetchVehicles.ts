@@ -7,14 +7,21 @@ import { VehicleManagerMandatoryParams } from '../types';
 
 export const useFetchVehicles = () => {
   const { user } = useAuthContext();
-  const { clientId, vehicleTokenIds, vehicleMakes, powertrainTypes } =
-    useDevCredentials<VehicleManagerMandatoryParams>();
+  const {
+    clientId,
+    vehicleTokenIds,
+    vehicleMakes,
+    powertrainTypes,
+    permissionTemplateId,
+    permissions,
+  } = useDevCredentials<VehicleManagerMandatoryParams>();
   const [startCursor, setStartCursor] = useState('');
   const [endCursor, setEndCursor] = useState('');
   const [hasNextPage, setHasNextPage] = useState(false);
   const [hasPreviousPage, setHasPreviousPage] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [incompatibleVehicles, setIncompatibleVehicles] = useState<Vehicle[]>([]);
+  const [hasVehicleWithOldPermissions, setHasVehicleWithOldPermissions] = useState(false);
 
   const fetchVehicles = async (direction = 'next') => {
     const cursor = direction === 'next' ? endCursor : startCursor;
@@ -28,9 +35,12 @@ export const useFetchVehicles = () => {
         vehicleMakes,
         powertrainTypes,
       },
+      permissionTemplateId,
+      permissions,
     });
     setVehicles(transformedVehicles.compatibleVehicles);
     setIncompatibleVehicles(transformedVehicles.incompatibleVehicles);
+    setHasVehicleWithOldPermissions(transformedVehicles.hasVehicleWithOldPermissions);
     setEndCursor(transformedVehicles.endCursor);
     setStartCursor(transformedVehicles.startCursor);
     setHasPreviousPage(transformedVehicles.hasPreviousPage);
@@ -43,6 +53,7 @@ export const useFetchVehicles = () => {
     hasPreviousPage,
     vehicles,
     incompatibleVehicles,
+    hasVehicleWithOldPermissions,
   };
 };
 
