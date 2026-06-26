@@ -148,6 +148,8 @@ export function handlePostAuthUIState({
     setUiState(UiStates.ADVANCED_TRANSACTION);
   } else if (entryState === UiStates.SIGN_MESSAGE) {
     setUiState(UiStates.SIGN_MESSAGE);
+  } else if (entryState === UiStates.PROVISION_DEVELOPER_LICENSE) {
+    setUiState(UiStates.PROVISION_DEVELOPER_LICENSE);
   }
 }
 
