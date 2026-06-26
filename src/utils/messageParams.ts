@@ -57,8 +57,9 @@ export const ALLOWED_MESSAGE_PARAM_KEYS = new Set<string>([
   // Advanced transaction / sign message flows  (SDK action payload)
   'transactionData',
   'messageData',
-  // Developer license provisioning flow
-  'provisionData',
+  // Developer license provisioning flow (key rotation)
+  'existingTokenId',
+  'existingClientId',
 ]);
 
 /**

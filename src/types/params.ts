@@ -29,13 +29,8 @@ export interface BaseParams {
   privacyPolicyUrl?: string;
   newVehicleSectionDescription: string;
   shareVehiclesSectionDescription: string;
-  provisionData?: {
-    alias: string;
-    domain: string;
-    signerAddress: string;
-    existingTokenId?: number;
-    existingClientId?: string;
-  };
+  existingTokenId?: number;
+  existingClientId?: string;
 }
 
 export interface FetchedParams {

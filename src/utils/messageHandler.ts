@@ -1,13 +1,24 @@
 import { isStandalone } from './isStandalone';
 import { getAppUrl, getRedirectUriWithUtm } from './urlHelpers';
 
-export function sendMessageToReferrer(data: object) {
+export function sendMessageToReferrer(data: object, expectedOrigin?: string) {
   if (isStandalone()) {
     console.warn('Not opened in popup or iframe, use url based creds');
     return;
   }
 
   const parentOrigin = getAppUrl().origin;
+
+  // When an expectedOrigin is provided (e.g. the registered redirectUri origin),
+  // validate the opener matches before sending — prevents delivering secrets to
+  // an unintended window.opener if the popup was opened from a different origin.
+  if (expectedOrigin) {
+    const expected = new URL(expectedOrigin).origin;
+    if (parentOrigin !== expected) {
+      console.error('sendMessageToReferrer: opener origin does not match registered redirectUri — message suppressed');
+      return;
+    }
+  }
 
   const referrer = window.opener || window.parent;
 
