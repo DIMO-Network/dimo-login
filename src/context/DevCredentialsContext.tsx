@@ -87,7 +87,7 @@ export const DevCredentialsProvider = ({
     useParamsHandler(DEFAULT_CONTEXT);
   const [loadingState, setLoadingState] = useState(DEFAULT_LOADING_STATE);
 
-  const { clientId, redirectUri, waitingForParams, waitingForDevLicense, brandName } =
+  const { clientId, redirectUri, waitingForParams, waitingForDevLicense, brandName, entryState } =
     devCredentialsState;
 
   const parseStateFromUrl = () => {
@@ -250,7 +250,13 @@ export const DevCredentialsProvider = ({
     if (isStale()) return;
     const alias = await getLicenseAlias(licenseData, clientId);
     if (isStale()) return;
-    const isValid = await isValidDeveloperLicense(licenseData, redirectUri);
+    // PROVISION_DEVELOPER_LICENSE: the caller's redirectUri won't be registered
+    // on-chain yet — that's what this flow sets up. Skip the redirectUri check
+    // and treat any existing license record as valid.
+    const isProvisionFlow = entryState === UiStates.PROVISION_DEVELOPER_LICENSE;
+    const isValid = isProvisionFlow
+      ? Boolean(licenseData)
+      : await isValidDeveloperLicense(licenseData, redirectUri);
     if (isStale()) return;
 
     applyDevCredentialsConfig({

@@ -83,7 +83,7 @@ function buildAlias(email: string, devLicenseAlias: string): string {
   return `${devLicenseAlias} - ${date} ${time}`;
 }
 
-type Step = 'idle' | 'step1' | 'step2' | 'done' | 'error';
+type Step = 'idle' | 'step1' | 'step2' | 'done' | 'error' | 'existing_prompt';
 
 export const ProvisionDeveloperLicense: React.FC = () => {
   const { redirectUri, utm, devLicenseAlias, existingTokenId, existingClientId } = useDevCredentials();
@@ -138,6 +138,30 @@ export const ProvisionDeveloperLicense: React.FC = () => {
     setUiState(UiStates.SUCCESS);
   };
 
+  // User already has a license and confirms they have their API key — send
+  // back clientId only so the calling app can pre-fill it and let the user
+  // paste their existing key.
+  const handleHasExistingKey = () => {
+    if (tokenId == null || clientId == null) return;
+    sendMessageToReferrer({ eventType: 'provisionResponse', tokenId, clientId }, redirectUri);
+    backToThirdParty({ tokenId, clientId }, redirectUri, utm);
+    setStep('done');
+    setUiState(UiStates.SUCCESS);
+  };
+
+  // User already has a license but no API key — generate a new one and register it.
+  const handleGenerateNewKey = async () => {
+    if (tokenId == null || clientId == null) return;
+    setError('');
+    try {
+      await runStep2(tokenId, clientId);
+    } catch (e) {
+      captureException(e);
+      setStep('error');
+      setError(e instanceof Error ? e.message : 'Could not generate API key');
+    }
+  };
+
   const runProvision = async () => {
     try {
       if (existingTokenId != null && existingClientId) {
@@ -145,11 +169,14 @@ export const ProvisionDeveloperLicense: React.FC = () => {
         return;
       }
 
-      // Check if the authenticated user already owns a developer license before minting
+      // Check if the authenticated user already owns a developer license before minting.
+      // If so, ask whether they have an existing API key rather than auto-generating one.
       if (user.smartContractAddress && user.smartContractAddress !== '0x') {
         const existing = await getFirstOwnedDeveloperLicense(user.smartContractAddress);
         if (existing) {
-          await runStep2(existing.tokenId, existing.clientId);
+          setTokenId(existing.tokenId);
+          setClientId(existing.clientId);
+          setStep('existing_prompt');
           return;
         }
       }
@@ -186,6 +213,32 @@ export const ProvisionDeveloperLicense: React.FC = () => {
       setError(e instanceof Error ? e.message : 'Could not complete setup');
     }
   };
+
+  if (step === 'existing_prompt') {
+    return (
+      <UIManagerLoaderWrapper>
+        <Header title="Developer License" subtitle="You already have a developer license" />
+        {error && <ErrorMessage message={error} />}
+        <div className="flex flex-col gap-4 w-full text-sm">
+          <p className="text-gray-600">
+            Your wallet already has a developer license (<span className="font-mono text-xs">{clientId}</span>).
+            Do you have an existing API key for it?
+          </p>
+          <div className="flex flex-col gap-2 w-full pt-2">
+            <PrimaryButton onClick={handleHasExistingKey} width="w-full">
+              Yes, I have my API key
+            </PrimaryButton>
+            <button
+              onClick={handleGenerateNewKey}
+              className="w-full text-sm text-gray-500 underline hover:text-gray-700"
+            >
+              No, generate a new API key
+            </button>
+          </div>
+        </div>
+      </UIManagerLoaderWrapper>
+    );
+  }
 
   const stepLabel =
     step === 'step1' ? 'Step 1 of 2: Minting your developer license…'
