@@ -17,6 +17,7 @@ import {
   LoadingScreen,
   OtpInput,
   PasskeyGeneration,
+  ProvisionDeveloperLicense,
   SignMessage,
   SuccessfulPermissions,
   SuccessfulTransaction,
@@ -129,6 +130,7 @@ const App = () => {
     [UiStates.TRANSACTION_CANCELLED]: <CancelledTransaction />,
     [UiStates.SUCCESS]: <SuccessPage />,
     [UiStates.LOGOUT]: <Logout />,
+    [UiStates.PROVISION_DEVELOPER_LICENSE]: <ProvisionDeveloperLicense />,
   };
 
   // Expose the OEM brand color (and a readable text color computed from it)

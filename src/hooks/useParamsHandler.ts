@@ -91,6 +91,13 @@ export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
           ? JSON.parse(decodeURIComponent(value))
           : value) as CloudEventAgreement,
       })),
+    provisionData: (value: unknown) =>
+      setDevCredentialsState((prev) => ({
+        ...prev,
+        provisionData: (typeof value === 'string'
+          ? JSON.parse(decodeURIComponent(value))
+          : value) as AllParams['provisionData'],
+      })),
   };
 
   const applyDevCredentialsConfig = (config: Record<string, unknown>) => {
