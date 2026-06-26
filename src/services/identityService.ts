@@ -149,6 +149,29 @@ export const fetchDeviceDefinition = async (
   return result.data;
 };
 
+export const getFirstOwnedDeveloperLicense = async (
+  ownerAddress: string,
+): Promise<{ tokenId: number; clientId: string } | null> => {
+  const query = `{
+    developerLicenses(first: 1, filterBy: { owner: "${ownerAddress}" }) {
+      nodes {
+        tokenId
+        clientId
+      }
+    }
+  }`;
+
+  const apiResponse = await fetch(GRAPHQL_ENDPOINT!, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query }),
+  });
+
+  const { data } = await apiResponse.json();
+  const node = data?.developerLicenses?.nodes?.[0];
+  return node ?? null;
+};
+
 export const getDeveloperLicense = async (clientId: string) => {
   const query = `{
     developerLicense(by: { clientId: "${clientId}" }) {

@@ -9,6 +9,7 @@ import { executeTransactionWithReceipt, executeBatchTransactions } from '../../s
 import { sendMessageToReferrer, backToThirdParty } from '../../utils/messageHandler';
 import { ErrorMessage, Header, PrimaryButton, UIManagerLoaderWrapper } from '../Shared';
 import { captureException } from '@sentry/react';
+import { getFirstOwnedDeveloperLicense } from '../../services/identityService';
 
 const isProd = process.env.REACT_APP_ENVIRONMENT === 'prod';
 
@@ -142,6 +143,15 @@ export const ProvisionDeveloperLicense: React.FC = () => {
       if (existingTokenId != null && existingClientId) {
         await runStep2(existingTokenId, existingClientId);
         return;
+      }
+
+      // Check if the authenticated user already owns a developer license before minting
+      if (user.smartContractAddress && user.smartContractAddress !== '0x') {
+        const existing = await getFirstOwnedDeveloperLicense(user.smartContractAddress);
+        if (existing) {
+          await runStep2(existing.tokenId, existing.clientId);
+          return;
+        }
       }
 
       setStep('step1');
