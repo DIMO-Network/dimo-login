@@ -385,10 +385,14 @@ export async function executeTransactionWithReceipt(
   functionName: string,
   args: any[],
 ): Promise<{ transactionHash: `0x${string}`; logs: any[] }> {
-  const receipt = await kernelSigner.executeTransaction({
-    requireSignature: false,
-    data: { address, abi, functionName, args },
-  });
+  const receipt = await withTimeout(
+    kernelSigner.executeTransaction({
+      requireSignature: false,
+      data: { address, abi, functionName, args },
+    }),
+    KERNEL_OP_TIMEOUT_MS,
+    'executeTransactionWithReceipt',
+  );
   const logs = receipt.receipt?.logs?.length ? receipt.receipt.logs : (receipt as any).logs ?? [];
   return { transactionHash: receipt.receipt.transactionHash, logs };
 }
@@ -400,16 +404,20 @@ export function getSacdDescription(args: VehiclePermissionDescription): string {
 export async function executeBatchTransactions(
   calls: Array<{ address: `0x${string}`; abi: any; functionName: string; args: any[]; value?: BigInt }>,
 ): Promise<{ transactionHash: `0x${string}`; logs: any[] }> {
-  const receipt = await kernelSigner.executeTransaction({
-    requireSignature: false,
-    data: calls.map(({ address, abi, functionName, args, value }) => ({
-      address,
-      abi,
-      functionName,
-      args,
-      ...(value !== undefined && { value }),
-    })),
-  });
+  const receipt = await withTimeout(
+    kernelSigner.executeTransaction({
+      requireSignature: false,
+      data: calls.map(({ address, abi, functionName, args, value }) => ({
+        address,
+        abi,
+        functionName,
+        args,
+        ...(value !== undefined && { value }),
+      })),
+    }),
+    KERNEL_OP_TIMEOUT_MS,
+    'executeBatchTransactions',
+  );
   const logs = receipt.receipt?.logs?.length ? receipt.receipt.logs : (receipt as any).logs ?? [];
   return { transactionHash: receipt.receipt.transactionHash, logs };
 }
