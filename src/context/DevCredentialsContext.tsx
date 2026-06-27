@@ -142,6 +142,13 @@ export const DevCredentialsProvider = ({
 
     if (!(eventType in Event)) return;
 
+    // If URL params were already parsed (waitingForParams=false), ignore AUTH_INIT.
+    // The popup was opened with a full URL (e.g. PROVISION_DEVELOPER_LICENSE) and
+    // the parent page's SDK may still broadcast AUTH_INIT — processing it would
+    // overwrite clientId, re-run validateCredentials, and replace the initialized
+    // KernelSigner with a fresh unauthenticated one.
+    if (eventType === Event.AUTH_INIT && !waitingForParams) return;
+
     const customParams: Partial<AllParams> = {};
 
     if (eventType === Event.AUTH_INIT) {
