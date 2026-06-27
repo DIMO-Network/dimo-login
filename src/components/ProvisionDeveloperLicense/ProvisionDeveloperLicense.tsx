@@ -168,6 +168,7 @@ export const ProvisionDeveloperLicense: React.FC = () => {
       setStep('done');
       setUiState(UiStates.SUCCESS);
     } catch (e) {
+      console.error('[ProvisionDeveloperLicense] handleHasExistingKey failed:', e);
       captureException(e);
       setStep('error');
       setError(e instanceof Error ? e.message : 'Could not register redirect URI');
@@ -181,6 +182,7 @@ export const ProvisionDeveloperLicense: React.FC = () => {
     try {
       await runStep2(tokenId, clientId, registeredUris);
     } catch (e) {
+      console.error('[ProvisionDeveloperLicense] handleGenerateNewKey failed:', e);
       captureException(e);
       setStep('error');
       setError(e instanceof Error ? e.message : 'Could not generate API key');
@@ -223,6 +225,7 @@ export const ProvisionDeveloperLicense: React.FC = () => {
       setClientId(parsed.clientId);
       await runStep2(parsed.tokenId, parsed.clientId, []);
     } catch (e) {
+      console.error('[ProvisionDeveloperLicense] runProvision failed:', e);
       captureException(e);
       setStep('error');
       setError(e instanceof Error ? e.message : 'Could not provision developer license');
@@ -235,6 +238,7 @@ export const ProvisionDeveloperLicense: React.FC = () => {
     try {
       await runStep2(tokenId, clientId);
     } catch (e) {
+      console.error('[ProvisionDeveloperLicense] retryStep2 failed:', e);
       captureException(e);
       setStep('error');
       setError(e instanceof Error ? e.message : 'Could not complete setup');

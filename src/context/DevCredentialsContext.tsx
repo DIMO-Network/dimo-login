@@ -250,12 +250,13 @@ export const DevCredentialsProvider = ({
     if (isStale()) return;
     const alias = await getLicenseAlias(licenseData, clientId);
     if (isStale()) return;
-    // PROVISION_DEVELOPER_LICENSE: the caller's redirectUri won't be registered
-    // on-chain yet — that's what this flow sets up. Skip the redirectUri check
-    // and treat any existing license record as valid.
+    // PROVISION_DEVELOPER_LICENSE: the calling app may not be a registered
+    // developer and its redirectUri won't be registered on-chain yet — that's
+    // what this flow sets up. Skip all license validation so KernelSigner is
+    // always initialized and the user can proceed to provisioning.
     const isProvisionFlow = entryState === UiStates.PROVISION_DEVELOPER_LICENSE;
     const isValid = isProvisionFlow
-      ? Boolean(licenseData)
+      ? true
       : await isValidDeveloperLicense(licenseData, redirectUri);
     if (isStale()) return;
 
