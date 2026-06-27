@@ -12,6 +12,7 @@ type InitializeSessionParams = {
   setUser: (user: UserObject) => void;
   uiState: UiStates;
   setUiState: (step: UiStates) => void;
+  entryState?: UiStates;
 };
 
 export function initializeSession({
@@ -20,6 +21,7 @@ export function initializeSession({
   setUser,
   uiState,
   setUiState,
+  entryState,
 }: InitializeSessionParams): void {
   if (!clientId) {
     console.error('Client ID is missing. Cannot initialize session.');
@@ -34,7 +36,13 @@ export function initializeSession({
     setUser(user);
 
     if (uiState === UiStates.EMAIL_INPUT) {
-      setUiState(UiStates.SUCCESS);
+      // If a specific entry state was requested, route there directly rather
+      // than the generic post-login success screen (e.g. PROVISION_DEVELOPER_LICENSE).
+      const target =
+        entryState && entryState !== UiStates.EMAIL_INPUT
+          ? entryState
+          : UiStates.SUCCESS;
+      setUiState(target);
     }
   } else {
     // If JWT or user is invalid, reset the state
