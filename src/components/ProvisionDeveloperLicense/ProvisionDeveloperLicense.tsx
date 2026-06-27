@@ -94,6 +94,8 @@ export const ProvisionDeveloperLicense: React.FC = () => {
   const [tokenId, setTokenId] = useState<number | null>(existingTokenId ?? null);
   const [clientId, setClientId] = useState<string | null>(existingClientId ?? null);
   const [skipMint, setSkipMint] = useState(existingTokenId != null);
+  // Redirect URIs already registered on the existing license (populated when we detect one).
+  const [registeredUris, setRegisteredUris] = useState<string[]>([]);
 
   // Generated once on mount — never sent anywhere except back to the app in the response
   const keyRef = useRef<{ privateKey: `0x${string}`; address: `0x${string}` } | null>(null);
@@ -113,22 +115,28 @@ export const ProvisionDeveloperLicense: React.FC = () => {
   const alias = buildAlias(user.email, devLicenseAlias);
   const { privateKey, address: signerAddress } = keyRef.current!;
 
-  const runStep2 = async (tid: number, cid: string) => {
+  const needsRedirectUri = (knownUris: string[]) =>
+    Boolean(redirectUri) && !knownUris.includes(redirectUri);
+
+  const runStep2 = async (tid: number, cid: string, knownUris: string[] = []) => {
     setStep('step2');
-    await executeBatchTransactions([
+    const calls: Array<{ address: `0x${string}`; abi: any; functionName: string; args: any[] }> = [
       {
         address: DEV_LICENSE_ADDRESS,
         abi: DEV_LICENSE_ABI,
         functionName: 'enableSigner',
         args: [BigInt(tid), signerAddress],
       },
-      {
+    ];
+    if (needsRedirectUri(knownUris)) {
+      calls.push({
         address: DEV_LICENSE_ADDRESS,
         abi: DEV_LICENSE_ABI,
         functionName: 'setRedirectUri',
         args: [BigInt(tid), true, redirectUri],
-      },
-    ]);
+      });
+    }
+    await executeBatchTransactions(calls);
 
     // privateKey is delivered only via origin-pinned postMessage (popup/embed).
     // Redirect mode receives tokenId + clientId only — the private key must not
@@ -139,15 +147,31 @@ export const ProvisionDeveloperLicense: React.FC = () => {
     setUiState(UiStates.SUCCESS);
   };
 
-  // User already has a license and confirms they have their API key — send
-  // back clientId only so the calling app can pre-fill it and let the user
-  // paste their existing key.
-  const handleHasExistingKey = () => {
+  // User already has a license and confirms they have their API key.
+  // Register the redirectUri if it isn't already on-chain, then send back
+  // clientId only so the calling app can pre-fill it and the user pastes their key.
+  const handleHasExistingKey = async () => {
     if (tokenId == null || clientId == null) return;
-    sendMessageToReferrer({ eventType: 'provisionResponse', tokenId, clientId }, redirectUri);
-    backToThirdParty({ tokenId, clientId }, redirectUri, utm);
-    setStep('done');
-    setUiState(UiStates.SUCCESS);
+    setError('');
+    try {
+      if (needsRedirectUri(registeredUris)) {
+        setStep('step2');
+        await executeBatchTransactions([{
+          address: DEV_LICENSE_ADDRESS,
+          abi: DEV_LICENSE_ABI,
+          functionName: 'setRedirectUri',
+          args: [BigInt(tokenId), true, redirectUri],
+        }]);
+      }
+      sendMessageToReferrer({ eventType: 'provisionResponse', tokenId, clientId }, redirectUri);
+      backToThirdParty({ tokenId, clientId }, redirectUri, utm);
+      setStep('done');
+      setUiState(UiStates.SUCCESS);
+    } catch (e) {
+      captureException(e);
+      setStep('error');
+      setError(e instanceof Error ? e.message : 'Could not register redirect URI');
+    }
   };
 
   // User already has a license but no API key — generate a new one and register it.
@@ -155,7 +179,7 @@ export const ProvisionDeveloperLicense: React.FC = () => {
     if (tokenId == null || clientId == null) return;
     setError('');
     try {
-      await runStep2(tokenId, clientId);
+      await runStep2(tokenId, clientId, registeredUris);
     } catch (e) {
       captureException(e);
       setStep('error');
@@ -166,7 +190,7 @@ export const ProvisionDeveloperLicense: React.FC = () => {
   const runProvision = async () => {
     try {
       if (existingTokenId != null && existingClientId) {
-        await runStep2(existingTokenId, existingClientId);
+        await runStep2(existingTokenId, existingClientId, []);
         return;
       }
 
@@ -177,6 +201,7 @@ export const ProvisionDeveloperLicense: React.FC = () => {
         if (existing) {
           setTokenId(existing.tokenId);
           setClientId(existing.clientId);
+          setRegisteredUris(existing.redirectUris);
           setSkipMint(true);
           setStep('existing_prompt');
           return;
@@ -196,7 +221,7 @@ export const ProvisionDeveloperLicense: React.FC = () => {
 
       setTokenId(parsed.tokenId);
       setClientId(parsed.clientId);
-      await runStep2(parsed.tokenId, parsed.clientId);
+      await runStep2(parsed.tokenId, parsed.clientId, []);
     } catch (e) {
       captureException(e);
       setStep('error');

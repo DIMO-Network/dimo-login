@@ -151,12 +151,17 @@ export const fetchDeviceDefinition = async (
 
 export const getFirstOwnedDeveloperLicense = async (
   ownerAddress: string,
-): Promise<{ tokenId: number; clientId: string } | null> => {
+): Promise<{ tokenId: number; clientId: string; redirectUris: string[] } | null> => {
   const query = `{
     developerLicenses(first: 1, filterBy: { owner: "${ownerAddress}" }) {
       nodes {
         tokenId
         clientId
+        redirectURIs(first: 100) {
+          nodes {
+            uri
+          }
+        }
       }
     }
   }`;
@@ -169,7 +174,12 @@ export const getFirstOwnedDeveloperLicense = async (
 
   const { data } = await apiResponse.json();
   const node = data?.developerLicenses?.nodes?.[0];
-  return node ?? null;
+  if (!node) return null;
+  return {
+    tokenId: node.tokenId,
+    clientId: node.clientId,
+    redirectUris: node.redirectURIs?.nodes?.map((n: { uri: string }) => n.uri) ?? [],
+  };
 };
 
 export const getDeveloperLicense = async (clientId: string) => {
