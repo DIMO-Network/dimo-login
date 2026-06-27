@@ -93,6 +93,7 @@ export const ProvisionDeveloperLicense: React.FC = () => {
   const [step, setStep] = useState<Step>('idle');
   const [tokenId, setTokenId] = useState<number | null>(existingTokenId ?? null);
   const [clientId, setClientId] = useState<string | null>(existingClientId ?? null);
+  const [skipMint, setSkipMint] = useState(existingTokenId != null);
 
   // Generated once on mount — never sent anywhere except back to the app in the response
   const keyRef = useRef<{ privateKey: `0x${string}`; address: `0x${string}` } | null>(null);
@@ -176,6 +177,7 @@ export const ProvisionDeveloperLicense: React.FC = () => {
         if (existing) {
           setTokenId(existing.tokenId);
           setClientId(existing.clientId);
+          setSkipMint(true);
           setStep('existing_prompt');
           return;
         }
@@ -242,7 +244,7 @@ export const ProvisionDeveloperLicense: React.FC = () => {
 
   const stepLabel =
     step === 'step1' ? 'Step 1 of 2: Minting your developer license…'
-    : step === 'step2' ? 'Step 2 of 2: Registering API key and redirect URI…'
+    : step === 'step2' ? (skipMint ? 'Generating your API key…' : 'Step 2 of 2: Registering API key and redirect URI…')
     : step === 'done' ? 'Done!'
     : 'Setting up your developer license…';
 
@@ -254,10 +256,12 @@ export const ProvisionDeveloperLicense: React.FC = () => {
       <div className="flex flex-col gap-4 w-full text-sm">
         <p className="text-gray-600">{stepLabel}</p>
         <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <span className={`h-2 w-2 rounded-full ${step === 'step1' ? 'bg-blue-500 animate-pulse' : step !== 'idle' ? 'bg-green-500' : 'bg-gray-300'}`} />
-            <span className={step !== 'idle' ? 'text-gray-900' : 'text-gray-400'}>Mint developer license</span>
-          </div>
+          {!skipMint && (
+            <div className="flex items-center gap-2">
+              <span className={`h-2 w-2 rounded-full ${step === 'step1' ? 'bg-blue-500 animate-pulse' : step !== 'idle' ? 'bg-green-500' : 'bg-gray-300'}`} />
+              <span className={step !== 'idle' ? 'text-gray-900' : 'text-gray-400'}>Mint developer license</span>
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <span className={`h-2 w-2 rounded-full ${step === 'step2' ? 'bg-blue-500 animate-pulse' : step === 'done' ? 'bg-green-500' : 'bg-gray-300'}`} />
             <span className={step === 'step2' || step === 'done' ? 'text-gray-900' : 'text-gray-400'}>Register API key &amp; redirect URI</span>
