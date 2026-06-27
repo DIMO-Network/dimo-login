@@ -86,6 +86,10 @@ export const DevCredentialsProvider = ({
   const { devCredentialsState, applyDevCredentialsConfig } =
     useParamsHandler(DEFAULT_CONTEXT);
   const [loadingState, setLoadingState] = useState(DEFAULT_LOADING_STATE);
+  // Once a KernelSigner is created and auth succeeds, a subsequent re-run of
+  // validateCredentials (e.g. due to a stray AUTH_INIT resetting clientId) must
+  // NOT replace it — the existing authenticated instance would be lost.
+  const kernelSignerInitializedRef = useRef(false);
 
   const { clientId, redirectUri, waitingForParams, waitingForDevLicense, brandName, entryState } =
     devCredentialsState;
@@ -279,7 +283,10 @@ export const DevCredentialsProvider = ({
       return;
     }
 
-    createKernelSigner(clientId, clientId, redirectUri);
+    if (!kernelSignerInitializedRef.current) {
+      kernelSignerInitializedRef.current = true;
+      createKernelSigner(clientId, clientId, redirectUri);
+    }
   };
 
   const setupPopupConfig = () => {
