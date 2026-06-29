@@ -141,7 +141,8 @@ export const ProvisionDeveloperLicense: React.FC = () => {
     // privateKey is delivered only via origin-pinned postMessage (popup/embed).
     // Redirect mode receives tokenId + clientId only — the private key must not
     // travel in a URL (server logs, browser history, Referer headers).
-    sendMessageToReferrer({ eventType: 'provisionResponse', tokenId: tid, clientId: cid, privateKey }, redirectUri);
+    const strippedKey = privateKey.startsWith('0x') ? privateKey.slice(2) : privateKey;
+    sendMessageToReferrer({ eventType: 'provisionResponse', tokenId: tid, clientId: cid, privateKey: strippedKey }, redirectUri);
     backToThirdParty({ tokenId: tid, clientId: cid }, redirectUri, utm);
     setStep('done');
     setUiState(UiStates.SUCCESS);
