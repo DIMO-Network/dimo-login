@@ -87,7 +87,7 @@ type Step = 'idle' | 'step1' | 'step2' | 'done' | 'error' | 'existing_prompt';
 
 export const ProvisionDeveloperLicense: React.FC = () => {
   const { redirectUri, utm, devLicenseAlias, existingTokenId, existingClientId } = useDevCredentials();
-  const { user } = useAuthContext();
+  const { user, validateSession } = useAuthContext();
   const { setUiState, error, setError } = useUIManager();
 
   const [step, setStep] = useState<Step>('idle');
@@ -153,6 +153,8 @@ export const ProvisionDeveloperLicense: React.FC = () => {
   const handleHasExistingKey = async () => {
     if (tokenId == null || clientId == null) return;
     setError('');
+    const validSession = await validateSession();
+    if (!validSession) return;
     try {
       if (needsRedirectUri(registeredUris)) {
         setStep('step2');
@@ -179,6 +181,8 @@ export const ProvisionDeveloperLicense: React.FC = () => {
   const handleGenerateNewKey = async () => {
     if (tokenId == null || clientId == null) return;
     setError('');
+    const validSession = await validateSession();
+    if (!validSession) return;
     try {
       await runStep2(tokenId, clientId, registeredUris);
     } catch (e) {
@@ -191,6 +195,9 @@ export const ProvisionDeveloperLicense: React.FC = () => {
 
   const runProvision = async () => {
     try {
+      const validSession = await validateSession();
+      if (!validSession) return;
+
       if (existingTokenId != null && existingClientId) {
         await runStep2(existingTokenId, existingClientId, []);
         return;
