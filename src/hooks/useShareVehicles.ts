@@ -77,7 +77,10 @@ export const useShareVehicles = () => {
         ? {
             permissions: mergePermissions(vehicle, perms),
             agreements: mergeAgreements(
-              await readGrantAgreements(vehicle),
+              await readGrantAgreements(vehicle, {
+                grantor: user?.smartContractAddress,
+                grantee: clientId,
+              }),
               requestedAgreements,
             ),
             expiration: keepLaterExpiration(vehicle, expirationDate),

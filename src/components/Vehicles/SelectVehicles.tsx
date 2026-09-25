@@ -16,6 +16,7 @@ import { isInvalidSessionError } from '../../utils/authUtils';
 import { getAddedPermissions, needsPermissionUpdate } from '../../utils/permissions';
 import { PermissionUpdateNotice } from './PermissionUpdateNotice';
 import { FilesRequestedNote } from './FilesRequestedNote';
+import { describeShareEnd } from '../../utils/dateUtils';
 import {
   getFileLabels,
   getMissingFileLabels,
@@ -33,6 +34,7 @@ export const SelectVehicles: React.FC = () => {
     permissions,
     permissionTemplateId,
     cloudEvent,
+    expirationDate,
   } = useDevCredentials<VehicleManagerMandatoryParams>();
   const brandName = oemBrand?.name || devLicenseAlias;
   const { setLoadingState, setError, isLoading } = useUIManager();
@@ -137,11 +139,15 @@ export const SelectVehicles: React.FC = () => {
             permissionTemplateId,
           )}
           addedFiles={missingFileLabels}
+          shareEnd={describeShareEnd(expirationDate)}
         />
       )}
 
       {showFilesNote && (
-        <FilesRequestedNote brandName={brandName} fileLabels={getFileLabels(requestedFiles)} />
+        <FilesRequestedNote
+          brandName={brandName}
+          fileLabels={getFileLabels(requestedFiles)}
+        />
       )}
 
       <UIManagerLoaderWrapper>

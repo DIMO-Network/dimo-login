@@ -56,7 +56,13 @@ beforeEach(() => {
   (setVehiclePermissions as jest.Mock).mockResolvedValue(undefined);
   global.fetch = jest.fn(async () => ({
     ok: true,
-    json: async () => ({ data: { agreements: [EXISTING_RAW] } }),
+    json: async () => ({
+      data: {
+        grantor: { address: '0x1111111111111111111111111111111111111111' },
+        grantee: { address: '0xgrantee000000000000000000000000000000000' },
+        agreements: [EXISTING_RAW],
+      },
+    }),
   })) as any;
 });
 afterEach(() => {

@@ -10,6 +10,8 @@ interface PermissionUpdateNoticeProps {
   addedPermissions: Permission[];
   // Labels for requested files the current grants don't include.
   addedFiles?: string[];
+  // How long updated shares last, e.g. "until Jan 1, 2027".
+  shareEnd: string;
 }
 
 /**
@@ -22,6 +24,7 @@ export const PermissionUpdateNotice: React.FC<PermissionUpdateNoticeProps> = ({
   vehicleCount,
   addedPermissions,
   addedFiles = [],
+  shareEnd,
 }) => {
   const added = [...addedPermissions.map(getPermissionLabel), ...addedFiles];
   // The license alias can still be empty while credentials load.
@@ -46,7 +49,8 @@ export const PermissionUpdateNotice: React.FC<PermissionUpdateNoticeProps> = ({
           <h2 className="text-base font-medium text-black">{title}</h2>
           <p className="mt-1 text-sm text-gray-600">
             Your {vehicles} shared with older permissions. Update to keep {name} working.
-            You don&apos;t need to stop sharing first.
+            You don&apos;t need to stop sharing first. Updated shares last {shareEnd}, or
+            longer if they already do.
           </p>
           {!!added.length && (
             <ul className="mt-3 flex flex-wrap gap-1.5" aria-label="New permissions">
