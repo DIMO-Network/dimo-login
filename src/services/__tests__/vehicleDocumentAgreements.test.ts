@@ -56,12 +56,23 @@ describe('toCloudEventAgreements', () => {
     ).toEqual([]);
   });
 
+  it('accepts only the document patterns the consent screen can name', () => {
+    expect(
+      toCloudEventAgreements([
+        { eventType: '<img src=https://x onerror=alert(1)>' },
+        { eventType: 'dimo.attestation' },
+        { eventType: '*' },
+        { eventType: 'dimo.raw.driver.*' },
+      ] as any).map((a) => a.eventType),
+    ).toEqual(['dimo.raw.driver.*']);
+  });
+
   it('drops malformed entries whole instead of widening or redirecting them', () => {
     expect(
       toCloudEventAgreements([
-        { eventType: 'e', ids: 'doc-123' }, // would become "all events"
-        { eventType: 'e', ids: ['a', 3] },
-        { eventType: 'e', source: '0XABC' }, // would become the user's address
+        { eventType: 'dimo.document.vehicle.*', ids: 'doc-123' }, // would become "all events"
+        { eventType: 'dimo.document.vehicle.*', ids: ['a', 3] },
+        { eventType: 'dimo.document.vehicle.*', source: '0XABC' }, // would become the user's address
       ] as any),
     ).toEqual([]);
   });
@@ -69,8 +80,13 @@ describe('toCloudEventAgreements', () => {
   it('keeps well-formed entries, defaulting only tags', () => {
     const source = '0x2222222222222222222222222222222222222222';
     expect(
-      toCloudEventAgreements({ eventType: 'e', source, ids: ['a'], tags: 'x' } as any),
-    ).toEqual([{ eventType: 'e', source, ids: ['a'], tags: [] }]);
+      toCloudEventAgreements({
+        eventType: 'dimo.document.vehicle.*',
+        source,
+        ids: ['a'],
+        tags: 'x',
+      } as any),
+    ).toEqual([{ eventType: 'dimo.document.vehicle.*', source, ids: ['a'], tags: [] }]);
   });
 });
 

@@ -6,6 +6,7 @@ import { getTemplateDescription } from '../../services/permissionsService';
 import { Header, ErrorMessage } from '../Shared';
 import { useUIManager } from '../../context/UIManagerContext';
 import SelectVehicles from './SelectVehicles';
+import { ContractDescription } from './ContractDescription';
 import { getAppUrl } from '../../utils/urlHelpers';
 import { VehicleManagerMandatoryParams } from '../../types/params';
 import { toCloudEventAgreements } from '../../services/vehicleDocumentAgreements';
@@ -65,64 +66,9 @@ export const VehicleManager: React.FC = () => {
     devLicenseAlias,
   ]);
 
-  const renderDescription = (description: string) => {
-    const paragraphs = description.split('\n\n');
-
-    // Show only the first paragraph by default, and the rest will be shown when expanded
-    const firstParagraph = paragraphs[0];
-
-    return (
-      <div>
-        {/* Render the first paragraph or the entire description based on the `isExpanded` state */}
-        {isExpanded ? (
-          description.split('\n\n').map((paragraph, index) => {
-            const hasBulletPoints = paragraph.includes('- ');
-            const isLink = paragraph.includes('http');
-            return (
-              <React.Fragment key={index}>
-                {/* Check if the paragraph contains bullet points */}
-                {hasBulletPoints && (
-                  <ul className="list-disc list-inside mb-4">
-                    {paragraph.split('\n-').map((line, i) =>
-                      i === 0 ? (
-                        <p key={i} className="mb-2">
-                          {line.trim()}
-                        </p>
-                      ) : (
-                        <li key={i} className="ml-4">
-                          {line.trim()}
-                        </li>
-                      ),
-                    )}
-                  </ul>
-                )}
-                {/* Check if the paragraph contains a link */}
-                {isLink && (
-                  <p
-                    className="mb-4 text-zinc-500 underline cursor-pointer"
-                    dangerouslySetInnerHTML={
-                      // Use `dangerouslySetInnerHTML` to render HTML content
-                      {
-                        __html: paragraph.replace(/(\r\n|\n|\r)/gm, '<br />'),
-                      }
-                    }
-                  ></p>
-                )}
-                {/* Render paragraph without bullet points or links */}
-                {!hasBulletPoints && !isLink && <p className="mb-4">{paragraph}</p>}
-              </React.Fragment>
-            );
-          })
-        ) : (
-          <p className="mb-4">{firstParagraph}</p> // Show only the first paragraph
-        )}
-      </div>
-    );
-  };
-
-  const renderPermissionDescription = () => {
-    return renderDescription(templateDescription);
-  };
+  const renderPermissionDescription = () => (
+    <ContractDescription description={templateDescription} isExpanded={!!isExpanded} />
+  );
 
   const appUrl = getAppUrl();
 
