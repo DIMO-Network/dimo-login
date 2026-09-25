@@ -2,11 +2,24 @@ import React from 'react';
 import PrimaryButton from '../Shared/PrimaryButton';
 import LegalNotice from '../Shared/LegalNotice';
 
+const pluralize = (count: number) => `${count} ${count === 1 ? 'vehicle' : 'vehicles'}`;
+
+// Name the button after what it will do: share new vehicles, update existing
+// shares to the requested permissions, or both.
+export const getShareButtonLabel = (selectedCount: number, updateCount: number) => {
+  const newCount = selectedCount - updateCount;
+  if (selectedCount === 0) return 'Share vehicles';
+  if (updateCount === 0) return `Share ${pluralize(newCount)}`;
+  if (newCount === 0) return `Update ${pluralize(updateCount)}`;
+  return `Share and update ${pluralize(selectedCount)}`;
+};
+
 const Footer = ({
   canShare,
   onCancel,
   onShare,
   selectedVehiclesCount,
+  selectedUpdateCount = 0,
   tosUrl,
   privacyPolicyUrl,
   brandName,
@@ -15,6 +28,7 @@ const Footer = ({
   onCancel: () => void;
   onShare: () => void;
   selectedVehiclesCount: number;
+  selectedUpdateCount?: number;
   tosUrl?: string;
   privacyPolicyUrl?: string;
   brandName?: string;
@@ -37,7 +51,7 @@ const Footer = ({
               Cancel
             </button>
             <PrimaryButton onClick={onShare} disabled={selectedVehiclesCount === 0}>
-              Save changes
+              {getShareButtonLabel(selectedVehiclesCount, selectedUpdateCount)}
             </PrimaryButton>
           </>
         )}

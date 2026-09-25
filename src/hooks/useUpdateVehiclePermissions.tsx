@@ -7,6 +7,7 @@ import {
   generateIpfsSources,
   setVehiclePermissions,
 } from '../services';
+import { generateAttachments } from '../services/permissionsService';
 import { SetVehiclePermissions } from '@dimo-network/transactions';
 
 type UpdateVehiclePermissionsParams = {
@@ -18,7 +19,7 @@ type UpdateVehiclePermissionsParams = {
 
 export const useUpdateVehiclePermissions = () => {
   const { validateSession } = useAuthContext();
-  const { clientId } = useDevCredentials();
+  const { clientId, region } = useDevCredentials();
 
   return async ({
     permissionTemplateId,
@@ -31,7 +32,8 @@ export const useUpdateVehiclePermissions = () => {
       throw new Error(INVALID_SESSION_ERROR);
     }
     const perms = createPermissionsFromParams(permissions, permissionTemplateId);
-    const sources = await generateIpfsSources(perms, clientId, expiration);
+    const attachments = generateAttachments(region?.toUpperCase());
+    const sources = await generateIpfsSources(perms, clientId, expiration, attachments);
     const basePermissions = {
       grantee: clientId as `0x${string}`,
       permissions: perms,

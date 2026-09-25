@@ -79,8 +79,13 @@ export const sortVehiclesByFilters = async (
 export const getNewExpirationDate = (
   vehicle: Vehicle,
   actionType: VehiclePermissionsAction,
+  requestedExpiration?: BigInt,
 ) => {
-  return actionType === 'revoke' ? BigInt(0) : extendExpirationDateByYear(vehicle);
+  if (actionType === 'revoke') return BigInt(0);
+  // An update re-shares on the app's terms, including its requested expiration.
+  if (actionType === 'update' && requestedExpiration)
+    return BigInt(requestedExpiration.toString());
+  return extendExpirationDateByYear(vehicle);
 };
 const extendExpirationDateByYear = (vehicle: Vehicle) => {
   const extendedDate = extendByYear(vehicle.expiresAt);

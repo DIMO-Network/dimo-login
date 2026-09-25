@@ -23,6 +23,7 @@ export const Checkbox: FC<CheckboxProps> = forwardRef<HTMLInputElement, Checkbox
       height = 'h-5',
       width = 'w-5',
       checked,
+      disabled,
     },
     ref,
   ) => {
@@ -35,6 +36,7 @@ export const Checkbox: FC<CheckboxProps> = forwardRef<HTMLInputElement, Checkbox
           id={id}
           name={name}
           onChange={onChange}
+          disabled={disabled}
           type="checkbox"
           className={`${height} ${width} col-start-1 row-start-1 appearance-none rounded-md border border-gray-300 bg-white checked:border-black checked:bg-black indeterminate:border-black indeterminate:bg-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black disabled:border-gray-300 disabled:bg-gray-100 disabled:checked:bg-gray-100 forced-colors:appearance-auto`}
           ref={ref}

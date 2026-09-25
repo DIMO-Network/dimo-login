@@ -9,9 +9,22 @@ import { VehiclePermissionsAction } from '../../types';
 import { getNewExpirationDate } from '../../utils/vehicles';
 import { ManageVehicleDetails } from './ManageVehicleDetails';
 import { ManageVehicleFooter } from './ManageVehicleFooter';
+import { useDevCredentials } from '../../context/DevCredentialsContext';
+import { VehicleManagerMandatoryParams } from '../../types';
+import { needsPermissionUpdate } from '../../utils/permissions';
 
-const getLoadingMessage = (actionType: VehiclePermissionsAction) => {
-  return actionType === 'revoke' ? 'Revoking vehicles' : 'Extending vehicles';
+const LOADING_MESSAGES: Record<VehiclePermissionsAction, string> = {
+  revoke: 'Revoking vehicles',
+  extend: 'Extending vehicles',
+  update: 'Updating permissions',
+};
+
+// 'update' reports back as 'shared' so the app receives sharedVehicles, the
+// same as a first-time share with the requested permissions.
+const SUCCESS_ACTIONS: Record<VehiclePermissionsAction, string> = {
+  revoke: 'revoked',
+  extend: 'extended',
+  update: 'shared',
 };
 
 export const ManageVehicle: React.FC = () => {
@@ -23,12 +36,13 @@ export const ManageVehicle: React.FC = () => {
     setError,
     error,
   } = useUIManager();
+  const { expirationDate } = useDevCredentials<VehicleManagerMandatoryParams>();
   const updateVehiclePermissions = useUpdateVehiclePermissions();
+  const needsUpdate = needsPermissionUpdate(vehicle, permissions, permissionTemplateId);
 
   const handleSuccess = (actionType: VehiclePermissionsAction) => {
-    const newAction = actionType === 'revoke' ? 'revoked' : 'extended';
     vehicle.shared = false;
-    setComponentData({ action: newAction, vehicles: [vehicle] });
+    setComponentData({ action: SUCCESS_ACTIONS[actionType], vehicles: [vehicle] });
     setUiState(UiStates.VEHICLES_SHARED_SUCCESS);
   };
 
@@ -42,11 +56,11 @@ export const ManageVehicle: React.FC = () => {
   const handlePermissionUpdate = async (actionType: VehiclePermissionsAction) => {
     try {
       setError(null);
-      setLoadingState(true, getLoadingMessage(actionType), true);
+      setLoadingState(true, LOADING_MESSAGES[actionType], true);
       await updateVehiclePermissions({
         permissionTemplateId,
         permissions,
-        expiration: getNewExpirationDate(vehicle, actionType),
+        expiration: getNewExpirationDate(vehicle, actionType, expirationDate),
         vehicle: vehicle,
       });
       handleSuccess(actionType);
@@ -65,11 +79,20 @@ export const ManageVehicle: React.FC = () => {
     handlePermissionUpdate('extend');
   };
 
+  const handleUpdate = () => {
+    handlePermissionUpdate('update');
+  };
+
   return (
     <UIManagerLoaderWrapper>
       <ManageVehicleDetails vehicle={vehicle} />
       {!!error && <ErrorMessage message={error} />}
-      <ManageVehicleFooter onRevoke={handleRevoke} onExtend={handleExtend} />
+      <ManageVehicleFooter
+        onRevoke={handleRevoke}
+        onExtend={handleExtend}
+        onUpdate={handleUpdate}
+        needsUpdate={needsUpdate}
+      />
     </UIManagerLoaderWrapper>
   );
 };
