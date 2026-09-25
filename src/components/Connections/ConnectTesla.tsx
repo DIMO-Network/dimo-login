@@ -37,7 +37,8 @@ export const ConnectTesla: FC = () => {
   const { componentData, setUiState, setLoadingState, setComponentData } = useUIManager();
   const [step, setStep] = useState<TeslaOnboardingStep>(TeslaOnboardingStep.PERMISSIONS);
   const [vehicleToAdd, setVehicleToAdd] = useState<TeslaVehicle>();
-  const { devLicenseAlias, clientId, redirectUri, oemBrand } = useDevCredentials();
+  const { devLicenseAlias, clientId, redirectUri, oemBrand, cloudEvent } =
+    useDevCredentials();
   const displayName = oemBrand?.name || devLicenseAlias;
   const { jwt } = useAuthContext();
   const appUrl = getAppUrl();
@@ -206,6 +207,8 @@ export const ConnectTesla: FC = () => {
         utm: urlParams.getAll('utm'),
         vehicleMakes: urlParams.getAll('vehicleMakes'),
         vehicles: urlParams.getAll('vehicles'),
+        powertrainTypes: urlParams.getAll('powertrainTypes'),
+        cloudEvent,
         vehicleToAdd,
       });
 

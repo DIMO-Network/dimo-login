@@ -8,6 +8,8 @@ interface PermissionUpdateNoticeProps {
   brandName: string;
   vehicleCount: number;
   addedPermissions: Permission[];
+  // Labels for requested files the current grants don't include.
+  addedFiles?: string[];
 }
 
 /**
@@ -19,11 +21,16 @@ export const PermissionUpdateNotice: React.FC<PermissionUpdateNoticeProps> = ({
   brandName,
   vehicleCount,
   addedPermissions,
+  addedFiles = [],
 }) => {
+  const added = [...addedPermissions.map(getPermissionLabel), ...addedFiles];
+  // The license alias can still be empty while credentials load.
+  const name = brandName || 'the app';
+  const Name = brandName || 'This app';
   const vehicles = vehicleCount === 1 ? 'vehicle is' : `${vehicleCount} vehicles are`;
-  const title = addedPermissions.length
-    ? `${brandName} is asking for more access`
-    : `${brandName} updated the access it needs`;
+  const title = added.length
+    ? `${Name} is asking for more access`
+    : `${Name} updated the access it needs`;
 
   return (
     <section
@@ -38,17 +45,17 @@ export const PermissionUpdateNotice: React.FC<PermissionUpdateNoticeProps> = ({
         <div className="min-w-0">
           <h2 className="text-base font-medium text-black">{title}</h2>
           <p className="mt-1 text-sm text-gray-600">
-            Your {vehicles} shared with older permissions. Update to keep {brandName}{' '}
-            working. You don&apos;t need to stop sharing first.
+            Your {vehicles} shared with older permissions. Update to keep {name} working.
+            You don&apos;t need to stop sharing first.
           </p>
-          {!!addedPermissions.length && (
+          {!!added.length && (
             <ul className="mt-3 flex flex-wrap gap-1.5" aria-label="New permissions">
-              {addedPermissions.map((permission) => (
+              {added.map((label) => (
                 <li
-                  key={permission}
+                  key={label}
                   className="rounded-full border border-gray-200 bg-white px-2.5 py-0.5 text-xs font-medium text-black"
                 >
-                  + {getPermissionLabel(permission)}
+                  + {label}
                 </li>
               ))}
             </ul>

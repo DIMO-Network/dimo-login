@@ -48,6 +48,7 @@ const GET_VEHICLES = gql`
             expiresAt
             grantee
             permissions
+            source
           }
         }
       }
@@ -76,6 +77,7 @@ export type VehicleNode = {
       expiresAt: string;
       permissions: string;
       grantee: string;
+      source?: string;
     }[];
   };
 };

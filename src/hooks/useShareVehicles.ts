@@ -6,71 +6,39 @@ import {
   setVehiclePermissionsBulk,
 } from '../services';
 import {
-  SetVehiclePermissions,
-  SetVehiclePermissionsBulk,
-} from '@dimo-network/transactions';
+  setVehiclePermissionsBatch,
+  VEHICLE_PERMISSIONS_BATCH_LIMIT,
+} from '../services/turnkeyService';
 import { useDevCredentials } from '../context/DevCredentialsContext';
 import { VehicleManagerMandatoryParams } from '../types';
 import { useAuthContext } from '../context/AuthContext';
 import { INVALID_SESSION_ERROR } from '../utils/authUtils';
 import { generateAttachments } from '../services/permissionsService';
+import {
+  getVehicleAsset,
+  mergeAgreements,
+  readGrantAgreements,
+  toCloudEventAgreements,
+  withSource,
+} from '../services/vehicleDocumentAgreements';
+import { mergePermissions } from '../utils/permissions';
+import { keepLaterExpiration } from '../utils/vehicles';
+import { mapWithConcurrency } from '../utils/mapWithConcurrency';
 
-const shareSingleVehicle = async (tokenId: string, basePermissions: any) => {
-  const vehiclePermissions: SetVehiclePermissions = {
-    ...basePermissions,
-    permissions: basePermissions.perms,
-    tokenId: BigInt(tokenId),
-  };
-  await setVehiclePermissions(vehiclePermissions);
-};
-const shareMultipleVehicles = async (tokenIds: string[], basePermissions: any) => {
-  const bulkVehiclePermissions: SetVehiclePermissionsBulk = {
-    ...basePermissions,
-    permissions: basePermissions.perms,
-    tokenIds: tokenIds.map((id) => BigInt(id)),
-  };
-  await setVehiclePermissionsBulk(bulkVehiclePermissions);
-};
-
-const shareVehicles = async (tokenIds: string[], basePermissions: any) => {
-  if (tokenIds.length === 1) {
-    return shareSingleVehicle(tokenIds[0], basePermissions);
-  }
-  return shareMultipleVehicles(tokenIds, basePermissions);
-};
-
-interface Params {
-  permissionTemplateId?: string;
-  permissions?: string;
-  clientId: `0x${string}` | null;
-  expirationDate: BigInt;
-  region?: string;
-}
-
-const getBasePermissions = async ({
-  permissionTemplateId,
-  permissions,
-  clientId,
-  expirationDate,
-  region,
-}: Params) => {
-  const perms = createPermissionsFromParams(permissions, permissionTemplateId);
-  console.log('useShareVehicles - region:', region);
-  const attachments = generateAttachments(region?.toUpperCase());
-  console.log('useShareVehicles - generated attachments:', attachments);
-  const source = await generateIpfsSources(perms, clientId, expirationDate, attachments);
-  return {
-    grantee: clientId as `0x${string}`,
-    perms,
-    expiration: expirationDate,
-    source,
-  };
-};
+// Grants are read (IPFS) and documents signed (Turnkey) and uploaded (IPFS)
+// per vehicle; cap the burst.
+const SIGNING_CONCURRENCY = 4;
 
 export const useShareVehicles = () => {
-  const { clientId, expirationDate, permissionTemplateId, permissions, region } =
-    useDevCredentials<VehicleManagerMandatoryParams>();
-  const { validateSession } = useAuthContext();
+  const {
+    clientId,
+    expirationDate,
+    permissionTemplateId,
+    permissions,
+    region,
+    cloudEvent,
+  } = useDevCredentials<VehicleManagerMandatoryParams>();
+  const { validateSession, user } = useAuthContext();
 
   const validate = async () => {
     if (!clientId) {
@@ -91,14 +59,98 @@ export const useShareVehicles = () => {
     }
     const isValid = await validate();
     if (!isValid) throw new Error(INVALID_SESSION_ERROR);
-    const tokenIds = vehicles.map((v) => v.tokenId.toString());
-    const basePermissions = await getBasePermissions({
-      clientId,
-      permissionTemplateId,
-      permissions,
-      expirationDate,
-      region,
+
+    const perms = createPermissionsFromParams(permissions, permissionTemplateId);
+    const attachments = generateAttachments(region?.toUpperCase());
+    const requestedAgreements = withSource(
+      toCloudEventAgreements(cloudEvent),
+      user?.smartContractAddress,
+    );
+
+    // A vehicle already shared with this app gets its current grant plus the
+    // request, so an update never drops access (only "Stop sharing" does):
+    // same or more permissions and files, and the later expiry. Every current
+    // grant is read and checked before anything is signed; if one can't be
+    // carried over, this throws and nothing is signed.
+    const planGrant = async (vehicle: Vehicle) => {
+      const plan = vehicle.shared
+        ? {
+            permissions: mergePermissions(vehicle, perms),
+            agreements: mergeAgreements(
+              await readGrantAgreements(vehicle),
+              requestedAgreements,
+            ),
+            expiration: keepLaterExpiration(vehicle, expirationDate),
+          }
+        : {
+            permissions: perms,
+            agreements: requestedAgreements,
+            expiration: expirationDate,
+          };
+      return {
+        ...plan,
+        vehicle,
+        // Also checked up front: a vehicle without a DID can't take files.
+        asset: getVehicleAsset(vehicle, plan.agreements.length > 0),
+      };
+    };
+
+    const signGrant = async ({
+      vehicle,
+      permissions: vehiclePerms,
+      agreements,
+      expiration,
+      asset,
+    }: Awaited<ReturnType<typeof planGrant>>) => ({
+      grantee: clientId as `0x${string}`,
+      permissions: vehiclePerms,
+      expiration,
+      tokenId: BigInt(vehicle.tokenId),
+      source: await generateIpfsSources(vehiclePerms, clientId, expiration, {
+        attachments,
+        cloudEventAgreements: agreements,
+        asset,
+      }),
     });
-    return shareVehicles(tokenIds, basePermissions);
+
+    // File agreements only count for the vehicle DID they name, and updates
+    // carry each vehicle's own grant, so both need a document per vehicle.
+    // A plain first-time share of several vehicles uses one bulk document.
+    const perVehicle =
+      requestedAgreements.length > 0 ||
+      vehicles.length === 1 ||
+      vehicles.some((v) => v.shared);
+
+    if (perVehicle) {
+      const plans = await mapWithConcurrency(vehicles, SIGNING_CONCURRENCY, planGrant);
+      // Sign every document before sending anything, so a signing failure
+      // leaves no grants on-chain. Signings already running when one fails
+      // still finish; their documents are uploaded but never referenced.
+      const grants = await mapWithConcurrency(plans, SIGNING_CONCURRENCY, signGrant);
+      if (grants.length === 1) {
+        await setVehiclePermissions(grants[0]);
+        return;
+      }
+      // Each batch is one user operation, so its grants land together or not
+      // at all. Shares of more than 24 vehicles need several batches, and an
+      // error partway leaves the earlier batches in place.
+      for (let i = 0; i < grants.length; i += VEHICLE_PERMISSIONS_BATCH_LIMIT) {
+        await setVehiclePermissionsBatch(
+          grants.slice(i, i + VEHICLE_PERMISSIONS_BATCH_LIMIT),
+        );
+      }
+      return;
+    }
+
+    const source = await generateIpfsSources(perms, clientId, expirationDate, {
+      attachments,
+    });
+    await setVehiclePermissionsBulk({
+      grantee: clientId as `0x${string}`,
+      expiration: expirationDate,
+      permissions: perms,
+      tokenIds: vehicles.map((v) => BigInt(v.tokenId)),
+      source,
+    });
   };
 };

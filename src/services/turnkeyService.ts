@@ -166,26 +166,40 @@ export const signChallenge = async (challenge: string): Promise<`0x${string}`> =
   return signature;
 };
 
+type IpfsSourceOptions = {
+  attachments?: Attachment[];
+  cloudEventAgreements?: CloudEventAgreement[];
+  dataversion?: string;
+  // The vehicle's DID (did:erc721:<chainId>:<contract>:<tokenId>). File
+  // agreements only count for the vehicle they name, so one document can't
+  // cover several vehicles; a bulk share without files keeps the 'did:'
+  // placeholder.
+  asset?: `did:${string}`;
+};
+
 // Helper function to generate IPFS sources for one or more vehicles
 export const generateIpfsSources = async (
   permissions: Permission[],
   clientId: `0x${string}` | null,
   expiration: BigInt,
-  attachments: Attachment[] = [],
-  cloudEventAgreements?: CloudEventAgreement[],
-  dataversion?: string,
+  { attachments = [], cloudEventAgreements, dataversion, asset = 'did:' }: IpfsSourceOptions = {},
 ): Promise<string> => {
-  // Bulk vehicles
+  const grantor = kernelSigner.smartContractAddress!;
   const ipfsRes = await withTimeout(
     kernelSigner.signAndUploadSACDAgreement({
       expiration: expiration,
       permissions: permissions,
       grantee: clientId as `0x${string}`,
       attachments: attachments,
-      grantor: kernelSigner.smartContractAddress!,
-      // TODO: Add the asset based on the user
-      asset: 'did:',
-      ...(cloudEventAgreements && { cloudEventAgreements }),
+      grantor,
+      asset,
+      ...(cloudEventAgreements?.length && {
+        // Whose files are shared: the grantor's, unless the app said otherwise.
+        cloudEventAgreements: cloudEventAgreements.map((agreement) => ({
+          ...agreement,
+          source: agreement.source || grantor,
+        })),
+      }),
       ...(dataversion && { dataversion }),
     }),
     KERNEL_OP_TIMEOUT_MS,
@@ -223,6 +237,27 @@ export const generateAccountIpfsSource = async (
   );
   return `ipfs://${ipfsRes.cid}`;
 };
+
+// KernelSigner rejects batches of 25 or more grants.
+export const VEHICLE_PERMISSIONS_BATCH_LIMIT = 24;
+
+// Sets a different grant (and source document) per vehicle in one user
+// operation, so either every grant in the batch lands or none does.
+export async function setVehiclePermissionsBatch(
+  grants: SetVehiclePermissions[],
+): Promise<void> {
+  try {
+    await withTimeout(
+      kernelSigner.setVehiclePermissions(grants),
+      KERNEL_OP_TIMEOUT_MS,
+      'setVehiclePermissionsBatch',
+    );
+    console.log('Vehicle permissions set successfully');
+  } catch (error) {
+    console.error('Error setting vehicle permissions:', error);
+    throw error;
+  }
+}
 
 // Define the bridge function in your Turnkey Service
 export async function setVehiclePermissions({

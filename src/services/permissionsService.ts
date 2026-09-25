@@ -2,8 +2,10 @@ import { Permission } from '@dimo-network/transactions';
 
 import { POLICY_ATTACHMENT_CID_BY_REGION } from '../enums';
 import { formatBigIntAsReadableDate } from '../utils/dateUtils';
+import { getAgreementLabel } from './vehicleDocumentAgreements';
 import {
   Attachment,
+  CloudEventAgreement,
   PERMISSIONS,
   PERMISSIONS_DESCRIPTION,
 } from '../types';
@@ -93,12 +95,19 @@ export const getPermissionsDescription = (permissions: Permission[]): string => 
     .join('');
 };
 
-export const getFilesRequestedString = (fileTags: string[] | undefined): string => {
-  if (!fileTags) {
+export const getFilesRequestedString = (fileAgreements: CloudEventAgreement[] = []): string => {
+  // Known attestation tags keep their names; anything else is named by event type.
+  const labels = fileAgreements.flatMap((agreement) => {
+    const tagLabels = agreement.tags.map((tag) => ATTESTATION_FILE_TAGS[tag]).filter(Boolean);
+    return tagLabels.length ? tagLabels : [getAgreementLabel(agreement)];
+  });
+  if (!labels.length) {
     return '\n- NONE';
   }
 
-  return fileTags.map((tag) => `\n- ${ATTESTATION_FILE_TAGS[tag]}`).join('');
+  return Array.from(new Set(labels))
+    .map((label) => `\n- ${label}`)
+    .join('');
 };
 
 export const getTemplateDescription = (args: {
@@ -106,7 +115,7 @@ export const getTemplateDescription = (args: {
   devLicenseAlias: string;
   permissions: string;
   permissionTemplateId?: string;
-  fileTags: string[] | undefined;
+  fileAgreements?: CloudEventAgreement[];
   expirationDate: BigInt;
   region?: string;
 }): string => {
@@ -115,7 +124,7 @@ export const getTemplateDescription = (args: {
     devLicenseAlias,
     permissions,
     permissionTemplateId,
-    fileTags,
+    fileAgreements,
     expirationDate,
     region,
   } = args;
@@ -128,7 +137,7 @@ export const getTemplateDescription = (args: {
   const currentTime = new Date();
   const currentTimeBigInt = BigInt(Math.floor(currentTime.getTime() / 1000));
   const permissionsString = getPermissionsDescription(perms);
-  const filesRequestedString = getFilesRequestedString(fileTags);
+  const filesRequestedString = getFilesRequestedString(fileAgreements);
 
   const description = [
     'This contract gives permission for specific data access and control functions on the DIMO platform.',

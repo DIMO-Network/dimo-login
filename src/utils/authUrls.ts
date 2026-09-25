@@ -1,3 +1,5 @@
+import { CloudEventAgreement } from '../types';
+
 export enum AuthProvider {
   TESLA = 'tesla',
   GOOGLE = 'google',
@@ -21,6 +23,7 @@ interface AuthUrlParams {
   permissions?: string | null;
   expirationDate?: string | null;
   powertrainTypes?: string[];
+  cloudEvent?: CloudEventAgreement | CloudEventAgreement[];
   vehicleToAdd?: {
     make: string;
     model: string;
@@ -59,6 +62,10 @@ function buildStateParams(params: AuthUrlParams): Record<string, any> {
     vehicleMakes: params.vehicleMakes ?? [],
     onboarding: params.onboarding ?? [],
     vehicles: params.vehicles ?? [],
+    powertrainTypes: params.powertrainTypes ?? [],
+    // The share's document request must survive the OAuth round-trip, or the
+    // user comes back to a share that grants less than the app asked for.
+    cloudEvent: params.cloudEvent,
     vehicleToAdd: params.vehicleToAdd,
     altTitle: params.altTitle,
     testMode: params.testMode,

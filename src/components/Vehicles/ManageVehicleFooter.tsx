@@ -6,6 +6,7 @@ interface FooterProps {
   onExtend: () => void;
   onUpdate: () => void;
   needsUpdate: boolean;
+  disabled?: boolean;
 }
 
 export const ManageVehicleFooter = ({
@@ -13,6 +14,7 @@ export const ManageVehicleFooter = ({
   onExtend,
   onUpdate,
   needsUpdate,
+  disabled = false,
 }: FooterProps) => {
   return (
     <div className="flex mt-8 justify-center gap-2">
@@ -24,11 +26,11 @@ export const ManageVehicleFooter = ({
       </button>
       {/* An outdated share is updated in place; extending it would keep old terms. */}
       {needsUpdate ? (
-        <PrimaryButton onClick={onUpdate} width="w-[214px]">
+        <PrimaryButton onClick={onUpdate} width="w-[214px]" disabled={disabled}>
           Update permissions
         </PrimaryButton>
       ) : (
-        <PrimaryButton onClick={onExtend} width="w-[214px]">
+        <PrimaryButton onClick={onExtend} width="w-[214px]" disabled={disabled}>
           Extend (1 year)
         </PrimaryButton>
       )}

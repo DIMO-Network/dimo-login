@@ -48,7 +48,8 @@ export type Attachment = {
 
 export type CloudEventAgreement = {
   eventType?: string;
-  source: `0x${string}`;
+  // Optional in the cloudEvent param; the signer defaults it to the grantor.
+  source?: `0x${string}`;
   ids: string[];
   tags: string[];
 };

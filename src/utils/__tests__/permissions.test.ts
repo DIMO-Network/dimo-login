@@ -2,6 +2,7 @@ import { getPermissionsValue, Permission } from '@dimo-network/transactions';
 import {
   getAddedPermissions,
   getPermissionLabel,
+  mergePermissions,
   needsPermissionUpdate,
 } from '../permissions';
 import { getShareButtonLabel } from '../../components/Vehicles/Footer';
@@ -45,6 +46,9 @@ const OLD_GRANT = encode([
   Permission.GetLiveData,
 ]);
 const ALL = '11111111';
+const ALL_PERMS = Object.values(Permission).filter(
+  (p) => typeof p === 'number',
+) as Permission[];
 
 describe('needsPermissionUpdate', () => {
   it('flags a shared vehicle whose grant differs from the request', () => {
@@ -64,6 +68,47 @@ describe('needsPermissionUpdate', () => {
 
   it('ignores vehicles that are not shared yet', () => {
     expect(needsPermissionUpdate({ shared: false, permissions: '0' }, ALL)).toBe(false);
+  });
+
+  it('leaves a grant that already covers a narrower request alone', () => {
+    // Grant has everything; the app now asks for less. Nothing to add, so no
+    // update, and nothing gets silently narrowed.
+    expect(
+      needsPermissionUpdate({ shared: true, permissions: encode(ALL_PERMS) }, '1'),
+    ).toBe(false);
+  });
+
+  it('flags a grant that covers the permissions but lacks requested files', () => {
+    const current = encode(ALL_PERMS);
+    expect(
+      needsPermissionUpdate(
+        { shared: true, permissions: current, documentAccess: false },
+        ALL,
+      ),
+    ).toBe(true);
+  });
+});
+
+describe('mergePermissions', () => {
+  const vehicleWith = (permissions: string) => ({ permissions, tokenId: 1 });
+
+  it('keeps what the grant has and adds what is requested', () => {
+    const granted = encode([Permission.ExecuteCommands]);
+    expect(
+      mergePermissions(vehicleWith(granted), [
+        Permission.GetRawData,
+        Permission.ExecuteCommands,
+      ]),
+    ).toEqual([Permission.ExecuteCommands, Permission.GetRawData]);
+  });
+
+  it('refuses a grant with permission bits it cannot carry over', () => {
+    const newerPermission = (BigInt(3) << BigInt(18)).toString(); // index 9
+    expect(() => mergePermissions(vehicleWith(newerPermission), [])).toThrow(
+      "can't carry over",
+    );
+    const halfSet = (BigInt(1) << BigInt(4)).toString(); // '01' chunk
+    expect(() => mergePermissions(vehicleWith(halfSet), [])).toThrow("can't carry over");
   });
 });
 

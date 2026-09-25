@@ -5,16 +5,20 @@ import { getPermissionLabel } from '../../utils/permissions';
 
 interface SharedPermissionsNoteProps {
   addedPermissions: Permission[];
+  addedFiles?: string[];
 }
 
 // Per-vehicle hint for a vehicle shared with an older permission set.
 export const SharedPermissionsNote: React.FC<SharedPermissionsNoteProps> = ({
   addedPermissions,
+  addedFiles = [],
 }) => {
+  const added = [...addedPermissions.map(getPermissionLabel), ...addedFiles];
+
   return (
     <p className="text-xs text-gray-600 mt-2">
-      {addedPermissions.length
-        ? `Update adds: ${addedPermissions.map(getPermissionLabel).join(', ')}`
+      {added.length
+        ? `Update adds: ${added.join(', ')}`
         : 'Shared with an older set of permissions'}
     </p>
   );
