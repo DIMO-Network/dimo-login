@@ -16,8 +16,16 @@ import { INVALID_SESSION_ERROR } from '../utils/authUtils';
 import { generateAttachments } from '../services/permissionsService';
 import {
   getVehicleAsset,
+  mergeAgreements,
+  readGrantAgreements,
   toCloudEventAgreements,
+  withSource,
 } from '../services/vehicleDocumentAgreements';
+import { mergePermissions } from '../utils/permissions';
+import { mapWithConcurrency } from '../utils/mapWithConcurrency';
+
+// Documents are signed (Turnkey) and uploaded (IPFS) per vehicle; cap the burst.
+const SIGNING_CONCURRENCY = 4;
 
 export const useShareVehicles = () => {
   const {
@@ -28,7 +36,7 @@ export const useShareVehicles = () => {
     region,
     cloudEvent,
   } = useDevCredentials<VehicleManagerMandatoryParams>();
-  const { validateSession } = useAuthContext();
+  const { validateSession, user } = useAuthContext();
 
   const validate = async () => {
     if (!clientId) {
@@ -52,39 +60,56 @@ export const useShareVehicles = () => {
 
     const perms = createPermissionsFromParams(permissions, permissionTemplateId);
     const attachments = generateAttachments(region?.toUpperCase());
-    const cloudEventAgreements = toCloudEventAgreements(cloudEvent);
+    const requestedAgreements = withSource(
+      toCloudEventAgreements(cloudEvent),
+      user?.smartContractAddress,
+    );
     const grant = {
       grantee: clientId as `0x${string}`,
-      permissions: perms,
       expiration: expirationDate,
     };
-    const signSource = (asset?: `did:${string}`) =>
-      generateIpfsSources(perms, clientId, expirationDate, {
-        attachments,
-        cloudEventAgreements,
-        asset,
-      });
 
-    // File agreements only count for the vehicle DID they name, so a share
-    // with files needs a document per vehicle. Without files, one document
-    // covers the whole batch.
-    if (cloudEventAgreements.length || vehicles.length === 1) {
-      const withFiles = cloudEventAgreements.length > 0;
+    // A vehicle already shared with this app gets its current grant plus the
+    // request, so an update never drops access (only "Stop sharing" does). If
+    // its grant can't be read, readGrantAgreements throws and nothing is sent.
+    const buildGrant = async (vehicle: Vehicle) => {
+      const existing = vehicle.shared ? await readGrantAgreements(vehicle) : [];
+      const agreements = mergeAgreements(existing, requestedAgreements);
+      const vehiclePerms = vehicle.shared
+        ? mergePermissions(vehicle.permissions, perms)
+        : perms;
+      const source = await generateIpfsSources(vehiclePerms, clientId, expirationDate, {
+        attachments,
+        cloudEventAgreements: agreements,
+        asset: getVehicleAsset(vehicle, agreements.length > 0),
+      });
+      return {
+        ...grant,
+        permissions: vehiclePerms,
+        tokenId: BigInt(vehicle.tokenId),
+        source,
+      };
+    };
+
+    // File agreements only count for the vehicle DID they name, and updates
+    // carry each vehicle's own grant, so both need a document per vehicle.
+    // A plain first-time share of several vehicles uses one bulk document.
+    const perVehicle =
+      requestedAgreements.length > 0 ||
+      vehicles.length === 1 ||
+      vehicles.some((v) => v.shared);
+
+    if (perVehicle) {
       // Sign every document before sending anything, so a signing failure
       // leaves no grants behind.
-      const grants = await Promise.all(
-        vehicles.map(async (vehicle) => ({
-          ...grant,
-          tokenId: BigInt(vehicle.tokenId),
-          source: await signSource(getVehicleAsset(vehicle, withFiles)),
-        })),
-      );
+      const grants = await mapWithConcurrency(vehicles, SIGNING_CONCURRENCY, buildGrant);
       if (grants.length === 1) {
         await setVehiclePermissions(grants[0]);
         return;
       }
-      // One user operation per batch: all of a batch's grants land or none do.
-      // Only shares of more than 24 vehicles need a second batch.
+      // Each batch is one user operation, so its grants land together or not
+      // at all. Shares of more than 24 vehicles need several batches, and an
+      // error partway leaves the earlier batches in place.
       for (let i = 0; i < grants.length; i += VEHICLE_PERMISSIONS_BATCH_LIMIT) {
         await setVehiclePermissionsBatch(
           grants.slice(i, i + VEHICLE_PERMISSIONS_BATCH_LIMIT),
@@ -93,9 +118,12 @@ export const useShareVehicles = () => {
       return;
     }
 
-    const source = await signSource();
+    const source = await generateIpfsSources(perms, clientId, expirationDate, {
+      attachments,
+    });
     await setVehiclePermissionsBulk({
       ...grant,
+      permissions: perms,
       tokenIds: vehicles.map((v) => BigInt(v.tokenId)),
       source,
     });

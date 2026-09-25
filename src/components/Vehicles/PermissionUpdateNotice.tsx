@@ -24,10 +24,13 @@ export const PermissionUpdateNotice: React.FC<PermissionUpdateNoticeProps> = ({
   addedFiles = [],
 }) => {
   const added = [...addedPermissions.map(getPermissionLabel), ...addedFiles];
+  // The license alias can still be empty while credentials load.
+  const name = brandName || 'the app';
+  const Name = brandName || 'This app';
   const vehicles = vehicleCount === 1 ? 'vehicle is' : `${vehicleCount} vehicles are`;
   const title = added.length
-    ? `${brandName} is asking for more access`
-    : `${brandName} updated the access it needs`;
+    ? `${Name} is asking for more access`
+    : `${Name} updated the access it needs`;
 
   return (
     <section
@@ -42,8 +45,8 @@ export const PermissionUpdateNotice: React.FC<PermissionUpdateNoticeProps> = ({
         <div className="min-w-0">
           <h2 className="text-base font-medium text-black">{title}</h2>
           <p className="mt-1 text-sm text-gray-600">
-            Your {vehicles} shared with older permissions. Update to keep {brandName}{' '}
-            working. You don&apos;t need to stop sharing first.
+            Your {vehicles} shared with older permissions. Update to keep {name} working.
+            You don&apos;t need to stop sharing first.
           </p>
           {!!added.length && (
             <ul className="mt-3 flex flex-wrap gap-1.5" aria-label="New permissions">

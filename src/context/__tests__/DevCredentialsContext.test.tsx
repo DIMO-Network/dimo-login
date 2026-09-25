@@ -150,6 +150,27 @@ describe('DevCredentialsContext cloudEvent (vehicle document access)', () => {
     );
   });
 
+  it('ignores a malformed cloudEvent param instead of crashing', async () => {
+    window.history.pushState({}, '', `/?clientId=${CLIENT_ID}&cloudEvent=%5B%7Bbroken`);
+    renderProvider('cloudEvent');
+
+    await waitFor(() => expect(fetchOemBrandMock).toHaveBeenCalled());
+    expect(screen.getByTestId('probe').textContent).toBe('null');
+  });
+
+  it('accepts plain JSON in a hand-built link', async () => {
+    const params = new URLSearchParams({
+      clientId: CLIENT_ID,
+      cloudEvent: JSON.stringify(AGREEMENTS),
+    });
+    window.history.pushState({}, '', `/?${params.toString()}`);
+    renderProvider('cloudEvent');
+
+    await waitFor(() =>
+      expect(screen.getByTestId('probe').textContent).toBe(JSON.stringify(AGREEMENTS)),
+    );
+  });
+
   it('OAuth return: restores cloudEvent from the state param', async () => {
     const state = JSON.stringify({ clientId: CLIENT_ID, cloudEvent: AGREEMENTS });
     window.history.pushState({}, '', `/?state=${encodeURIComponent(state)}`);

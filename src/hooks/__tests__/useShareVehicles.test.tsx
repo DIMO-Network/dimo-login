@@ -6,7 +6,12 @@ import { render, act } from '@testing-library/react';
 // and the turnkey-backed services, and drive the hook through a probe component.
 jest.mock('@dimo-network/transactions', () => ({
   ENVIRONMENT: 'mock',
-  Permission: { GetRawData: 7 },
+  Permission: { ExecuteCommands: 2, GetRawData: 7 },
+  // Same 2-bit encoding as the SDK: permission p sits at bits 2p..2p+1.
+  getPermissionsArray: (value: bigint) =>
+    [1, 2, 3, 4, 5, 6, 7, 8].filter(
+      (p) => ((value >> BigInt(p * 2)) & BigInt(3)) === BigInt(3),
+    ),
 }));
 jest.mock('../../services', () => ({
   createPermissionsFromParams: jest.fn(),
@@ -26,7 +31,10 @@ jest.mock('../../context/DevCredentialsContext', () => ({
   useDevCredentials: () => mockCredentials,
 }));
 jest.mock('../../context/AuthContext', () => ({
-  useAuthContext: () => ({ validateSession: jest.fn().mockResolvedValue(true) }),
+  useAuthContext: () => ({
+    validateSession: jest.fn().mockResolvedValue(true),
+    user: { smartContractAddress: '0x1111111111111111111111111111111111111111' },
+  }),
 }));
 jest.mock('../../utils/authUtils', () => ({
   INVALID_SESSION_ERROR: 'Invalid session',
@@ -49,6 +57,22 @@ const vehicle = (tokenId: number) =>
   }) as Vehicle;
 
 const CLOUD_EVENT = { eventType: 'dimo.document.vehicle.*', tags: ['documents'] };
+const GRANTOR = '0x1111111111111111111111111111111111111111';
+const COMMANDS_ONLY = (BigInt(3) << BigInt(4)).toString(); // ExecuteCommands (2)
+
+// A vehicle already shared with this app, whose grant document is on IPFS.
+const sharedVehicle = (tokenId: number) =>
+  ({
+    ...vehicle(tokenId),
+    shared: true,
+    permissions: COMMANDS_ONLY,
+    source: 'ipfs://old',
+  }) as Vehicle;
+
+const originalFetch = global.fetch;
+afterEach(() => {
+  global.fetch = originalFetch;
+});
 
 beforeEach(() => {
   Object.assign(mockCredentials, {
@@ -99,7 +123,9 @@ it('signs a document per vehicle and sends them in one batch when files are requ
   const [first, second] = (generateIpfsSources as jest.Mock).mock.calls.map((c) => c[3]);
   expect(first.asset).toBe(vehicle(1).tokenDID);
   expect(second.asset).toBe(vehicle(2).tokenDID);
-  expect(first.cloudEventAgreements).toEqual([{ ...CLOUD_EVENT, ids: [] }]);
+  expect(first.cloudEventAgreements).toEqual([
+    { ...CLOUD_EVENT, ids: [], source: GRANTOR },
+  ]);
 
   const grants = (setVehiclePermissionsBatch as jest.Mock).mock.calls[0][0];
   expect(grants.map((g: any) => g.tokenId)).toEqual([BigInt(1), BigInt(2)]);
@@ -142,4 +168,45 @@ it('names the vehicle DID for a single-vehicle share', async () => {
   expect((generateIpfsSources as jest.Mock).mock.calls[0][3].asset).toBe(
     vehicle(1).tokenDID,
   );
+});
+
+it('updates a shared vehicle without dropping what its grant already has', async () => {
+  mockCredentials.cloudEvent = CLOUD_EVENT;
+  const oldDid = vehicle(5).tokenDID;
+  global.fetch = jest.fn(async () => ({
+    ok: true,
+    json: async () => ({
+      data: {
+        agreements: [
+          {
+            type: 'cloudevent',
+            eventType: 'dimo.raw.vehicle.*',
+            asset: oldDid,
+            source: GRANTOR,
+          },
+        ],
+      },
+    }),
+  })) as any;
+
+  await share([sharedVehicle(5)]);
+
+  const grant = (setVehiclePermissions as jest.Mock).mock.calls[0][0];
+  expect(grant.permissions).toEqual([2, 7]); // kept commands, added raw data
+  const signed = (generateIpfsSources as jest.Mock).mock.calls[0];
+  expect(signed[0]).toEqual([2, 7]);
+  expect(signed[3].cloudEventAgreements.map((a: any) => a.eventType)).toEqual([
+    'dimo.raw.vehicle.*',
+    'dimo.document.vehicle.*',
+  ]);
+});
+
+it("sends nothing when a shared vehicle's current grant can't be read", async () => {
+  global.fetch = jest.fn().mockRejectedValue(new Error('gateway down')) as any;
+
+  await expect(share([vehicle(1), sharedVehicle(5)])).rejects.toThrow(
+    "Couldn't read the current sharing terms",
+  );
+  expect(setVehiclePermissionsBatch).not.toHaveBeenCalled();
+  expect(setVehiclePermissionsBulk).not.toHaveBeenCalled();
 });

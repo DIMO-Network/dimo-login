@@ -11,8 +11,12 @@ import { generateAttachments } from '../services/permissionsService';
 import { SetVehiclePermissions } from '@dimo-network/transactions';
 import {
   getVehicleAsset,
+  mergeAgreements,
+  readGrantAgreements,
   toCloudEventAgreements,
+  withSource,
 } from '../services/vehicleDocumentAgreements';
+import { mergePermissions } from '../utils/permissions';
 import { VehicleManagerMandatoryParams, VehiclePermissionsAction } from '../types';
 
 type UpdateVehiclePermissionsParams = {
@@ -23,14 +27,8 @@ type UpdateVehiclePermissionsParams = {
   action: VehiclePermissionsAction;
 };
 
-// Which actions sign the app's requested file agreements. An update adds them
-// (the manage screen lists them first). Extending keeps them only when the
-// current grant already has them, and revoking never needs them.
-const includesFiles = (action: VehiclePermissionsAction, vehicle: Vehicle) =>
-  action === 'update' || (action === 'extend' && vehicle.documentAccess === true);
-
 export const useUpdateVehiclePermissions = () => {
-  const { validateSession } = useAuthContext();
+  const { validateSession, user } = useAuthContext();
   const { clientId, region, cloudEvent } =
     useDevCredentials<VehicleManagerMandatoryParams>();
 
@@ -45,25 +43,37 @@ export const useUpdateVehiclePermissions = () => {
     if (!hasValidSession) {
       throw new Error(INVALID_SESSION_ERROR);
     }
-    const perms = createPermissionsFromParams(permissions, permissionTemplateId);
+    const requested = createPermissionsFromParams(permissions, permissionTemplateId);
+
+    // Stop sharing expires the grant; there's nothing to carry over. Extend and
+    // Update keep everything the current grant gives this app, and Update adds
+    // what's being requested (the manage screen lists it first). If the current
+    // grant can't be read, readGrantAgreements throws and nothing is sent.
+    let perms = requested;
+    let cloudEventAgreements: ReturnType<typeof toCloudEventAgreements> = [];
+    if (action !== 'revoke') {
+      const existing = await readGrantAgreements(vehicle);
+      perms = mergePermissions(vehicle.permissions, requested);
+      cloudEventAgreements =
+        action === 'update'
+          ? mergeAgreements(
+              existing,
+              withSource(toCloudEventAgreements(cloudEvent), user?.smartContractAddress),
+            )
+          : existing;
+    }
+
     const attachments = generateAttachments(region?.toUpperCase());
-    const cloudEventAgreements = includesFiles(action, vehicle)
-      ? toCloudEventAgreements(cloudEvent)
-      : [];
     const sources = await generateIpfsSources(perms, clientId, expiration, {
       attachments,
       cloudEventAgreements,
       asset: getVehicleAsset(vehicle, cloudEventAgreements.length > 0),
     });
-    const basePermissions = {
+    const vehiclePermissions: SetVehiclePermissions = {
       grantee: clientId as `0x${string}`,
       permissions: perms,
       expiration,
       source: sources,
-    };
-
-    const vehiclePermissions: SetVehiclePermissions = {
-      ...basePermissions,
       tokenId: BigInt(vehicle.tokenId),
     };
     await setVehiclePermissions(vehiclePermissions);

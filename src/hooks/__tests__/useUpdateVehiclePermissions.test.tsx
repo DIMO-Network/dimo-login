@@ -4,7 +4,11 @@ import { render, act } from '@testing-library/react';
 
 jest.mock('@dimo-network/transactions', () => ({
   ENVIRONMENT: 'mock',
-  Permission: { GetRawData: 7 },
+  Permission: { ExecuteCommands: 2, GetRawData: 7 },
+  getPermissionsArray: (value: bigint) =>
+    [1, 2, 3, 4, 5, 6, 7, 8].filter(
+      (p) => ((value >> BigInt(p * 2)) & BigInt(3)) === BigInt(3),
+    ),
 }));
 jest.mock('../../services', () => ({
   createPermissionsFromParams: jest.fn(),
@@ -21,55 +25,87 @@ jest.mock('../../context/DevCredentialsContext', () => ({
   }),
 }));
 jest.mock('../../context/AuthContext', () => ({
-  useAuthContext: () => ({ validateSession: jest.fn().mockResolvedValue(true) }),
+  useAuthContext: () => ({
+    validateSession: jest.fn().mockResolvedValue(true),
+    user: { smartContractAddress: '0x1111111111111111111111111111111111111111' },
+  }),
 }));
 jest.mock('../../utils/authUtils', () => ({
   INVALID_SESSION_ERROR: 'Invalid session',
 }));
 
 import { useUpdateVehiclePermissions } from '../useUpdateVehiclePermissions';
-import { generateIpfsSources, setVehiclePermissions } from '../../services';
+import {
+  createPermissionsFromParams,
+  generateIpfsSources,
+  setVehiclePermissions,
+} from '../../services';
 import { Vehicle } from '../../models/vehicle';
 import { VehiclePermissionsAction } from '../../types';
 
 const DID = 'did:erc721:137:0xbA5738a18d83D41847dfFbDC6101d37C69c9B0cF:186612';
+const COMMANDS_ONLY = (BigInt(3) << BigInt(4)).toString(); // ExecuteCommands (2)
+const EXISTING_RAW = { type: 'cloudevent', eventType: 'dimo.raw.vehicle.*', asset: DID };
 
+const originalFetch = global.fetch;
 beforeEach(() => {
+  (createPermissionsFromParams as jest.Mock).mockReturnValue([7]);
   (generateIpfsSources as jest.Mock).mockResolvedValue('ipfs://bafy');
   (setVehiclePermissions as jest.Mock).mockResolvedValue(undefined);
+  global.fetch = jest.fn(async () => ({
+    ok: true,
+    json: async () => ({ data: { agreements: [EXISTING_RAW] } }),
+  })) as any;
+});
+afterEach(() => {
+  global.fetch = originalFetch;
 });
 
-const signedAgreements = async (
-  action: VehiclePermissionsAction,
-  documentAccess?: boolean,
-) => {
-  let run: ReturnType<typeof useUpdateVehiclePermissions> | undefined;
+const run = async (action: VehiclePermissionsAction) => {
+  let update: ReturnType<typeof useUpdateVehiclePermissions> | undefined;
   const Probe = () => {
-    run = useUpdateVehiclePermissions();
+    update = useUpdateVehiclePermissions();
     return null;
   };
   render(<Probe />);
-  const vehicle = { tokenId: 186612, tokenDID: DID, documentAccess } as Vehicle;
+  const vehicle = {
+    tokenId: 186612,
+    tokenDID: DID,
+    shared: true,
+    permissions: COMMANDS_ONLY,
+    source: 'ipfs://old',
+  } as Vehicle;
   await act(async () => {
-    await run!({ permissions: '11111111', expiration: BigInt(0), vehicle, action });
+    await update!({ permissions: '11111111', expiration: BigInt(0), vehicle, action });
   });
-  const opts = (generateIpfsSources as jest.Mock).mock.calls[0][3];
-  expect(opts.asset).toBe(DID);
-  return opts.cloudEventAgreements;
+  const [perms, , , opts] = (generateIpfsSources as jest.Mock).mock.calls[0];
+  return {
+    perms,
+    eventTypes: opts.cloudEventAgreements.map((a: any) => a.eventType),
+    asset: opts.asset,
+  };
 };
 
-it('adds the requested files on update', async () => {
-  expect(await signedAgreements('update')).toHaveLength(1);
+it('update keeps the current grant and adds what is requested', async () => {
+  const signed = await run('update');
+  expect(signed.perms).toEqual([2, 7]);
+  expect(signed.eventTypes).toEqual(['dimo.raw.vehicle.*', 'dimo.document.vehicle.*']);
+  expect(signed.asset).toBe(DID);
 });
 
-it('keeps files on extend only when the grant already has them', async () => {
-  expect(await signedAgreements('extend', true)).toHaveLength(1);
+it('extend keeps the current grant and adds no requested files', async () => {
+  const signed = await run('extend');
+  expect(signed.eventTypes).toEqual(['dimo.raw.vehicle.*']);
 });
 
-it('does not add files on extend when the user was never shown them', async () => {
-  expect(await signedAgreements('extend', undefined)).toEqual([]);
+it('stop sharing signs no files and never reads the old grant', async () => {
+  const signed = await run('revoke');
+  expect(signed.eventTypes).toEqual([]);
+  expect(global.fetch).not.toHaveBeenCalled();
 });
 
-it('never signs files when revoking', async () => {
-  expect(await signedAgreements('revoke', true)).toEqual([]);
+it("sends nothing when the current grant can't be read", async () => {
+  global.fetch = jest.fn().mockRejectedValue(new Error('gateway down')) as any;
+  await expect(run('extend')).rejects.toThrow("Couldn't read the current sharing terms");
+  expect(setVehiclePermissions).not.toHaveBeenCalled();
 });

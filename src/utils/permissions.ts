@@ -1,49 +1,23 @@
-import {
-  getPermissionsArray,
-  getPermissionsValue,
-  Permission,
-} from '@dimo-network/transactions';
+import { getPermissionsArray, Permission } from '@dimo-network/transactions';
 import { createPermissionsFromParams } from '../services/permissionsService';
 import { PermissionKey, PERMISSIONS_LABEL } from '../types/permissions';
 
-// undefined when the request or the grant can't be parsed.
-const matchesRequestedPermissions = (
-  vehiclePermissions: string,
-  permissions: string,
-  permissionTemplateId?: string,
-): boolean | undefined => {
-  try {
-    const permsValue = getPermissionsValue(
-      createPermissionsFromParams(permissions, permissionTemplateId),
-    );
-    return BigInt(vehiclePermissions) === permsValue;
-  } catch (error) {
-    console.error('Error comparing permissions:', error);
-    return undefined;
-  }
-};
-
 /**
- * A vehicle needs an update when it's already shared with this grantee, but with
- * a different permission set than the app is requesting now, or without the
- * file access it's requesting. Sharing again writes a new SACD record over the
- * old one, so no revoke is required first. If the permissions can't be
- * compared, don't prompt: an update would fail the same way.
+ * A vehicle needs an update when it's already shared with this grantee but is
+ * missing something the app is requesting now: a permission, or file access.
+ * A grant that already covers the request is left alone, even if it grants
+ * more. Sharing again writes a new SACD record over the old one, so no revoke
+ * is needed first, and updates keep what the grant already has (see
+ * mergePermissions). If the permissions can't be compared, don't prompt.
  */
 export const needsPermissionUpdate = (
   vehicle: { shared: boolean; permissions: string; documentAccess?: boolean },
   permissions: string,
   permissionTemplateId?: string,
-) => {
-  if (!vehicle.shared) return false;
-  const matches = matchesRequestedPermissions(
-    vehicle.permissions,
-    permissions,
-    permissionTemplateId,
-  );
-  if (matches === undefined) return false;
-  return !matches || vehicle.documentAccess === false;
-};
+) =>
+  vehicle.shared &&
+  (getAddedPermissions([vehicle], permissions, permissionTemplateId).length > 0 ||
+    vehicle.documentAccess === false);
 
 /** Permissions the app is requesting that the vehicle hasn't granted yet. */
 export const getAddedPermissions = (
@@ -59,6 +33,18 @@ export const getAddedPermissions = (
     console.error('Error diffing permissions:', error);
     return [];
   }
+};
+
+/**
+ * What an updated grant should carry: everything the vehicle already grants
+ * this app plus what it's requesting now. Only "Stop sharing" removes access.
+ */
+export const mergePermissions = (
+  vehiclePermissions: string,
+  requested: Permission[],
+): Permission[] => {
+  const granted = getPermissionsArray(BigInt(vehiclePermissions || '0'));
+  return Array.from(new Set([...granted, ...requested])).sort((a, b) => a - b);
 };
 
 export const getPermissionLabel = (permission: Permission) =>

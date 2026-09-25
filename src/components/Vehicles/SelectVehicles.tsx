@@ -15,8 +15,11 @@ import { captureException } from '@sentry/react';
 import { isInvalidSessionError } from '../../utils/authUtils';
 import { getAddedPermissions, needsPermissionUpdate } from '../../utils/permissions';
 import { PermissionUpdateNotice } from './PermissionUpdateNotice';
+import { FilesRequestedNote } from './FilesRequestedNote';
 import {
+  getFileLabels,
   getMissingFileLabels,
+  GrantUnreadableError,
   toCloudEventAgreements,
 } from '../../services/vehicleDocumentAgreements';
 import { Vehicle } from '../../models/vehicle';
@@ -83,7 +86,9 @@ export const SelectVehicles: React.FC = () => {
       finishShareVehicles(selectedVehicles.map((v) => ({ ...v, shared: false })));
     } catch (err) {
       captureException(err);
-      if (!isInvalidSessionError(err)) {
+      if (err instanceof GrantUnreadableError) {
+        setError(err.message);
+      } else if (!isInvalidSessionError(err)) {
         setError('Failed to share vehicles');
       }
     } finally {
@@ -109,6 +114,12 @@ export const SelectVehicles: React.FC = () => {
     vehicles.length > 0 && vehicles.every((v) => v.shared) && !outdatedVehicles.length;
   const canShare = vehicles.some(isSelectable);
   const selectedUpdateCount = selectedVehicles.filter(needsUpdate).length;
+  const requestedFiles = toCloudEventAgreements(cloudEvent);
+  const missingFileLabels = getMissingFileLabels(outdatedVehicles, requestedFiles);
+  // The update notice already lists missing files; otherwise, any share that
+  // grants files says so here.
+  const showFilesNote =
+    requestedFiles.length > 0 && canShare && !missingFileLabels.length && !isLoading;
 
   return (
     <div className="flex flex-col w-full items-center justify-center box-border overflow-y-auto">
@@ -125,8 +136,12 @@ export const SelectVehicles: React.FC = () => {
             permissions,
             permissionTemplateId,
           )}
-          addedFiles={getMissingFileLabels(outdatedVehicles, toCloudEventAgreements(cloudEvent))}
+          addedFiles={missingFileLabels}
         />
+      )}
+
+      {showFilesNote && (
+        <FilesRequestedNote brandName={brandName} fileLabels={getFileLabels(requestedFiles)} />
       )}
 
       <UIManagerLoaderWrapper>

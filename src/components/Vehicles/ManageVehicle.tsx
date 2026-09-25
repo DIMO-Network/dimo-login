@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { UiStates } from '../../enums';
 import { useUIManager } from '../../context/UIManagerContext';
 import { isInvalidSessionError } from '../../utils/authUtils';
@@ -12,6 +12,12 @@ import { ManageVehicleFooter } from './ManageVehicleFooter';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { VehicleManagerMandatoryParams } from '../../types';
 import { needsPermissionUpdate } from '../../utils/permissions';
+import { useAuthContext } from '../../context/AuthContext';
+import {
+  checkDocumentAccess,
+  GrantUnreadableError,
+  toCloudEventAgreements,
+} from '../../services/vehicleDocumentAgreements';
 
 const LOADING_MESSAGES: Record<VehiclePermissionsAction, string> = {
   revoke: 'Revoking vehicles',
@@ -36,9 +42,35 @@ export const ManageVehicle: React.FC = () => {
     setError,
     error,
   } = useUIManager();
-  const { expirationDate } = useDevCredentials<VehicleManagerMandatoryParams>();
+  const { expirationDate, cloudEvent } =
+    useDevCredentials<VehicleManagerMandatoryParams>();
+  const { user } = useAuthContext();
   const updateVehiclePermissions = useUpdateVehiclePermissions();
-  const needsUpdate = needsPermissionUpdate(vehicle, permissions, permissionTemplateId);
+
+  // The vehicle was captured when its card was clicked, possibly before the
+  // list's file check returned. Finish that check here so the right action
+  // (Update vs Extend) is offered.
+  const [documentAccess, setDocumentAccess] = useState(vehicle.documentAccess);
+  useEffect(() => {
+    const requested = toCloudEventAgreements(cloudEvent);
+    if (!vehicle.shared || !requested.length || vehicle.documentAccess !== undefined) {
+      return;
+    }
+    let cancelled = false;
+    checkDocumentAccess(vehicle, requested, user?.smartContractAddress).then((access) => {
+      if (!cancelled) setDocumentAccess(access);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const currentVehicle = { ...vehicle, documentAccess };
+  const needsUpdate = needsPermissionUpdate(
+    currentVehicle,
+    permissions,
+    permissionTemplateId,
+  );
 
   const handleSuccess = (actionType: VehiclePermissionsAction) => {
     vehicle.shared = false;
@@ -48,7 +80,9 @@ export const ManageVehicle: React.FC = () => {
 
   const handleError = (error: unknown) => {
     captureException(error);
-    if (!isInvalidSessionError(error)) {
+    if (error instanceof GrantUnreadableError) {
+      setError(error.message);
+    } else if (!isInvalidSessionError(error)) {
       setError('Error updating vehicle permissions');
     }
   };
@@ -61,7 +95,7 @@ export const ManageVehicle: React.FC = () => {
         permissionTemplateId,
         permissions,
         expiration: getNewExpirationDate(vehicle, actionType, expirationDate),
-        vehicle: vehicle,
+        vehicle: currentVehicle,
         action: actionType,
       });
       handleSuccess(actionType);
@@ -86,7 +120,7 @@ export const ManageVehicle: React.FC = () => {
 
   return (
     <UIManagerLoaderWrapper>
-      <ManageVehicleDetails vehicle={vehicle} needsUpdate={needsUpdate} />
+      <ManageVehicleDetails vehicle={currentVehicle} needsUpdate={needsUpdate} />
       {!!error && <ErrorMessage message={error} />}
       <ManageVehicleFooter
         onRevoke={handleRevoke}

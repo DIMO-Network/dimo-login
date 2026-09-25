@@ -35,7 +35,7 @@ export const useFetchVehicles = () => {
         const key = `${vehicle.source}|${vehicle.tokenDID}`;
         let pending = documentAccessBySource.current.get(key);
         if (!pending) {
-          pending = checkDocumentAccess(vehicle, requested);
+          pending = checkDocumentAccess(vehicle, requested, user?.smartContractAddress);
           documentAccessBySource.current.set(key, pending);
         }
         const documentAccess = await pending;
