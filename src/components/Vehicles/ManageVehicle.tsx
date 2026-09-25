@@ -13,8 +13,11 @@ import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { VehicleManagerMandatoryParams } from '../../types';
 import { needsPermissionUpdate } from '../../utils/permissions';
 import { useAuthContext } from '../../context/AuthContext';
+import { describeShareEnd } from '../../utils/dateUtils';
 import {
   checkDocumentAccess,
+  getFileLabels,
+  readGrantAgreements,
   GrantUnreadableError,
   toCloudEventAgreements,
 } from '../../services/vehicleDocumentAgreements';
@@ -42,7 +45,7 @@ export const ManageVehicle: React.FC = () => {
     setError,
     error,
   } = useUIManager();
-  const { expirationDate, cloudEvent } =
+  const { expirationDate, cloudEvent, clientId } =
     useDevCredentials<VehicleManagerMandatoryParams>();
   const { user } = useAuthContext();
   const updateVehiclePermissions = useUpdateVehiclePermissions();
@@ -59,18 +62,40 @@ export const ManageVehicle: React.FC = () => {
   useEffect(() => {
     if (!mustCheck) return;
     let cancelled = false;
-    checkDocumentAccess(vehicle, requestedFiles, user?.smartContractAddress).then(
-      (access) => {
-        if (cancelled) return;
-        setDocumentAccess(access);
-        setChecking(false);
-      },
-    );
+    checkDocumentAccess(vehicle, requestedFiles, {
+      grantor: user?.smartContractAddress,
+      grantee: clientId,
+    }).then((access) => {
+      if (cancelled) return;
+      setDocumentAccess(access);
+      setChecking(false);
+    });
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  // The files the current grant already shares. Update and Extend carry them
+  // over, so say so rather than re-sign them unseen.
+  const [keptFiles, setKeptFiles] = useState<string[]>([]);
+  useEffect(() => {
+    if (!vehicle.shared) return;
+    let cancelled = false;
+    readGrantAgreements(vehicle, {
+      grantor: user?.smartContractAddress,
+      grantee: clientId,
+    })
+      .then((agreements) => {
+        if (!cancelled) setKeptFiles(getFileLabels(agreements));
+      })
+      // Unreadable grants surface their error when an action is attempted.
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const currentVehicle = { ...vehicle, documentAccess };
   const needsUpdate = needsPermissionUpdate(
     currentVehicle,
@@ -126,7 +151,18 @@ export const ManageVehicle: React.FC = () => {
 
   return (
     <UIManagerLoaderWrapper>
-      <ManageVehicleDetails vehicle={currentVehicle} needsUpdate={needsUpdate} />
+      <ManageVehicleDetails
+        vehicle={currentVehicle}
+        needsUpdate={needsUpdate}
+        newShareEnd={describeShareEnd(
+          getNewExpirationDate(
+            vehicle,
+            needsUpdate ? 'update' : 'extend',
+            expirationDate,
+          ),
+        )}
+        keptFiles={keptFiles}
+      />
       {!!error && <ErrorMessage message={error} />}
       <ManageVehicleFooter
         onRevoke={handleRevoke}

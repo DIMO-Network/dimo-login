@@ -79,3 +79,20 @@ export function extendByYear(dateString: string, years = 1): string {
 
   return updatedDateString;
 }
+
+// Grants this far out are the "no expiry" default (100 years), not a date
+// anyone chose; show them as such.
+const NO_END_YEARS = 50;
+
+/** How long a share will last, for consent text: "until Jan 1, 2027". */
+export function describeShareEnd(expirationSeconds: BigInt): string {
+  const ms = Number(expirationSeconds.toString()) * 1000;
+  const noEnd = new Date();
+  noEnd.setFullYear(noEnd.getFullYear() + NO_END_YEARS);
+  if (ms >= noEnd.getTime()) return 'with no end date';
+  return `until ${new Date(ms).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })}`;
+}

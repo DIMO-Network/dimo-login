@@ -20,7 +20,17 @@ const VEHICLE_DOCS = {
 };
 const RAW_DOCS = { eventType: 'dimo.raw.vehicle.*', ids: [], tags: ['documents'] };
 
-const sacdDocument = (agreements: object[]) => ({ data: { agreements } });
+const APP = '0x2222222222222222222222222222222222222222';
+const PARTIES = { grantor: GRANTOR, grantee: APP };
+// A SACD document between this user and this app.
+const sacdDocument = (agreements: object[], parties = PARTIES) => ({
+  type: 'dimo.sacd',
+  data: {
+    grantor: { address: parties.grantor },
+    grantee: { address: parties.grantee },
+    agreements,
+  },
+});
 const vehicle = (source?: string) => ({ tokenId: 186612, tokenDID: DID, source });
 
 const mockGateway = (response: object | Error) => {
@@ -171,7 +181,7 @@ describe('mergeAgreements', () => {
 
 describe('readGrantAgreements', () => {
   it('returns nothing for a grant without a source document', async () => {
-    expect(await readGrantAgreements(vehicle(''))).toEqual([]);
+    expect(await readGrantAgreements(vehicle(''), PARTIES)).toEqual([]);
   });
 
   it('reads the source document from the gateway', async () => {
@@ -180,7 +190,7 @@ describe('readGrantAgreements', () => {
         { type: 'cloudevent', eventType: 'dimo.document.vehicle.*', asset: DID },
       ]),
     );
-    const agreements = await readGrantAgreements(vehicle('ipfs://bafycid'));
+    const agreements = await readGrantAgreements(vehicle('ipfs://bafycid'), PARTIES);
     expect(agreements).toHaveLength(1);
     expect((global.fetch as jest.Mock).mock.calls[0][0]).toBe(
       'https://assets.dimo.org/ipfs/bafycid',
@@ -189,8 +199,8 @@ describe('readGrantAgreements', () => {
 
   it('caches ipfs reads by source', async () => {
     mockGateway(sacdDocument([]));
-    await readGrantAgreements(vehicle('ipfs://same'));
-    await readGrantAgreements(vehicle('ipfs://same'));
+    await readGrantAgreements(vehicle('ipfs://same'), PARTIES);
+    await readGrantAgreements(vehicle('ipfs://same'), PARTIES);
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
@@ -211,51 +221,78 @@ describe('readGrantAgreements', () => {
         description: 'legacy grant',
       },
     });
-    await expect(readGrantAgreements(vehicle('ipfs://legacy'))).resolves.toEqual([]);
+    await expect(readGrantAgreements(vehicle('ipfs://legacy'), PARTIES)).resolves.toEqual(
+      [],
+    );
   });
 
   it('recognises legacy documents by their declared type only', async () => {
     mockGateway({ data: { scope: { permissions: [] } } });
-    await expect(readGrantAgreements(vehicle('ipfs://untyped'))).rejects.toBeInstanceOf(
-      GrantUnreadableError,
-    );
+    await expect(
+      readGrantAgreements(vehicle('ipfs://untyped'), PARTIES),
+    ).rejects.toBeInstanceOf(GrantUnreadableError);
   });
 
   it('treats an unfamiliar document shape as unreadable, not as "no files"', async () => {
     mockGateway({ signed: { payload: '...' } });
-    await expect(readGrantAgreements(vehicle('ipfs://wrapped'))).rejects.toBeInstanceOf(
-      GrantUnreadableError,
-    );
+    await expect(
+      readGrantAgreements(vehicle('ipfs://wrapped'), PARTIES),
+    ).rejects.toBeInstanceOf(GrantUnreadableError);
   });
 
-  it('reads https sources fresh each time, since they can change', async () => {
-    mockGateway(sacdDocument([]));
-    await readGrantAgreements(vehicle('https://example.com/g.json'));
-    await readGrantAgreements(vehicle('https://example.com/g.json'));
-    expect(global.fetch).toHaveBeenCalledTimes(2);
+  it('refuses mutable https documents', async () => {
+    await expect(
+      readGrantAgreements(vehicle('https://example.com/g.json'), PARTIES),
+    ).rejects.toThrow("can't verify");
+  });
+
+  it("refuses a document that isn't this user's grant to this app", async () => {
+    mockGateway(sacdDocument([], { grantor: GRANTOR, grantee: GRANTOR }));
+    await expect(
+      readGrantAgreements(vehicle('ipfs://other-app'), PARTIES),
+    ).rejects.toThrow("don't match this app");
+  });
+
+  it('carries over only known, unexpired document agreements', async () => {
+    mockGateway(
+      sacdDocument([
+        { type: 'cloudevent', eventType: 'dimo.document.vehicle.*', asset: DID },
+        { type: 'cloudevent', eventType: 'dimo.attestation', asset: DID },
+        {
+          type: 'cloudevent',
+          eventType: 'dimo.raw.vehicle.*',
+          asset: DID,
+          expiresAt: '2020-01-01T00:00:00Z',
+        },
+      ]),
+    );
+    const agreements = await readGrantAgreements(vehicle('ipfs://mixed'), PARTIES);
+    expect(agreements.map((a) => a.eventType)).toEqual(['dimo.document.vehicle.*']);
   });
 
   it('refuses sources it has no way to read', async () => {
-    await expect(readGrantAgreements(vehicle('ar://abc'))).rejects.toThrow(
-      "stored somewhere DIMO can't read",
+    await expect(readGrantAgreements(vehicle('ar://abc'), PARTIES)).rejects.toThrow(
+      "stored somewhere DIMO can't verify",
     );
   });
 
   it('throws when the grant cannot be read, so callers never drop access blind', async () => {
     mockGateway(new Error('network'));
-    await expect(readGrantAgreements(vehicle('ipfs://bafycid'))).rejects.toBeInstanceOf(
-      GrantUnreadableError,
-    );
+    await expect(
+      readGrantAgreements(vehicle('ipfs://bafycid'), PARTIES),
+    ).rejects.toBeInstanceOf(GrantUnreadableError);
   });
 });
 
 describe('checkDocumentAccess', () => {
   it('is undefined when no files are requested', async () => {
-    expect(await checkDocumentAccess(vehicle('ipfs://x'), [])).toBe(undefined);
+    expect(await checkDocumentAccess(vehicle('ipfs://x'), [], PARTIES)).toBe(undefined);
   });
 
   it('is false for a grant with no source document', async () => {
-    expect(await checkDocumentAccess(vehicle(''), [VEHICLE_DOCS] as any)).toBe(false);
+    expect(await checkDocumentAccess(vehicle(''), [VEHICLE_DOCS] as any, PARTIES)).toBe(
+      false,
+    );
   });
 
   it('fills the grantor into requested sources before comparing', async () => {
@@ -270,15 +307,15 @@ describe('checkDocumentAccess', () => {
       ]),
     );
     expect(
-      await checkDocumentAccess(vehicle('ipfs://c'), [VEHICLE_DOCS] as any, GRANTOR),
+      await checkDocumentAccess(vehicle('ipfs://c'), [VEHICLE_DOCS] as any, PARTIES),
     ).toBe(true);
   });
 
   it('is undefined when the gateway fails, so nobody is prompted on a guess', async () => {
     mockGateway(new Error('network'));
-    expect(await checkDocumentAccess(vehicle('ipfs://c'), [VEHICLE_DOCS] as any)).toBe(
-      undefined,
-    );
+    expect(
+      await checkDocumentAccess(vehicle('ipfs://c'), [VEHICLE_DOCS] as any, PARTIES),
+    ).toBe(undefined);
   });
 });
 

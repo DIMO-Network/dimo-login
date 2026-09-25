@@ -14,9 +14,15 @@ import {
 export const ManageVehicleDetails = ({
   vehicle,
   needsUpdate,
+  newShareEnd,
+  keptFiles,
 }: {
   vehicle: Vehicle;
   needsUpdate: boolean;
+  // How long the share lasts after the offered action (Update or Extend).
+  newShareEnd: string;
+  // Files the current grant shares, which that action keeps.
+  keptFiles: string[];
 }) => {
   const { permissions, permissionTemplateId, cloudEvent } =
     useDevCredentials<VehicleManagerMandatoryParams>();
@@ -41,6 +47,15 @@ export const ManageVehicleDetails = ({
       />
 
       <p className="text-center mt-8">Shared until {expiresAt}</p>
+      <p className="text-center text-sm text-gray-600 mt-1">
+        {needsUpdate ? 'Updating' : 'Extending'} keeps it shared {newShareEnd}.
+      </p>
+      {!!keptFiles.length && (
+        <p className="text-center text-sm text-gray-600 mt-1">
+          Also shares {keptFiles.join(', ').toLowerCase()}, which{' '}
+          {needsUpdate ? 'updating' : 'extending'} keeps.
+        </p>
+      )}
 
       {needsUpdate && (
         <div className="flex flex-col items-center text-center mt-3">
