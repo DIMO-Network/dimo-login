@@ -56,15 +56,21 @@ describe('toCloudEventAgreements', () => {
     ).toEqual([]);
   });
 
-  it('keeps only well-formed fields', () => {
+  it('drops malformed entries whole instead of widening or redirecting them', () => {
     expect(
-      toCloudEventAgreements({
-        eventType: 'e',
-        source: 'nope',
-        ids: ['a', 3],
-        tags: 'x',
-      } as any),
-    ).toEqual([{ eventType: 'e', ids: ['a'], tags: [] }]);
+      toCloudEventAgreements([
+        { eventType: 'e', ids: 'doc-123' }, // would become "all events"
+        { eventType: 'e', ids: ['a', 3] },
+        { eventType: 'e', source: '0XABC' }, // would become the user's address
+      ] as any),
+    ).toEqual([]);
+  });
+
+  it('keeps well-formed entries, defaulting only tags', () => {
+    const source = '0x2222222222222222222222222222222222222222';
+    expect(
+      toCloudEventAgreements({ eventType: 'e', source, ids: ['a'], tags: 'x' } as any),
+    ).toEqual([{ eventType: 'e', source, ids: ['a'], tags: [] }]);
   });
 });
 
@@ -165,14 +171,25 @@ describe('readGrantAgreements', () => {
     );
   });
 
-  it('reads https sources directly and caches by source', async () => {
-    mockGateway(sacdDocument([{ type: 'cloudevent', eventType: 'x', asset: DID }]));
-    await readGrantAgreements(vehicle('https://example.com/grant.json'));
-    await readGrantAgreements(vehicle('https://example.com/grant.json'));
+  it('caches ipfs reads by source', async () => {
+    mockGateway(sacdDocument([]));
+    await readGrantAgreements(vehicle('ipfs://same'));
+    await readGrantAgreements(vehicle('ipfs://same'));
     expect(global.fetch).toHaveBeenCalledTimes(1);
-    expect((global.fetch as jest.Mock).mock.calls[0][0]).toBe(
-      'https://example.com/grant.json',
+  });
+
+  it('treats an unfamiliar document shape as unreadable, not as "no files"', async () => {
+    mockGateway({ signed: { payload: '...' } });
+    await expect(readGrantAgreements(vehicle('ipfs://wrapped'))).rejects.toBeInstanceOf(
+      GrantUnreadableError,
     );
+  });
+
+  it('reads https sources fresh each time, since they can change', async () => {
+    mockGateway(sacdDocument([]));
+    await readGrantAgreements(vehicle('https://example.com/g.json'));
+    await readGrantAgreements(vehicle('https://example.com/g.json'));
+    expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 
   it('refuses sources it has no way to read', async () => {

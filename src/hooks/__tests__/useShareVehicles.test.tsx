@@ -155,11 +155,12 @@ it('sends nothing if any document fails to sign', async () => {
   expect(setVehiclePermissionsBatch).not.toHaveBeenCalled();
 });
 
-it('refuses to grant files for a vehicle without a DID', async () => {
+it('refuses to grant files for a vehicle without a DID, before signing anything', async () => {
   mockCredentials.cloudEvent = CLOUD_EVENT;
   const noDid = { tokenId: 9, tokenDID: '' } as Vehicle;
 
   await expect(share([vehicle(1), noDid])).rejects.toThrow('has no DID');
+  expect(generateIpfsSources).not.toHaveBeenCalled();
   expect(setVehiclePermissionsBatch).not.toHaveBeenCalled();
 });
 

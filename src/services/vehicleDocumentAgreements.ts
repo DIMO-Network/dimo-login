@@ -12,13 +12,15 @@ const DEFAULT_EVENT_TYPE = 'dimo.attestation';
 const eventTypeOf = (agreement: CloudEventAgreement) =>
   agreement.eventType || DEFAULT_EVENT_TYPE;
 
-const stringsOrEmpty = (value: unknown): string[] =>
-  Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : [];
+// undefined when the value isn't a list of strings.
+const stringList = (value: unknown): string[] | undefined =>
+  Array.isArray(value) && value.every((v) => typeof v === 'string') ? value : undefined;
 
 /**
- * The `cloudEvent` param is one agreement or a list of them. Entries without
- * an eventType are dropped: the signer would default them to every
- * attestation on the vehicle, far more than a malformed request meant.
+ * The `cloudEvent` param is one agreement or a list of them. A malformed entry
+ * is dropped whole rather than repaired: a missing eventType would be signed
+ * as every attestation, bad ids as every event, and a bad source as the
+ * user's own address, each wider or different from what the app meant.
  * `source` may be omitted: an app can't know the user's address before login,
  * so the signer fills in the grantor (see generateIpfsSources).
  */
@@ -30,13 +32,16 @@ export const toCloudEventAgreements = (cloudEvent?: unknown): CloudEventAgreemen
     if (!agreement || typeof agreement !== 'object') return [];
     const { eventType, source } = agreement;
     if (typeof eventType !== 'string' || !eventType) return [];
+    const ids = agreement.ids === undefined ? [] : stringList(agreement.ids);
+    if (!ids) return [];
+    const validSource = typeof source === 'string' && /^0x[0-9a-fA-F]{40}$/.test(source);
+    if (source !== undefined && !validSource) return [];
     return [
       {
         eventType,
-        ...(typeof source === 'string' &&
-          source.startsWith('0x') && { source: source as `0x${string}` }),
-        ids: stringsOrEmpty(agreement.ids),
-        tags: stringsOrEmpty(agreement.tags),
+        ...(validSource && { source: source as `0x${string}` }),
+        ids,
+        tags: stringList(agreement.tags) ?? [],
       },
     ];
   });
@@ -146,8 +151,9 @@ export class GrantUnreadableError extends Error {
   }
 }
 
-// Source documents are content-addressed, so a read can be reused for the
-// session. Failures aren't cached, so the next attempt retries.
+// ipfs:// documents are content-addressed, so a read can be reused for the
+// session; https:// ones can change and are read fresh. Failures aren't
+// cached, so the next attempt retries.
 const grantReads = new Map<string, Promise<CloudEventAgreement[]>>();
 
 const sourceUrl = (source: string) => {
@@ -181,22 +187,29 @@ export const readGrantAgreements = (vehicle: {
       ),
     );
   }
+  const cacheable = source.startsWith('ipfs://');
   const key = `${source}|${vehicle.tokenDID.toLowerCase()}`;
-  const cached = grantReads.get(key);
+  const cached = cacheable ? grantReads.get(key) : undefined;
   if (cached) return cached;
 
   const read = (async () => {
     try {
       const res = await fetchWithTimeout(url, {}, SOURCE_FETCH_TIMEOUT_MS);
       if (!res.ok) throw new Error(`gateway returned ${res.status}`);
-      return getVehicleAgreements(await res.json(), vehicle.tokenDID);
+      const document = await res.json();
+      // An unfamiliar shape isn't "no files"; treating it so would let an
+      // update drop agreements it couldn't see.
+      if (!Array.isArray(document?.data?.agreements)) {
+        throw new Error('unexpected SACD document shape');
+      }
+      return getVehicleAgreements(document, vehicle.tokenDID);
     } catch (error) {
       console.error('Error reading SACD source:', error);
       grantReads.delete(key);
       throw new GrantUnreadableError(vehicle);
     }
   })();
-  grantReads.set(key, read);
+  if (cacheable) grantReads.set(key, read);
   return read;
 };
 

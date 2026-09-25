@@ -50,20 +50,22 @@ export const ManageVehicle: React.FC = () => {
   // The vehicle was captured when its card was clicked, possibly before the
   // list's file check returned. Finish that check here so the right action
   // (Update vs Extend) is offered.
+  const requestedFiles = toCloudEventAgreements(cloudEvent);
+  const mustCheck =
+    vehicle.shared && requestedFiles.length > 0 && vehicle.documentAccess === undefined;
   const [documentAccess, setDocumentAccess] = useState(vehicle.documentAccess);
-  const [checking, setChecking] = useState(false);
+  // Starts true when a check is due, so no frame offers Extend before it runs.
+  const [checking, setChecking] = useState(mustCheck);
   useEffect(() => {
-    const requested = toCloudEventAgreements(cloudEvent);
-    if (!vehicle.shared || !requested.length || vehicle.documentAccess !== undefined) {
-      return;
-    }
+    if (!mustCheck) return;
     let cancelled = false;
-    setChecking(true);
-    checkDocumentAccess(vehicle, requested, user?.smartContractAddress).then((access) => {
-      if (cancelled) return;
-      setDocumentAccess(access);
-      setChecking(false);
-    });
+    checkDocumentAccess(vehicle, requestedFiles, user?.smartContractAddress).then(
+      (access) => {
+        if (cancelled) return;
+        setDocumentAccess(access);
+        setChecking(false);
+      },
+    );
     return () => {
       cancelled = true;
     };

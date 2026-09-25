@@ -1,7 +1,7 @@
 /**
  * Like Promise.all(items.map(fn)), but runs at most `limit` calls at a time.
- * Rejects with the first error and starts no further calls after it; calls
- * already running are left to finish.
+ * Rejects with the first error and starts no further calls after it. Calls
+ * already running can't be cancelled and are left to finish.
  */
 export const mapWithConcurrency = async <T, R>(
   items: T[],

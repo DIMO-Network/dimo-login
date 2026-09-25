@@ -25,7 +25,8 @@ import { mergePermissions } from '../utils/permissions';
 import { keepLaterExpiration } from '../utils/vehicles';
 import { mapWithConcurrency } from '../utils/mapWithConcurrency';
 
-// Documents are signed (Turnkey) and uploaded (IPFS) per vehicle; cap the burst.
+// Grants are read (IPFS) and documents signed (Turnkey) and uploaded (IPFS)
+// per vehicle; cap the burst.
 const SIGNING_CONCURRENCY = 4;
 
 export const useShareVehicles = () => {
@@ -70,22 +71,27 @@ export const useShareVehicles = () => {
     // request, so an update never drops access (only "Stop sharing" does):
     // same or more permissions and files, and the later expiry. Every current
     // grant is read and checked before anything is signed; if one can't be
-    // carried over, this throws GrantUnreadableError and nothing is signed.
+    // carried over, this throws and nothing is signed.
     const planGrant = async (vehicle: Vehicle) => {
-      if (!vehicle.shared) {
-        return {
-          vehicle,
-          permissions: perms,
-          agreements: requestedAgreements,
-          expiration: expirationDate,
-        };
-      }
-      const existing = await readGrantAgreements(vehicle);
+      const plan = vehicle.shared
+        ? {
+            permissions: mergePermissions(vehicle, perms),
+            agreements: mergeAgreements(
+              await readGrantAgreements(vehicle),
+              requestedAgreements,
+            ),
+            expiration: keepLaterExpiration(vehicle, expirationDate),
+          }
+        : {
+            permissions: perms,
+            agreements: requestedAgreements,
+            expiration: expirationDate,
+          };
       return {
+        ...plan,
         vehicle,
-        permissions: mergePermissions(vehicle, perms),
-        agreements: mergeAgreements(existing, requestedAgreements),
-        expiration: keepLaterExpiration(vehicle, expirationDate),
+        // Also checked up front: a vehicle without a DID can't take files.
+        asset: getVehicleAsset(vehicle, plan.agreements.length > 0),
       };
     };
 
@@ -94,6 +100,7 @@ export const useShareVehicles = () => {
       permissions: vehiclePerms,
       agreements,
       expiration,
+      asset,
     }: Awaited<ReturnType<typeof planGrant>>) => ({
       grantee: clientId as `0x${string}`,
       permissions: vehiclePerms,
@@ -102,7 +109,7 @@ export const useShareVehicles = () => {
       source: await generateIpfsSources(vehiclePerms, clientId, expiration, {
         attachments,
         cloudEventAgreements: agreements,
-        asset: getVehicleAsset(vehicle, agreements.length > 0),
+        asset,
       }),
     });
 
@@ -115,9 +122,10 @@ export const useShareVehicles = () => {
       vehicles.some((v) => v.shared);
 
     if (perVehicle) {
-      const plans = await Promise.all(vehicles.map(planGrant));
+      const plans = await mapWithConcurrency(vehicles, SIGNING_CONCURRENCY, planGrant);
       // Sign every document before sending anything, so a signing failure
-      // leaves no grants behind.
+      // leaves no grants on-chain. Signings already running when one fails
+      // still finish; their documents are uploaded but never referenced.
       const grants = await mapWithConcurrency(plans, SIGNING_CONCURRENCY, signGrant);
       if (grants.length === 1) {
         await setVehiclePermissions(grants[0]);
