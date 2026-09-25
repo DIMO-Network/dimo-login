@@ -9,7 +9,7 @@ const DRIVER_DOC_PATTERNS = ['dimo.document.driver.*', 'dimo.raw.driver.*'] as c
 // "all events of this type" and `documents` tags the grant for the docs surface.
 export const buildDriverDocAgreements = (
   grantor: `0x${string}`,
-): CloudEventAgreement[] =>
+): (CloudEventAgreement & { source: `0x${string}` })[] =>
   DRIVER_DOC_PATTERNS.map((eventType) => ({
     eventType,
     source: grantor,
