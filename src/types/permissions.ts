@@ -27,6 +27,18 @@ export const PERMISSIONS_DESCRIPTION: Record<PermissionKey, string> = {
   GetApproximateLocation: 'APPROXIMATE_LOCATION: access to approximate vehicle location.',
 };
 
+// Short, user-facing names for the permission chips in the update flow.
+export const PERMISSIONS_LABEL: Record<PermissionKey, string> = {
+  GetNonLocationHistory: 'Vehicle data history',
+  ExecuteCommands: 'Lock and unlock commands',
+  GetCurrentLocation: 'Current location',
+  GetLocationHistory: 'Location history',
+  GetVINCredential: 'Documents and credentials',
+  GetLiveData: 'Live data',
+  GetRawData: 'Raw data',
+  GetApproximateLocation: 'Approximate location',
+};
+
 export type Attachment = {
   name: string;
   description: string;
@@ -36,7 +48,8 @@ export type Attachment = {
 
 export type CloudEventAgreement = {
   eventType?: string;
-  source: `0x${string}`;
+  // Optional in the cloudEvent param; the signer defaults it to the grantor.
+  source?: `0x${string}`;
   ids: string[];
   tags: string[];
 };

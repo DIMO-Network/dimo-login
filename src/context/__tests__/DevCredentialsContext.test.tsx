@@ -22,7 +22,9 @@ jest.mock('../../services/turnkeyService', () => ({
   createKernelSigner: jest.fn(),
 }));
 jest.mock('../../services/storageService', () => ({ setEmailGranted: jest.fn() }));
-jest.mock('../../services/configurationService', () => ({ getConfigurationById: jest.fn() }));
+jest.mock('../../services/configurationService', () => ({
+  getConfigurationById: jest.fn(),
+}));
 jest.mock('../../services', () => ({ fetchConfigFromIPFS: jest.fn() }));
 jest.mock('../../utils/messageHandler', () => ({ sendMessageToReferrer: jest.fn() }));
 jest.mock('../../utils/isStandalone', () => ({ isStandalone: () => false }));
@@ -40,9 +42,7 @@ const fetchOemBrandMock = fetchOemBrand as jest.Mock;
 // devCredentialsState after a postMessage.
 const StateProbe = ({ probeKey }: { probeKey: string }) => {
   const value = useDevCredentials<Record<string, unknown>>();
-  return (
-    <span data-testid="probe">{JSON.stringify(value[probeKey] ?? null)}</span>
-  );
+  return <span data-testid="probe">{JSON.stringify(value[probeKey] ?? null)}</span>;
 };
 
 const renderProvider = (probeKey = 'clientId') =>
@@ -79,9 +79,7 @@ describe('DevCredentialsContext brand forwarding', () => {
     renderProvider();
     await dispatchAuthInit({ clientId: CLIENT_ID, brandName: 'GM' });
 
-    await waitFor(() =>
-      expect(fetchOemBrandMock).toHaveBeenCalledWith(CLIENT_ID, 'GM'),
-    );
+    await waitFor(() => expect(fetchOemBrandMock).toHaveBeenCalledWith(CLIENT_ID, 'GM'));
   });
 
   it('popup: no brandName → brand fetch gets undefined (default chrome)', async () => {
@@ -96,9 +94,7 @@ describe('DevCredentialsContext brand forwarding', () => {
     window.history.pushState({}, '', `/?clientId=${CLIENT_ID}&brandName=GM`);
     renderProvider();
 
-    await waitFor(() =>
-      expect(fetchOemBrandMock).toHaveBeenCalledWith(CLIENT_ID, 'GM'),
-    );
+    await waitFor(() => expect(fetchOemBrandMock).toHaveBeenCalledWith(CLIENT_ID, 'GM'));
   });
 
   it('forwards the SDK brandName verbatim (server scopes it to clientId)', async () => {
@@ -106,10 +102,7 @@ describe('DevCredentialsContext brand forwarding', () => {
     await dispatchAuthInit({ clientId: CLIENT_ID, brandName: 'SomeOtherLicenseBrand' });
 
     await waitFor(() =>
-      expect(fetchOemBrandMock).toHaveBeenCalledWith(
-        CLIENT_ID,
-        'SomeOtherLicenseBrand',
-      ),
+      expect(fetchOemBrandMock).toHaveBeenCalledWith(CLIENT_ID, 'SomeOtherLicenseBrand'),
     );
   });
 
@@ -120,5 +113,71 @@ describe('DevCredentialsContext brand forwarding', () => {
     // wait until the message has been processed (clientId drives the brand fetch)
     await waitFor(() => expect(fetchOemBrandMock).toHaveBeenCalled());
     expect(screen.getByTestId('probe').textContent).toBe('null');
+  });
+});
+
+describe('DevCredentialsContext cloudEvent (vehicle document access)', () => {
+  const AGREEMENTS = [
+    { eventType: 'dimo.document.vehicle.*', ids: [], tags: ['documents'] },
+    { eventType: 'dimo.raw.vehicle.*', ids: [], tags: ['documents'] },
+  ];
+
+  it('redirect: parses cloudEvent exactly as the SDK encodes it', async () => {
+    // login-with-dimo redirectAuth: encodeURIComponent(JSON), then URLSearchParams.
+    const params = new URLSearchParams({ clientId: CLIENT_ID });
+    params.append('cloudEvent', encodeURIComponent(JSON.stringify(AGREEMENTS)));
+    window.history.pushState({}, '', `/?${params.toString()}`);
+    renderProvider('cloudEvent');
+
+    await waitFor(() =>
+      expect(screen.getByTestId('probe').textContent).toBe(JSON.stringify(AGREEMENTS)),
+    );
+  });
+
+  it('popup: keeps cloudEvent from the SHARE_VEHICLES_DATA message', async () => {
+    renderProvider('cloudEvent');
+    await dispatchAuthInit({ clientId: CLIENT_ID, entryState: 'VEHICLE_MANAGER' });
+    await act(async () => {
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          data: { eventType: 'SHARE_VEHICLES_DATA', cloudEvent: AGREEMENTS },
+        }),
+      );
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('probe').textContent).toBe(JSON.stringify(AGREEMENTS)),
+    );
+  });
+
+  it('ignores a malformed cloudEvent param instead of crashing', async () => {
+    window.history.pushState({}, '', `/?clientId=${CLIENT_ID}&cloudEvent=%5B%7Bbroken`);
+    renderProvider('cloudEvent');
+
+    await waitFor(() => expect(fetchOemBrandMock).toHaveBeenCalled());
+    expect(screen.getByTestId('probe').textContent).toBe('null');
+  });
+
+  it('accepts plain JSON in a hand-built link', async () => {
+    const params = new URLSearchParams({
+      clientId: CLIENT_ID,
+      cloudEvent: JSON.stringify(AGREEMENTS),
+    });
+    window.history.pushState({}, '', `/?${params.toString()}`);
+    renderProvider('cloudEvent');
+
+    await waitFor(() =>
+      expect(screen.getByTestId('probe').textContent).toBe(JSON.stringify(AGREEMENTS)),
+    );
+  });
+
+  it('OAuth return: restores cloudEvent from the state param', async () => {
+    const state = JSON.stringify({ clientId: CLIENT_ID, cloudEvent: AGREEMENTS });
+    window.history.pushState({}, '', `/?state=${encodeURIComponent(state)}`);
+    renderProvider('cloudEvent');
+
+    await waitFor(() =>
+      expect(screen.getByTestId('probe').textContent).toBe(JSON.stringify(AGREEMENTS)),
+    );
   });
 });

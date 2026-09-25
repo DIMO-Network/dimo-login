@@ -21,4 +21,4 @@ export type IParams = {
   filters?: VehicleFilters;
 };
 
-export type VehiclePermissionsAction = 'revoke' | 'extend';
+export type VehiclePermissionsAction = 'revoke' | 'extend' | 'update';

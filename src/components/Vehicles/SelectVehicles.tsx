@@ -13,10 +13,28 @@ import PaginationButtons from './PaginationButtons';
 import { AllVehiclesShared } from './AllVehiclesShared';
 import { captureException } from '@sentry/react';
 import { isInvalidSessionError } from '../../utils/authUtils';
+import { getAddedPermissions, needsPermissionUpdate } from '../../utils/permissions';
+import { PermissionUpdateNotice } from './PermissionUpdateNotice';
+import { FilesRequestedNote } from './FilesRequestedNote';
+import {
+  getFileLabels,
+  getMissingFileLabels,
+  GrantUnreadableError,
+  toCloudEventAgreements,
+} from '../../services/vehicleDocumentAgreements';
+import { Vehicle } from '../../models/vehicle';
 
 export const SelectVehicles: React.FC = () => {
-  const { devLicenseAlias, tosUrl, privacyPolicyUrl, oemBrand } = useDevCredentials<VehicleManagerMandatoryParams>();
-  const brandName = oemBrand?.name || devLicenseAlias || undefined;
+  const {
+    devLicenseAlias,
+    tosUrl,
+    privacyPolicyUrl,
+    oemBrand,
+    permissions,
+    permissionTemplateId,
+    cloudEvent,
+  } = useDevCredentials<VehicleManagerMandatoryParams>();
+  const brandName = oemBrand?.name || devLicenseAlias;
   const { setLoadingState, setError, isLoading } = useUIManager();
   const {
     fetchVehicles: _fetchVehicles,
@@ -25,6 +43,12 @@ export const SelectVehicles: React.FC = () => {
     hasNextPage,
     hasPreviousPage,
   } = useFetchVehicles();
+  // Vehicles shared with an older permission set can be shared again: the new
+  // grant overwrites the old one, so there's nothing to revoke first.
+  const needsUpdate = (vehicle: Vehicle) =>
+    needsPermissionUpdate(vehicle, permissions, permissionTemplateId);
+  const isSelectable = (vehicle: Vehicle) => !vehicle.shared || needsUpdate(vehicle);
+  const outdatedVehicles = vehicles.filter(needsUpdate);
   const {
     selectedVehicles,
     handleVehicleSelect,
@@ -32,7 +56,7 @@ export const SelectVehicles: React.FC = () => {
     clearSelectedVehicles,
     allSelected,
     checkIfSelected,
-  } = useSelectVehicles(vehicles.filter((v) => !v.shared));
+  } = useSelectVehicles(vehicles.filter(isSelectable), outdatedVehicles);
   const handleShareVehicles = useShareVehicles();
   const finishShareVehicles = useFinishShareVehicles();
 
@@ -58,10 +82,13 @@ export const SelectVehicles: React.FC = () => {
       setLoadingState(true, 'Sharing vehicles', true);
       await handleShareVehicles(selectedVehicles);
       clearSelectedVehicles();
-      finishShareVehicles(selectedVehicles);
+      // Updated shares show on the success screen like newly shared ones.
+      finishShareVehicles(selectedVehicles.map((v) => ({ ...v, shared: false })));
     } catch (err) {
       captureException(err);
-      if (!isInvalidSessionError(err)) {
+      if (err instanceof GrantUnreadableError) {
+        setError(err.message);
+      } else if (!isInvalidSessionError(err)) {
         setError('Failed to share vehicles');
       }
     } finally {
@@ -83,14 +110,39 @@ export const SelectVehicles: React.FC = () => {
 
   const noVehicles = vehicles.length === 0 && incompatibleVehicles.length === 0;
   const noCompatibleVehicles = vehicles.length === 0 && incompatibleVehicles.length > 0;
-  const allShared = vehicles.length > 0 && vehicles.every((v) => v.shared);
-  const canShare = vehicles.some((v) => !v.shared);
+  const allShared =
+    vehicles.length > 0 && vehicles.every((v) => v.shared) && !outdatedVehicles.length;
+  const canShare = vehicles.some(isSelectable);
+  const selectedUpdateCount = selectedVehicles.filter(needsUpdate).length;
+  const requestedFiles = toCloudEventAgreements(cloudEvent);
+  const missingFileLabels = getMissingFileLabels(outdatedVehicles, requestedFiles);
+  // The update notice already lists missing files; otherwise, any share that
+  // grants files says so here.
+  const showFilesNote =
+    requestedFiles.length > 0 && canShare && !missingFileLabels.length && !isLoading;
 
   return (
     <div className="flex flex-col w-full items-center justify-center box-border overflow-y-auto">
       {noVehicles && !isLoading && <EmptyState />}
 
-      {allShared && <AllVehiclesShared devLicenseAlias={oemBrand?.name || devLicenseAlias} />}
+      {allShared && <AllVehiclesShared devLicenseAlias={brandName} />}
+
+      {!!outdatedVehicles.length && !isLoading && (
+        <PermissionUpdateNotice
+          brandName={brandName}
+          vehicleCount={outdatedVehicles.length}
+          addedPermissions={getAddedPermissions(
+            outdatedVehicles,
+            permissions,
+            permissionTemplateId,
+          )}
+          addedFiles={missingFileLabels}
+        />
+      )}
+
+      {showFilesNote && (
+        <FilesRequestedNote brandName={brandName} fileLabels={getFileLabels(requestedFiles)} />
+      )}
 
       <UIManagerLoaderWrapper>
         <>
@@ -102,6 +154,7 @@ export const SelectVehicles: React.FC = () => {
                 onSelect={handleVehicleSelect}
                 onToggleSelectAll={handleToggleSelectAll}
                 allSelected={allSelected}
+                isSelectable={isSelectable}
               />
             )}
             {!!incompatibleVehicles.length && (
@@ -122,6 +175,7 @@ export const SelectVehicles: React.FC = () => {
             onCancel={onCancel}
             onShare={handleShare}
             selectedVehiclesCount={selectedVehicles.length}
+            selectedUpdateCount={selectedUpdateCount}
             tosUrl={tosUrl}
             privacyPolicyUrl={privacyPolicyUrl}
             brandName={brandName}

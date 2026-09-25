@@ -2,29 +2,30 @@ import React from 'react';
 
 import { Vehicle } from '../../models/vehicle';
 import Header from '../Shared/Header';
-import { SharedPermissionsNote } from './';
+import { SharedPermissionsNote, UpdateNeededBadge } from './SharedPermissionsNote';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { VehicleManagerMandatoryParams } from '../../types';
-import { hasUpdatedPermissions } from '../../utils/permissions';
+import { getAddedPermissions } from '../../utils/permissions';
+import {
+  getMissingFileLabels,
+  toCloudEventAgreements,
+} from '../../services/vehicleDocumentAgreements';
 
-export const ManageVehicleDetails = ({ vehicle }: { vehicle: Vehicle }) => {
-  const { permissions, permissionTemplateId } =
+export const ManageVehicleDetails = ({
+  vehicle,
+  needsUpdate,
+}: {
+  vehicle: Vehicle;
+  needsUpdate: boolean;
+}) => {
+  const { permissions, permissionTemplateId, cloudEvent } =
     useDevCredentials<VehicleManagerMandatoryParams>();
 
-  const {
-    tokenId,
-    shared,
-    expiresAt,
-    make,
-    model,
-    year,
-    permissions: vehiclePermissions,
-  } = vehicle;
-  const hasUpdatedPerms = hasUpdatedPermissions(
-    vehiclePermissions,
-    permissions,
-    permissionTemplateId,
-  );
+  const { tokenId, expiresAt, make, model, year } = vehicle;
+  const addedPermissions = needsUpdate
+    ? getAddedPermissions([vehicle], permissions, permissionTemplateId)
+    : [];
+  const addedFiles = getMissingFileLabels([vehicle], toCloudEventAgreements(cloudEvent));
 
   return (
     <>
@@ -41,7 +42,15 @@ export const ManageVehicleDetails = ({ vehicle }: { vehicle: Vehicle }) => {
 
       <p className="text-center mt-8">Shared until {expiresAt}</p>
 
-      <SharedPermissionsNote shared={shared} hasUpdatedPermissions={hasUpdatedPerms} />
+      {needsUpdate && (
+        <div className="flex flex-col items-center text-center mt-3">
+          <UpdateNeededBadge />
+          <SharedPermissionsNote
+            addedPermissions={addedPermissions}
+            addedFiles={addedFiles}
+          />
+        </div>
+      )}
     </>
   );
 };

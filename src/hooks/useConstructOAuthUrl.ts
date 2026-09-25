@@ -5,7 +5,7 @@ import { AuthProvider, constructAuthUrl } from '../utils/authUrls';
 import { UiStates } from '../enums';
 
 export const useConstructOAuthUrl = () => {
-  const { clientId, redirectUri } = useDevCredentials();
+  const { clientId, redirectUri, cloudEvent } = useDevCredentials();
   const { onboardingEnabled } = useOracles();
   const { altTitle } = useUIManager();
 
@@ -23,6 +23,8 @@ export const useConstructOAuthUrl = () => {
       vehicleMakes: urlParams.getAll('vehicleMakes'),
       vehicles: urlParams.getAll('vehicles'),
       powertrainTypes: urlParams.getAll('powertrainTypes'),
+      // From state rather than the URL: popup mode receives it by postMessage.
+      cloudEvent,
       onboarding: onboardingEnabled ? ['tesla'] : [], //TODO: Should have full onboarding array here
       altTitle,
       emailPermissionGranted,

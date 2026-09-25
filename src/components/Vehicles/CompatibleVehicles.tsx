@@ -9,29 +9,34 @@ const CompatibleVehicles = ({
   onToggleSelectAll,
   allSelected,
   checkIfSelected,
+  isSelectable,
 }: {
   vehicles: Vehicle[];
+  isSelectable: (vehicle: Vehicle) => boolean;
   onSelect: (vehicle: Vehicle) => void;
   onToggleSelectAll: () => void;
   allSelected: boolean;
   checkIfSelected: (vehicle: Vehicle) => boolean;
 }) => {
   const handleSelect = (vehicle: Vehicle) => {
-    if (!vehicle.shared) {
+    if (isSelectable(vehicle)) {
       onSelect(vehicle);
     }
   };
+  const hasSelectable = vehicles.some(isSelectable);
 
   return (
     <>
       <div className="flex justify-between">
         <h2 className="text-lg">Compatible</h2>
-        <button
-          onClick={onToggleSelectAll}
-          className="bg-white text-xs w-[75px] text-[#09090B] border border-gray-300 pr-px pl-px py-1 rounded-full hover:border-gray-500"
-        >
-          {allSelected ? 'Deselect All' : 'Select All'}
-        </button>
+        {hasSelectable && (
+          <button
+            onClick={onToggleSelectAll}
+            className="bg-white text-xs whitespace-nowrap text-[#09090B] border border-gray-300 px-3 py-1 rounded-full hover:border-gray-500"
+          >
+            {allSelected ? 'Deselect all' : 'Select all'}
+          </button>
+        )}
       </div>
       <div>
         <ConnectCarButton />

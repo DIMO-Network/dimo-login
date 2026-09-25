@@ -12,6 +12,26 @@ import { UiStates } from '../enums';
 import { setForceEmail } from '../stores/AuthStateStore';
 import { parseExpirationDate, getDefaultExpirationDate } from '../utils/dateUtils';
 
+// cloudEvent arrives as an object (postMessage, OAuth state), as JSON encoded
+// once more by the SDK (redirect), or as plain JSON in a hand-built link.
+// A malformed value is dropped rather than crashing the page.
+const parseCloudEvent = (
+  value: unknown,
+): CloudEventAgreement | CloudEventAgreement[] | undefined => {
+  if (typeof value !== 'string') {
+    return value as CloudEventAgreement | CloudEventAgreement[] | undefined;
+  }
+  for (const decode of [(v: string) => decodeURIComponent(v), (v: string) => v]) {
+    try {
+      return JSON.parse(decode(value));
+    } catch {
+      // try the next form
+    }
+  }
+  console.error('Ignoring malformed cloudEvent param');
+  return undefined;
+};
+
 export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
   const [devCredentialsState, setDevCredentialsState] =
     useState<AllParams>(DEFAULT_CONTEXT);
@@ -84,13 +104,11 @@ export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
           ? JSON.parse(decodeURIComponent(value))
           : value) as SignMessageData,
       })),
-    cloudEvent: (value: unknown) =>
-      setDevCredentialsState((prev) => ({
-        ...prev,
-        cloudEvent: (typeof value === 'string'
-          ? JSON.parse(decodeURIComponent(value))
-          : value) as CloudEventAgreement,
-      })),
+    cloudEvent: (value: unknown) => {
+      const cloudEvent = parseCloudEvent(value);
+      if (!cloudEvent) return;
+      setDevCredentialsState((prev) => ({ ...prev, cloudEvent }));
+    },
   };
 
   const applyDevCredentialsConfig = (config: Record<string, unknown>) => {
