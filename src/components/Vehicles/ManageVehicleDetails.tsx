@@ -6,6 +6,10 @@ import { SharedPermissionsNote, UpdateNeededBadge } from './SharedPermissionsNot
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { VehicleManagerMandatoryParams } from '../../types';
 import { getAddedPermissions } from '../../utils/permissions';
+import {
+  getMissingFileLabels,
+  toCloudEventAgreements,
+} from '../../services/vehicleDocumentAgreements';
 
 export const ManageVehicleDetails = ({
   vehicle,
@@ -14,13 +18,14 @@ export const ManageVehicleDetails = ({
   vehicle: Vehicle;
   needsUpdate: boolean;
 }) => {
-  const { permissions, permissionTemplateId } =
+  const { permissions, permissionTemplateId, cloudEvent } =
     useDevCredentials<VehicleManagerMandatoryParams>();
 
   const { tokenId, expiresAt, make, model, year } = vehicle;
   const addedPermissions = needsUpdate
     ? getAddedPermissions([vehicle], permissions, permissionTemplateId)
     : [];
+  const addedFiles = getMissingFileLabels([vehicle], toCloudEventAgreements(cloudEvent));
 
   return (
     <>
@@ -40,7 +45,10 @@ export const ManageVehicleDetails = ({
       {needsUpdate && (
         <div className="flex flex-col items-center text-center mt-3">
           <UpdateNeededBadge />
-          <SharedPermissionsNote addedPermissions={addedPermissions} />
+          <SharedPermissionsNote
+            addedPermissions={addedPermissions}
+            addedFiles={addedFiles}
+          />
         </div>
       )}
     </>

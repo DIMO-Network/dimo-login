@@ -5,71 +5,25 @@ import {
   setVehiclePermissions,
   setVehiclePermissionsBulk,
 } from '../services';
-import {
-  SetVehiclePermissions,
-  SetVehiclePermissionsBulk,
-} from '@dimo-network/transactions';
 import { useDevCredentials } from '../context/DevCredentialsContext';
 import { VehicleManagerMandatoryParams } from '../types';
 import { useAuthContext } from '../context/AuthContext';
 import { INVALID_SESSION_ERROR } from '../utils/authUtils';
 import { generateAttachments } from '../services/permissionsService';
+import { toCloudEventAgreements } from '../services/vehicleDocumentAgreements';
 
-const shareSingleVehicle = async (tokenId: string, basePermissions: any) => {
-  const vehiclePermissions: SetVehiclePermissions = {
-    ...basePermissions,
-    permissions: basePermissions.perms,
-    tokenId: BigInt(tokenId),
-  };
-  await setVehiclePermissions(vehiclePermissions);
-};
-const shareMultipleVehicles = async (tokenIds: string[], basePermissions: any) => {
-  const bulkVehiclePermissions: SetVehiclePermissionsBulk = {
-    ...basePermissions,
-    permissions: basePermissions.perms,
-    tokenIds: tokenIds.map((id) => BigInt(id)),
-  };
-  await setVehiclePermissionsBulk(bulkVehiclePermissions);
-};
-
-const shareVehicles = async (tokenIds: string[], basePermissions: any) => {
-  if (tokenIds.length === 1) {
-    return shareSingleVehicle(tokenIds[0], basePermissions);
-  }
-  return shareMultipleVehicles(tokenIds, basePermissions);
-};
-
-interface Params {
-  permissionTemplateId?: string;
-  permissions?: string;
-  clientId: `0x${string}` | null;
-  expirationDate: BigInt;
-  region?: string;
-}
-
-const getBasePermissions = async ({
-  permissionTemplateId,
-  permissions,
-  clientId,
-  expirationDate,
-  region,
-}: Params) => {
-  const perms = createPermissionsFromParams(permissions, permissionTemplateId);
-  console.log('useShareVehicles - region:', region);
-  const attachments = generateAttachments(region?.toUpperCase());
-  console.log('useShareVehicles - generated attachments:', attachments);
-  const source = await generateIpfsSources(perms, clientId, expirationDate, attachments);
-  return {
-    grantee: clientId as `0x${string}`,
-    perms,
-    expiration: expirationDate,
-    source,
-  };
-};
+export const toVehicleAsset = (vehicle: Vehicle) =>
+  vehicle.tokenDID ? (vehicle.tokenDID as `did:${string}`) : undefined;
 
 export const useShareVehicles = () => {
-  const { clientId, expirationDate, permissionTemplateId, permissions, region } =
-    useDevCredentials<VehicleManagerMandatoryParams>();
+  const {
+    clientId,
+    expirationDate,
+    permissionTemplateId,
+    permissions,
+    region,
+    cloudEvent,
+  } = useDevCredentials<VehicleManagerMandatoryParams>();
   const { validateSession } = useAuthContext();
 
   const validate = async () => {
@@ -91,14 +45,42 @@ export const useShareVehicles = () => {
     }
     const isValid = await validate();
     if (!isValid) throw new Error(INVALID_SESSION_ERROR);
-    const tokenIds = vehicles.map((v) => v.tokenId.toString());
-    const basePermissions = await getBasePermissions({
-      clientId,
-      permissionTemplateId,
-      permissions,
-      expirationDate,
-      region,
+
+    const perms = createPermissionsFromParams(permissions, permissionTemplateId);
+    const attachments = generateAttachments(region?.toUpperCase());
+    const cloudEventAgreements = toCloudEventAgreements(cloudEvent);
+    const grant = {
+      grantee: clientId as `0x${string}`,
+      permissions: perms,
+      expiration: expirationDate,
+    };
+    const signSource = (asset?: `did:${string}`) =>
+      generateIpfsSources(perms, clientId, expirationDate, {
+        attachments,
+        cloudEventAgreements,
+        asset,
+      });
+
+    // File agreements only count for the vehicle DID they name, so a share
+    // with files signs a document per vehicle and sets each grant on its own.
+    // Without files, one document covers the whole batch.
+    if (cloudEventAgreements.length || vehicles.length === 1) {
+      for (const vehicle of vehicles) {
+        const source = await signSource(toVehicleAsset(vehicle));
+        await setVehiclePermissions({
+          ...grant,
+          tokenId: BigInt(vehicle.tokenId),
+          source,
+        });
+      }
+      return;
+    }
+
+    const source = await signSource();
+    await setVehiclePermissionsBulk({
+      ...grant,
+      tokenIds: vehicles.map((v) => BigInt(v.tokenId)),
+      source,
     });
-    return shareVehicles(tokenIds, basePermissions);
   };
 };

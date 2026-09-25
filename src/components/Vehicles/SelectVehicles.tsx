@@ -15,6 +15,10 @@ import { captureException } from '@sentry/react';
 import { isInvalidSessionError } from '../../utils/authUtils';
 import { getAddedPermissions, needsPermissionUpdate } from '../../utils/permissions';
 import { PermissionUpdateNotice } from './PermissionUpdateNotice';
+import {
+  getMissingFileLabels,
+  toCloudEventAgreements,
+} from '../../services/vehicleDocumentAgreements';
 import { Vehicle } from '../../models/vehicle';
 
 export const SelectVehicles: React.FC = () => {
@@ -25,6 +29,7 @@ export const SelectVehicles: React.FC = () => {
     oemBrand,
     permissions,
     permissionTemplateId,
+    cloudEvent,
   } = useDevCredentials<VehicleManagerMandatoryParams>();
   const brandName = oemBrand?.name || devLicenseAlias;
   const { setLoadingState, setError, isLoading } = useUIManager();
@@ -120,6 +125,7 @@ export const SelectVehicles: React.FC = () => {
             permissions,
             permissionTemplateId,
           )}
+          addedFiles={getMissingFileLabels(outdatedVehicles, toCloudEventAgreements(cloudEvent))}
         />
       )}
 

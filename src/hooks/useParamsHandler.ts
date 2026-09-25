@@ -89,7 +89,7 @@ export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
         ...prev,
         cloudEvent: (typeof value === 'string'
           ? JSON.parse(decodeURIComponent(value))
-          : value) as CloudEventAgreement,
+          : value) as CloudEventAgreement | CloudEventAgreement[],
       })),
   };
 

@@ -8,6 +8,7 @@ import { useUIManager } from '../../context/UIManagerContext';
 import SelectVehicles from './SelectVehicles';
 import { getAppUrl } from '../../utils/urlHelpers';
 import { VehicleManagerMandatoryParams } from '../../types/params';
+import { toCloudEventAgreements } from '../../services/vehicleDocumentAgreements';
 
 export const VehicleManager: React.FC = () => {
   const { user } = useAuthContext();
@@ -41,7 +42,7 @@ export const VehicleManager: React.FC = () => {
             devLicenseAlias: displayName,
             permissions,
             permissionTemplateId,
-            fileTags: cloudEvent?.tags,
+            fileAgreements: toCloudEventAgreements(cloudEvent),
             expirationDate,
             region: region?.toUpperCase(),
           }),

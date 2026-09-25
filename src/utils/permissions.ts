@@ -25,18 +25,25 @@ const matchesRequestedPermissions = (
 
 /**
  * A vehicle needs an update when it's already shared with this grantee, but with
- * a different permission set than the app is requesting now. Sharing again writes
- * a new SACD record over the old one, so no revoke is required first. If the
- * permissions can't be compared, don't prompt: an update would fail the same way.
+ * a different permission set than the app is requesting now, or without the
+ * file access it's requesting. Sharing again writes a new SACD record over the
+ * old one, so no revoke is required first. If the permissions can't be
+ * compared, don't prompt: an update would fail the same way.
  */
 export const needsPermissionUpdate = (
-  vehicle: { shared: boolean; permissions: string },
+  vehicle: { shared: boolean; permissions: string; documentAccess?: boolean },
   permissions: string,
   permissionTemplateId?: string,
-) =>
-  vehicle.shared &&
-  matchesRequestedPermissions(vehicle.permissions, permissions, permissionTemplateId) ===
-    false;
+) => {
+  if (!vehicle.shared) return false;
+  const matches = matchesRequestedPermissions(
+    vehicle.permissions,
+    permissions,
+    permissionTemplateId,
+  );
+  if (matches === undefined) return false;
+  return !matches || vehicle.documentAccess === false;
+};
 
 /** Permissions the app is requesting that the vehicle hasn't granted yet. */
 export const getAddedPermissions = (

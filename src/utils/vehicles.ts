@@ -12,6 +12,7 @@ const transformVehicle = (
     permissions: sacd ? sacd.permissions : '0',
     shared: !!sacd,
     expiresAt: sacd ? formatDate(sacd.expiresAt) : '',
+    source: sacd?.source ?? '',
   };
 };
 

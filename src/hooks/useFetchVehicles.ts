@@ -3,11 +3,15 @@ import { useAuthContext } from '../context/AuthContext';
 import { useDevCredentials } from '../context/DevCredentialsContext';
 import { Vehicle } from '../models/vehicle';
 import { fetchVehiclesWithTransformation } from '../services';
+import {
+  checkDocumentAccess,
+  toCloudEventAgreements,
+} from '../services/vehicleDocumentAgreements';
 import { VehicleManagerMandatoryParams } from '../types';
 
 export const useFetchVehicles = () => {
   const { user } = useAuthContext();
-  const { clientId, vehicleTokenIds, vehicleMakes, powertrainTypes } =
+  const { clientId, vehicleTokenIds, vehicleMakes, powertrainTypes, cloudEvent } =
     useDevCredentials<VehicleManagerMandatoryParams>();
   const [startCursor, setStartCursor] = useState('');
   const [endCursor, setEndCursor] = useState('');
@@ -29,7 +33,22 @@ export const useFetchVehicles = () => {
         powertrainTypes,
       },
     });
-    setVehicles(transformedVehicles.compatibleVehicles);
+    // When the app asks for files, check each existing grant for them so a
+    // share without file access is offered as an update.
+    const requested = toCloudEventAgreements(cloudEvent);
+    const compatibleVehicles = requested.length
+      ? await Promise.all(
+          transformedVehicles.compatibleVehicles.map(async (vehicle) =>
+            vehicle.shared
+              ? {
+                  ...vehicle,
+                  documentAccess: await checkDocumentAccess(vehicle, requested),
+                }
+              : vehicle,
+          ),
+        )
+      : transformedVehicles.compatibleVehicles;
+    setVehicles(compatibleVehicles);
     setIncompatibleVehicles(transformedVehicles.incompatibleVehicles);
     setEndCursor(transformedVehicles.endCursor);
     setStartCursor(transformedVehicles.startCursor);

@@ -8,6 +8,8 @@ interface PermissionUpdateNoticeProps {
   brandName: string;
   vehicleCount: number;
   addedPermissions: Permission[];
+  // Labels for requested files the current grants don't include.
+  addedFiles?: string[];
 }
 
 /**
@@ -19,9 +21,11 @@ export const PermissionUpdateNotice: React.FC<PermissionUpdateNoticeProps> = ({
   brandName,
   vehicleCount,
   addedPermissions,
+  addedFiles = [],
 }) => {
+  const added = [...addedPermissions.map(getPermissionLabel), ...addedFiles];
   const vehicles = vehicleCount === 1 ? 'vehicle is' : `${vehicleCount} vehicles are`;
-  const title = addedPermissions.length
+  const title = added.length
     ? `${brandName} is asking for more access`
     : `${brandName} updated the access it needs`;
 
@@ -41,14 +45,14 @@ export const PermissionUpdateNotice: React.FC<PermissionUpdateNoticeProps> = ({
             Your {vehicles} shared with older permissions. Update to keep {brandName}{' '}
             working. You don&apos;t need to stop sharing first.
           </p>
-          {!!addedPermissions.length && (
+          {!!added.length && (
             <ul className="mt-3 flex flex-wrap gap-1.5" aria-label="New permissions">
-              {addedPermissions.map((permission) => (
+              {added.map((label) => (
                 <li
-                  key={permission}
+                  key={label}
                   className="rounded-full border border-gray-200 bg-white px-2.5 py-0.5 text-xs font-medium text-black"
                 >
-                  + {getPermissionLabel(permission)}
+                  + {label}
                 </li>
               ))}
             </ul>
