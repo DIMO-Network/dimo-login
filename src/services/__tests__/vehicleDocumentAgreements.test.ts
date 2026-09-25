@@ -56,12 +56,23 @@ describe('toCloudEventAgreements', () => {
     ).toEqual([]);
   });
 
+  it('accepts only the document patterns the consent screen can name', () => {
+    expect(
+      toCloudEventAgreements([
+        { eventType: '<img src=https://x onerror=alert(1)>' },
+        { eventType: 'dimo.attestation' },
+        { eventType: '*' },
+        { eventType: 'dimo.raw.driver.*' },
+      ] as any).map((a) => a.eventType),
+    ).toEqual(['dimo.raw.driver.*']);
+  });
+
   it('drops malformed entries whole instead of widening or redirecting them', () => {
     expect(
       toCloudEventAgreements([
-        { eventType: 'e', ids: 'doc-123' }, // would become "all events"
-        { eventType: 'e', ids: ['a', 3] },
-        { eventType: 'e', source: '0XABC' }, // would become the user's address
+        { eventType: 'dimo.document.vehicle.*', ids: 'doc-123' }, // would become "all events"
+        { eventType: 'dimo.document.vehicle.*', ids: ['a', 3] },
+        { eventType: 'dimo.document.vehicle.*', source: '0XABC' }, // would become the user's address
       ] as any),
     ).toEqual([]);
   });
@@ -69,8 +80,13 @@ describe('toCloudEventAgreements', () => {
   it('keeps well-formed entries, defaulting only tags', () => {
     const source = '0x2222222222222222222222222222222222222222';
     expect(
-      toCloudEventAgreements({ eventType: 'e', source, ids: ['a'], tags: 'x' } as any),
-    ).toEqual([{ eventType: 'e', source, ids: ['a'], tags: [] }]);
+      toCloudEventAgreements({
+        eventType: 'dimo.document.vehicle.*',
+        source,
+        ids: ['a'],
+        tags: 'x',
+      } as any),
+    ).toEqual([{ eventType: 'dimo.document.vehicle.*', source, ids: ['a'], tags: [] }]);
   });
 });
 
@@ -176,6 +192,26 @@ describe('readGrantAgreements', () => {
     await readGrantAgreements(vehicle('ipfs://same'));
     await readGrantAgreements(vehicle('ipfs://same'));
     expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('reads a legacy permission-grant document as having no file agreements', async () => {
+    // Shape of ipfs://QmQoGcXhVjX6J9kYVWZ97KXMw5oVnobaC1Qt5PtPWoubq5, a real
+    // pre-SACD grant (most active grants still use this format).
+    mockGateway({
+      type: 'org.dimo.permission.grant.v1',
+      data: {
+        templateId: '1',
+        version: '1.0',
+        grantor: { address: GRANTOR },
+        grantee: { address: '0x2222222222222222222222222222222222222222' },
+        scope: { permissions: [] },
+        effectiveAt: '2025-01-01T00:00:00Z',
+        expiresAt: '2026-01-01T00:00:00Z',
+        attachments: [],
+        description: 'legacy grant',
+      },
+    });
+    await expect(readGrantAgreements(vehicle('ipfs://legacy'))).resolves.toEqual([]);
   });
 
   it('treats an unfamiliar document shape as unreadable, not as "no files"', async () => {

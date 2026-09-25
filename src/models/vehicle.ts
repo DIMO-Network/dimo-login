@@ -70,7 +70,12 @@ export class LocalVehicle {
   }
 
   getSacdForGrantee(grantee: `0x${string}` | null) {
-    return this.vehicleNode.sacds.nodes.find((sacd) => sacd.grantee === grantee);
+    // Addresses can arrive in different cases (checksummed vs lowercase); a
+    // miss would treat a shared vehicle as new and overwrite its grant.
+    const wanted = grantee?.toLowerCase();
+    return this.vehicleNode.sacds.nodes.find(
+      (sacd) => !!wanted && sacd.grantee.toLowerCase() === wanted,
+    );
   }
 
   normalize() {

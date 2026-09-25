@@ -9,7 +9,6 @@ import {
   PERMISSIONS,
   PERMISSIONS_DESCRIPTION,
 } from '../types';
-import { ATTESTATION_FILE_TAGS } from '../types/filetags';
 
 export const createPermissionsByTemplateId = (
   permissionTemplateId?: string,
@@ -96,11 +95,9 @@ export const getPermissionsDescription = (permissions: Permission[]): string => 
 };
 
 export const getFilesRequestedString = (fileAgreements: CloudEventAgreement[] = []): string => {
-  // Known attestation tags keep their names; anything else is named by event type.
-  const labels = fileAgreements.flatMap((agreement) => {
-    const tagLabels = agreement.tags.map((tag) => ATTESTATION_FILE_TAGS[tag]).filter(Boolean);
-    return tagLabels.length ? tagLabels : [getAgreementLabel(agreement)];
-  });
+  // Named by what the agreement grants (its event type), not by app-supplied
+  // tags, so the contract text matches what is signed.
+  const labels = fileAgreements.map(getAgreementLabel);
   if (!labels.length) {
     return '\n- NONE';
   }

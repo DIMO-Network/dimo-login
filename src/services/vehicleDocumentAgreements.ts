@@ -1,5 +1,8 @@
 import { CloudEventAgreement } from '../types';
-import { DOCUMENT_EVENT_TYPE_LABELS } from '../enums/documentEventTypes';
+import {
+  DOCUMENT_EVENT_TYPE_LABELS,
+  DOCUMENT_EVENT_TYPES,
+} from '../enums/documentEventTypes';
 import { fetchWithTimeout } from '../utils/withTimeout';
 
 // Same gateway dimo-app-backend reads SACD sources from.
@@ -31,7 +34,9 @@ export const toCloudEventAgreements = (cloudEvent?: unknown): CloudEventAgreemen
     const agreement = entry as Record<string, unknown> | null;
     if (!agreement || typeof agreement !== 'object') return [];
     const { eventType, source } = agreement;
-    if (typeof eventType !== 'string' || !eventType) return [];
+    // Only the document patterns the consent screen can name. Anything else
+    // would be shown to the user as an app-supplied string, if at all.
+    if (!isDocumentEventType(eventType)) return [];
     const ids = agreement.ids === undefined ? [] : stringList(agreement.ids);
     if (!ids) return [];
     const validSource = typeof source === 'string' && /^0x[0-9a-fA-F]{40}$/.test(source);
@@ -47,8 +52,13 @@ export const toCloudEventAgreements = (cloudEvent?: unknown): CloudEventAgreemen
   });
 };
 
+const DOCUMENT_EVENT_TYPE_VALUES: readonly string[] = Object.values(DOCUMENT_EVENT_TYPES);
+const isDocumentEventType = (value: unknown): value is string =>
+  typeof value === 'string' && DOCUMENT_EVENT_TYPE_VALUES.includes(value);
+
+// Labels come only from DIMO's own list, never from app-supplied text.
 export const getAgreementLabel = (agreement: CloudEventAgreement): string =>
-  DOCUMENT_EVENT_TYPE_LABELS[eventTypeOf(agreement)] ?? eventTypeOf(agreement);
+  DOCUMENT_EVENT_TYPE_LABELS[eventTypeOf(agreement)] ?? 'Other files';
 
 export const getFileLabels = (agreements: CloudEventAgreement[]): string[] =>
   Array.from(new Set(agreements.map(getAgreementLabel)));
@@ -163,6 +173,16 @@ const sourceUrl = (source: string) => {
   return undefined;
 };
 
+const LEGACY_GRANT_TYPE = 'org.dimo.permission.grant.v1';
+
+const isLegacyGrantDocument = (document: unknown): boolean => {
+  const doc = document as { type?: unknown; data?: Record<string, unknown> } | null;
+  return (
+    doc?.type === LEGACY_GRANT_TYPE ||
+    (!!doc?.data && 'scope' in doc.data && !('agreements' in doc.data))
+  );
+};
+
 /**
  * The file agreements the vehicle's current grant gives this app. Throws
  * GrantUnreadableError when the grant's document can't be read, so callers
@@ -197,8 +217,11 @@ export const readGrantAgreements = (vehicle: {
       const res = await fetchWithTimeout(url, {}, SOURCE_FETCH_TIMEOUT_MS);
       if (!res.ok) throw new Error(`gateway returned ${res.status}`);
       const document = await res.json();
-      // An unfamiliar shape isn't "no files"; treating it so would let an
-      // update drop agreements it couldn't see.
+      // Grants signed before the SACD format (roughly until 2025-09) use the
+      // legacy permission-grant document, which can't carry file agreements.
+      if (isLegacyGrantDocument(document)) return [];
+      // Any other unfamiliar shape isn't "no files"; treating it so would let
+      // an update drop agreements it couldn't see.
       if (!Array.isArray(document?.data?.agreements)) {
         throw new Error('unexpected SACD document shape');
       }
