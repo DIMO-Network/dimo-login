@@ -26,7 +26,7 @@ export const SelectVehicles: React.FC = () => {
     permissions,
     permissionTemplateId,
   } = useDevCredentials<VehicleManagerMandatoryParams>();
-  const brandName = oemBrand?.name || devLicenseAlias || undefined;
+  const brandName = oemBrand?.name || devLicenseAlias;
   const { setLoadingState, setError, isLoading } = useUIManager();
   const {
     fetchVehicles: _fetchVehicles,
@@ -109,11 +109,11 @@ export const SelectVehicles: React.FC = () => {
     <div className="flex flex-col w-full items-center justify-center box-border overflow-y-auto">
       {noVehicles && !isLoading && <EmptyState />}
 
-      {allShared && <AllVehiclesShared devLicenseAlias={oemBrand?.name || devLicenseAlias} />}
+      {allShared && <AllVehiclesShared devLicenseAlias={brandName} />}
 
       {!!outdatedVehicles.length && !isLoading && (
         <PermissionUpdateNotice
-          brandName={oemBrand?.name || devLicenseAlias}
+          brandName={brandName}
           vehicleCount={outdatedVehicles.length}
           addedPermissions={getAddedPermissions(
             outdatedVehicles,

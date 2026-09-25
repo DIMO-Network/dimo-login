@@ -85,7 +85,7 @@ export const ManageVehicle: React.FC = () => {
 
   return (
     <UIManagerLoaderWrapper>
-      <ManageVehicleDetails vehicle={vehicle} />
+      <ManageVehicleDetails vehicle={vehicle} needsUpdate={needsUpdate} />
       {!!error && <ErrorMessage message={error} />}
       <ManageVehicleFooter
         onRevoke={handleRevoke}

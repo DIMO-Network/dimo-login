@@ -4,19 +4,13 @@ import { Permission } from '@dimo-network/transactions';
 import { getPermissionLabel } from '../../utils/permissions';
 
 interface SharedPermissionsNoteProps {
-  needsUpdate: boolean;
   addedPermissions: Permission[];
 }
 
 // Per-vehicle hint for a vehicle shared with an older permission set.
 export const SharedPermissionsNote: React.FC<SharedPermissionsNoteProps> = ({
-  needsUpdate,
   addedPermissions,
 }) => {
-  if (!needsUpdate) {
-    return null;
-  }
-
   return (
     <p className="text-xs text-gray-600 mt-2">
       {addedPermissions.length
