@@ -5,15 +5,19 @@ import {
   setVehiclePermissions,
   setVehiclePermissionsBulk,
 } from '../services';
+import {
+  setVehiclePermissionsBatch,
+  VEHICLE_PERMISSIONS_BATCH_LIMIT,
+} from '../services/turnkeyService';
 import { useDevCredentials } from '../context/DevCredentialsContext';
 import { VehicleManagerMandatoryParams } from '../types';
 import { useAuthContext } from '../context/AuthContext';
 import { INVALID_SESSION_ERROR } from '../utils/authUtils';
 import { generateAttachments } from '../services/permissionsService';
-import { toCloudEventAgreements } from '../services/vehicleDocumentAgreements';
-
-export const toVehicleAsset = (vehicle: Vehicle) =>
-  vehicle.tokenDID ? (vehicle.tokenDID as `did:${string}`) : undefined;
+import {
+  getVehicleAsset,
+  toCloudEventAgreements,
+} from '../services/vehicleDocumentAgreements';
 
 export const useShareVehicles = () => {
   const {
@@ -62,16 +66,29 @@ export const useShareVehicles = () => {
       });
 
     // File agreements only count for the vehicle DID they name, so a share
-    // with files signs a document per vehicle and sets each grant on its own.
-    // Without files, one document covers the whole batch.
+    // with files needs a document per vehicle. Without files, one document
+    // covers the whole batch.
     if (cloudEventAgreements.length || vehicles.length === 1) {
-      for (const vehicle of vehicles) {
-        const source = await signSource(toVehicleAsset(vehicle));
-        await setVehiclePermissions({
+      const withFiles = cloudEventAgreements.length > 0;
+      // Sign every document before sending anything, so a signing failure
+      // leaves no grants behind.
+      const grants = await Promise.all(
+        vehicles.map(async (vehicle) => ({
           ...grant,
           tokenId: BigInt(vehicle.tokenId),
-          source,
-        });
+          source: await signSource(getVehicleAsset(vehicle, withFiles)),
+        })),
+      );
+      if (grants.length === 1) {
+        await setVehiclePermissions(grants[0]);
+        return;
+      }
+      // One user operation per batch: all of a batch's grants land or none do.
+      // Only shares of more than 24 vehicles need a second batch.
+      for (let i = 0; i < grants.length; i += VEHICLE_PERMISSIONS_BATCH_LIMIT) {
+        await setVehiclePermissionsBatch(
+          grants.slice(i, i + VEHICLE_PERMISSIONS_BATCH_LIMIT),
+        );
       }
       return;
     }

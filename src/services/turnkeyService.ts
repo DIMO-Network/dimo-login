@@ -238,6 +238,27 @@ export const generateAccountIpfsSource = async (
   return `ipfs://${ipfsRes.cid}`;
 };
 
+// KernelSigner rejects batches of 25 or more grants.
+export const VEHICLE_PERMISSIONS_BATCH_LIMIT = 24;
+
+// Sets a different grant (and source document) per vehicle in one user
+// operation, so either every grant in the batch lands or none does.
+export async function setVehiclePermissionsBatch(
+  grants: SetVehiclePermissions[],
+): Promise<void> {
+  try {
+    await withTimeout(
+      kernelSigner.setVehiclePermissions(grants),
+      KERNEL_OP_TIMEOUT_MS,
+      'setVehiclePermissionsBatch',
+    );
+    console.log('Vehicle permissions set successfully');
+  } catch (error) {
+    console.error('Error setting vehicle permissions:', error);
+    throw error;
+  }
+}
+
 // Define the bridge function in your Turnkey Service
 export async function setVehiclePermissions({
   tokenId,

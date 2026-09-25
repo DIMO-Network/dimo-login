@@ -14,6 +14,10 @@ jest.mock('../../services', () => ({
   setVehiclePermissions: jest.fn(),
   setVehiclePermissionsBulk: jest.fn(),
 }));
+jest.mock('../../services/turnkeyService', () => ({
+  setVehiclePermissionsBatch: jest.fn(),
+  VEHICLE_PERMISSIONS_BATCH_LIMIT: 24,
+}));
 jest.mock('../../services/permissionsService', () => ({
   generateAttachments: () => [],
 }));
@@ -35,6 +39,7 @@ import {
   setVehiclePermissions,
   setVehiclePermissionsBulk,
 } from '../../services';
+import { setVehiclePermissionsBatch } from '../../services/turnkeyService';
 import { Vehicle } from '../../models/vehicle';
 
 const vehicle = (tokenId: number) =>
@@ -60,6 +65,7 @@ beforeEach(() => {
   );
   (setVehiclePermissions as jest.Mock).mockResolvedValue(undefined);
   (setVehiclePermissionsBulk as jest.Mock).mockResolvedValue(undefined);
+  (setVehiclePermissionsBatch as jest.Mock).mockResolvedValue(undefined);
 });
 
 const share = async (vehicles: Vehicle[]) => {
@@ -82,21 +88,51 @@ it('shares several vehicles in one bulk grant when no files are requested', asyn
   expect((generateIpfsSources as jest.Mock).mock.calls[0][3].asset).toBeUndefined();
 });
 
-it('signs one document per vehicle, naming its DID, when files are requested', async () => {
+it('signs a document per vehicle and sends them in one batch when files are requested', async () => {
   mockCredentials.cloudEvent = CLOUD_EVENT;
   await share([vehicle(1), vehicle(2)]);
 
   expect(setVehiclePermissionsBulk).not.toHaveBeenCalled();
-  expect(setVehiclePermissions).toHaveBeenCalledTimes(2);
+  expect(setVehiclePermissions).not.toHaveBeenCalled();
+  expect(setVehiclePermissionsBatch).toHaveBeenCalledTimes(1);
 
   const [first, second] = (generateIpfsSources as jest.Mock).mock.calls.map((c) => c[3]);
   expect(first.asset).toBe(vehicle(1).tokenDID);
   expect(second.asset).toBe(vehicle(2).tokenDID);
   expect(first.cloudEventAgreements).toEqual([{ ...CLOUD_EVENT, ids: [] }]);
 
-  const grant = (setVehiclePermissions as jest.Mock).mock.calls[1][0];
-  expect(grant.tokenId).toBe(BigInt(2));
-  expect(grant.source).toBe(`ipfs://${vehicle(2).tokenDID}`);
+  const grants = (setVehiclePermissionsBatch as jest.Mock).mock.calls[0][0];
+  expect(grants.map((g: any) => g.tokenId)).toEqual([BigInt(1), BigInt(2)]);
+  expect(grants[1].source).toBe(`ipfs://${vehicle(2).tokenDID}`);
+});
+
+it('splits more than 24 vehicles into batches', async () => {
+  mockCredentials.cloudEvent = CLOUD_EVENT;
+  await share(Array.from({ length: 30 }, (_, i) => vehicle(i + 1)));
+
+  const batches = (setVehiclePermissionsBatch as jest.Mock).mock.calls.map(
+    (c) => c[0].length,
+  );
+  expect(batches).toEqual([24, 6]);
+});
+
+it('sends nothing if any document fails to sign', async () => {
+  mockCredentials.cloudEvent = CLOUD_EVENT;
+  (generateIpfsSources as jest.Mock).mockImplementation(async (_p, _c, _e, opts) => {
+    if (opts.asset === vehicle(2).tokenDID) throw new Error('upload failed');
+    return 'ipfs://ok';
+  });
+
+  await expect(share([vehicle(1), vehicle(2)])).rejects.toThrow('upload failed');
+  expect(setVehiclePermissionsBatch).not.toHaveBeenCalled();
+});
+
+it('refuses to grant files for a vehicle without a DID', async () => {
+  mockCredentials.cloudEvent = CLOUD_EVENT;
+  const noDid = { tokenId: 9, tokenDID: '' } as Vehicle;
+
+  await expect(share([vehicle(1), noDid])).rejects.toThrow('has no DID');
+  expect(setVehiclePermissionsBatch).not.toHaveBeenCalled();
 });
 
 it('names the vehicle DID for a single-vehicle share', async () => {

@@ -62,6 +62,7 @@ export const ManageVehicle: React.FC = () => {
         permissions,
         expiration: getNewExpirationDate(vehicle, actionType, expirationDate),
         vehicle: vehicle,
+        action: actionType,
       });
       handleSuccess(actionType);
     } catch (err) {

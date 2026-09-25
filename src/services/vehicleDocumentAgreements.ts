@@ -47,6 +47,21 @@ export const getMissingFileLabels = (
     ? Array.from(new Set(requested.map(getAgreementLabel)))
     : [];
 
+/**
+ * The SACD asset for a vehicle grant. File agreements only count for the DID
+ * they name, so refuse to sign them against the 'did:' placeholder.
+ */
+export const getVehicleAsset = (
+  vehicle: { tokenId: number; tokenDID?: string },
+  withFiles: boolean,
+): `did:${string}` | undefined => {
+  if (vehicle.tokenDID) return vehicle.tokenDID as `did:${string}`;
+  if (withFiles) {
+    throw new Error(`Vehicle ${vehicle.tokenId} has no DID; can't grant file access`);
+  }
+  return undefined;
+};
+
 type SacdDocumentAgreement = { type?: string; eventType?: string; asset?: string };
 
 /**
