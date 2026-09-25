@@ -29,11 +29,10 @@ export const useFetchVehicles = () => {
       .filter((vehicle) => vehicle.shared)
       .forEach(async (vehicle) => {
         // Reads are cached by grant source, so paging back doesn't refetch.
-        const documentAccess = await checkDocumentAccess(
-          vehicle,
-          requested,
-          user?.smartContractAddress,
-        );
+        const documentAccess = await checkDocumentAccess(vehicle, requested, {
+          grantor: user?.smartContractAddress,
+          grantee: clientId,
+        });
         // Only touch the vehicle if it's still in the list shown.
         setVehicles((current) =>
           current.map((v) =>

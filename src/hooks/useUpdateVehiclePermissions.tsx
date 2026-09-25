@@ -52,7 +52,10 @@ export const useUpdateVehiclePermissions = () => {
     let perms = requested;
     let cloudEventAgreements: ReturnType<typeof toCloudEventAgreements> = [];
     if (action !== 'revoke') {
-      const existing = await readGrantAgreements(vehicle);
+      const existing = await readGrantAgreements(vehicle, {
+        grantor: user?.smartContractAddress,
+        grantee: clientId,
+      });
       perms = mergePermissions(vehicle, requested);
       cloudEventAgreements =
         action === 'update'

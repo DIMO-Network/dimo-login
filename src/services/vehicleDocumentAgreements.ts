@@ -85,18 +85,37 @@ export const getVehicleAsset = (
   return undefined;
 };
 
-type SacdDocumentAgreement = CloudEventAgreement & { type?: string; asset?: string };
+type SacdDocumentAgreement = CloudEventAgreement & {
+  type?: string;
+  asset?: string;
+  expiresAt?: string;
+};
 
-/** The cloudevent agreements a signed SACD document grants on this vehicle. */
+const isExpired = (expiresAt: string | undefined, now: number) => {
+  const ms = expiresAt ? Date.parse(expiresAt) : NaN;
+  return !Number.isNaN(ms) && ms <= now;
+};
+
+/**
+ * The file agreements a signed SACD document grants on this vehicle that are
+ * still worth carrying over: known document types, not yet expired.
+ */
 export const getVehicleAgreements = (
   document: unknown,
   vehicleDID: string,
+  now = Date.now(),
 ): CloudEventAgreement[] => {
   const agreements = (document as { data?: { agreements?: unknown } })?.data?.agreements;
   if (!Array.isArray(agreements)) return [];
   const asset = vehicleDID.toLowerCase();
   return (agreements as SacdDocumentAgreement[])
-    .filter((a) => a.type === 'cloudevent' && a.asset?.toLowerCase() === asset)
+    .filter(
+      (a) =>
+        a.type === 'cloudevent' &&
+        a.asset?.toLowerCase() === asset &&
+        isDocumentEventType(a.eventType) &&
+        !isExpired(a.expiresAt, now),
+    )
     .map(({ eventType, source, ids, tags }) => ({
       eventType,
       source,
@@ -161,16 +180,25 @@ export class GrantUnreadableError extends Error {
   }
 }
 
-// ipfs:// documents are content-addressed, so a read can be reused for the
-// session; https:// ones can change and are read fresh. Failures aren't
-// cached, so the next attempt retries.
-const grantReads = new Map<string, Promise<CloudEventAgreement[]>>();
+// Only ipfs:// documents are read. They're content-addressed, so the document
+// is exactly the one the user's own on-chain grant points at and can't change
+// afterwards; that's what makes it safe to carry its terms into a new grant.
+// A mutable https:// document could have been edited since.
+const documentReads = new Map<string, Promise<unknown>>();
 
-const sourceUrl = (source: string) => {
-  if (source.startsWith('ipfs://'))
-    return `${IPFS_GATEWAY}/${source.slice('ipfs://'.length)}`;
-  if (source.startsWith('https://')) return source;
-  return undefined;
+const fetchGrantDocument = (source: string): Promise<unknown> => {
+  const cached = documentReads.get(source);
+  if (cached) return cached;
+  const read = (async () => {
+    const url = `${IPFS_GATEWAY}/${source.slice('ipfs://'.length)}`;
+    const res = await fetchWithTimeout(url, {}, SOURCE_FETCH_TIMEOUT_MS);
+    if (!res.ok) throw new Error(`gateway returned ${res.status}`);
+    return res.json();
+  })();
+  documentReads.set(source, read);
+  // Failures aren't cached, so the next attempt retries.
+  read.catch(() => documentReads.delete(source));
+  return read;
 };
 
 const LEGACY_GRANT_TYPE = 'org.dimo.permission.grant.v1';
@@ -182,61 +210,72 @@ const isLegacyGrantDocument = (document: unknown): boolean => {
   return doc?.type === LEGACY_GRANT_TYPE && !Array.isArray(doc?.data?.agreements);
 };
 
+/** Who the grant is between: the signed-in user and this app. */
+export type GrantParties = { grantor?: string | null; grantee?: string | null };
+
+const sameAddress = (a: unknown, b?: string | null) =>
+  typeof a === 'string' && !!b && a.toLowerCase() === b.toLowerCase();
+
+// The document must be between this user and this app, or it isn't the terms
+// of this grant and nothing in it is carried over.
+const isBetween = (document: unknown, { grantor, grantee }: GrantParties) => {
+  const data = (document as { data?: Record<string, { address?: unknown }> })?.data;
+  return (
+    sameAddress(data?.grantor?.address, grantor) &&
+    sameAddress(data?.grantee?.address, grantee)
+  );
+};
+
 /**
  * The file agreements the vehicle's current grant gives this app. Throws
- * GrantUnreadableError when the grant's document can't be read, so callers
- * that rewrite the grant stop rather than drop access they couldn't see.
+ * GrantUnreadableError when the grant's document can't be read or isn't this
+ * user's grant to this app, so callers that rewrite the grant stop rather than
+ * drop or import access nobody could see.
  */
-export const readGrantAgreements = (vehicle: {
-  tokenId: number;
-  tokenDID: string;
-  source?: string;
-  make?: string;
-  model?: string;
-}): Promise<CloudEventAgreement[]> => {
+export const readGrantAgreements = async (
+  vehicle: {
+    tokenId: number;
+    tokenDID: string;
+    source?: string;
+    make?: string;
+    model?: string;
+  },
+  parties: GrantParties,
+): Promise<CloudEventAgreement[]> => {
   const { source } = vehicle;
   // A grant signed without a source document has no agreements at all.
-  if (!source) return Promise.resolve([]);
-  const url = sourceUrl(source);
-  if (!url) {
-    return Promise.reject(
-      new GrantUnreadableError(
-        vehicle,
-        "Its terms are stored somewhere DIMO can't read.",
-      ),
+  if (!source) return [];
+  if (!source.startsWith('ipfs://')) {
+    throw new GrantUnreadableError(
+      vehicle,
+      "Its terms are stored somewhere DIMO can't verify.",
     );
   }
-  const cacheable = source.startsWith('ipfs://');
-  const key = `${source}|${vehicle.tokenDID.toLowerCase()}`;
-  const cached = cacheable ? grantReads.get(key) : undefined;
-  if (cached) return cached;
-
-  const read = (async () => {
-    try {
-      const res = await fetchWithTimeout(url, {}, SOURCE_FETCH_TIMEOUT_MS);
-      if (!res.ok) throw new Error(`gateway returned ${res.status}`);
-      const document = await res.json();
-      // Grants signed before the SACD format (roughly until 2025-09) use the
-      // legacy permission-grant document, which can't carry file agreements.
-      if (isLegacyGrantDocument(document)) return [];
-      // Any other unfamiliar shape isn't "no files"; treating it so would let
-      // an update drop agreements it couldn't see.
-      if (!Array.isArray(document?.data?.agreements)) {
-        throw new Error('unexpected SACD document shape');
-      }
-      return getVehicleAgreements(document, vehicle.tokenDID);
-    } catch (error) {
-      console.error('Error reading SACD source:', error);
-      grantReads.delete(key);
-      throw new GrantUnreadableError(vehicle);
-    }
-  })();
-  if (cacheable) grantReads.set(key, read);
-  return read;
+  let document: unknown;
+  try {
+    document = await fetchGrantDocument(source);
+  } catch (error) {
+    console.error('Error reading SACD source:', error);
+    throw new GrantUnreadableError(vehicle);
+  }
+  // Grants signed before the SACD format (roughly until 2025-09) use the
+  // legacy permission-grant document, which can't carry file agreements.
+  if (isLegacyGrantDocument(document)) return [];
+  // Any other unfamiliar shape isn't "no files"; treating it so would let an
+  // update drop agreements it couldn't see.
+  if (
+    !Array.isArray((document as { data?: { agreements?: unknown } })?.data?.agreements)
+  ) {
+    throw new GrantUnreadableError(vehicle);
+  }
+  if (!isBetween(document, parties)) {
+    throw new GrantUnreadableError(vehicle, "Its terms don't match this app.");
+  }
+  return getVehicleAgreements(document, vehicle.tokenDID);
 };
 
 /** Test hook: forget cached grant reads. */
-export const clearGrantReadCache = () => grantReads.clear();
+export const clearGrantReadCache = () => documentReads.clear();
 
 /**
  * Whether the vehicle's current grant already includes the requested file
@@ -246,12 +285,12 @@ export const clearGrantReadCache = () => grantReads.clear();
 export const checkDocumentAccess = async (
   vehicle: { tokenId: number; tokenDID: string; source?: string },
   requested: CloudEventAgreement[],
-  grantor?: string | null,
+  parties: GrantParties,
 ): Promise<boolean | undefined> => {
   if (!requested.length) return undefined;
   try {
-    const existing = await readGrantAgreements(vehicle);
-    return coversAll(existing, withSource(requested, grantor));
+    const existing = await readGrantAgreements(vehicle, parties);
+    return coversAll(existing, withSource(requested, parties.grantor));
   } catch {
     return undefined;
   }

@@ -180,6 +180,8 @@ it('updates a shared vehicle without dropping what its grant already has', async
     ok: true,
     json: async () => ({
       data: {
+        grantor: { address: '0x1111111111111111111111111111111111111111' },
+        grantee: { address: '0xgrantee000000000000000000000000000000000' },
         agreements: [
           {
             type: 'cloudevent',
@@ -219,7 +221,13 @@ it("sends nothing when a shared vehicle's current grant can't be read", async ()
 it("keeps a shared vehicle's later expiry when the app asks for less", async () => {
   global.fetch = jest.fn(async () => ({
     ok: true,
-    json: async () => ({ data: { agreements: [] } }),
+    json: async () => ({
+      data: {
+        grantor: { address: '0x1111111111111111111111111111111111111111' },
+        grantee: { address: '0xgrantee000000000000000000000000000000000' },
+        agreements: [],
+      },
+    }),
   })) as any;
   const vehicleWithLongGrant = {
     ...sharedVehicle(5),
