@@ -1,6 +1,7 @@
 /**
  * Like Promise.all(items.map(fn)), but runs at most `limit` calls at a time.
- * Rejects with the first error; calls already started are left to finish.
+ * Rejects with the first error and starts no further calls after it; calls
+ * already running are left to finish.
  */
 export const mapWithConcurrency = async <T, R>(
   items: T[],
@@ -9,10 +10,16 @@ export const mapWithConcurrency = async <T, R>(
 ): Promise<R[]> => {
   const results = new Array<R>(items.length);
   let next = 0;
+  let failed = false;
   const worker = async () => {
-    while (next < items.length) {
+    while (!failed && next < items.length) {
       const index = next++;
-      results[index] = await fn(items[index]);
+      try {
+        results[index] = await fn(items[index]);
+      } catch (error) {
+        failed = true;
+        throw error;
+      }
     }
   };
   await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));

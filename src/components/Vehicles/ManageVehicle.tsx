@@ -51,14 +51,18 @@ export const ManageVehicle: React.FC = () => {
   // list's file check returned. Finish that check here so the right action
   // (Update vs Extend) is offered.
   const [documentAccess, setDocumentAccess] = useState(vehicle.documentAccess);
+  const [checking, setChecking] = useState(false);
   useEffect(() => {
     const requested = toCloudEventAgreements(cloudEvent);
     if (!vehicle.shared || !requested.length || vehicle.documentAccess !== undefined) {
       return;
     }
     let cancelled = false;
+    setChecking(true);
     checkDocumentAccess(vehicle, requested, user?.smartContractAddress).then((access) => {
-      if (!cancelled) setDocumentAccess(access);
+      if (cancelled) return;
+      setDocumentAccess(access);
+      setChecking(false);
     });
     return () => {
       cancelled = true;
@@ -127,6 +131,8 @@ export const ManageVehicle: React.FC = () => {
         onExtend={handleExtend}
         onUpdate={handleUpdate}
         needsUpdate={needsUpdate}
+        // Wait for the file check, or Extend could be offered where Update is due.
+        disabled={checking}
       />
     </UIManagerLoaderWrapper>
   );

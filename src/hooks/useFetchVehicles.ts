@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useAuthContext } from '../context/AuthContext';
 import { useDevCredentials } from '../context/DevCredentialsContext';
 import { Vehicle } from '../models/vehicle';
@@ -19,10 +19,6 @@ export const useFetchVehicles = () => {
   const [hasPreviousPage, setHasPreviousPage] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [incompatibleVehicles, setIncompatibleVehicles] = useState<Vehicle[]>([]);
-  // Results by grant source and vehicle: a source document never changes, so
-  // paging back doesn't refetch it.
-  const documentAccessBySource = useRef(new Map<string, Promise<boolean | undefined>>());
-
   // When the app asks for files, check each existing grant for them so a share
   // without file access is offered as an update. This runs after the list is
   // shown; the badge appears when the check returns.
@@ -32,15 +28,12 @@ export const useFetchVehicles = () => {
     fetched
       .filter((vehicle) => vehicle.shared)
       .forEach(async (vehicle) => {
-        const key = `${vehicle.source}|${vehicle.tokenDID}`;
-        let pending = documentAccessBySource.current.get(key);
-        if (!pending) {
-          pending = checkDocumentAccess(vehicle, requested, user?.smartContractAddress);
-          documentAccessBySource.current.set(key, pending);
-        }
-        const documentAccess = await pending;
-        // Don't cache "couldn't tell" (e.g. the gateway was down); retry next load.
-        if (documentAccess === undefined) documentAccessBySource.current.delete(key);
+        // Reads are cached by grant source, so paging back doesn't refetch.
+        const documentAccess = await checkDocumentAccess(
+          vehicle,
+          requested,
+          user?.smartContractAddress,
+        );
         // Only touch the vehicle if it's still in the list shown.
         setVehicles((current) =>
           current.map((v) =>

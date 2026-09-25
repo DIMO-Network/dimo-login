@@ -41,6 +41,7 @@ import {
   setVehiclePermissions,
 } from '../../services';
 import { Vehicle } from '../../models/vehicle';
+import { clearGrantReadCache } from '../../services/vehicleDocumentAgreements';
 import { VehiclePermissionsAction } from '../../types';
 
 const DID = 'did:erc721:137:0xbA5738a18d83D41847dfFbDC6101d37C69c9B0cF:186612';
@@ -49,6 +50,7 @@ const EXISTING_RAW = { type: 'cloudevent', eventType: 'dimo.raw.vehicle.*', asse
 
 const originalFetch = global.fetch;
 beforeEach(() => {
+  clearGrantReadCache();
   (createPermissionsFromParams as jest.Mock).mockReturnValue([7]);
   (generateIpfsSources as jest.Mock).mockResolvedValue('ipfs://bafy');
   (setVehiclePermissions as jest.Mock).mockResolvedValue(undefined);

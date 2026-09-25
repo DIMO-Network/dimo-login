@@ -12,21 +12,34 @@ const DEFAULT_EVENT_TYPE = 'dimo.attestation';
 const eventTypeOf = (agreement: CloudEventAgreement) =>
   agreement.eventType || DEFAULT_EVENT_TYPE;
 
+const stringsOrEmpty = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : [];
+
 /**
- * The `cloudEvent` param is one agreement or a list of them. `source` may be
- * omitted: an app can't know the user's address before login, so the signer
- * fills in the grantor (see generateIpfsSources).
+ * The `cloudEvent` param is one agreement or a list of them. Entries without
+ * an eventType are dropped: the signer would default them to every
+ * attestation on the vehicle, far more than a malformed request meant.
+ * `source` may be omitted: an app can't know the user's address before login,
+ * so the signer fills in the grantor (see generateIpfsSources).
  */
-export const toCloudEventAgreements = (
-  cloudEvent?: CloudEventAgreement | CloudEventAgreement[],
-): CloudEventAgreement[] => {
+export const toCloudEventAgreements = (cloudEvent?: unknown): CloudEventAgreement[] => {
   if (!cloudEvent) return [];
-  const list = Array.isArray(cloudEvent) ? cloudEvent : [cloudEvent];
-  return list.map((agreement) => ({
-    ...agreement,
-    ids: agreement.ids ?? [],
-    tags: agreement.tags ?? [],
-  }));
+  const list: unknown[] = Array.isArray(cloudEvent) ? cloudEvent : [cloudEvent];
+  return list.flatMap((entry) => {
+    const agreement = entry as Record<string, unknown> | null;
+    if (!agreement || typeof agreement !== 'object') return [];
+    const { eventType, source } = agreement;
+    if (typeof eventType !== 'string' || !eventType) return [];
+    return [
+      {
+        eventType,
+        ...(typeof source === 'string' &&
+          source.startsWith('0x') && { source: source as `0x${string}` }),
+        ids: stringsOrEmpty(agreement.ids),
+        tags: stringsOrEmpty(agreement.tags),
+      },
+    ];
+  });
 };
 
 export const getAgreementLabel = (agreement: CloudEventAgreement): string =>
@@ -80,12 +93,17 @@ export const getVehicleAgreements = (
 const sameSource = (a?: string, b?: string) =>
   !a || !b || a.toLowerCase() === b.toLowerCase();
 
-// An existing agreement covers a requested one when it's for the same event
-// type and source, and grants all events (no ids) or every requested id.
+// Empty ids means every event of the type. An existing agreement covers a
+// requested one when it's for the same event type and source, and its ids
+// include the requested ones (all events covers anything; specific ids never
+// cover a request for all events).
+const coversIds = (existing: string[] = [], wanted: string[] = []) =>
+  !existing.length || (wanted.length > 0 && wanted.every((id) => existing.includes(id)));
+
 const covers = (existing: CloudEventAgreement, wanted: CloudEventAgreement) =>
   eventTypeOf(existing) === eventTypeOf(wanted) &&
   sameSource(existing.source, wanted.source) &&
-  (!existing.ids?.length || (wanted.ids ?? []).every((id) => existing.ids!.includes(id)));
+  coversIds(existing.ids, wanted.ids);
 
 export const coversAll = (
   existing: CloudEventAgreement[],
@@ -111,22 +129,40 @@ export const withSource = (
     source: (a.source || grantor || undefined) as `0x${string}` | undefined,
   }));
 
+type VehicleLabel = { make?: string; model?: string; tokenId: number };
+const vehicleName = (vehicle: VehicleLabel) =>
+  vehicle.make ? `${vehicle.make} ${vehicle.model}` : `vehicle ${vehicle.tokenId}`;
+
+/**
+ * Raised instead of rewriting a grant whose current terms can't be carried
+ * over in full, so an update never drops access nobody could see.
+ */
 export class GrantUnreadableError extends Error {
-  constructor(vehicle: { make?: string; model?: string; tokenId: number }) {
-    const name = vehicle.make
-      ? `${vehicle.make} ${vehicle.model}`
-      : `vehicle ${vehicle.tokenId}`;
-    super(`Couldn't read the current sharing terms for ${name}. Try again.`);
+  constructor(vehicle: VehicleLabel, reason = 'Try again.') {
+    super(
+      `Couldn't read the current sharing terms for ${vehicleName(vehicle)}. ${reason}`,
+    );
     this.name = 'GrantUnreadableError';
   }
 }
+
+// Source documents are content-addressed, so a read can be reused for the
+// session. Failures aren't cached, so the next attempt retries.
+const grantReads = new Map<string, Promise<CloudEventAgreement[]>>();
+
+const sourceUrl = (source: string) => {
+  if (source.startsWith('ipfs://'))
+    return `${IPFS_GATEWAY}/${source.slice('ipfs://'.length)}`;
+  if (source.startsWith('https://')) return source;
+  return undefined;
+};
 
 /**
  * The file agreements the vehicle's current grant gives this app. Throws
  * GrantUnreadableError when the grant's document can't be read, so callers
  * that rewrite the grant stop rather than drop access they couldn't see.
  */
-export const readGrantAgreements = async (vehicle: {
+export const readGrantAgreements = (vehicle: {
   tokenId: number;
   tokenDID: string;
   source?: string;
@@ -135,22 +171,37 @@ export const readGrantAgreements = async (vehicle: {
 }): Promise<CloudEventAgreement[]> => {
   const { source } = vehicle;
   // A grant signed without a source document has no agreements at all.
-  if (!source) return [];
-  if (!source.startsWith('ipfs://')) throw new GrantUnreadableError(vehicle);
-  try {
-    const cid = source.slice('ipfs://'.length);
-    const res = await fetchWithTimeout(
-      `${IPFS_GATEWAY}/${cid}`,
-      {},
-      SOURCE_FETCH_TIMEOUT_MS,
+  if (!source) return Promise.resolve([]);
+  const url = sourceUrl(source);
+  if (!url) {
+    return Promise.reject(
+      new GrantUnreadableError(
+        vehicle,
+        "Its terms are stored somewhere DIMO can't read.",
+      ),
     );
-    if (!res.ok) throw new Error(`gateway returned ${res.status}`);
-    return getVehicleAgreements(await res.json(), vehicle.tokenDID);
-  } catch (error) {
-    console.error('Error reading SACD source:', error);
-    throw new GrantUnreadableError(vehicle);
   }
+  const key = `${source}|${vehicle.tokenDID.toLowerCase()}`;
+  const cached = grantReads.get(key);
+  if (cached) return cached;
+
+  const read = (async () => {
+    try {
+      const res = await fetchWithTimeout(url, {}, SOURCE_FETCH_TIMEOUT_MS);
+      if (!res.ok) throw new Error(`gateway returned ${res.status}`);
+      return getVehicleAgreements(await res.json(), vehicle.tokenDID);
+    } catch (error) {
+      console.error('Error reading SACD source:', error);
+      grantReads.delete(key);
+      throw new GrantUnreadableError(vehicle);
+    }
+  })();
+  grantReads.set(key, read);
+  return read;
 };
+
+/** Test hook: forget cached grant reads. */
+export const clearGrantReadCache = () => grantReads.clear();
 
 /**
  * Whether the vehicle's current grant already includes the requested file

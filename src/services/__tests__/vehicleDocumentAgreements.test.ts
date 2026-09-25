@@ -1,5 +1,6 @@
 import {
   checkDocumentAccess,
+  clearGrantReadCache,
   coversAll,
   getMissingFileLabels,
   getVehicleAgreements,
@@ -29,6 +30,7 @@ const mockGateway = (response: object | Error) => {
   }) as any;
 };
 const originalFetch = global.fetch;
+beforeEach(() => clearGrantReadCache());
 afterEach(() => {
   global.fetch = originalFetch;
 });
@@ -40,6 +42,29 @@ describe('toCloudEventAgreements', () => {
       toCloudEventAgreements({ eventType: 'dimo.document.vehicle.*' } as any),
     ).toEqual([{ eventType: 'dimo.document.vehicle.*', ids: [], tags: [] }]);
     expect(toCloudEventAgreements([VEHICLE_DOCS, RAW_DOCS] as any)).toHaveLength(2);
+  });
+
+  it('drops entries a signer would widen to every attestation', () => {
+    expect(
+      toCloudEventAgreements([
+        {},
+        5,
+        null,
+        { event_type: 'x' },
+        { eventType: '' },
+      ] as any),
+    ).toEqual([]);
+  });
+
+  it('keeps only well-formed fields', () => {
+    expect(
+      toCloudEventAgreements({
+        eventType: 'e',
+        source: 'nope',
+        ids: ['a', 3],
+        tags: 'x',
+      } as any),
+    ).toEqual([{ eventType: 'e', ids: ['a'], tags: [] }]);
   });
 });
 
@@ -96,6 +121,12 @@ describe('coversAll', () => {
     ).toBe(false);
   });
 
+  it('never lets specific ids cover a request for all events', () => {
+    const specific = [{ ...VEHICLE_DOCS, ids: ['doc1'] }] as any;
+    expect(coversAll(specific, [VEHICLE_DOCS] as any)).toBe(false);
+    expect(mergeAgreements(specific, [VEHICLE_DOCS] as any)).toHaveLength(2);
+  });
+
   it('treats an empty eventType as the SDK default, as the signer does', () => {
     const signed = [{ eventType: 'dimo.attestation', ids: [] }] as any;
     expect(coversAll(signed, [{ eventType: '', ids: [] }] as any)).toBe(true);
@@ -131,6 +162,22 @@ describe('readGrantAgreements', () => {
     expect(agreements).toHaveLength(1);
     expect((global.fetch as jest.Mock).mock.calls[0][0]).toBe(
       'https://assets.dimo.org/ipfs/bafycid',
+    );
+  });
+
+  it('reads https sources directly and caches by source', async () => {
+    mockGateway(sacdDocument([{ type: 'cloudevent', eventType: 'x', asset: DID }]));
+    await readGrantAgreements(vehicle('https://example.com/grant.json'));
+    await readGrantAgreements(vehicle('https://example.com/grant.json'));
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect((global.fetch as jest.Mock).mock.calls[0][0]).toBe(
+      'https://example.com/grant.json',
+    );
+  });
+
+  it('refuses sources it has no way to read', async () => {
+    await expect(readGrantAgreements(vehicle('ar://abc'))).rejects.toThrow(
+      "stored somewhere DIMO can't read",
     );
   });
 

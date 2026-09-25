@@ -13,6 +13,7 @@ const transformVehicle = (
     shared: !!sacd,
     expiresAt: sacd ? formatDate(sacd.expiresAt) : '',
     source: sacd?.source ?? '',
+    grantExpiresAt: sacd?.expiresAt ?? '',
   };
 };
 
@@ -83,10 +84,24 @@ export const getNewExpirationDate = (
   requestedExpiration?: BigInt,
 ) => {
   if (actionType === 'revoke') return BigInt(0);
-  // An update re-shares on the app's terms, including its requested expiration.
   if (actionType === 'update' && requestedExpiration)
-    return BigInt(requestedExpiration.toString());
+    return keepLaterExpiration(vehicle, requestedExpiration);
   return extendExpirationDateByYear(vehicle);
+};
+
+/**
+ * An update uses the app's requested expiration, unless the current grant
+ * runs longer: updating never shortens access.
+ */
+export const keepLaterExpiration = (
+  vehicle: { grantExpiresAt?: string },
+  requested: BigInt,
+): bigint => {
+  const requestedSeconds = BigInt(requested.toString());
+  const currentMs = vehicle.grantExpiresAt ? Date.parse(vehicle.grantExpiresAt) : NaN;
+  if (Number.isNaN(currentMs)) return requestedSeconds;
+  const currentSeconds = BigInt(Math.floor(currentMs / 1000));
+  return currentSeconds > requestedSeconds ? currentSeconds : requestedSeconds;
 };
 const extendExpirationDateByYear = (vehicle: Vehicle) => {
   const extendedDate = extendByYear(vehicle.expiresAt);

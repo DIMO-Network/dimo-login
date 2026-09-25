@@ -90,11 +90,25 @@ describe('needsPermissionUpdate', () => {
 });
 
 describe('mergePermissions', () => {
+  const vehicleWith = (permissions: string) => ({ permissions, tokenId: 1 });
+
   it('keeps what the grant has and adds what is requested', () => {
     const granted = encode([Permission.ExecuteCommands]);
     expect(
-      mergePermissions(granted, [Permission.GetRawData, Permission.ExecuteCommands]),
+      mergePermissions(vehicleWith(granted), [
+        Permission.GetRawData,
+        Permission.ExecuteCommands,
+      ]),
     ).toEqual([Permission.ExecuteCommands, Permission.GetRawData]);
+  });
+
+  it('refuses a grant with permission bits it cannot carry over', () => {
+    const newerPermission = (BigInt(3) << BigInt(18)).toString(); // index 9
+    expect(() => mergePermissions(vehicleWith(newerPermission), [])).toThrow(
+      "can't carry over",
+    );
+    const halfSet = (BigInt(1) << BigInt(4)).toString(); // '01' chunk
+    expect(() => mergePermissions(vehicleWith(halfSet), [])).toThrow("can't carry over");
   });
 });
 

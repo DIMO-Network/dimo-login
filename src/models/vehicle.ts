@@ -14,6 +14,9 @@ export interface Vehicle {
   permissions: string;
   // ipfs:// URI of the grant's signed SACD document, when shared.
   source?: string;
+  // The grant's expiry as identity-api returns it (ISO), unlike the display
+  // string in expiresAt.
+  grantExpiresAt?: string;
   // Whether the grant already includes the requested file agreements;
   // undefined when no files are requested or it couldn't be determined.
   documentAccess?: boolean;

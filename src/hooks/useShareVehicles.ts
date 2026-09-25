@@ -22,6 +22,7 @@ import {
   withSource,
 } from '../services/vehicleDocumentAgreements';
 import { mergePermissions } from '../utils/permissions';
+import { keepLaterExpiration } from '../utils/vehicles';
 import { mapWithConcurrency } from '../utils/mapWithConcurrency';
 
 // Documents are signed (Turnkey) and uploaded (IPFS) per vehicle; cap the burst.
@@ -64,32 +65,46 @@ export const useShareVehicles = () => {
       toCloudEventAgreements(cloudEvent),
       user?.smartContractAddress,
     );
-    const grant = {
-      grantee: clientId as `0x${string}`,
-      expiration: expirationDate,
-    };
 
     // A vehicle already shared with this app gets its current grant plus the
-    // request, so an update never drops access (only "Stop sharing" does). If
-    // its grant can't be read, readGrantAgreements throws and nothing is sent.
-    const buildGrant = async (vehicle: Vehicle) => {
-      const existing = vehicle.shared ? await readGrantAgreements(vehicle) : [];
-      const agreements = mergeAgreements(existing, requestedAgreements);
-      const vehiclePerms = vehicle.shared
-        ? mergePermissions(vehicle.permissions, perms)
-        : perms;
-      const source = await generateIpfsSources(vehiclePerms, clientId, expirationDate, {
+    // request, so an update never drops access (only "Stop sharing" does):
+    // same or more permissions and files, and the later expiry. Every current
+    // grant is read and checked before anything is signed; if one can't be
+    // carried over, this throws GrantUnreadableError and nothing is signed.
+    const planGrant = async (vehicle: Vehicle) => {
+      if (!vehicle.shared) {
+        return {
+          vehicle,
+          permissions: perms,
+          agreements: requestedAgreements,
+          expiration: expirationDate,
+        };
+      }
+      const existing = await readGrantAgreements(vehicle);
+      return {
+        vehicle,
+        permissions: mergePermissions(vehicle, perms),
+        agreements: mergeAgreements(existing, requestedAgreements),
+        expiration: keepLaterExpiration(vehicle, expirationDate),
+      };
+    };
+
+    const signGrant = async ({
+      vehicle,
+      permissions: vehiclePerms,
+      agreements,
+      expiration,
+    }: Awaited<ReturnType<typeof planGrant>>) => ({
+      grantee: clientId as `0x${string}`,
+      permissions: vehiclePerms,
+      expiration,
+      tokenId: BigInt(vehicle.tokenId),
+      source: await generateIpfsSources(vehiclePerms, clientId, expiration, {
         attachments,
         cloudEventAgreements: agreements,
         asset: getVehicleAsset(vehicle, agreements.length > 0),
-      });
-      return {
-        ...grant,
-        permissions: vehiclePerms,
-        tokenId: BigInt(vehicle.tokenId),
-        source,
-      };
-    };
+      }),
+    });
 
     // File agreements only count for the vehicle DID they name, and updates
     // carry each vehicle's own grant, so both need a document per vehicle.
@@ -100,9 +115,10 @@ export const useShareVehicles = () => {
       vehicles.some((v) => v.shared);
 
     if (perVehicle) {
+      const plans = await Promise.all(vehicles.map(planGrant));
       // Sign every document before sending anything, so a signing failure
       // leaves no grants behind.
-      const grants = await mapWithConcurrency(vehicles, SIGNING_CONCURRENCY, buildGrant);
+      const grants = await mapWithConcurrency(plans, SIGNING_CONCURRENCY, signGrant);
       if (grants.length === 1) {
         await setVehiclePermissions(grants[0]);
         return;
@@ -122,7 +138,8 @@ export const useShareVehicles = () => {
       attachments,
     });
     await setVehiclePermissionsBulk({
-      ...grant,
+      grantee: clientId as `0x${string}`,
+      expiration: expirationDate,
       permissions: perms,
       tokenIds: vehicles.map((v) => BigInt(v.tokenId)),
       source,

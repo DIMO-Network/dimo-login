@@ -49,6 +49,7 @@ import {
 } from '../../services';
 import { setVehiclePermissionsBatch } from '../../services/turnkeyService';
 import { Vehicle } from '../../models/vehicle';
+import { clearGrantReadCache } from '../../services/vehicleDocumentAgreements';
 
 const vehicle = (tokenId: number) =>
   ({
@@ -75,6 +76,7 @@ afterEach(() => {
 });
 
 beforeEach(() => {
+  clearGrantReadCache();
   Object.assign(mockCredentials, {
     clientId: '0xgrantee000000000000000000000000000000000',
     expirationDate: BigInt(2000000000),
@@ -209,4 +211,22 @@ it("sends nothing when a shared vehicle's current grant can't be read", async ()
   );
   expect(setVehiclePermissionsBatch).not.toHaveBeenCalled();
   expect(setVehiclePermissionsBulk).not.toHaveBeenCalled();
+  // Every current grant is read before anything is signed.
+  expect(generateIpfsSources).not.toHaveBeenCalled();
+});
+
+it("keeps a shared vehicle's later expiry when the app asks for less", async () => {
+  global.fetch = jest.fn(async () => ({
+    ok: true,
+    json: async () => ({ data: { agreements: [] } }),
+  })) as any;
+  const vehicleWithLongGrant = {
+    ...sharedVehicle(5),
+    grantExpiresAt: '2099-01-01T00:00:00Z',
+  } as Vehicle;
+
+  await share([vehicleWithLongGrant]);
+
+  const grant = (setVehiclePermissions as jest.Mock).mock.calls[0][0];
+  expect(grant.expiration).toBe(BigInt(Date.parse('2099-01-01T00:00:00Z') / 1000));
 });
