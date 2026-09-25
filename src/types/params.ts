@@ -61,7 +61,7 @@ export interface AccountManagerParams {
   permissionTemplateId?: string;
   permissions?: string;
   expirationDate: BigInt;
-  cloudEvent?: CloudEventAgreement;
+  cloudEvent?: CloudEventAgreement | CloudEventAgreement[];
 }
 
 export interface TransactionParams {
