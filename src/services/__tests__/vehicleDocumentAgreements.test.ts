@@ -194,6 +194,26 @@ describe('readGrantAgreements', () => {
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
+  it('reads a legacy permission-grant document as having no file agreements', async () => {
+    // Shape of ipfs://QmQoGcXhVjX6J9kYVWZ97KXMw5oVnobaC1Qt5PtPWoubq5, a real
+    // pre-SACD grant (most active grants still use this format).
+    mockGateway({
+      type: 'org.dimo.permission.grant.v1',
+      data: {
+        templateId: '1',
+        version: '1.0',
+        grantor: { address: GRANTOR },
+        grantee: { address: '0x2222222222222222222222222222222222222222' },
+        scope: { permissions: [] },
+        effectiveAt: '2025-01-01T00:00:00Z',
+        expiresAt: '2026-01-01T00:00:00Z',
+        attachments: [],
+        description: 'legacy grant',
+      },
+    });
+    await expect(readGrantAgreements(vehicle('ipfs://legacy'))).resolves.toEqual([]);
+  });
+
   it('treats an unfamiliar document shape as unreadable, not as "no files"', async () => {
     mockGateway({ signed: { payload: '...' } });
     await expect(readGrantAgreements(vehicle('ipfs://wrapped'))).rejects.toBeInstanceOf(

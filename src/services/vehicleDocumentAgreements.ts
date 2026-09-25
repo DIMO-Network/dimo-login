@@ -173,6 +173,16 @@ const sourceUrl = (source: string) => {
   return undefined;
 };
 
+const LEGACY_GRANT_TYPE = 'org.dimo.permission.grant.v1';
+
+const isLegacyGrantDocument = (document: unknown): boolean => {
+  const doc = document as { type?: unknown; data?: Record<string, unknown> } | null;
+  return (
+    doc?.type === LEGACY_GRANT_TYPE ||
+    (!!doc?.data && 'scope' in doc.data && !('agreements' in doc.data))
+  );
+};
+
 /**
  * The file agreements the vehicle's current grant gives this app. Throws
  * GrantUnreadableError when the grant's document can't be read, so callers
@@ -207,8 +217,11 @@ export const readGrantAgreements = (vehicle: {
       const res = await fetchWithTimeout(url, {}, SOURCE_FETCH_TIMEOUT_MS);
       if (!res.ok) throw new Error(`gateway returned ${res.status}`);
       const document = await res.json();
-      // An unfamiliar shape isn't "no files"; treating it so would let an
-      // update drop agreements it couldn't see.
+      // Grants signed before the SACD format (roughly until 2025-09) use the
+      // legacy permission-grant document, which can't carry file agreements.
+      if (isLegacyGrantDocument(document)) return [];
+      // Any other unfamiliar shape isn't "no files"; treating it so would let
+      // an update drop agreements it couldn't see.
       if (!Array.isArray(document?.data?.agreements)) {
         throw new Error('unexpected SACD document shape');
       }
