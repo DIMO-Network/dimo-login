@@ -150,6 +150,21 @@ describe('DevCredentialsContext cloudEvent (vehicle document access)', () => {
     );
   });
 
+  it('warns when some requested cloudEvents are not supported', async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const params = new URLSearchParams({
+      clientId: CLIENT_ID,
+      cloudEvent: JSON.stringify([...AGREEMENTS, { eventType: 'dimo.attestation' }]),
+    });
+    window.history.pushState({}, '', `/?${params.toString()}`);
+    renderProvider('cloudEvent');
+
+    await waitFor(() =>
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('Ignoring 1 cloudEvent')),
+    );
+    warn.mockRestore();
+  });
+
   it('ignores a malformed cloudEvent param instead of crashing', async () => {
     window.history.pushState({}, '', `/?clientId=${CLIENT_ID}&cloudEvent=%5B%7Bbroken`);
     renderProvider('cloudEvent');

@@ -37,6 +37,14 @@ it('does not turn look-alike anchors into links', () => {
   expect(screen.queryByRole('link')).toBeNull();
 });
 
+it("does not link to other files on DIMO's gateway", () => {
+  // e.g. injected through a license alias pointing at an attacker's upload
+  renderContract(
+    'Intro.\n\n<a href="https://assets.dimo.org/ipfs/QmAttackerUpload" target="_blank">Contract Attachment</a>',
+  );
+  expect(screen.queryByRole('link')).toBeNull();
+});
+
 it('shows only the first paragraph until expanded', () => {
   renderContract('First.\n\nSecond.', false);
   expect(screen.getByText('First.')).toBeInTheDocument();

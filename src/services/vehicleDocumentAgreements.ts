@@ -175,12 +175,11 @@ const sourceUrl = (source: string) => {
 
 const LEGACY_GRANT_TYPE = 'org.dimo.permission.grant.v1';
 
+// Identified by its declared type only; any other shape without agreements
+// still fails closed as unreadable.
 const isLegacyGrantDocument = (document: unknown): boolean => {
-  const doc = document as { type?: unknown; data?: Record<string, unknown> } | null;
-  return (
-    doc?.type === LEGACY_GRANT_TYPE ||
-    (!!doc?.data && 'scope' in doc.data && !('agreements' in doc.data))
-  );
+  const doc = document as { type?: unknown; data?: { agreements?: unknown } } | null;
+  return doc?.type === LEGACY_GRANT_TYPE && !Array.isArray(doc?.data?.agreements);
 };
 
 /**

@@ -214,6 +214,13 @@ describe('readGrantAgreements', () => {
     await expect(readGrantAgreements(vehicle('ipfs://legacy'))).resolves.toEqual([]);
   });
 
+  it('recognises legacy documents by their declared type only', async () => {
+    mockGateway({ data: { scope: { permissions: [] } } });
+    await expect(readGrantAgreements(vehicle('ipfs://untyped'))).rejects.toBeInstanceOf(
+      GrantUnreadableError,
+    );
+  });
+
   it('treats an unfamiliar document shape as unreadable, not as "no files"', async () => {
     mockGateway({ signed: { payload: '...' } });
     await expect(readGrantAgreements(vehicle('ipfs://wrapped'))).rejects.toBeInstanceOf(

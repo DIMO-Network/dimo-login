@@ -11,6 +11,8 @@ import { useOracles } from '../context/OraclesContext';
 import { UiStates } from '../enums';
 import { setForceEmail } from '../stores/AuthStateStore';
 import { parseExpirationDate, getDefaultExpirationDate } from '../utils/dateUtils';
+import { toCloudEventAgreements } from '../services/vehicleDocumentAgreements';
+import { DOCUMENT_EVENT_TYPES } from '../enums/documentEventTypes';
 
 // cloudEvent arrives as an object (postMessage, OAuth state), as JSON encoded
 // once more by the SDK (redirect), or as plain JSON in a hand-built link.
@@ -30,6 +32,20 @@ const parseCloudEvent = (
   }
   console.error('Ignoring malformed cloudEvent param');
   return undefined;
+};
+
+// Only document requests the consent screen can name are signed (see
+// toCloudEventAgreements). Say so, so an app doesn't assume it got the rest.
+const warnAboutUnsupportedCloudEvents = (cloudEvent: unknown) => {
+  const requested = Array.isArray(cloudEvent) ? cloudEvent.length : 1;
+  const dropped = requested - toCloudEventAgreements(cloudEvent).length;
+  if (dropped > 0) {
+    console.warn(
+      `Ignoring ${dropped} cloudEvent request(s): only ${Object.values(
+        DOCUMENT_EVENT_TYPES,
+      ).join(', ')} with valid ids/source are supported.`,
+    );
+  }
 };
 
 export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
@@ -107,6 +123,7 @@ export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
     cloudEvent: (value: unknown) => {
       const cloudEvent = parseCloudEvent(value);
       if (!cloudEvent) return;
+      warnAboutUnsupportedCloudEvents(cloudEvent);
       setDevCredentialsState((prev) => ({ ...prev, cloudEvent }));
     },
   };
