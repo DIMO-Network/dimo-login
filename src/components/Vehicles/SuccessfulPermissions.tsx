@@ -10,13 +10,35 @@ import { backToThirdParty } from '../../utils/messageHandler';
 import { Vehicle } from '../../models/vehicle';
 import VehicleCard from './VehicleCard';
 import { isEmbed } from '../../utils/isEmbed';
+import { ShareResult } from '../../hooks/useShareVehicles';
+
+// Vehicles whose update was skipped because their current grant couldn't be
+// carried over. They're still shared exactly as before.
+const SkippedUpdates = ({ skipped }: { skipped: ShareResult['skipped'] }) => (
+  <section className="w-full max-w-[440px] rounded-2xl border border-gray-200 p-4 text-left">
+    <h2 className="text-sm font-medium text-black">
+      {skipped.length === 1
+        ? '1 vehicle was not updated'
+        : `${skipped.length} vehicles were not updated`}
+    </h2>
+    <ul className="mt-2 space-y-1 text-sm text-gray-600">
+      {skipped.map(({ vehicle, reason }) => (
+        <li key={vehicle.tokenId}>{reason}</li>
+      ))}
+    </ul>
+    <p className="mt-2 text-sm text-gray-600">
+      {skipped.length === 1 ? "It's" : "They're"} still shared as before. You can update{' '}
+      {skipped.length === 1 ? 'it' : 'them'} later from the vehicle list.
+    </p>
+  </section>
+);
 
 export const SuccessfulPermissions: React.FC = () => {
   const { redirectUri, utm, devLicenseAlias, clientId, oemBrand } = useDevCredentials();
   const displayName = oemBrand?.name || devLicenseAlias;
   const { jwt, user } = useAuthContext();
   const {
-    componentData: { vehicles, action },
+    componentData: { vehicles, action, skipped = [] },
   } = useUIManager();
 
   const handleBackToThirdParty = () => {
@@ -54,6 +76,7 @@ export const SuccessfulPermissions: React.FC = () => {
             />
           ))}
       </div>
+      {skipped.length > 0 && <SkippedUpdates skipped={skipped} />}
       <div className="flex fex-col">
         {!isEmbed() && (
           <div className="flex justify-center w-full">

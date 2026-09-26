@@ -4,6 +4,7 @@ import { useUIManager } from '../context/UIManagerContext';
 import { useSendAuthPayloadToParent } from './useSendAuthPayloadToParent';
 import { Vehicle } from '../models/vehicle';
 import { UiStates } from '../enums';
+import { ShareResult } from './useShareVehicles';
 import { backToThirdParty } from '../utils/messageHandler';
 
 export const useFinishShareVehicles = () => {
@@ -11,19 +12,19 @@ export const useFinishShareVehicles = () => {
   const { setUiState, setComponentData } = useUIManager();
   const sendAuthPayloadToParent = useSendAuthPayloadToParent();
 
-  const goToNextScreen = (sharedVehicles: Vehicle[]) => {
-    setComponentData({ action: 'shared', vehicles: sharedVehicles });
+  const goToNextScreen = (sharedVehicles: Vehicle[], skipped: ShareResult['skipped']) => {
+    setComponentData({ action: 'shared', vehicles: sharedVehicles, skipped });
     setUiState(UiStates.VEHICLES_SHARED_SUCCESS);
   };
 
-  return (sharedVehicles?: Vehicle[]) => {
+  return (sharedVehicles?: Vehicle[], skipped: ShareResult['skipped'] = []) => {
     sendAuthPayloadToParent(
       {
         sharedVehicles: sharedVehicles?.map((v) => v.tokenId.toString()),
       },
       (authPayload) => {
         if (sharedVehicles?.length) {
-          return goToNextScreen(sharedVehicles);
+          return goToNextScreen(sharedVehicles, skipped);
         }
         backToThirdParty(authPayload, redirectUri, utm);
       },
