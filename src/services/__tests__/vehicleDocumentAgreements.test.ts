@@ -82,21 +82,31 @@ describe('toCloudEventAgreements', () => {
       toCloudEventAgreements([
         { eventType: 'dimo.document.vehicle.*', ids: 'doc-123' }, // would become "all events"
         { eventType: 'dimo.document.vehicle.*', ids: ['a', 3] },
-        { eventType: 'dimo.document.vehicle.*', source: '0XABC' }, // would become the user's address
+      ] as any),
+    ).toEqual([]);
+  });
+
+  it("drops entries that name someone else's files", () => {
+    // File access is always to the signed-in user's own files.
+    expect(
+      toCloudEventAgreements([
+        {
+          eventType: 'dimo.document.vehicle.*',
+          source: '0x2222222222222222222222222222222222222222',
+        },
+        { eventType: 'dimo.document.vehicle.*', source: '0XABC' },
       ] as any),
     ).toEqual([]);
   });
 
   it('keeps well-formed entries, defaulting only tags', () => {
-    const source = '0x2222222222222222222222222222222222222222';
     expect(
       toCloudEventAgreements({
         eventType: 'dimo.document.vehicle.*',
-        source,
         ids: ['a'],
         tags: 'x',
       } as any),
-    ).toEqual([{ eventType: 'dimo.document.vehicle.*', source, ids: ['a'], tags: [] }]);
+    ).toEqual([{ eventType: 'dimo.document.vehicle.*', ids: ['a'], tags: [] }]);
   });
 });
 
