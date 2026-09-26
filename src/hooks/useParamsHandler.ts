@@ -43,7 +43,7 @@ const warnAboutUnsupportedCloudEvents = (cloudEvent: unknown) => {
     console.warn(
       `Ignoring ${dropped} cloudEvent request(s): only ${Object.values(
         DOCUMENT_EVENT_TYPES,
-      ).join(', ')} with valid ids/source are supported.`,
+      ).join(', ')} with valid ids and no source are supported.`,
     );
   }
 };

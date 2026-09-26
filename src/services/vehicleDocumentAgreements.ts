@@ -22,10 +22,11 @@ const stringList = (value: unknown): string[] | undefined =>
 /**
  * The `cloudEvent` param is one agreement or a list of them. A malformed entry
  * is dropped whole rather than repaired: a missing eventType would be signed
- * as every attestation, bad ids as every event, and a bad source as the
- * user's own address, each wider or different from what the app meant.
- * `source` may be omitted: an app can't know the user's address before login,
- * so the signer fills in the grantor (see generateIpfsSources).
+ * as every attestation and bad ids as every event, each wider than the app
+ * meant. File access is always to the signed-in user's own files: the signer
+ * sets `source` to the grantor (see withSource / generateIpfsSources), so an
+ * entry that names a source of its own can't be honoured as asked and is
+ * dropped too.
  */
 export const toCloudEventAgreements = (cloudEvent?: unknown): CloudEventAgreement[] => {
   if (!cloudEvent) return [];
@@ -33,18 +34,16 @@ export const toCloudEventAgreements = (cloudEvent?: unknown): CloudEventAgreemen
   return list.flatMap((entry) => {
     const agreement = entry as Record<string, unknown> | null;
     if (!agreement || typeof agreement !== 'object') return [];
-    const { eventType, source } = agreement;
+    const { eventType } = agreement;
     // Only the document patterns the consent screen can name. Anything else
     // would be shown to the user as an app-supplied string, if at all.
     if (!isDocumentEventType(eventType)) return [];
     const ids = agreement.ids === undefined ? [] : stringList(agreement.ids);
     if (!ids) return [];
-    const validSource = typeof source === 'string' && /^0x[0-9a-fA-F]{40}$/.test(source);
-    if (source !== undefined && !validSource) return [];
+    if (agreement.source !== undefined) return [];
     return [
       {
         eventType,
-        ...(validSource && { source: source as `0x${string}` }),
         ids,
         tags: stringList(agreement.tags) ?? [],
       },
