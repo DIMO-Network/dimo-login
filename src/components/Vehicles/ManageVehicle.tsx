@@ -4,7 +4,7 @@ import { useUIManager } from '../../context/UIManagerContext';
 import { isInvalidSessionError } from '../../utils/authUtils';
 import { captureException } from '@sentry/react';
 import { UIManagerLoaderWrapper, ErrorMessage } from '../Shared';
-import { useUpdateVehiclePermissions } from '../../hooks';
+import { useFinishShareVehicles, useUpdateVehiclePermissions } from '../../hooks';
 import { VehiclePermissionsAction } from '../../types';
 import { getNewExpirationDate } from '../../utils/vehicles';
 import { ManageVehicleDetails } from './ManageVehicleDetails';
@@ -28,12 +28,11 @@ const LOADING_MESSAGES: Record<VehiclePermissionsAction, string> = {
   update: 'Updating permissions',
 };
 
-// 'update' reports back as 'shared' so the app receives sharedVehicles, the
-// same as a first-time share with the requested permissions.
-const SUCCESS_ACTIONS: Record<VehiclePermissionsAction, string> = {
+// Revoke and extend go straight to their success screen. An update is
+// reported like a share instead (see handleSuccess).
+const SUCCESS_ACTIONS: Record<Exclude<VehiclePermissionsAction, 'update'>, string> = {
   revoke: 'revoked',
   extend: 'extended',
-  update: 'shared',
 };
 
 export const ManageVehicle: React.FC = () => {
@@ -49,6 +48,7 @@ export const ManageVehicle: React.FC = () => {
     useDevCredentials<VehicleManagerMandatoryParams>();
   const { user } = useAuthContext();
   const updateVehiclePermissions = useUpdateVehiclePermissions();
+  const finishShareVehicles = useFinishShareVehicles();
 
   // The vehicle was captured when its card was clicked, possibly before the
   // list's file check returned. Finish that check here so the right action
@@ -105,6 +105,13 @@ export const ManageVehicle: React.FC = () => {
 
   const handleSuccess = (actionType: VehiclePermissionsAction) => {
     vehicle.shared = false;
+    // An update is a share with the requested permissions, so report it the
+    // way the vehicle list does: a popup-mode app gets sharedVehicles now,
+    // since the success screen's Back button only closes the popup.
+    if (actionType === 'update') {
+      finishShareVehicles([vehicle]);
+      return;
+    }
     setComponentData({ action: SUCCESS_ACTIONS[actionType], vehicles: [vehicle] });
     setUiState(UiStates.VEHICLES_SHARED_SUCCESS);
   };
