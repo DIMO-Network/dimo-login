@@ -95,15 +95,17 @@ beforeEach(() => {
 });
 
 const share = async (vehicles: Vehicle[]) => {
-  let run: ((v: Vehicle[]) => Promise<void>) | undefined;
+  let run: ReturnType<typeof useShareVehicles> | undefined;
   const Probe = () => {
     run = useShareVehicles();
     return null;
   };
   render(<Probe />);
+  let result: Awaited<ReturnType<ReturnType<typeof useShareVehicles>>> | undefined;
   await act(async () => {
-    await run!(vehicles);
+    result = await run!(vehicles);
   });
+  return result!;
 };
 
 it('shares several vehicles in one bulk grant when no files are requested', async () => {
@@ -206,16 +208,40 @@ it('updates a shared vehicle without dropping what its grant already has', async
   ]);
 });
 
-it("sends nothing when a shared vehicle's current grant can't be read", async () => {
+it("shares the other vehicles when a shared vehicle's current grant can't be read", async () => {
   global.fetch = jest.fn().mockRejectedValue(new Error('gateway down')) as any;
 
-  await expect(share([vehicle(1), sharedVehicle(5)])).rejects.toThrow(
+  const result = await share([vehicle(1), sharedVehicle(5), vehicle(2)]);
+
+  // The unreadable one is left as it was and reported; the new ones go ahead.
+  expect(result.shared.map((v) => v.tokenId)).toEqual([1, 2]);
+  expect(result.skipped.map((s) => s.vehicle.tokenId)).toEqual([5]);
+  expect(result.skipped[0].reason).toContain("Couldn't read the current sharing terms");
+  const grants = (setVehiclePermissionsBatch as jest.Mock).mock.calls[0][0];
+  expect(grants.map((g: any) => g.tokenId)).toEqual([BigInt(1), BigInt(2)]);
+  // Nothing was signed for the skipped vehicle.
+  expect((generateIpfsSources as jest.Mock).mock.calls.map((c) => c[3].asset)).toEqual([
+    vehicle(1).tokenDID,
+    vehicle(2).tokenDID,
+  ]);
+});
+
+it('fails with the reason when every selected vehicle is skipped', async () => {
+  global.fetch = jest.fn().mockRejectedValue(new Error('gateway down')) as any;
+
+  await expect(share([sharedVehicle(5)])).rejects.toThrow(
     "Couldn't read the current sharing terms",
   );
-  expect(setVehiclePermissionsBatch).not.toHaveBeenCalled();
-  expect(setVehiclePermissionsBulk).not.toHaveBeenCalled();
-  // Every current grant is read before anything is signed.
+  expect(setVehiclePermissions).not.toHaveBeenCalled();
   expect(generateIpfsSources).not.toHaveBeenCalled();
+});
+
+it('still fails the whole share for problems with a new vehicle', async () => {
+  mockCredentials.cloudEvent = CLOUD_EVENT;
+  const noDid = { tokenId: 9, tokenDID: '' } as Vehicle;
+
+  await expect(share([vehicle(1), noDid])).rejects.toThrow('has no DID');
+  expect(setVehiclePermissionsBatch).not.toHaveBeenCalled();
 });
 
 it("keeps a shared vehicle's later expiry when the app asks for less", async () => {

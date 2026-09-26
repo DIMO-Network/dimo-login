@@ -82,10 +82,14 @@ export const SelectVehicles: React.FC = () => {
   const handleShare = async () => {
     try {
       setLoadingState(true, 'Sharing vehicles', true);
-      await handleShareVehicles(selectedVehicles);
+      const { shared, skipped } = await handleShareVehicles(selectedVehicles);
       clearSelectedVehicles();
-      // Updated shares show on the success screen like newly shared ones.
-      finishShareVehicles(selectedVehicles.map((v) => ({ ...v, shared: false })));
+      // Updated shares show on the success screen like newly shared ones;
+      // vehicles whose update was skipped are listed there with the reason.
+      finishShareVehicles(
+        shared.map((v) => ({ ...v, shared: false })),
+        skipped,
+      );
     } catch (err) {
       captureException(err);
       if (err instanceof GrantUnreadableError) {

@@ -16,6 +16,7 @@ import { INVALID_SESSION_ERROR } from '../utils/authUtils';
 import { generateAttachments } from '../services/permissionsService';
 import {
   getVehicleAsset,
+  GrantUnreadableError,
   mergeAgreements,
   readGrantAgreements,
   toCloudEventAgreements,
@@ -24,6 +25,13 @@ import {
 import { mergePermissions } from '../utils/permissions';
 import { keepLaterExpiration } from '../utils/vehicles';
 import { mapWithConcurrency } from '../utils/mapWithConcurrency';
+
+export interface ShareResult {
+  shared: Vehicle[];
+  // Already-shared vehicles left exactly as they were, because their current
+  // grant couldn't be read or carried over in full.
+  skipped: { vehicle: Vehicle; reason: string }[];
+}
 
 // Grants are read (IPFS) and documents signed (Turnkey) and uploaded (IPFS)
 // per vehicle; cap the burst.
@@ -53,7 +61,7 @@ export const useShareVehicles = () => {
     return !!(await validateSession());
   };
 
-  return async (vehicles: Vehicle[]) => {
+  return async (vehicles: Vehicle[]): Promise<ShareResult> => {
     if (!vehicles.length) {
       throw new Error('No vehicles shared');
     }
@@ -70,8 +78,9 @@ export const useShareVehicles = () => {
     // A vehicle already shared with this app gets its current grant plus the
     // request, so an update never drops access (only "Stop sharing" does):
     // same or more permissions and files, and the later expiry. Every current
-    // grant is read and checked before anything is signed; if one can't be
-    // carried over, this throws and nothing is signed.
+    // grant is read and checked before anything is signed. One that can't be
+    // carried over is left as it is and skipped, so it never blocks sharing
+    // the other vehicles.
     const planGrant = async (vehicle: Vehicle) => {
       const plan = vehicle.shared
         ? {
@@ -125,14 +134,33 @@ export const useShareVehicles = () => {
       vehicles.some((v) => v.shared);
 
     if (perVehicle) {
-      const plans = await mapWithConcurrency(vehicles, SIGNING_CONCURRENCY, planGrant);
+      const planned = await mapWithConcurrency(
+        vehicles,
+        SIGNING_CONCURRENCY,
+        async (vehicle) => {
+          try {
+            return { plan: await planGrant(vehicle), skip: undefined, error: undefined };
+          } catch (error) {
+            if (vehicle.shared && error instanceof GrantUnreadableError) {
+              return { plan: undefined, skip: { vehicle, reason: error.message }, error };
+            }
+            throw error;
+          }
+        },
+      );
+      const plans = planned.flatMap((p) => (p.plan ? [p.plan] : []));
+      const skipped = planned.flatMap((p) => (p.skip ? [p.skip] : []));
+      // Nothing left to share: report why, as before.
+      if (!plans.length) throw planned[0].error;
+      const result = { shared: plans.map((p) => p.vehicle), skipped };
+
       // Sign every document before sending anything, so a signing failure
       // leaves no grants on-chain. Signings already running when one fails
       // still finish; their documents are uploaded but never referenced.
       const grants = await mapWithConcurrency(plans, SIGNING_CONCURRENCY, signGrant);
       if (grants.length === 1) {
         await setVehiclePermissions(grants[0]);
-        return;
+        return result;
       }
       // Each batch is one user operation, so its grants land together or not
       // at all. Shares of more than 24 vehicles need several batches, and an
@@ -142,7 +170,7 @@ export const useShareVehicles = () => {
           grants.slice(i, i + VEHICLE_PERMISSIONS_BATCH_LIMIT),
         );
       }
-      return;
+      return result;
     }
 
     const source = await generateIpfsSources(perms, clientId, expirationDate, {
@@ -155,5 +183,6 @@ export const useShareVehicles = () => {
       tokenIds: vehicles.map((v) => BigInt(v.tokenId)),
       source,
     });
+    return { shared: vehicles, skipped: [] };
   };
 };
