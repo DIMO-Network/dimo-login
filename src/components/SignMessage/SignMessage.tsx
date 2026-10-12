@@ -35,7 +35,7 @@ export const SignMessage: React.FC = () => {
 
       const { signature, signer } = await signArbitraryMessage(message, isHex);
 
-      sendSignatureResponseToParent(signature, signer, jwt!, () => {
+      sendSignatureResponseToParent(signature, signer, jwt!, redirectUri, () => {
         setComponentData({ signature, signer, flowKind: 'signature' });
         setUiState(UiStates.TRANSACTION_SUCCESS);
         setLoadingState(false);

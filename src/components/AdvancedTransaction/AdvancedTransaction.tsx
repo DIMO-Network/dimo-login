@@ -33,7 +33,7 @@ export const AdvancedTransaction: React.FC = () => {
       );
 
       //Send transaction hash to developer, and show user successful txn
-      sendTxnResponseToParent(receipt, jwt!, (transactionHash) => {
+      sendTxnResponseToParent(receipt, jwt!, redirectUri, (transactionHash) => {
         setComponentData({ transactionHash });
         setUiState(UiStates.TRANSACTION_SUCCESS);
         setLoadingState(false);

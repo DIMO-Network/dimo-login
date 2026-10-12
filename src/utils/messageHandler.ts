@@ -1,23 +1,35 @@
 import { isStandalone } from './isStandalone';
 import { getAppUrl, getRedirectUriWithUtm } from './urlHelpers';
 
-export function sendMessageToReferrer(data: object, expectedOrigin?: string) {
+/**
+ * Posts `data` to the window that opened (popup) or embeds (iframe) this page.
+ *
+ * Pass `registeredRedirectUri` for anything carrying the user's token, a
+ * signature or a key: the message is then addressed to that URI's origin, so
+ * the browser delivers it only when the opener/parent is the registered app.
+ */
+export function sendMessageToReferrer(data: object, registeredRedirectUri?: string) {
   if (isStandalone()) {
     console.warn('Not opened in popup or iframe, use url based creds');
     return;
   }
 
-  const parentOrigin = getAppUrl().origin;
-
-  // When an expectedOrigin is provided (e.g. the registered redirectUri origin),
-  // validate the opener matches before sending — prevents delivering secrets to
-  // an unintended window.opener if the popup was opened from a different origin.
-  if (expectedOrigin) {
-    const expected = new URL(expectedOrigin).origin;
-    if (parentOrigin !== expected) {
-      console.error('sendMessageToReferrer: opener origin does not match registered redirectUri — message suppressed');
+  let parentOrigin = getAppUrl().origin;
+  if (registeredRedirectUri) {
+    let origin = 'null';
+    try {
+      origin = new URL(registeredRedirectUri).origin;
+    } catch {
+      // handled below
+    }
+    // Custom schemes (myapp://…) have no web origin to address; such apps use the redirect flow.
+    if (origin === 'null') {
+      console.error(
+        'sendMessageToReferrer: redirectUri has no web origin — message suppressed',
+      );
       return;
     }
+    parentOrigin = origin;
   }
 
   const referrer = window.opener || window.parent;

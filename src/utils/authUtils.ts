@@ -69,11 +69,14 @@ export function sendAuthPayloadToParent(
   redirectUri: string,
   onSuccess: (payload: { token: string; email?: string; walletAddress: string }) => void,
 ) {
-  sendMessageToReferrer({
-    eventType: 'authResponse',
-    ...payload,
-    authType: window.opener ? 'popup' : 'embed',
-  }); //TODO: authType to be deprecated soon, only kept for backwards compatibility
+  sendMessageToReferrer(
+    {
+      eventType: 'authResponse',
+      ...payload,
+      authType: window.opener ? 'popup' : 'embed', //TODO: authType to be deprecated soon, only kept for backwards compatibility
+    },
+    redirectUri,
+  );
 
   onSuccess(payload);
 }
