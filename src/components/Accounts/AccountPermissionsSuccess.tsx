@@ -11,15 +11,16 @@ import { isEmbed } from '../../utils/isEmbed';
 import { backToThirdParty } from '../../utils/messageHandler';
 import { ManageInAppNote } from '../Shared/ManageInAppNote';
 import { ActionBar, Button, DoneHeader, Screen } from '../ui';
+import { useAppName } from '../../hooks/useAppName';
 
 // Account-grant success screen. Mirrors SuccessfulPermissions but with
 // document-oriented copy and no vehicle list (componentData carries no vehicles
 // on the account lane, so reusing the vehicle screen would be wrong/unsafe).
 export const AccountPermissionsSuccess: React.FC = () => {
   const t = useT();
-  const { redirectUri, utm, devLicenseAlias, oemBrand, clientId, expirationDate } =
+  const { redirectUri, utm, clientId, expirationDate } =
     useDevCredentials<AccountManagerMandatoryParams>();
-  const appName = oemBrand?.name || devLicenseAlias || t('common.app_developer_fallback');
+  const appName = useAppName();
   const { jwt, user } = useAuthContext();
   const end = shareEndOf(expirationDate ?? getDefaultExpirationDate());
 

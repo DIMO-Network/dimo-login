@@ -8,9 +8,10 @@ import { useT } from '../../i18n';
 import { sendLoginToApp } from '../../utils/authUtils';
 import { sendErrorToParent } from '../../utils/errorUtils';
 import { getRedirectHost } from '../../utils/urlHelpers';
-import { EmailShareRow } from '../Shared/EmailShareRow';
+import { AboutYouEmail } from '../Shared/EmailShareRow';
 import { LegalNotice } from '../Shared/LegalNotice';
 import { ActionBar, Button, Screen, ScreenHeader } from '../ui';
+import { useAppName } from '../../hooks/useAppName';
 
 /**
  * A plain login's one request: the user's email. Shown once per app and
@@ -20,16 +21,8 @@ import { ActionBar, Button, Screen, ScreenHeader } from '../ui';
 export const EmailConsent: React.FC = () => {
   const t = useT();
   const { user, jwt } = useAuthContext();
-  const {
-    clientId,
-    redirectUri,
-    utm,
-    devLicenseAlias,
-    oemBrand,
-    tosUrl,
-    privacyPolicyUrl,
-  } = useDevCredentials();
-  const appName = oemBrand?.name || devLicenseAlias || t('common.app_developer_fallback');
+  const { clientId, redirectUri, utm } = useDevCredentials();
+  const appName = useAppName();
   const { setUiState } = useUIManager();
   const emailRequest = useEmailRequest();
   const { required } = emailRequest;
@@ -67,24 +60,8 @@ export const EmailConsent: React.FC = () => {
         }
         host={getRedirectHost(redirectUri)}
       />
-      {emailRequest.email && (
-        <section className="flex flex-col gap-2">
-          <h2 className="px-0.5 text-label text-muted">{t('request.about_you')}</h2>
-          <EmailShareRow
-            appName={appName}
-            email={emailRequest.email}
-            required={required}
-            checked={emailRequest.shared}
-            onChange={emailRequest.setShared}
-          />
-        </section>
-      )}
-      <LegalNotice
-        tosUrl={tosUrl}
-        privacyPolicyUrl={privacyPolicyUrl}
-        brandName={appName}
-        poweredBy={!!oemBrand}
-      />
+      <AboutYouEmail appName={appName} request={emailRequest} />
+      <LegalNotice />
     </Screen>
   );
 };

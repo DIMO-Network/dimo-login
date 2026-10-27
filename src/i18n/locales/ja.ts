@@ -332,7 +332,7 @@ const ja: LocaleResources = {
   'sign.missing.title': 'メッセージは署名されていません',
   'sign.missing.body': '表示する署名がありません。署名されなかった可能性があります。',
   'cancelled.title': 'リクエストをキャンセルしました',
-  'cancelled.body': '何も共有・署名されていません。このウィンドウは閉じてかまいません。',
+  'cancelled.body': '何も共有・署名されていません。',
 
   'license.title': '開発者ライセンス',
   'license.subtitle': '{{appName}}のAPIアクセスを設定しています',

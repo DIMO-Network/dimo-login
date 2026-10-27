@@ -9,21 +9,6 @@ import {
 
 import { cn } from './cn';
 
-/** A tonal card (console Card.css): the surface separates by tone, not lines. */
-export const Card = ({
-  as: Tag = 'div',
-  className,
-  children,
-  ...rest
-}: React.HTMLAttributes<HTMLElement> & { as?: 'div' | 'section' | 'li' }) => (
-  <Tag
-    className={cn('flex flex-col gap-3 rounded-card bg-card p-4', className)}
-    {...rest}
-  >
-    {children}
-  </Tag>
-);
-
 const NOTICE_ICON = {
   neutral: InformationCircleIcon,
   warning: ExclamationTriangleIcon,

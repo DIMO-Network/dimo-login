@@ -18,8 +18,14 @@ const validatePermissionTemplate: ValidationFunction = ({
   return { isValid: true };
 };
 
+// The SDK's Permission enum is numeric, so PERMISSIONS also has its reverse
+// (number) keys; one digit per named permission.
+const PERMISSION_COUNT = Object.keys(PERMISSIONS).filter((key) =>
+  isNaN(Number(key)),
+).length;
+
 const validatePermissionString = (value: string): boolean =>
-  new RegExp(`^[01]{1,${Object.keys(PERMISSIONS).length}}$`).test(value);
+  new RegExp(`^[01]{1,${PERMISSION_COUNT}}$`).test(value);
 
 const validatePermissionParams: ValidationFunction = ({ permissions }) => {
   if (permissions && !validatePermissionString(permissions)) {
@@ -28,7 +34,7 @@ const validatePermissionParams: ValidationFunction = ({ permissions }) => {
       error: {
         title: message('error.invalid_permissions_format.title'),
         message: message('error.invalid_permissions_format.message', {
-          max: Object.keys(PERMISSIONS).length,
+          max: PERMISSION_COUNT,
         }),
       },
     };

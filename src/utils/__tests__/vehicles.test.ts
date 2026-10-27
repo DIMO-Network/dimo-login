@@ -20,10 +20,9 @@ describe('keepLaterExpiration', () => {
 });
 
 describe('getNewExpirationDate', () => {
-  it('extends from the grant’s ISO expiry, whatever language dates are shown in', () => {
+  it('extends from the grant’s ISO expiry', () => {
     const vehicle = {
       grantExpiresAt: '2027-01-15T00:00:00Z',
-      expiresAt: '2027年1月15日',
     } as Parameters<typeof getNewExpirationDate>[0];
     expect(getNewExpirationDate(vehicle, 'extend')).toBe(
       BigInt(Date.parse('2028-01-15T00:00:00Z') / 1000),

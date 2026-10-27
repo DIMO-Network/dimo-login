@@ -365,7 +365,7 @@ const en = {
   'sign.missing.body':
     'There’s no signature to show. The message may not have been signed.',
   'cancelled.title': 'Request cancelled',
-  'cancelled.body': 'Nothing was shared or signed. You can close this window.',
+  'cancelled.body': 'Nothing was shared or signed.',
 
   // Developer license setup
   'license.title': 'Developer license',

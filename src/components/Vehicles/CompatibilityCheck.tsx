@@ -15,14 +15,15 @@ import {
 } from '../../services/deviceDefinitionsService';
 import { useAuthContext } from '../../context/AuthContext';
 import { MakeModelYearEntry, makeModelYearMapping } from '../../utils/tablelandUtils';
+import { useAppName } from '../../hooks/useAppName';
 
 export const CompatibilityCheck: FC = () => {
   const t = useT();
-  const { componentData, goBack, setUiState, setComponentData } = useUIManager(); // Access the manage function from the context
-  const { devLicenseAlias, oemBrand, redirectUri } = useDevCredentials();
-  const appName = oemBrand?.name || devLicenseAlias || t('common.app_developer_fallback');
+  const { componentData, goBack, setUiState, setComponentData } = useUIManager();
+  const { redirectUri } = useDevCredentials();
+  const appName = useAppName();
   const { jwt } = useAuthContext();
-  const [isCompatible, setIsCompatible] = useState<boolean>(false); // `null` means loading
+  const [isCompatible, setIsCompatible] = useState<boolean>(false);
   const [isChecking, setIsChecking] = useState<boolean>(true);
   const [vehicleString, setVehicleString] = useState<string>('');
   const [connectionType, setConnectionType] = useState<AuthProvider>(

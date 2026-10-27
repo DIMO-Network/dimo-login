@@ -19,6 +19,7 @@ import { ActionBar, Button, ErrorBox, Screen, ScreenHeader } from '../ui';
 import { fileItems } from '../Vehicles/access';
 import { AccessRows } from '../Vehicles/AccessRows';
 import { useShareEndLabel } from '../Vehicles/AccessSummary';
+import { useAppName } from '../../hooks/useAppName';
 
 // What the account SACD grants (see accountDocumentAgreements.ts), named from
 // the same event types so the screen matches what is signed.
@@ -35,16 +36,9 @@ const DRIVER_DOCUMENTS: CloudEventAgreement[] = [
  */
 export const AccountManager: React.FC = () => {
   const t = useT();
-  const {
-    devLicenseAlias,
-    oemBrand,
-    redirectUri,
-    utm,
-    expirationDate,
-    tosUrl,
-    privacyPolicyUrl,
-  } = useDevCredentials<AccountManagerMandatoryParams>();
-  const appName = oemBrand?.name || devLicenseAlias || t('common.app_developer_fallback');
+  const { redirectUri, utm, expirationDate } =
+    useDevCredentials<AccountManagerMandatoryParams>();
+  const appName = useAppName();
   const { setUiState, setBusy } = useUIManager();
   const shareAccounts = useShareAccounts();
   const finishShareAccounts = useFinishShareAccounts();
@@ -143,12 +137,7 @@ export const AccountManager: React.FC = () => {
           {t('share.stop_anytime')}
         </p>
       </section>
-      <LegalNotice
-        tosUrl={tosUrl}
-        privacyPolicyUrl={privacyPolicyUrl}
-        brandName={appName}
-        poweredBy={!!oemBrand}
-      />
+      <LegalNotice />
     </Screen>
   );
 };

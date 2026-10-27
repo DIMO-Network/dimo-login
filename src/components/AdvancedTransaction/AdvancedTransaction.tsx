@@ -11,6 +11,7 @@ import { UiStates } from '../../enums';
 import { useUIManager } from '../../context/UIManagerContext';
 import { useT } from '../../i18n';
 import { ActionBar, Button, ErrorBox, Notice, Screen, ScreenHeader } from '../ui';
+import { useAppName } from '../../hooks/useAppName';
 
 const Detail = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div className="flex flex-col gap-1">
@@ -22,9 +23,8 @@ const Detail = ({ label, children }: { label: string; children: React.ReactNode 
 /** A contract call the app wants signed, shown as is before approving. */
 export const AdvancedTransaction: React.FC = () => {
   const t = useT();
-  const { redirectUri, utm, transactionData, devLicenseAlias, oemBrand } =
-    useDevCredentials();
-  const appName = oemBrand?.name || devLicenseAlias || t('common.app_developer_fallback');
+  const { redirectUri, utm, transactionData } = useDevCredentials();
+  const appName = useAppName();
   const { setUiState, setComponentData, setBusy } = useUIManager();
   const { jwt, validateSession } = useAuthContext();
   const [approving, setApproving] = useState(false);
@@ -61,8 +61,7 @@ export const AdvancedTransaction: React.FC = () => {
   };
 
   const onReject = async () => {
-    //This will send the message, and close the window
-    //Doesn't currently handle redirecting
+    // Tells the app (message, or redirect with `error`) and closes or leaves.
     sendErrorToParent(`User Rejected the Transaction`, redirectUri, utm, setUiState);
   };
 

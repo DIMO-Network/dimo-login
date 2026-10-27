@@ -54,6 +54,7 @@ import {
   VehicleGroup,
   VehicleSkeleton,
 } from './VehicleList';
+import { useAppName } from '../../hooks/useAppName';
 
 type Translate = ReturnType<typeof useT>;
 
@@ -93,19 +94,16 @@ export const SelectVehicles: React.FC = () => {
   const { user } = useAuthContext();
   const credentials = useDevCredentials<VehicleManagerMandatoryParams>();
   const {
-    devLicenseAlias,
-    oemBrand,
     redirectUri,
     utm,
-    tosUrl,
-    privacyPolicyUrl,
+
     permissions,
     permissionTemplateId,
     cloudEvent,
     expirationDate,
     region,
   } = credentials;
-  const appName = oemBrand?.name || devLicenseAlias;
+  const appName = useAppName();
   const { componentData, setComponentData, setUiState, setBusy } = useUIManager();
   const { onboardingEnabled } = useOracles();
   const emailRequest = useEmailRequest();
@@ -435,12 +433,7 @@ export const SelectVehicles: React.FC = () => {
         </section>
       )}
 
-      <LegalNotice
-        tosUrl={tosUrl}
-        privacyPolicyUrl={privacyPolicyUrl}
-        brandName={appName}
-        poweredBy={!!oemBrand}
-      />
+      <LegalNotice />
       <TermsSheet
         open={termsOpen}
         onClose={() => setTermsOpen(false)}

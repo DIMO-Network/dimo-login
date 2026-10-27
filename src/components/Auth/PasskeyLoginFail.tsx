@@ -17,9 +17,7 @@ import { ActionBar, Button, DoneHeader, Notice, Screen } from '../ui';
  */
 export const PasskeyLoginFail = ({ email }: { email: string }) => {
   const t = useT();
-  const { devLicenseAlias, clientId, oemBrand, tosUrl, privacyPolicyUrl } =
-    useDevCredentials();
-  const brandName = oemBrand?.name || devLicenseAlias || undefined;
+  const { clientId } = useDevCredentials();
   const { setUiState, setError, error } = useUIManager();
   const { resetUser, user } = useAuthContext();
 
@@ -66,12 +64,7 @@ export const PasskeyLoginFail = ({ email }: { email: string }) => {
           {t('passkey.cancelled')}
         </Notice>
       )}
-      <LegalNotice
-        tosUrl={tosUrl}
-        privacyPolicyUrl={privacyPolicyUrl}
-        brandName={brandName}
-        poweredBy={!!oemBrand}
-      />
+      <LegalNotice />
     </Screen>
   );
 };

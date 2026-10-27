@@ -11,15 +11,15 @@ import { getRedirectHost } from '../../utils/urlHelpers';
 import { UiStates } from '../../enums';
 import { useT } from '../../i18n';
 import { ActionBar, Button, ErrorBox, Notice, Screen, ScreenHeader } from '../ui';
+import { useAppName } from '../../hooks/useAppName';
 
 const PREVIEW_LIMIT = 280;
 
 /** A message (or 32-byte hash) the app wants signed, shown before signing. */
 export const SignMessage: React.FC = () => {
   const t = useT();
-  const { redirectUri, utm, messageData, devLicenseAlias, oemBrand } =
-    useDevCredentials();
-  const appName = oemBrand?.name || devLicenseAlias || t('common.app_developer_fallback');
+  const { redirectUri, utm, messageData } = useDevCredentials();
+  const appName = useAppName();
   const { setUiState, setComponentData, setBusy } = useUIManager();
   const { jwt, validateSession } = useAuthContext();
   const [showFull, setShowFull] = useState(false);

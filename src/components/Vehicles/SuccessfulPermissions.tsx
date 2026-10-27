@@ -15,6 +15,7 @@ import { backToThirdParty } from '../../utils/messageHandler';
 import { ManageInAppNote } from '../Shared/ManageInAppNote';
 import { ActionBar, Button, DoneHeader, Notice, Screen, StatusChip } from '../ui';
 import { useVehicleName, VehicleRow } from './VehicleRow';
+import { useAppName } from '../../hooks/useAppName';
 
 type Translate = ReturnType<typeof useT>;
 
@@ -121,8 +122,8 @@ const SkippedUpdates = ({ skipped }: { skipped: ShareResult['skipped'] }) => {
  */
 export const SuccessfulPermissions: React.FC = () => {
   const t = useT();
-  const { redirectUri, utm, devLicenseAlias, clientId, oemBrand } = useDevCredentials();
-  const appName = oemBrand?.name || devLicenseAlias;
+  const { redirectUri, utm, clientId } = useDevCredentials();
+  const appName = useAppName();
   const { jwt, user } = useAuthContext();
   const {
     componentData: { action, results = [], skipped = [] },

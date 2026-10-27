@@ -40,7 +40,6 @@ const mockTesla = {
   model: 'Model 3',
   year: 2021,
   shared: true,
-  expiresAt: '',
   grantExpiresAt: '2027-01-01T00:00:00Z',
   permissions: (BigInt(3) << BigInt(2)).toString(),
   source: '',

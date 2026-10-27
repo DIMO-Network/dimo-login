@@ -36,5 +36,3 @@ export const useEmailRequest = () => {
     },
   };
 };
-
-export type EmailRequestState = ReturnType<typeof useEmailRequest>;

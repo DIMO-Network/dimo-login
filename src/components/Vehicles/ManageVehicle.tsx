@@ -48,6 +48,7 @@ import { emailItem, fileItems, permissionItem } from './access';
 import { AccessRows } from './AccessRows';
 import { StopSharingDialog } from './StopSharingDialog';
 import { useVehicleName } from './VehicleRow';
+import { useAppName } from '../../hooks/useAppName';
 
 const BUSY_LABEL_KEYS = {
   revoke: 'manage.busy.revoke',
@@ -75,9 +76,9 @@ export const ManageVehicle: React.FC = () => {
     componentData: { vehicle, permissionTemplateId, permissions },
     setBusy,
   } = useUIManager();
-  const { expirationDate, cloudEvent, clientId, devLicenseAlias, oemBrand } =
+  const { expirationDate, cloudEvent, clientId } =
     useDevCredentials<VehicleManagerMandatoryParams>();
-  const appName = oemBrand?.name || devLicenseAlias;
+  const appName = useAppName();
   const { user } = useAuthContext();
   const updateVehiclePermissions = useUpdateVehiclePermissions();
   const finishShareVehicles = useFinishShareVehicles();

@@ -235,15 +235,21 @@ export const DevCredentialsProvider = ({
     const configurationId = urlParams.get('configurationId');
     if (!hasConfigurationId || !configurationId) return false;
 
-    const config = await getConfigurationById(configurationId!);
-
-    applyDevCredentialsConfig({
-      ...config.configuration,
-      waitingForParams: false,
-      clientId: config.client_id,
-    });
-
-    return true;
+    try {
+      const config = await getConfigurationById(configurationId!);
+      applyDevCredentialsConfig({
+        ...config.configuration,
+        waitingForParams: false,
+        clientId: config.client_id,
+      });
+      return true;
+    } catch (error) {
+      // A deleted configuration or a console outage: stop waiting, so the
+      // missing-credentials error shows instead of an endless spinner.
+      console.error('Failed to load configuration by ID:', error);
+      applyDevCredentialsConfig({ waitingForParams: false });
+      return true;
+    }
   };
 
   const validateCredentials = async () => {

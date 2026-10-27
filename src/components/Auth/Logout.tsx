@@ -14,7 +14,11 @@ export const Logout = () => {
     setLoadingState(true, message('logout.signing_out'));
 
     if (clientId && redirectUri) {
-      logout(clientId, redirectUri, utm, setUiState);
+      // Embedded, the page stays: end the spinner when it moves on.
+      logout(clientId, redirectUri, utm, (state) => {
+        setLoadingState(false);
+        setUiState(state);
+      });
     }
   }, [setLoadingState, clientId, redirectUri, utm, setUiState]);
 

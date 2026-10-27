@@ -5,11 +5,9 @@
  * state in the application. It can be used to store and access the user's authentication
  * status, user data, and login/logout functions across the entire application.
  *
- * Context:
- * - sendOtp method (to be used by OtpInput component)
- * - verifyOtp method (to be used by OtpInput component)
- * - authenticateUser method (to be used by OtpInput component)
- * - loading (to be used by email and otp input)
+ * Context: the signed-in user and JWT, and the sign-in steps the screens call
+ * (beginning and completing a passkey or email-code login, creating an
+ * account), plus validateSession for screens that sign.
  *
  * Usage:
  * Wrap the application or a part of it with the AuthProvider to make the authentication

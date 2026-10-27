@@ -4,6 +4,7 @@ import { EnvelopeIcon } from '@heroicons/react/24/outline';
 import { Chip, Switch } from '../ui';
 import { cn } from '../ui/cn';
 import { useT } from '../../i18n';
+import type { useEmailRequest } from '../../hooks/useEmailRequest';
 
 /**
  * The email as an item of the app's request. Optional: a switch, starting
@@ -17,7 +18,6 @@ export const EmailShareRow = ({
   checked,
   onChange,
   compact = false,
-  className,
 }: {
   appName: string;
   email: string;
@@ -26,7 +26,6 @@ export const EmailShareRow = ({
   onChange: (checked: boolean) => void;
   /** Inside a request card, without a surface of its own. */
   compact?: boolean;
-  className?: string;
 }) => {
   const t = useT();
   const labelId = useId();
@@ -39,7 +38,6 @@ export const EmailShareRow = ({
         compact
           ? 'rounded-control bg-sheet px-3 py-2.5'
           : 'rounded-card bg-card px-3.5 py-3',
-        className,
       )}
     >
       <EnvelopeIcon
@@ -74,3 +72,27 @@ export const EmailShareRow = ({
 };
 
 export default EmailShareRow;
+
+/** A plain login's request: the email alone, under "About you". */
+export const AboutYouEmail = ({
+  appName,
+  request,
+}: {
+  appName: string;
+  request: ReturnType<typeof useEmailRequest>;
+}) => {
+  const t = useT();
+  if (!request.asked || !request.email) return null;
+  return (
+    <section className="flex flex-col gap-2">
+      <h2 className="px-0.5 text-label text-muted">{t('request.about_you')}</h2>
+      <EmailShareRow
+        appName={appName}
+        email={request.email}
+        required={request.required}
+        checked={request.shared}
+        onChange={request.setShared}
+      />
+    </section>
+  );
+};

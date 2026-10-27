@@ -82,7 +82,6 @@ const sharedVehicle = () => ({
   model: 'Model 3',
   year: 2020,
   shared: true,
-  expiresAt: '01/01/2027',
   grantExpiresAt: '2027-01-01T00:00:00Z',
   permissions: (BigInt(3) << BigInt(2)).toString(),
   source: '',

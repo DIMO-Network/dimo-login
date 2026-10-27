@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { Trans, useT } from '../../i18n';
 
 const DEFAULT_TOS_URL = 'https://dimo.org/legal/terms-of-use';
@@ -15,21 +16,20 @@ const safeHttpsUrl = (url: string | undefined, fallback: string): string => {
   }
 };
 
-interface LegalNoticeProps {
-  tosUrl?: string;
-  privacyPolicyUrl?: string;
-  brandName?: string;
-  /** Under an OEM's branding, say who runs the sign-in. */
-  poweredBy?: boolean;
-}
+const isHttpsUrl = (url: string | undefined) => safeHttpsUrl(url, '') !== '';
 
-export const LegalNotice: React.FC<LegalNoticeProps> = ({
-  tosUrl,
-  privacyPolicyUrl,
-  brandName,
-  poweredBy = false,
-}) => {
+/**
+ * "By continuing you agree to …", with the app's own privacy policy and terms
+ * when it gave them (SDK options, query or console configuration), else
+ * DIMO's. The app is named only on its own documents.
+ */
+export const LegalNotice: React.FC = () => {
   const t = useT();
+  const { tosUrl, privacyPolicyUrl, oemBrand, devLicenseAlias } = useDevCredentials();
+  const brandName = oemBrand?.name || devLicenseAlias || undefined;
+  const ownDocuments = isHttpsUrl(tosUrl) && isHttpsUrl(privacyPolicyUrl);
+  // Under an OEM's branding, say who runs the sign-in.
+  const poweredBy = !!oemBrand;
   // Whole sentences per language: the possessive and word order differ.
   const link = (href: string) => (
     // eslint-disable-next-line jsx-a11y/anchor-has-content -- Trans fills the text
@@ -44,7 +44,7 @@ export const LegalNotice: React.FC<LegalNoticeProps> = ({
   const notice = (
     <p className="text-center text-label font-normal text-muted">
       <Trans
-        k={brandName ? 'legal.notice_brand' : 'legal.notice'}
+        k={brandName && ownDocuments ? 'legal.notice_brand' : 'legal.notice'}
         values={{ brandName }}
         components={{
           privacy: link(safeHttpsUrl(privacyPolicyUrl, DEFAULT_PRIVACY_URL)),

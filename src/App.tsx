@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 
 import { initializeSession } from './services/sessionService';
+import { handlePostAuthUIState } from './utils/authUtils';
+import { isEmbed } from './utils/isEmbed';
 import { useAuthContext } from './context/AuthContext';
 import { useDevCredentials } from './context/DevCredentialsContext';
 import { UiStates } from './enums';
@@ -89,6 +91,20 @@ const App = () => {
         uiState,
         setUiState,
         entryState: incomingEntryState as UiStates,
+        // Embedded, the done screen has no Back to send the login with, so a
+        // returning session goes on as a fresh sign-in does.
+        onReturningLogin: isEmbed()
+          ? (jwt, user) =>
+              handlePostAuthUIState({
+                entryState: UiStates.EMAIL_INPUT,
+                clientId,
+                jwt,
+                user,
+                redirectUri: params.redirectUri,
+                utm: params.utm,
+                setUiState,
+              })
+          : undefined,
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

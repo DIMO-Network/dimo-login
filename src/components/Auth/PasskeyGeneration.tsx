@@ -27,9 +27,7 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
   const t = useT();
   const { setUser } = useAuthContext();
   const { setError, error, setUiState, setBusy } = useUIManager();
-  const { apiKey, devLicenseAlias, oemBrand, tosUrl, privacyPolicyUrl } =
-    useDevCredentials();
-  const brandName = oemBrand?.name || devLicenseAlias || undefined;
+  const { apiKey } = useDevCredentials();
   // Kept on this screen rather than the shared loader, which would unmount it
   // mid-creation.
   const [creating, setCreating] = useState(false);
@@ -96,12 +94,7 @@ export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
         ))}
       </ul>
       <p className="text-label font-normal text-muted">{email}</p>
-      <LegalNotice
-        tosUrl={tosUrl}
-        privacyPolicyUrl={privacyPolicyUrl}
-        brandName={brandName}
-        poweredBy={!!oemBrand}
-      />
+      <LegalNotice />
     </Screen>
   );
 };

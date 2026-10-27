@@ -9,12 +9,13 @@ import { useUIManager } from '../../context/UIManagerContext';
 import { message, useT } from '../../i18n';
 import { ErrorContent } from '../Shared';
 import { ActionBar, Button, DoneHeader, Screen } from '../ui';
+import { useAppName } from '../../hooks/useAppName';
 
 /** Done: a signed message or a completed transaction. */
 export const SuccessfulTransaction: React.FC = () => {
   const t = useT();
-  const { redirectUri, utm, devLicenseAlias, oemBrand } = useDevCredentials();
-  const appName = oemBrand?.name || devLicenseAlias || t('common.app_developer_fallback');
+  const { redirectUri, utm } = useDevCredentials();
+  const appName = useAppName();
   const { componentData } = useUIManager();
   const { jwt } = useAuthContext();
   const [copied, setCopied] = useState(false);

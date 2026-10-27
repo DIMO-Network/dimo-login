@@ -8,13 +8,14 @@ import { IOS_URL, SHOP_DIMO_URL } from '../../utils/constants';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { useT } from '../../i18n';
 import { ActionBar, Button, Screen, ScreenHeader } from '../ui';
+import { useAppName } from '../../hooks/useAppName';
 
 /** A vehicle that needs a DIMO adapter, which is set up in the mobile app. */
 export const ConnectDevice: FC = () => {
   const t = useT();
-  const { componentData, goBack } = useUIManager(); // Access the manage function from the context
-  const { devLicenseAlias, oemBrand, redirectUri } = useDevCredentials();
-  const appName = oemBrand?.name || devLicenseAlias || t('common.app_developer_fallback');
+  const { componentData, goBack } = useUIManager();
+  const { redirectUri } = useDevCredentials();
+  const appName = useAppName();
   const vehicle = [componentData?.modelYear, componentData?.makeModel]
     .filter(Boolean)
     .join(' ');

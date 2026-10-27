@@ -41,8 +41,7 @@ const OrDivider = ({ label }: { label: string }) => (
  */
 export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   const t = useT();
-  const { clientId, devLicenseAlias, oemBrand, redirectUri, tosUrl, privacyPolicyUrl } =
-    useDevCredentials();
+  const { clientId, devLicenseAlias, oemBrand, redirectUri } = useDevCredentials();
   const brandName = oemBrand?.name || devLicenseAlias || undefined;
   const appName = brandName || t('common.app_developer_fallback');
   const { error, setError, altTitle, setLoadingState } = useUIManager();
@@ -54,6 +53,8 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
 
   const handleSuccessfulEmailSubmission = async (email: string) => {
     try {
+      // An earlier attempt's error would otherwise follow onto the next screen.
+      setError(null);
       setLoadingState(true, message('signin.signing_in'), false);
       onSubmit(email);
       await goToLoginOrSignUp(email);
@@ -196,12 +197,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
           </>
         )}
 
-        <LegalNotice
-          tosUrl={tosUrl}
-          privacyPolicyUrl={privacyPolicyUrl}
-          brandName={brandName}
-          poweredBy={!!oemBrand}
-        />
+        <LegalNotice />
       </Screen>
     </UIManagerLoaderWrapper>
   );

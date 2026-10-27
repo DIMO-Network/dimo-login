@@ -113,7 +113,7 @@ export const getTemplateDescription = (args: {
   fileAgreements?: CloudEventAgreement[];
   expirationDate: BigInt;
   region?: string;
-  /** Defaults to the language on screen; 'en' gives the text that is signed. */
+  /** Defaults to the language on screen; 'en' gives the English original. */
   language?: Language;
 }): string => {
   const {
@@ -137,7 +137,6 @@ export const getTemplateDescription = (args: {
   const currentTimeBigInt = BigInt(Math.floor(currentTime.getTime() / 1000));
   const permissionsString = getPermissionsDescription(perms, translate);
   const filesRequestedString = getFilesRequestedString(fileAgreements, translate);
-  const dateLanguage = language ?? undefined;
 
   // ContractDescription parses this: paragraphs split on blank lines, "- "
   // lines are bullets, and only the attachment <a href> becomes a link.
@@ -156,10 +155,10 @@ export const getTemplateDescription = (args: {
     translate('contract.files', { files: filesRequestedString }),
     '',
     translate('contract.effective', {
-      date: formatDateTimeUTC(currentTimeBigInt, dateLanguage),
+      date: formatDateTimeUTC(currentTimeBigInt, language),
     }),
     translate('contract.expiration', {
-      date: formatDateTimeUTC(expirationDate, dateLanguage),
+      date: formatDateTimeUTC(expirationDate, language),
     }),
     '',
     translate('contract.details'),

@@ -26,6 +26,7 @@ import {
 import { useAuthContext } from '../../context/AuthContext';
 import { TESLA_INTEGRATION_ID } from '../../utils/constants';
 import { TeslaVehicle } from '../../types';
+import { useAppName } from '../../hooks/useAppName';
 
 enum TeslaOnboardingStep {
   PERMISSIONS = 'permissions',
@@ -43,8 +44,8 @@ export const ConnectTesla: FC = () => {
   const [step, setStep] = useState<TeslaOnboardingStep>(TeslaOnboardingStep.PERMISSIONS);
   const [vehicleToAdd, setVehicleToAdd] = useState<TeslaVehicle>();
   const devCredentials = useDevCredentials();
-  const { devLicenseAlias, clientId, redirectUri, oemBrand, cloudEvent } = devCredentials;
-  const displayName = oemBrand?.name || devLicenseAlias;
+  const { clientId, redirectUri, cloudEvent } = devCredentials;
+  const displayName = useAppName();
   const { jwt } = useAuthContext();
 
   useEffect(() => {

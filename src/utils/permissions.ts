@@ -81,8 +81,3 @@ export const getPermissionLabel = (permission: Permission): string => {
     ? t(`permission.${key}.label` as TranslationKey)
     : t('permission.unknown.label', { id: permission });
 };
-
-export const getPermissionDescription = (permission: Permission): string => {
-  const key = permissionKey(permission);
-  return key ? t(`permission.${key}.description` as TranslationKey) : '';
-};

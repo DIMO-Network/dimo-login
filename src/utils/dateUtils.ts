@@ -1,20 +1,19 @@
-import { formatDate as formatDisplayDate } from '../i18n/format';
-
 // dateUtils.js
 
 /**
  * Parses an ISO 8601 date string to a BigInt representing the Unix timestamp in seconds.
- * If no date is provided, returns a default expiration date one year from today.
+ * If no date is provided (or it can't be parsed), returns the default: 100 years
+ * from now, which screens show as "no end date".
  *
  * @param {string|null} isoDateString - The ISO 8601 date string or null.
  * @returns {BigInt} - Unix timestamp as BigInt.
  */
 export function parseExpirationDate(isoDateString: string | null): bigint {
   if (!isoDateString) {
-    const oneYearFromNow = new Date();
-    oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 100);
+    const defaultEnd = new Date();
+    defaultEnd.setFullYear(defaultEnd.getFullYear() + 100);
 
-    const unixTimestamp = Math.floor(oneYearFromNow.getTime() / 1000);
+    const unixTimestamp = Math.floor(defaultEnd.getTime() / 1000);
     return BigInt(unixTimestamp);
   }
   // Attempt to parse the provided date
@@ -31,18 +30,12 @@ export function parseExpirationDate(isoDateString: string | null): bigint {
 }
 
 /**
- * Gets the default expiration date as a BigInt (one year from today).
+ * Gets the default expiration date as a BigInt (100 years from now).
  *
  * @returns {BigInt} - Default expiration date.
  */
 export function getDefaultExpirationDate(): BigInt {
   return parseExpirationDate(null);
-}
-
-/** A date for display, in the language on screen. Never parse it back. */
-export function formatDate(dateString: string | null): string {
-  if (!dateString) return '';
-  return formatDisplayDate(dateString);
 }
 
 /**
