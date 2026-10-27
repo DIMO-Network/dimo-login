@@ -18,6 +18,7 @@ const en = {
   'common.cancel': 'Cancel',
   'common.continue': 'Continue',
   'common.close': 'Close',
+  'common.clear': 'Clear',
   'common.try_again': 'Try again',
   'common.log_out': 'Log out',
   'common.back_to_app': 'Back to {{appName}}',

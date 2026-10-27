@@ -43,6 +43,8 @@ void i18n.use(initReactI18next).init({
   returnNull: false,
   react: { useSuspense: false },
   initAsync: false,
+  // No console promo in users' browsers.
+  showSupportNotice: false,
 });
 
 setDocumentLanguage(i18n.language);

@@ -16,6 +16,7 @@ const ja: LocaleResources = {
   'common.cancel': 'キャンセル',
   'common.continue': '続行',
   'common.close': '閉じる',
+  'common.clear': 'クリア',
   'common.try_again': '再試行',
   'common.log_out': 'ログアウト',
   'common.back_to_app': '{{appName}}に戻る',

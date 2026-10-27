@@ -1,6 +1,8 @@
 // components/Shared/PrimaryButton.tsx
 import React, { ReactNode } from 'react';
 
+import { Button } from '../ui';
+
 interface PrimaryButtonProps {
   onClick: () => void;
   children: ReactNode;
@@ -11,12 +13,8 @@ interface PrimaryButtonProps {
 }
 
 /**
- * The popup's main CTA. Picks up the OEM brand color from a `--popup-brand-*`
- * CSS variable set at the App root. When no brand is configured, both vars
- * are absent and Tailwind falls back to the defaults (#000 / #fff).
- *
- * Hover state derives a slight luma shift from the bg + text vars via
- * color-mix so OEMs don't have to spec separate hover shades.
+ * The popup's main CTA: the OEM brand color when one is configured (the
+ * `--popup-brand-*` variables AppShell sets), otherwise ink.
  */
 export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
   onClick,
@@ -26,19 +24,15 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
   loading,
   className,
 }) => (
-  <button
+  <Button
+    variant="primary"
     onClick={onClick}
-    disabled={disabled ? disabled : false}
-    className={
-      'font-medium px-4 py-2 rounded-3xl ' +
-      'bg-[var(--popup-brand-color,#000)] text-[var(--popup-brand-text,#f4f4f5)] ' +
-      'hover:bg-[color-mix(in_srgb,var(--popup-brand-color,#000)_92%,var(--popup-brand-text,#f4f4f5))] ' +
-      'disabled:bg-gray-400 disabled:text-white ' +
-      `${width ?? ''} ${className ?? ''}`
-    }
+    disabled={disabled}
+    loading={loading}
+    className={[width, className].filter(Boolean).join(' ')}
   >
     {children}
-  </button>
+  </Button>
 );
 
 export default PrimaryButton;

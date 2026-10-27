@@ -31,15 +31,12 @@ import {
   ConnectTesla,
   Logout,
 } from './components';
-import { Card } from './components/Shared/Card';
+import { AppShell } from './components/Shell/AppShell';
 import { useErrorHandler } from './hooks/useErrorHandler';
 import { PasskeyLogin } from './components/Auth/PasskeyLogin';
 import { PasskeyLoginFail } from './components/Auth/PasskeyLoginFail';
-import { readableTextOn } from './utils/colorContrast';
 import { useLanguage, useT } from './i18n';
 import { useLanguageSync } from './i18n/useLanguageSync';
-
-import './App.css';
 
 const App = () => {
   const { setJwt, setUser } = useAuthContext();
@@ -97,21 +94,27 @@ const App = () => {
   }, [clientId, incomingEntryState]);
 
   if (isLoading) {
-    return <LoadingScreen message={loadingMessage} />;
+    return (
+      <AppShell loading>
+        <LoadingScreen message={loadingMessage} />
+      </AppShell>
+    );
   }
 
   if (error && !isLoading) {
     return (
-      <ErrorScreen
-        title={error.title}
-        message={{
-          ...error.message,
-          params: {
-            appName: devLicenseAlias || t('common.app_developer_fallback'),
-            ...error.message.params,
-          },
-        }}
-      />
+      <AppShell>
+        <ErrorScreen
+          title={error.title}
+          message={{
+            ...error.message,
+            params: {
+              appName: devLicenseAlias || t('common.app_developer_fallback'),
+              ...error.message.params,
+            },
+          }}
+        />
+      </AppShell>
     );
   }
 
@@ -140,33 +143,7 @@ const App = () => {
     [UiStates.PROVISION_DEVELOPER_LICENSE]: <ProvisionDeveloperLicense />,
   };
 
-  // Expose the OEM brand color (and a readable text color computed from it)
-  // as CSS custom properties on the popup root. PrimaryButton + focus-ring
-  // styles read from these vars and fall back to DIMO defaults when null.
-  // Setting the vars in one place avoids threading brand props through every
-  // component that needs to recolor.
-  const brandColor = oemBrand?.primaryColor ?? null;
-  const brandStyle = brandColor
-    ? ({
-        ['--popup-brand-color' as string]: brandColor,
-        ['--popup-brand-text' as string]: readableTextOn(brandColor),
-      } as React.CSSProperties)
-    : undefined;
-
-  return (
-    <div
-      className="flex h-screen pt-2 items-center justify-center bg-white md:bg-[#F7F7F7]"
-      style={brandStyle}
-    >
-      <Card
-        width="w-full max-w-[600px]"
-        height="min-h-[308px]"
-        className="flex flex-col gap-6 items-center p-6"
-      >
-        <div className="w-full md:w-[440px]">{componentMap[uiState] || null}</div>
-      </Card>
-    </div>
-  );
+  return <AppShell>{componentMap[uiState] || null}</AppShell>;
 };
 
 export default App;

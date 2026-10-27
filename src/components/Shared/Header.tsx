@@ -1,5 +1,6 @@
-import { Back } from './Back';
-import { Logo } from './Logo';
+import React from 'react';
+
+import { OriginChip } from '../ui';
 
 interface HeaderProps {
   title: string;
@@ -8,36 +9,29 @@ interface HeaderProps {
   description?: string;
 }
 
+const hostOf = (link: string) => {
+  try {
+    return new URL(link).host;
+  } catch {
+    return link;
+  }
+};
+
+/**
+ * A screen's title block. Back and the logo live in AppShell's top bar. The
+ * heading takes focus when the screen changes (data-screen-heading).
+ */
 export const Header: React.FC<HeaderProps> = ({ title, subtitle, link, description }) => (
-  <div className="w-full relative">
-    <Back />
-    <Logo />
-    <div className="flex flex-col gap-1 text-center">
-      <p className="text-xl font-medium">{title}</p>
-      {(link || subtitle) && (
-        <p className="text-sm text-zinc-500 font-medium">
-          {link ? (
-            <a
-              href={link}
-              className="underline flex flex-row gap-1 justify-center items-center"
-            >
-              <img
-                src={`https://www.google.com/s2/favicons?domain=${
-                  new URL(link).origin
-                }&sz=16`}
-                alt="favicon"
-                className="inline-block ml-1 w-4 h-4"
-                onError={(e) => (e.currentTarget.style.display = 'none')}
-              />
-              {subtitle}
-            </a>
-          ) : (
-            subtitle
-          )}
-        </p>
-      )}
-      {description && <p className="text-sm font-normal text-[#313131]">{description}</p>}
-    </div>
+  <div className="flex w-full flex-col items-start gap-2">
+    <h1 tabIndex={-1} data-screen-heading className="text-title text-ink outline-none">
+      {title}
+    </h1>
+    {link ? (
+      <OriginChip host={subtitle || hostOf(link)} />
+    ) : (
+      subtitle && <p className="text-body-sm text-muted">{subtitle}</p>
+    )}
+    {description && <p className="text-body-sm text-muted">{description}</p>}
   </div>
 );
 

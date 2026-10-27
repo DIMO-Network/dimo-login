@@ -1,19 +1,18 @@
 interface CardProps {
-  width: string;
-  height: string;
+  width?: string;
+  height?: string;
   className?: string;
   children: React.ReactNode;
 }
 
+/** A tonal card. The page frame itself is AppShell. */
 export const Card: React.FC<CardProps> = ({
-  width,
-  height,
+  width = '',
+  height = '',
   className = '',
   children,
 }) => (
-  <div
-    className={`${width} ${height} py-10 px-8 lg:px-4 rounded-2xl bg-white ${className}`}
-  >
+  <div className={`${width} ${height} rounded-card bg-card p-4 ${className}`}>
     {children}
   </div>
 );

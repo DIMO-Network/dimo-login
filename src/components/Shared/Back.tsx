@@ -1,20 +1,19 @@
-import { ChevronLeftIcon } from '@heroicons/react/24/solid';
-import { useUIManager } from '../../context/UIManagerContext';
+import { ChevronLeftIcon } from '@heroicons/react/24/outline';
 
+import { useUIManager } from '../../context/UIManagerContext';
+import { useT } from '../../i18n';
+import { Button } from '../ui';
+
+/** Back to the previous step. AppShell's top bar renders it. */
 export const Back = () => {
+  const t = useT();
   const { goBack, prevUiStates } = useUIManager();
 
+  if (prevUiStates.length <= 1) return null;
   return (
-    <>
-      {prevUiStates.length > 1 && (
-        <div
-          className="absolute rounded-full border border-[#D4D4D8] h-10 w-10 flex items-center justify-center top left cursor-pointer"
-          onClick={goBack}
-        >
-          <ChevronLeftIcon className="h-5 w-5 pr-1 stroke-black" />
-        </div>
-      )}
-    </>
+    <Button variant="ghost" size="icon" aria-label={t('common.back')} onClick={goBack}>
+      <ChevronLeftIcon className="size-5" aria-hidden="true" />
+    </Button>
   );
 };
 

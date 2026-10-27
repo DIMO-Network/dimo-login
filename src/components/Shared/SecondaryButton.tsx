@@ -1,6 +1,8 @@
 // components/Shared/SecondaryButton.tsx
 import React, { ReactNode } from 'react';
 
+import { Button } from '../ui';
+
 interface SecondaryButtonProps {
   onClick: () => void;
   children: ReactNode;
@@ -16,13 +18,14 @@ export const SecondaryButton: React.FC<SecondaryButtonProps> = ({
   disabled,
   className,
 }) => (
-  <button
+  <Button
+    variant="secondary"
     onClick={onClick}
-    disabled={disabled ? disabled : false}
-    className={`font-medium text-black ${width ?? ''} disabled:bg-gray-400 ${className ?? ''}`}
+    disabled={disabled}
+    className={[width, className].filter(Boolean).join(' ')}
   >
     {children}
-  </button>
+  </Button>
 );
 
 export default SecondaryButton;

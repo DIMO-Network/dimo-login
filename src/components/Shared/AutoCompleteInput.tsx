@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useId, useRef } from 'react';
 import { XCircleIcon } from '@heroicons/react/16/solid';
+
+import { useT } from '../../i18n';
 
 interface AutoCompleteInputProps {
   options: string[];
@@ -13,9 +15,11 @@ export const AutoCompleteInput: React.FC<AutoCompleteInputProps> = ({
   options,
   value,
   onChange,
-  placeholder = 'Type to search...',
+  placeholder,
   maxSuggestions = 5,
 }) => {
+  const t = useT();
+  const listboxId = useId();
   const [filteredOptions, setFilteredOptions] = useState<string[]>([]);
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
   const [isFocused, setIsFocused] = useState(false);
@@ -36,6 +40,8 @@ export const AutoCompleteInput: React.FC<AutoCompleteInputProps> = ({
   }, [value, options, maxSuggestions]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Keys pressed while composing Japanese text belong to the IME.
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setHighlightedIndex((prev) => Math.min(prev + 1, filteredOptions.length - 1));
@@ -68,9 +74,12 @@ export const AutoCompleteInput: React.FC<AutoCompleteInputProps> = ({
       <div className="relative">
         <input
           type="text"
-          className="w-full mt-1 p-2 border rounded-md text-sm text-[#080808] border-gray-300 
-                  focus:border-[#080808] focus:ring-[#080808] focus:outline-none pr-10"
-          placeholder={placeholder}
+          role="combobox"
+          aria-controls={listboxId}
+          aria-expanded={isFocused && filteredOptions.length > 0}
+          aria-autocomplete="list"
+          className="h-10 w-full rounded-control border border-control-border bg-control pl-3 pr-9 text-[14px] leading-5 text-fg outline-none transition-[border-color,box-shadow] placeholder:text-muted hover:border-control-border-hover focus:border-focus-ring focus:ring-[3px] focus:ring-accent-soft"
+          placeholder={placeholder ?? t('common.search_placeholder')}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -80,20 +89,27 @@ export const AutoCompleteInput: React.FC<AutoCompleteInputProps> = ({
         {value && (
           <button
             type="button"
-            className="absolute inset-y-0 right-0 flex items-center pr-2 mt-1"
+            aria-label={t('common.clear')}
+            className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted hover:text-ink"
             onClick={() => onChange('')}
           >
-            <XCircleIcon className="size-4 text-[#080808]" />
+            <XCircleIcon className="size-4" aria-hidden="true" />
           </button>
         )}
       </div>
       {isFocused && filteredOptions.length > 0 && (
-        <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-md mt-1 max-h-60 overflow-y-auto shadow-md">
+        <ul
+          id={listboxId}
+          role="listbox"
+          className="absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-control border border-outline bg-overlay p-1 text-fg shadow-float"
+        >
           {filteredOptions.map((option, idx) => (
             <li
               key={option}
-              className={`p-2 cursor-pointer ${
-                idx === highlightedIndex ? 'bg-gray-100' : ''
+              role="option"
+              aria-selected={idx === highlightedIndex}
+              className={`cursor-pointer rounded-chip px-2.5 py-2 text-body-sm ${
+                idx === highlightedIndex ? 'bg-control' : ''
               }`}
               onMouseDown={() => onChange(option)}
               onMouseEnter={() => setHighlightedIndex(idx)}
