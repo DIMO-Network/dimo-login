@@ -1,34 +1,27 @@
-// src/components/SuccessPage.tsx
-import React, { useState } from 'react';
+import React, { useId } from 'react';
+
 import { useAuthContext } from '../../context/AuthContext';
-import Header from '../Shared/Header';
-import PrimaryButton from '../Shared/PrimaryButton';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { buildAuthPayload, logout, sendAuthPayloadToParent } from '../../utils/authUtils';
 import { useUIManager } from '../../context/UIManagerContext';
 import { isEmbed } from '../../utils/isEmbed';
 import { backToThirdParty } from '../../utils/messageHandler';
-import { isEmailGranted, setEmailGranted } from '../../services/storageService';
-import { getForceEmail } from '../../stores/AuthStateStore';
-import { EmailPermissionCheckbox } from './EmailPermissionCheckbox';
-import { ErrorMessage } from '../Shared';
+import { useEmailShare } from '../../hooks/useEmailShare';
+import { useT } from '../../i18n';
+import { EmailShareRow } from '../Shared/EmailShareRow';
+import { ActionBar, Button, DoneHeader, Screen } from '../ui';
 
+/** Plain sign-in, done: back to the app, or sign out. */
 export const SuccessPage: React.FC = () => {
+  const t = useT();
   const { user, jwt } = useAuthContext(); // Should be set on session init
   const { redirectUri, utm, clientId, devLicenseAlias, oemBrand } = useDevCredentials();
-  const displayName = oemBrand?.name || devLicenseAlias;
+  const appName = oemBrand?.name || devLicenseAlias || t('common.app_developer_fallback');
   const { setUiState } = useUIManager();
   // A returning session skips the sign-in screen, so a user who never chose
   // (or whose choice was lost) is asked here before going back to the app.
-  const [askForEmail] = useState(() => !isEmailGranted(clientId, user?.email));
-  const [emailShared, setEmailShared] = useState(false);
-  const emailRequired = askForEmail && getForceEmail() && !emailShared;
-
-  const toggleEmailShared = () => {
-    const next = !emailShared;
-    setEmailShared(next);
-    setEmailGranted(clientId, user?.email, next);
-  };
+  const emailShare = useEmailShare();
+  const hintId = useId();
 
   const sendJwtAfterPermissions = () => {
     if (jwt && redirectUri && clientId) {
@@ -40,7 +33,7 @@ export const SuccessPage: React.FC = () => {
   };
 
   const handleContinue = () => {
-    if (emailRequired) return;
+    if (emailShare.blocked) return;
     sendJwtAfterPermissions();
   };
 
@@ -50,34 +43,47 @@ export const SuccessPage: React.FC = () => {
     }
   };
 
+  const embedded = isEmbed();
+  const actions = (
+    <ActionBar
+      hint={
+        emailShare.blocked && !embedded
+          ? t('email.required_hint', { appName })
+          : undefined
+      }
+      hintId={hintId}
+      className="[&>div]:flex-col"
+    >
+      {!embedded && (
+        <Button
+          fullWidth
+          onClick={handleContinue}
+          disabled={emailShare.blocked}
+          disabledReasonId={hintId}
+        >
+          {t('common.back_to_app', { appName })}
+        </Button>
+      )}
+      <Button variant={embedded ? 'secondary' : 'ghost'} fullWidth onClick={handleLogout}>
+        {t('common.log_out')}
+      </Button>
+    </ActionBar>
+  );
+
   return (
-    <>
-      <Header title="You are logged in!" subtitle={user.email} />
-      {askForEmail && user?.email && (
-        <EmailPermissionCheckbox
-          isChecked={emailShared}
-          onChange={toggleEmailShared}
-          devLicenseAlias={displayName}
+    <Screen actions={actions}>
+      <DoneHeader title={t('login_done.title')}>
+        {user?.email ? t('login_done.body', { email: user.email }) : undefined}
+      </DoneHeader>
+      {emailShare.ask && (
+        <EmailShareRow
+          appName={appName}
+          checked={emailShare.shared}
+          onChange={emailShare.setShare}
+          required={emailShare.required}
         />
       )}
-      {emailRequired && !isEmbed() && (
-        <ErrorMessage message="Email sharing is required to proceed. Please check the box." />
-      )}
-      <div className="space-y-4">
-        {!isEmbed() && (
-          <div className="flex justify-center">
-            <PrimaryButton onClick={handleContinue} width="w-64" disabled={emailRequired}>
-              Back to {displayName}
-            </PrimaryButton>
-          </div>
-        )}
-        <div className="flex justify-center">
-          <PrimaryButton onClick={handleLogout} width="w-64">
-            Logout
-          </PrimaryButton>
-        </div>
-      </div>
-    </>
+    </Screen>
   );
 };
 

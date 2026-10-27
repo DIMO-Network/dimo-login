@@ -161,14 +161,16 @@ export const ActionBar = ({
 );
 
 const DONE_TONE = {
+  ink: 'text-ink',
   positive: 'text-positive',
   neutral: 'text-muted',
   negative: 'text-negative',
 };
 
 /**
- * The top of a done or result screen: a status tile, the heading (focused
- * when the screen opens, like ScreenHeader) and one line on what it means.
+ * The top of a step that centres on one thing (done, a passkey, a code): a
+ * tile, the heading (focused when the screen opens, like ScreenHeader) and
+ * one line on what it means.
  */
 export const DoneHeader = ({
   tone = 'positive',

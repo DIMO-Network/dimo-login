@@ -1,9 +1,12 @@
-import { Header, Loader } from '../Shared';
+import React, { FC, useEffect } from 'react';
+import debounce from 'lodash/debounce';
+import { FingerPrintIcon } from '@heroicons/react/24/outline';
+
 import { useAuthContext } from '../../context/AuthContext';
-import { FC, useEffect } from 'react';
 import { UiStates } from '../../enums';
 import { useUIManager } from '../../context/UIManagerContext';
-import debounce from 'lodash/debounce';
+import { message, useT } from '../../i18n';
+import { ActionBar, Button, DoneHeader, Screen } from '../ui';
 
 // The passkey chain (WebAuthn prompt → Turnkey → KernelSigner → bundler/RPC →
 // challenge → JWT) has no internal timeout, and this component renders only a
@@ -11,8 +14,10 @@ import debounce from 'lodash/debounce';
 // bundler/RPC stalls, the loader would otherwise spin forever. Cap it.
 const PASSKEY_TIMEOUT_MS = 60_000;
 
-export const PasskeyLogin: FC = () => {
-  const { completePasskeyLogin } = useAuthContext();
+/** The passkey prompt opens by itself; this screen says what it's for. */
+export const PasskeyLogin: FC<{ email?: string }> = ({ email }) => {
+  const t = useT();
+  const { completePasskeyLogin, user } = useAuthContext();
   const { setError, setUiState } = useUIManager();
 
   const handleLoginWithPasskey = async () => {
@@ -28,17 +33,14 @@ export const PasskeyLogin: FC = () => {
         }),
       ]);
     } catch (err) {
-      // Treat user-cancel and timeout/abort alike: route to the retry screen
-      // rather than dropping the user on a dead spinner or the email screen.
-      if (
+      // Every failure lands on the retry screen, which offers the passkey
+      // again, an email code, or another account. A cancel or timeout needs
+      // no explanation there; anything else says it failed.
+      const cancelled =
         err instanceof Error &&
-        ['NotAllowedError', 'AbortError', 'TimeoutError'].includes(err.name)
-      ) {
-        setUiState(UiStates.PASSKEY_LOGIN_FAIL);
-        return;
-      }
-      setError('Failed to login with passkey');
-      setUiState(UiStates.EMAIL_INPUT);
+        ['NotAllowedError', 'AbortError', 'TimeoutError'].includes(err.name);
+      setError(cancelled ? null : message('passkey.error'));
+      setUiState(UiStates.PASSKEY_LOGIN_FAIL);
     } finally {
       clearTimeout(timer);
     }
@@ -59,11 +61,22 @@ export const PasskeyLogin: FC = () => {
   }, []);
 
   return (
-    <>
-      <Header title={'Continue with passkey'} />
-      <div className={'mt-8'}>
-        <Loader />
-      </div>
-    </>
+    <Screen
+      actions={
+        <ActionBar>
+          <Button loading loadingLabel={t('passkey.waiting')} fullWidth>
+            {t('passkey.cta')}
+          </Button>
+        </ActionBar>
+      }
+    >
+      <DoneHeader
+        tone="ink"
+        icon={<FingerPrintIcon className="size-[26px]" />}
+        title={t('passkey.title')}
+      >
+        {t('passkey.body', { email: email || user?.email || '' })}
+      </DoneHeader>
+    </Screen>
   );
 };

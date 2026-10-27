@@ -120,7 +120,7 @@ const App = () => {
 
   const componentMap: Record<UiStates, React.ReactNode> = {
     [UiStates.EMAIL_INPUT]: <EmailInput onSubmit={setEmail} />,
-    [UiStates.PASSKEY_LOGIN]: <PasskeyLogin />,
+    [UiStates.PASSKEY_LOGIN]: <PasskeyLogin email={email} />,
     [UiStates.OTP_INPUT]: <OtpInput email={email} />,
     [UiStates.PASSKEY_LOGIN_FAIL]: <PasskeyLoginFail email={email} />,
     [UiStates.PASSKEY_GENERATOR]: <PasskeyGeneration email={email} />,

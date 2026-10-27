@@ -1,65 +1,77 @@
-import { Header, LegalNotice, PrimaryButton, SecondaryButton } from '../Shared';
-import { getSignInTitle } from '../../utils/uiUtils';
 import React from 'react';
+import { FingerPrintIcon } from '@heroicons/react/24/outline';
+
+import { LegalNotice } from '../Shared/LegalNotice';
+import ErrorMessage from '../Shared/ErrorMessage';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { UiStates } from '../../enums';
 import { useUIManager } from '../../context/UIManagerContext';
-import { getAppUrl } from '../../utils/urlHelpers';
 import { clearLoggedEmail } from '../../services';
 import { useAuthContext } from '../../context/AuthContext';
+import { useT } from '../../i18n';
+import { ActionBar, Button, DoneHeader, Notice, Screen } from '../ui';
 
+/**
+ * The passkey prompt was closed or timed out: try it again, get an email
+ * code instead, or sign in with another account.
+ */
 export const PasskeyLoginFail = ({ email }: { email: string }) => {
-  const { devLicenseAlias, clientId, oemBrand, tosUrl, privacyPolicyUrl } = useDevCredentials();
+  const t = useT();
+  const { devLicenseAlias, clientId, oemBrand, tosUrl, privacyPolicyUrl } =
+    useDevCredentials();
   const brandName = oemBrand?.name || devLicenseAlias || undefined;
-  const { altTitle, setUiState, setError } = useUIManager();
-  const { resetUser } = useAuthContext();
-  const appUrl = getAppUrl();
+  const { setUiState, setError, error } = useUIManager();
+  const { resetUser, user } = useAuthContext();
+
+  const go = (state: UiStates) => {
+    setError(null);
+    setUiState(state);
+  };
+
+  const actions = (
+    <ActionBar className="[&>div]:flex-col">
+      <Button fullWidth onClick={() => go(UiStates.PASSKEY_LOGIN)}>
+        {t('passkey.cta')}
+      </Button>
+      <Button variant="secondary" fullWidth onClick={() => go(UiStates.OTP_INPUT)}>
+        {t('passkey.email_code')}
+      </Button>
+      <Button
+        variant="ghost"
+        fullWidth
+        onClick={() => {
+          resetUser();
+          clearLoggedEmail(clientId);
+          go(UiStates.EMAIL_INPUT);
+        }}
+      >
+        {t('signin.other_account')}
+      </Button>
+    </ActionBar>
+  );
 
   return (
-    <>
-      <Header
-        title={getSignInTitle(devLicenseAlias, {
-          altTitle: Boolean(altTitle),
-          brandName: oemBrand?.name ?? null,
-        })}
-        subtitle={appUrl.hostname}
-        link={`${appUrl.protocol}//${appUrl.host}`}
+    <Screen actions={actions}>
+      <DoneHeader
+        tone="ink"
+        icon={<FingerPrintIcon className="size-[26px]" />}
+        title={t('passkey.title')}
+      >
+        {t('passkey.body', { email: email || user?.email || '' })}
+      </DoneHeader>
+      {error ? (
+        <ErrorMessage message={error} />
+      ) : (
+        <Notice tone="warning" role="status">
+          {t('passkey.cancelled')}
+        </Notice>
+      )}
+      <LegalNotice
+        tosUrl={tosUrl}
+        privacyPolicyUrl={privacyPolicyUrl}
+        brandName={brandName}
+        poweredBy={!!oemBrand}
       />
-      <p className="text-sm text-center my-3.5">Login with {email}</p>
-      <div className={'flex flex-col gap-3 mb-3.5'}>
-        <PrimaryButton
-          onClick={() => {
-            setError(null);
-            setUiState(UiStates.PASSKEY_LOGIN);
-          }}
-          width="w-full lg:w-[440px]"
-        >
-          Retry passkey
-        </PrimaryButton>
-        <SecondaryButton
-          onClick={() => {
-            setError(null);
-            setUiState(UiStates.OTP_INPUT);
-          }}
-          width="w-full lg:w-[440px]"
-          className="rounded-full border border-gray-300 px-4 py-2"
-        >
-          Login with email code
-        </SecondaryButton>
-        <SecondaryButton
-          onClick={() => {
-            setError(null);
-            resetUser();
-            clearLoggedEmail(clientId);
-            setUiState(UiStates.EMAIL_INPUT);
-          }}
-          width="w-full lg:w-[440px]"
-          className="rounded-full px-4 py-2"
-        >
-          Login to a different account
-        </SecondaryButton>
-      </div>
-      <LegalNotice tosUrl={tosUrl} privacyPolicyUrl={privacyPolicyUrl} brandName={brandName} />
-    </>
+    </Screen>
   );
 };

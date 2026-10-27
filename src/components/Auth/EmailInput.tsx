@@ -1,20 +1,25 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
+import { captureException } from '@sentry/react';
+import { InformationCircleIcon } from '@heroicons/react/24/outline';
 
+import { ErrorMessage, Loader, UIManagerLoaderWrapper } from '../Shared';
+import { EmailShareRow } from '../Shared/EmailShareRow';
+import { LegalNotice } from '../Shared/LegalNotice';
+import SSOButton from '../Shared/SSOButton';
+import { AppleIcon, GoogleIcon } from '../Icons';
+import { Button, Screen, ScreenHeader, TextField } from '../ui';
 import {
-  ErrorMessage,
-  Header,
-  LegalNotice,
-  Loader,
-  UIManagerLoaderWrapper,
-} from '../Shared';
-import { CachedEmail, EmailInputForm } from './';
-import { getLoggedEmail, isEmailGranted, setEmailGranted } from '../../services';
+  clearLoggedEmail,
+  getLoggedEmail,
+  isEmailGranted,
+  setEmailGranted,
+} from '../../services';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { useUIManager } from '../../context/UIManagerContext';
 import { decodeJwt } from '../../utils/jwtUtils';
-import { validateEmail } from '../../utils/emailUtils';
+import { normalizeEmail, validateEmail } from '../../utils/emailUtils';
 import { getForceEmail, takePendingEmailGrant } from '../../stores/AuthStateStore';
-import { getAppUrl } from '../../utils/urlHelpers';
+import { getRedirectHost } from '../../utils/urlHelpers';
 import { AuthProvider, getOAuthRedirectUri } from '../../utils/authUrls';
 import { getKeyboardEventListener, getSignInTitle } from '../../utils/uiUtils';
 import {
@@ -22,75 +27,91 @@ import {
   useConstructOAuthUrl,
   useGoToLoginOrSignUp,
 } from '../../hooks';
-import { EmailPermissionCheckbox } from './EmailPermissionCheckbox';
-import { captureException } from '@sentry/react';
+import { message, translateText, useT, type Message } from '../../i18n';
 
 interface EmailInputProps {
   onSubmit: (email: string) => void;
 }
 
+const OrDivider = ({ label }: { label: string }) => (
+  <div className="flex items-center gap-3 text-label font-normal text-muted">
+    <span className="h-px flex-1 bg-outline" aria-hidden="true" />
+    {label}
+    <span className="h-px flex-1 bg-outline" aria-hidden="true" />
+  </div>
+);
+
+/**
+ * Sign in: an email (or Google / Apple), and whether to share that email
+ * with the app. An account used on this device before gets "Continue as …".
+ * When the app requires the email (forceEmail), every way in waits for the
+ * switch and says why right under it.
+ */
 export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
-  const { clientId, devLicenseAlias, oemBrand, tosUrl, privacyPolicyUrl } = useDevCredentials();
+  const t = useT();
+  const { clientId, devLicenseAlias, oemBrand, redirectUri, tosUrl, privacyPolicyUrl } =
+    useDevCredentials();
   const brandName = oemBrand?.name || devLicenseAlias || undefined;
+  const appName = brandName || t('common.app_developer_fallback');
   const { error, setError, altTitle, setLoadingState } = useUIManager();
   const [email, setEmail] = useState('');
-  const cachedEmail = getLoggedEmail(clientId);
+  const [fieldError, setFieldError] = useState<Message | null>(null);
+  const [cachedEmail, setCachedEmail] = useState(() => getLoggedEmail(clientId));
   // A returning account starts from the choice it made last time, so
   // "Continue" no longer turns sharing off without asking.
   const [emailPermissionGranted, setEmailPermissionGranted] = useState(() =>
     isEmailGranted(clientId, cachedEmail),
   );
-  const [showInput, setShowInput] = useState(!cachedEmail);
   const forceEmail = getForceEmail();
-  const appUrl = getAppUrl();
+  const blocked = forceEmail && !emailPermissionGranted;
+  const hintId = useId();
   const constructOAuthUrl = useConstructOAuthUrl();
   const goToLoginOrSignUp = useGoToLoginOrSignUp();
 
   const handleSuccessfulEmailSubmission = async (email: string) => {
     try {
-      setLoadingState(true, 'Fetching your details', false);
+      setLoadingState(true, message('signin.signing_in'), false);
       onSubmit(email);
       await goToLoginOrSignUp(email);
     } catch (err) {
       captureException(err);
-      setError('Could not fetch user details');
+      setError(message('signin.error.details'));
     } finally {
       setLoadingState(false);
     }
   };
 
   const handleEmailInputSubmit = async () => {
-    const emailToUse = String(email || getLoggedEmail(clientId));
+    if (blocked) return;
+    const emailToUse = normalizeEmail(email || cachedEmail || '');
     const validationError = validateEmail({
       email: emailToUse,
       emailPermissionGranted,
       forceEmail,
     });
     if (validationError) {
-      return setError(validationError);
+      return setFieldError(validationError);
     }
     setEmailGranted(clientId, emailToUse, emailPermissionGranted);
     await handleSuccessfulEmailSubmission(emailToUse);
   };
 
   const handleSwitchAccount = () => {
-    setShowInput(true);
+    clearLoggedEmail(clientId);
+    setCachedEmail(null);
     setEmail('');
     setEmailPermissionGranted(false);
   };
 
   const handleProviderAuth = (provider: AuthProvider) => {
-    if (forceEmail && !emailPermissionGranted) {
-      setError('Email sharing is required to proceed. Please check the box.');
-      return;
-    }
+    if (blocked) return;
     window.location.href = constructOAuthUrl(provider, emailPermissionGranted);
   };
 
   const handleToken = async (token: string) => {
     const decodedJwt = decodeJwt(token);
     if (!decodedJwt?.email) {
-      return setError('No email was found');
+      return setError(message('signin.error.no_email'));
     }
     const pendingGrant = takePendingEmailGrant();
     if (pendingGrant !== undefined) {
@@ -108,48 +129,143 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   });
 
   if (isExchanging) {
-    return <Loader message={'Logging you in'} />;
+    return <Loader message={message('signin.signing_in')} />;
   }
+
+  const returning = !!cachedEmail;
+  const title = returning
+    ? t('signin.returning_title')
+    : getSignInTitle(devLicenseAlias, {
+        altTitle: Boolean(altTitle),
+        brandName: oemBrand?.name ?? null,
+      });
+  // The default title names DIMO; this line names the app it leads to.
+  const showSubtitle = returning || (!altTitle && !oemBrand?.name);
 
   return (
     <UIManagerLoaderWrapper>
-      <Header
-        title={getSignInTitle(devLicenseAlias, {
-          altTitle: Boolean(altTitle),
-          brandName: oemBrand?.name ?? null,
-        })}
-        subtitle={appUrl.hostname}
-        link={`${appUrl.protocol}//${appUrl.host}`}
-      />
-      {error && <ErrorMessage message={error} />}
-      <EmailPermissionCheckbox
-        isChecked={emailPermissionGranted}
-        onChange={() => {
-          setEmailPermissionGranted((curIsGranted) => !curIsGranted);
-          // Ticking the box answers the "Email sharing is required" error.
-          setError(null);
-        }}
-        devLicenseAlias={brandName || devLicenseAlias}
-      />
-      <div
-        onKeyDown={getKeyboardEventListener('Enter', handleEmailInputSubmit)}
-        className="frame9 flex flex-col items-center gap-[10px]"
-      >
-        {showInput ? (
-          <EmailInputForm
-            email={email}
-            onEmailChange={setEmail}
-            onContinue={handleEmailInputSubmit}
-            onProviderAuth={handleProviderAuth}
-          />
+      <Screen>
+        <ScreenHeader
+          title={title}
+          subtitle={showSubtitle ? t('signin.subtitle', { appName }) : undefined}
+          host={getRedirectHost(redirectUri)}
+        />
+        {error && <ErrorMessage message={error} />}
+
+        {returning ? (
+          <div className="flex items-center gap-3 rounded-card bg-card px-3.5 py-3">
+            <span
+              aria-hidden="true"
+              className="flex size-9 shrink-0 items-center justify-center rounded-control bg-highest text-body-sm font-semibold uppercase text-ink"
+            >
+              {cachedEmail.charAt(0)}
+            </span>
+            <span className="flex min-w-0 flex-col gap-0.5">
+              <span className="truncate text-body-sm font-medium text-ink">
+                {cachedEmail}
+              </span>
+              <span className="text-label font-normal text-muted">
+                {t('signin.returning_desc')}
+              </span>
+            </span>
+          </div>
         ) : (
-          <CachedEmail
-            onContinue={handleEmailInputSubmit}
-            onSwitchAccount={handleSwitchAccount}
+          <TextField
+            label={t('signin.email_label')}
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            autoCapitalize="none"
+            spellCheck={false}
+            placeholder={t('signin.email_placeholder')}
+            value={email}
+            onValueChange={(value) => {
+              setEmail(value);
+              setFieldError(null);
+            }}
+            onKeyDown={getKeyboardEventListener('Enter', handleEmailInputSubmit)}
+            error={fieldError ? translateText(fieldError, t) : undefined}
           />
         )}
-        <LegalNotice tosUrl={tosUrl} privacyPolicyUrl={privacyPolicyUrl} brandName={brandName} />
-      </div>
+
+        <div className="flex flex-col gap-2">
+          <EmailShareRow
+            appName={appName}
+            checked={emailPermissionGranted}
+            onChange={(next) => {
+              setEmailPermissionGranted(next);
+              // Switching it on answers the "required" hint and any old error.
+              setError(null);
+            }}
+            required={forceEmail}
+          />
+          {blocked && (
+            <p
+              id={hintId}
+              className="flex items-start gap-1.5 text-label font-normal text-muted"
+            >
+              <InformationCircleIcon
+                className="size-4 shrink-0 text-warning"
+                aria-hidden="true"
+              />
+              <span>{t('email.required_hint', { appName })}</span>
+            </p>
+          )}
+        </div>
+
+        {returning ? (
+          <div className="flex flex-col gap-2">
+            <Button
+              fullWidth
+              onClick={handleEmailInputSubmit}
+              disabled={blocked}
+              disabledReasonId={hintId}
+            >
+              <span className="min-w-0 truncate">
+                {t('signin.continue_as', { email: cachedEmail })}
+              </span>
+            </Button>
+            <Button variant="ghost" fullWidth onClick={handleSwitchAccount}>
+              {t('signin.other_account')}
+            </Button>
+          </div>
+        ) : (
+          <>
+            <Button
+              fullWidth
+              onClick={handleEmailInputSubmit}
+              disabled={blocked}
+              disabledReasonId={hintId}
+            >
+              {t('signin.continue')}
+            </Button>
+            <OrDivider label={t('signin.or')} />
+            <div className="flex flex-col gap-2">
+              <SSOButton
+                onClick={() => handleProviderAuth(AuthProvider.GOOGLE)}
+                icon={<GoogleIcon />}
+                text={t('signin.google')}
+                disabled={blocked}
+                disabledReasonId={hintId}
+              />
+              <SSOButton
+                onClick={() => handleProviderAuth(AuthProvider.APPLE)}
+                icon={<AppleIcon />}
+                text={t('signin.apple')}
+                disabled={blocked}
+                disabledReasonId={hintId}
+              />
+            </div>
+          </>
+        )}
+
+        <LegalNotice
+          tosUrl={tosUrl}
+          privacyPolicyUrl={privacyPolicyUrl}
+          brandName={brandName}
+          poweredBy={!!oemBrand}
+        />
+      </Screen>
     </UIManagerLoaderWrapper>
   );
 };

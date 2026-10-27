@@ -34,7 +34,7 @@ const en = {
 
   // Sign-in titles
   'signin.title_brand': 'Sign in with {{brandName}}',
-  'signin.title_default': '{{appName}} uses DIMO to connect to your cars',
+  'signin.title_default': 'Sign in with DIMO',
   'signin.title_alt': 'Log in to {{appName}} with DIMO',
 
   // Email
@@ -128,6 +128,56 @@ const en = {
   // Sharing period
   'share_end.until': 'Until {{date}}',
   'share_end.no_end': 'No end date',
+
+  // Signing in
+  'signin.subtitle': 'to continue to {{appName}}',
+  'signin.returning_title': 'Welcome back',
+  'signin.returning_desc': 'Signed in on this device before',
+  'signin.email_label': 'Email',
+  'signin.email_placeholder': 'you@example.com',
+  'signin.continue': 'Continue',
+  'signin.continue_as': 'Continue as {{email}}',
+  'signin.other_account': 'Use another account',
+  'signin.or': 'or',
+  'signin.google': 'Continue with Google',
+  'signin.apple': 'Continue with Apple',
+  'signin.signing_in': 'Signing you in…',
+  'signin.error.details': 'Couldn’t get your account details. Try again.',
+  'signin.error.no_email':
+    'That account didn’t share an email address with DIMO. Try another way to sign in.',
+
+  // Passkeys and email codes
+  'passkey.title': 'Confirm it’s you',
+  'passkey.body': 'Use the passkey for {{email}}: your fingerprint, face or device PIN.',
+  'passkey.waiting': 'Waiting for your passkey…',
+  'passkey.cta': 'Use passkey',
+  'passkey.email_code': 'Email me a code instead',
+  'passkey.cancelled': 'The passkey request was closed or timed out.',
+  'passkey.error': 'Couldn’t sign in with your passkey. Try again or use an email code.',
+  'otp.title': 'Enter the code we emailed you',
+  'otp.body':
+    'We sent a 6-digit code to {{email}}. It expires in 5 minutes; check your spam folder if you don’t see it.',
+  'otp.label': 'Verification code',
+  'otp.digit_label': 'Digit {{index}} of 6',
+  'otp.verify': 'Verify',
+  'otp.verifying': 'Verifying…',
+  'otp.resend': 'Send a new code',
+  'otp.resent': 'A new code is on its way.',
+  'otp.error.send': 'Couldn’t send a code. Try again.',
+  'otp.error.verify': 'That code didn’t work. Check it and try again.',
+  'create.title': 'Create a passkey',
+  'create.body': 'Your DIMO account signs in with a passkey instead of a password.',
+  'create.benefit_biometric': 'Sign in with your fingerprint, face or device PIN',
+  'create.benefit_nothing_to_remember': 'Nothing to remember or type',
+  'create.benefit_phishing': 'Can’t be phished or reused on other sites',
+  'create.cta': 'Create passkey',
+  'create.creating': 'Creating your account. This can take a minute.',
+  'create.error': 'Couldn’t create your account. Try again.',
+
+  // Plain sign-in done, and signing out
+  'login_done.title': 'You’re signed in',
+  'login_done.body': 'Signed in as {{email}}.',
+  'logout.signing_out': 'Signing out…',
 
   // Email sharing, as a switch row
   'email.share_title': 'Share my email with {{appName}}',

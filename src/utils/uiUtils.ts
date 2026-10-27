@@ -8,9 +8,9 @@ import { t } from '../i18n';
  *   - When `brandName` is present (the dev license owner has uploaded a
  *     brand in the console), the title becomes `"Sign in with {brandName}"`
  *     to match the SDK's button label — one unified messaging string.
- *   - When `brandName` is absent, falls back to today's templates:
- *       default → "{alias} uses DIMO to connect to your cars"
- *       altTitle → "Login to {alias} using DIMO"
+ *   - When `brandName` is absent:
+ *       default → "Sign in with DIMO" (the screen adds "to continue to {alias}")
+ *       altTitle → "Log in to {alias} with DIMO"
  */
 export const getSignInTitle = (
   alias: string,

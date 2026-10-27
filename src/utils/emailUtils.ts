@@ -23,3 +23,9 @@ export const validateEmail = ({
     return message('email.sharing_required');
   }
 };
+
+/**
+ * Email as typed, made comparable: Japanese IMEs can produce full-width
+ * letters and ＠, which NFKC turns into the ASCII the address really uses.
+ */
+export const normalizeEmail = (email: string) => email.normalize('NFKC').trim();

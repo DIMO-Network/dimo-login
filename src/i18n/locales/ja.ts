@@ -30,7 +30,7 @@ const ja: LocaleResources = {
   'loading.almost_there': 'もう少しで完了します',
 
   'signin.title_brand': '{{brandName}}でサインイン',
-  'signin.title_default': '{{appName}}はDIMOを使ってあなたの車と接続します',
+  'signin.title_default': 'DIMOでサインイン',
   'signin.title_alt': 'DIMOで{{appName}}にログイン',
 
   'email.invalid': '有効なメールアドレスを入力してください',
@@ -114,6 +114,54 @@ const ja: LocaleResources = {
 
   'share_end.until': '{{date}}まで',
   'share_end.no_end': '無期限',
+
+  'signin.subtitle': '{{appName}}に移動します',
+  'signin.returning_title': 'おかえりなさい',
+  'signin.returning_desc': 'このデバイスでサインインしたことがあります',
+  'signin.email_label': 'メールアドレス',
+  'signin.email_placeholder': 'you@example.com',
+  'signin.continue': '続行',
+  'signin.continue_as': '{{email}}で続行',
+  'signin.other_account': '別のアカウントを使用',
+  'signin.or': 'または',
+  'signin.google': 'Googleで続行',
+  'signin.apple': 'Appleで続行',
+  'signin.signing_in': 'サインインしています…',
+  'signin.error.details': 'アカウント情報を取得できませんでした。もう一度お試しください。',
+  'signin.error.no_email':
+    'このアカウントはDIMOにメールアドレスを共有していません。別の方法でサインインしてください。',
+
+  'passkey.title': '本人確認',
+  'passkey.body': '{{email}}のパスキー（指紋、顔認証、または端末のPIN）を使って確認します。',
+  'passkey.waiting': 'パスキーを待っています…',
+  'passkey.cta': 'パスキーを使用',
+  'passkey.email_code': '代わりにメールでコードを受け取る',
+  'passkey.cancelled': 'パスキーの確認が閉じられたか、時間切れになりました。',
+  'passkey.error':
+    'パスキーでサインインできませんでした。もう一度試すか、メールのコードを使ってください。',
+  'otp.title': 'メールで届いたコードを入力',
+  'otp.body':
+    '{{email}}に6桁のコードを送信しました。有効期限は5分です。届かない場合は迷惑メールフォルダもご確認ください。',
+  'otp.label': '確認コード',
+  'otp.digit_label': '6桁中{{index}}桁目',
+  'otp.verify': '確認',
+  'otp.verifying': '確認しています…',
+  'otp.resend': 'コードを再送信',
+  'otp.resent': '新しいコードを送信しました。',
+  'otp.error.send': 'コードを送信できませんでした。もう一度お試しください。',
+  'otp.error.verify': 'コードが正しくありません。確認して、もう一度お試しください。',
+  'create.title': 'パスキーを作成',
+  'create.body': 'DIMOアカウントには、パスワードの代わりにパスキーでサインインします。',
+  'create.benefit_biometric': '指紋、顔認証、または端末のPINでサインイン',
+  'create.benefit_nothing_to_remember': '覚えることも入力することもありません',
+  'create.benefit_phishing': 'フィッシングされず、他のサイトで使い回されることもありません',
+  'create.cta': 'パスキーを作成',
+  'create.creating': 'アカウントを作成しています。少し時間がかかることがあります。',
+  'create.error': 'アカウントを作成できませんでした。もう一度お試しください。',
+
+  'login_done.title': 'サインインしました',
+  'login_done.body': '{{email}}でサインインしています。',
+  'logout.signing_out': 'サインアウトしています…',
 
   'email.share_title': 'メールアドレスを{{appName}}と共有',
   'email.share_desc': '{{appName}}からの連絡に使われます。',
