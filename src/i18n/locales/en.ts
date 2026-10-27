@@ -265,6 +265,15 @@ const en = {
     'It’s still shared as before. You can update it later from the vehicle list.',
   'success.skipped_body_other':
     'They’re still shared as before. You can update them later from the vehicle list.',
+  // Sharing account documents
+  'docs.title': '{{appName}} wants access to your documents',
+  'docs.allow': 'Allow access',
+  'docs.error.title': 'Couldn’t share your documents',
+  'docs.error.body': 'Nothing was shared. Check your connection and try again.',
+  'success.docs_title': 'Documents shared with {{appName}}',
+  'success.docs_body': '{{appName}} can see your driver documents until {{date}}.',
+  'success.docs_body_no_end':
+    '{{appName}} can see your driver documents until you stop sharing.',
   'done.next': 'You can change or stop sharing anytime in the DIMO app.',
   'app.powered_by': 'Powered by DIMO',
 

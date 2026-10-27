@@ -1,5 +1,5 @@
 import React from 'react';
-import { DevicePhoneMobileIcon, StopCircleIcon } from '@heroicons/react/24/outline';
+import { StopCircleIcon } from '@heroicons/react/24/outline';
 
 import { useAuthContext } from '../../context/AuthContext';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
@@ -12,6 +12,7 @@ import { buildAuthPayload } from '../../utils/authUtils';
 import { shareEndOf } from '../../utils/dateUtils';
 import { isEmbed } from '../../utils/isEmbed';
 import { backToThirdParty } from '../../utils/messageHandler';
+import { ManageInAppNote } from '../Shared/ManageInAppNote';
 import { ActionBar, Button, DoneHeader, Notice, Screen, StatusChip } from '../ui';
 import { useVehicleName, VehicleRow } from './VehicleRow';
 
@@ -168,15 +169,7 @@ export const SuccessfulPermissions: React.FC = () => {
         </div>
       )}
       {skipped.length > 0 && <SkippedUpdates skipped={skipped} />}
-      {!stopped && (
-        <p className="flex items-start gap-2.5 rounded-control bg-card p-3 text-[13px] leading-[18px] text-fg">
-          <DevicePhoneMobileIcon
-            className="size-[18px] shrink-0 text-muted"
-            aria-hidden="true"
-          />
-          <span>{t('done.next')}</span>
-        </p>
-      )}
+      {!stopped && <ManageInAppNote />}
     </Screen>
   );
 };

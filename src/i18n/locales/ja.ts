@@ -233,6 +233,13 @@ const ja: LocaleResources = {
   'success.skipped_title_other': '{{count}}台は更新されませんでした',
   'success.skipped_body_other':
     '以前の内容のまま共有されています。後から車両の一覧で更新できます。',
+  'docs.title': '{{appName}}が書類へのアクセスを求めています',
+  'docs.allow': 'アクセスを許可',
+  'docs.error.title': '書類を共有できませんでした',
+  'docs.error.body': '何も共有されていません。接続を確認して、もう一度お試しください。',
+  'success.docs_title': '書類を{{appName}}と共有しました',
+  'success.docs_body': '{{appName}}は{{date}}まで運転者の書類を確認できます。',
+  'success.docs_body_no_end': '共有を停止するまで、{{appName}}は運転者の書類を確認できます。',
   'done.next': '共有内容の変更や停止は、DIMOアプリからいつでもできます。',
   'app.powered_by': 'Powered by DIMO',
 

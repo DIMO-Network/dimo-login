@@ -1,6 +1,5 @@
 import React, { useEffect, useId, useMemo, useState } from 'react';
 import { captureException } from '@sentry/react';
-import { ExclamationCircleIcon } from '@heroicons/react/24/outline';
 
 import { useAuthContext } from '../../context/AuthContext';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
@@ -40,7 +39,7 @@ import { getRedirectHost } from '../../utils/urlHelpers';
 import { keepLaterExpiration } from '../../utils/vehicles';
 import { EmailShareRow } from '../Shared/EmailShareRow';
 import { LegalNotice } from '../Shared/LegalNotice';
-import { ActionBar, Button, Notice, Screen, ScreenHeader } from '../ui';
+import { ActionBar, Button, ErrorBox, Notice, Screen, ScreenHeader } from '../ui';
 import { fileItems, permissionItem } from './access';
 import { getShareButtonLabel } from './shareButtonLabel';
 import { AccessSummary } from './AccessSummary';
@@ -323,19 +322,9 @@ export const SelectVehicles: React.FC = () => {
           </div>
 
           {shareError !== undefined && (
-            <div
-              role="alert"
-              className="flex items-start gap-2.5 rounded-control bg-negative-soft px-3 py-2.5 text-[13px] leading-[18px] text-fg"
-            >
-              <ExclamationCircleIcon
-                className="size-[18px] shrink-0 text-negative"
-                aria-hidden="true"
-              />
-              <span className="flex flex-col">
-                <b className="font-semibold text-ink">{t('share.error.title')}</b>
-                {shareError ? translateText(shareError, t) : t('share.error.body')}
-              </span>
-            </div>
+            <ErrorBox title={t('share.error.title')}>
+              {shareError ? translateText(shareError, t) : t('share.error.body')}
+            </ErrorBox>
           )}
 
           {listState === 'loading' && <VehicleSkeleton />}

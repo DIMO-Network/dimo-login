@@ -3,7 +3,6 @@ import { captureException } from '@sentry/react';
 import { getPermissionsArray, Permission } from '@dimo-network/transactions';
 import {
   ArrowPathIcon,
-  ExclamationCircleIcon,
   InformationCircleIcon,
   SparklesIcon,
 } from '@heroicons/react/24/outline';
@@ -34,7 +33,15 @@ import { isInvalidSessionError } from '../../utils/authUtils';
 import { grantEndOf, shareEndOf } from '../../utils/dateUtils';
 import { getAddedPermissions, needsPermissionUpdate } from '../../utils/permissions';
 import { getNewExpirationDate } from '../../utils/vehicles';
-import { ActionBar, Button, Notice, Screen, ScreenHeader, StatusChip } from '../ui';
+import {
+  ActionBar,
+  Button,
+  ErrorBox,
+  Notice,
+  Screen,
+  ScreenHeader,
+  StatusChip,
+} from '../ui';
 import { fileItems, permissionItem } from './access';
 import { AccessRows } from './AccessRows';
 import { StopSharingDialog } from './StopSharingDialog';
@@ -265,19 +272,9 @@ export const ManageVehicle: React.FC = () => {
       )}
 
       {error !== undefined && (
-        <div
-          role="alert"
-          className="flex items-start gap-2.5 rounded-control bg-negative-soft px-3 py-2.5 text-[13px] leading-[18px] text-fg"
-        >
-          <ExclamationCircleIcon
-            className="size-[18px] shrink-0 text-negative"
-            aria-hidden="true"
-          />
-          <span className="flex flex-col">
-            <b className="font-semibold text-ink">{t('manage.error.title')}</b>
-            {error ? translateText(error, t) : t('manage.error.body')}
-          </span>
-        </div>
+        <ErrorBox title={t('manage.error.title')}>
+          {error ? translateText(error, t) : t('manage.error.body')}
+        </ErrorBox>
       )}
 
       <section className="flex flex-col gap-3">

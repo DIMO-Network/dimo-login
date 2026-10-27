@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   CheckCircleIcon,
+  ExclamationCircleIcon,
   ExclamationTriangleIcon,
   InformationCircleIcon,
   LockClosedIcon,
@@ -70,6 +71,29 @@ export const Notice = ({
     </div>
   );
 };
+
+/** A failed action: what failed, then what it means or the reason. */
+export const ErrorBox = ({
+  title,
+  children,
+}: {
+  title: React.ReactNode;
+  children?: React.ReactNode;
+}) => (
+  <div
+    role="alert"
+    className="flex items-start gap-2.5 rounded-control bg-negative-soft px-3 py-2.5 text-[13px] leading-[18px] text-fg"
+  >
+    <ExclamationCircleIcon
+      className="size-[18px] shrink-0 text-negative"
+      aria-hidden="true"
+    />
+    <span className="flex min-w-0 flex-col [overflow-wrap:anywhere]">
+      <b className="font-semibold text-ink">{title}</b>
+      {children}
+    </span>
+  </div>
+);
 
 /** The app asking: where the request comes from, from the license-checked redirect URI. */
 export const OriginChip = ({ host }: { host: string }) => (
