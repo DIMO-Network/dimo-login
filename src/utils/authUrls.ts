@@ -33,6 +33,8 @@ interface AuthUrlParams {
     country: string;
   };
   testMode?: boolean; // Smartcar test mode
+  // Reference to the flow config saved before leaving (see flowSnapshot.ts).
+  flowRef?: string;
 }
 
 export function constructAuthUrl(params: AuthUrlParams): string {
@@ -70,6 +72,7 @@ function buildStateParams(params: AuthUrlParams): Record<string, any> {
     altTitle: params.altTitle,
     testMode: params.testMode,
     provider: params.provider,
+    flowRef: params.flowRef,
   };
 }
 

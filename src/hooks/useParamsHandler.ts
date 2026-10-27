@@ -10,6 +10,7 @@ import { useUIManager } from '../context/UIManagerContext';
 import { useOracles } from '../context/OraclesContext';
 import { UiStates } from '../enums';
 import { setForceEmail } from '../stores/AuthStateStore';
+import { parseBooleanParam } from '../utils/parseBooleanParam';
 import { parseExpirationDate, getDefaultExpirationDate } from '../utils/dateUtils';
 import { toCloudEventAgreements } from '../services/vehicleDocumentAgreements';
 import { DOCUMENT_EVENT_TYPES } from '../enums/documentEventTypes';
@@ -65,17 +66,19 @@ export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
       }));
     },
     forceEmail: (value: unknown) => {
-      setForceEmail(Boolean(value));
+      const forceEmail = parseBooleanParam(value);
+      setForceEmail(forceEmail);
       setDevCredentialsState((prev) => ({
         ...prev,
-        forceEmail: Boolean(value),
+        forceEmail,
       }));
     },
     altTitle: (value: unknown) => {
-      setAltTitle(Boolean(value));
+      const altTitle = parseBooleanParam(value);
+      setAltTitle(altTitle);
       setDevCredentialsState((prev) => ({
         ...prev,
-        altTitle: Boolean(value),
+        altTitle,
       }));
     },
     vehicles: (value: unknown) =>

@@ -27,7 +27,9 @@ import {
   isValidDeveloperLicense,
 } from '../services/identityService';
 import { fetchOemBrand, readCachedBrand } from '../services/brandService';
-import { setEmailGranted } from '../services/storageService';
+import { setPendingEmailGrant } from '../stores/AuthStateStore';
+import { AuthProvider } from '../utils/authUrls';
+import { readFlowSnapshot } from '../utils/flowSnapshot';
 import { useParamsHandler } from '../hooks';
 import { getDefaultExpirationDate } from '../utils/dateUtils';
 import { sendMessageToReferrer } from '../utils/messageHandler';
@@ -73,6 +75,39 @@ const DEFAULT_LOADING_STATE: LoadingState = {
 const HANDSHAKE_RETRY_INTERVAL_MS = 2000;
 const HANDSHAKE_RETRY_LIMIT = 5;
 
+/**
+ * Reads the `state` an OAuth provider sends back. When the flow config was
+ * saved before leaving (flowSnapshot.ts), it replaces the state's URL-derived
+ * fields, which are empty in popup and configurationId modes. Google/Apple
+ * resume the original flow; Tesla resumes on CONNECT_TESLA, which its state
+ * names.
+ */
+const parseOAuthState = (stateFromUrl: string) => {
+  const { emailPermissionGranted, flowRef, ...stateParams } = JSON.parse(stateFromUrl);
+  const snapshot = readFlowSnapshot(flowRef);
+  const isTesla = stateParams.provider === AuthProvider.TESLA;
+  const config: Record<string, unknown> = snapshot
+    ? {
+        ...stateParams,
+        ...snapshot,
+        entryState: isTesla
+          ? stateParams.entryState
+          : (snapshot.entryState ?? stateParams.entryState),
+      }
+    : stateParams;
+  const isEmailSignIn =
+    stateParams.provider === AuthProvider.GOOGLE ||
+    stateParams.provider === AuthProvider.APPLE;
+  return {
+    config,
+    // Only the Google/Apple state carries the sharing choice; Tesla's doesn't.
+    emailPermissionGranted:
+      isEmailSignIn && typeof emailPermissionGranted === 'boolean'
+        ? emailPermissionGranted
+        : undefined,
+  };
+};
+
 const DevCredentialsContext = createContext<AllParams & { loadingState: LoadingState }>({
   ...DEFAULT_CONTEXT,
   loadingState: DEFAULT_LOADING_STATE,
@@ -100,13 +135,18 @@ export const DevCredentialsProvider = ({
     const stateFromUrl = urlParams.get('state');
     if (!hasState || !stateFromUrl) return false;
 
-    const { emailPermissionGranted = false, ...parsedState } = JSON.parse(stateFromUrl);
+    const { config, emailPermissionGranted } = parseOAuthState(stateFromUrl);
 
     applyDevCredentialsConfig({
-      ...parsedState,
+      ...config,
       waitingForParams: false,
     });
-    setEmailGranted(devCredentialsState.clientId!, emailPermissionGranted);
+    // Stored once the code exchange reveals which account signed in. This used
+    // to be written under the first render's clientId, which is still null, so
+    // the choice was dropped and the app got no email after Google/Apple.
+    if (emailPermissionGranted !== undefined) {
+      setPendingEmailGrant(emailPermissionGranted);
+    }
 
     return true;
   };
@@ -157,7 +197,7 @@ export const DevCredentialsProvider = ({
 
     if (eventType === Event.AUTH_INIT) {
       const finalEntryState = stateFromUrl
-        ? JSON.parse(stateFromUrl).entryState
+        ? parseOAuthState(stateFromUrl).config.entryState
         : entryState || UiStates.EMAIL_INPUT;
 
       customParams.entryState = finalEntryState;

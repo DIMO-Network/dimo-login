@@ -1,5 +1,5 @@
 import { sendAuthPayloadToParent } from '../authUtils';
-import { sendMessageToReferrer } from '../messageHandler';
+import { backToThirdParty, sendMessageToReferrer } from '../messageHandler';
 import { sendSignatureResponseToParent, sendTxnResponseToParent } from '../txnUtils';
 
 // authUtils pulls in the Turnkey / kernel-signer stack (ESM-only under jest; jest hoists these above the imports); only the postMessage path is under test.
@@ -70,4 +70,50 @@ it('non-sensitive notices still go to the referrer origin', () => {
     expect.objectContaining({ eventType: 'READY' }),
     'https://app.example.com',
   );
+});
+
+describe('redirect back to the app', () => {
+  const realLocation = window.location;
+  let assigned = '';
+
+  beforeEach(() => {
+    assigned = '';
+    // jsdom can't navigate; capture where the redirect would go.
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        ...realLocation,
+        set href(url: string) {
+          assigned = url;
+        },
+      },
+    });
+  });
+
+  afterEach(() => {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: realLocation,
+    });
+  });
+
+  it('leaves out values that are missing instead of sending "undefined"', () => {
+    backToThirdParty(
+      { token: 'jwt', walletAddress: '0xabc', email: undefined },
+      REGISTERED,
+      '',
+    );
+    const params = new URL(assigned).searchParams;
+    expect(params.get('token')).toBe('jwt');
+    expect(params.has('email')).toBe(false);
+  });
+
+  it('sends the email when it was shared', () => {
+    backToThirdParty(
+      { token: 'jwt', walletAddress: '0xabc', email: 'jun@example.com' },
+      REGISTERED,
+      '',
+    );
+    expect(new URL(assigned).searchParams.get('email')).toBe('jun@example.com');
+  });
 });

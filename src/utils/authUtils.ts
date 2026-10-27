@@ -37,7 +37,7 @@ export function buildAuthPayload(
   //Won't send to SDK until these are set in cookies/storage (may not work in incognito though?)
   const token = getJWTFromCookies(clientId) || jwt;
   const user = getUserFromLocalStorage(clientId) || userObj;
-  const emailGranted = isEmailGranted(clientId);
+  const emailGranted = isEmailGranted(clientId, user?.email);
 
   if (!token) {
     throw new Error('JWT is missing. Ensure the user is authenticated.');

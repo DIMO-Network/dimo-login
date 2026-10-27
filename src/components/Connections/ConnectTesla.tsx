@@ -15,6 +15,8 @@ import { useUIManager } from '../../context/UIManagerContext';
 import { getAppUrl } from '../../utils/urlHelpers';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { constructAuthUrl } from '../../utils/authUrls';
+import { buildFlowSnapshot, saveFlowSnapshot } from '../../utils/flowSnapshot';
+import { useOracles } from '../../context/OraclesContext';
 import {
   checkIntegrationInfo,
   createVehicleFromDeviceDefinitionId,
@@ -34,11 +36,13 @@ enum TeslaOnboardingStep {
 }
 
 export const ConnectTesla: FC = () => {
-  const { componentData, setUiState, setLoadingState, setComponentData } = useUIManager();
+  const { componentData, setUiState, setLoadingState, setComponentData, entryState } =
+    useUIManager();
+  const { onboardingEnabled } = useOracles();
   const [step, setStep] = useState<TeslaOnboardingStep>(TeslaOnboardingStep.PERMISSIONS);
   const [vehicleToAdd, setVehicleToAdd] = useState<TeslaVehicle>();
-  const { devLicenseAlias, clientId, redirectUri, oemBrand, cloudEvent } =
-    useDevCredentials();
+  const devCredentials = useDevCredentials();
+  const { devLicenseAlias, clientId, redirectUri, oemBrand, cloudEvent } = devCredentials;
   const displayName = oemBrand?.name || devLicenseAlias;
   const { jwt } = useAuthContext();
   const appUrl = getAppUrl();
@@ -196,6 +200,11 @@ export const ConnectTesla: FC = () => {
   const handleNextStep = () => {
     if (step === TeslaOnboardingStep.PERMISSIONS) {
       const urlParams = new URLSearchParams(window.location.search);
+      // Restores the vehicle-sharing request after Tesla's redirect; the
+      // return itself lands on CONNECT_TESLA from `state`.
+      const flowRef = saveFlowSnapshot(
+        buildFlowSnapshot({ devCredentials, entryState, onboardingEnabled }),
+      );
       const authUrl = constructAuthUrl({
         provider: AuthProvider.TESLA,
         clientId,
@@ -210,6 +219,7 @@ export const ConnectTesla: FC = () => {
         powertrainTypes: urlParams.getAll('powertrainTypes'),
         cloudEvent,
         vehicleToAdd,
+        flowRef,
       });
 
       window.location.href = authUrl;

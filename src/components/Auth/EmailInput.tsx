@@ -8,12 +8,12 @@ import {
   UIManagerLoaderWrapper,
 } from '../Shared';
 import { CachedEmail, EmailInputForm } from './';
-import { getLoggedEmail, setEmailGranted } from '../../services';
+import { getLoggedEmail, isEmailGranted, setEmailGranted } from '../../services';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { useUIManager } from '../../context/UIManagerContext';
 import { decodeJwt } from '../../utils/jwtUtils';
 import { validateEmail } from '../../utils/emailUtils';
-import { getForceEmail } from '../../stores/AuthStateStore';
+import { getForceEmail, takePendingEmailGrant } from '../../stores/AuthStateStore';
 import { getAppUrl } from '../../utils/urlHelpers';
 import { AuthProvider, getOAuthRedirectUri } from '../../utils/authUrls';
 import { getKeyboardEventListener, getSignInTitle } from '../../utils/uiUtils';
@@ -34,8 +34,13 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   const brandName = oemBrand?.name || devLicenseAlias || undefined;
   const { error, setError, altTitle, setLoadingState } = useUIManager();
   const [email, setEmail] = useState('');
-  const [emailPermissionGranted, setEmailPermissionGranted] = useState(false);
-  const [showInput, setShowInput] = useState(!getLoggedEmail(clientId));
+  const cachedEmail = getLoggedEmail(clientId);
+  // A returning account starts from the choice it made last time, so
+  // "Continue" no longer turns sharing off without asking.
+  const [emailPermissionGranted, setEmailPermissionGranted] = useState(() =>
+    isEmailGranted(clientId, cachedEmail),
+  );
+  const [showInput, setShowInput] = useState(!cachedEmail);
   const forceEmail = getForceEmail();
   const appUrl = getAppUrl();
   const constructOAuthUrl = useConstructOAuthUrl();
@@ -64,7 +69,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     if (validationError) {
       return setError(validationError);
     }
-    setEmailGranted(clientId, emailPermissionGranted);
+    setEmailGranted(clientId, emailToUse, emailPermissionGranted);
     await handleSuccessfulEmailSubmission(emailToUse);
   };
 
@@ -86,6 +91,10 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     const decodedJwt = decodeJwt(token);
     if (!decodedJwt?.email) {
       return setError('No email was found');
+    }
+    const pendingGrant = takePendingEmailGrant();
+    if (pendingGrant !== undefined) {
+      setEmailGranted(clientId, decodedJwt.email, pendingGrant);
     }
     setEmail(decodedJwt.email);
     await handleSuccessfulEmailSubmission(decodedJwt.email);
@@ -115,7 +124,11 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       {error && <ErrorMessage message={error} />}
       <EmailPermissionCheckbox
         isChecked={emailPermissionGranted}
-        onChange={() => setEmailPermissionGranted((curIsGranted) => !curIsGranted)}
+        onChange={() => {
+          setEmailPermissionGranted((curIsGranted) => !curIsGranted);
+          // Ticking the box answers the "Email sharing is required" error.
+          setError(null);
+        }}
         devLicenseAlias={brandName || devLicenseAlias}
       />
       <div

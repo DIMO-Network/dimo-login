@@ -49,15 +49,17 @@ export function sendMessageToReferrer(data: object, registeredRedirectUri?: stri
 }
 
 export function backToThirdParty(
-  payload: Record<string, string | number | boolean>,
+  payload: Record<string, string | number | boolean | undefined | null>,
   redirectUri: string,
   utm: string,
   handleEmbed?: () => void,
 ) {
   if (isStandalone()) {
-    // Redirect with payload in query params
+    // Redirect with payload in query params. Missing values are left out:
+    // String(undefined) used to send `email=undefined` when email wasn't shared.
     const redirectUriWithUtm = getRedirectUriWithUtm(redirectUri, utm || '');
     Object.entries(payload).forEach(([key, value]) => {
+      if (value === undefined || value === null) return;
       redirectUriWithUtm.searchParams.set(key, String(value));
     });
 

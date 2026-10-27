@@ -54,19 +54,34 @@ export const getUserFromLocalStorage = (
   return userData ? JSON.parse(userData) : null;
 };
 
+// The email-sharing choice is per app and per account, so one person's consent
+// never shares another account's email from the same browser.
+const emailGrantKey = (clientId: string, email: string) =>
+  `email_granted_${clientId}_${email.trim().toLowerCase()}`;
+
 export const setEmailGranted = (
   clientId: `0x${string}` | null,
+  email: string | null | undefined,
   granted: boolean,
 ): void => {
-  if (!clientId) return;
-  const key = `email_granted_${clientId}`;
-  localStorage.setItem(key, JSON.stringify(granted));
+  if (!clientId || !email) return;
+  localStorage.setItem(emailGrantKey(clientId, email), JSON.stringify(granted));
 };
 
-export const isEmailGranted = (clientId: `0x${string}` | null): boolean => {
-  const key = `email_granted_${clientId}`;
-  const value = localStorage.getItem(key);
-  return value ? JSON.parse(value) : false;
+export const isEmailGranted = (
+  clientId: `0x${string}` | null,
+  email: string | null | undefined,
+): boolean => {
+  if (!clientId || !email) return false;
+  const value = localStorage.getItem(emailGrantKey(clientId, email));
+  if (value !== null) return value === 'true';
+  // Grants stored before they were keyed by account: they belonged to the
+  // account last signed in to this app.
+  const legacy = localStorage.getItem(`email_granted_${clientId}`);
+  const loggedEmail = getLoggedEmail(clientId);
+  const isSameAccount =
+    !!loggedEmail && loggedEmail.trim().toLowerCase() === email.trim().toLowerCase();
+  return isSameAccount && legacy === 'true';
 };
 
 export const setLoggedEmail = (clientId: `0x${string}` | null, email: string): void => {

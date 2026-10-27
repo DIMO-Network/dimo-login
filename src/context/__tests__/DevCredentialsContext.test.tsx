@@ -5,6 +5,8 @@ import { DevCredentialsProvider, useDevCredentials } from '../DevCredentialsCont
 import { UIManagerProvider } from '../UIManagerContext';
 import { GlobalOraclesProvider } from '../OraclesContext';
 import { fetchOemBrand } from '../../services/brandService';
+import { takePendingEmailGrant } from '../../stores/AuthStateStore';
+import { saveFlowSnapshot } from '../../utils/flowSnapshot';
 
 // The seam under test is `validateCredentials` → `fetchOemBrand(clientId, brandName)`.
 // Everything the provider touches on the way there is mocked so the test asserts
@@ -21,7 +23,6 @@ jest.mock('../../services/identityService', () => ({
 jest.mock('../../services/turnkeyService', () => ({
   createKernelSigner: jest.fn(),
 }));
-jest.mock('../../services/storageService', () => ({ setEmailGranted: jest.fn() }));
 jest.mock('../../services/configurationService', () => ({
   getConfigurationById: jest.fn(),
 }));
@@ -194,5 +195,102 @@ describe('DevCredentialsContext cloudEvent (vehicle document access)', () => {
     await waitFor(() =>
       expect(screen.getByTestId('probe').textContent).toBe(JSON.stringify(AGREEMENTS)),
     );
+  });
+});
+
+describe('DevCredentialsContext OAuth return', () => {
+  const returnWith = (state: Record<string, unknown>) =>
+    window.history.pushState(
+      {},
+      '',
+      `/?code=abc&state=${encodeURIComponent(JSON.stringify(state))}`,
+    );
+
+  beforeEach(() => {
+    sessionStorage.clear();
+    takePendingEmailGrant();
+  });
+
+  it('resumes the share flow saved before a Google sign-in (popup mode)', async () => {
+    const flowRef = saveFlowSnapshot({
+      clientId: CLIENT_ID,
+      entryState: 'VEHICLE_MANAGER',
+      permissionTemplateId: '1',
+      vehicleTokenIds: ['12'],
+    });
+    // Popup mode: the state only knows the login fallback, no URL params.
+    returnWith({
+      clientId: CLIENT_ID,
+      provider: 'google',
+      entryState: 'EMAIL_INPUT',
+      permissionTemplateId: null,
+      flowRef,
+    });
+    renderProvider('entryState');
+
+    await waitFor(() =>
+      expect(screen.getByTestId('probe').textContent).toBe('"VEHICLE_MANAGER"'),
+    );
+  });
+
+  it('keeps the permission template from the snapshot over the empty state field', async () => {
+    const flowRef = saveFlowSnapshot({ clientId: CLIENT_ID, permissionTemplateId: '1' });
+    returnWith({
+      clientId: CLIENT_ID,
+      provider: 'apple',
+      permissionTemplateId: null,
+      flowRef,
+    });
+    renderProvider('permissionTemplateId');
+
+    await waitFor(() => expect(screen.getByTestId('probe').textContent).toBe('"1"'));
+  });
+
+  it('falls back to a plain login when the snapshot is gone', async () => {
+    returnWith({
+      clientId: CLIENT_ID,
+      provider: 'google',
+      entryState: 'EMAIL_INPUT',
+      flowRef: '0123456789abcdef0123456789abcdef',
+    });
+    renderProvider('entryState');
+
+    await waitFor(() =>
+      expect(screen.getByTestId('probe').textContent).toBe('"EMAIL_INPUT"'),
+    );
+  });
+
+  it('Tesla: returns to CONNECT_TESLA, not the original entry state', async () => {
+    const flowRef = saveFlowSnapshot({
+      clientId: CLIENT_ID,
+      entryState: 'VEHICLE_MANAGER',
+    });
+    returnWith({
+      clientId: CLIENT_ID,
+      provider: 'tesla',
+      entryState: 'CONNECT_TESLA',
+      flowRef,
+    });
+    renderProvider('entryState');
+
+    await waitFor(() =>
+      expect(screen.getByTestId('probe').textContent).toBe('"CONNECT_TESLA"'),
+    );
+  });
+
+  it('holds the Google/Apple email choice until the account is known', async () => {
+    returnWith({ clientId: CLIENT_ID, provider: 'google', emailPermissionGranted: true });
+    renderProvider();
+
+    await waitFor(() => expect(fetchOemBrandMock).toHaveBeenCalled());
+    expect(takePendingEmailGrant()).toBe(true);
+  });
+
+  it('Tesla: leaves the email choice alone', async () => {
+    returnWith({ clientId: CLIENT_ID, provider: 'tesla', entryState: 'CONNECT_TESLA' });
+    renderProvider();
+
+    await waitFor(() => expect(fetchOemBrandMock).toHaveBeenCalled());
+    expect(takePendingEmailGrant()).toBeUndefined();
   });
 });
