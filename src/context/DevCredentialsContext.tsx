@@ -28,14 +28,16 @@ import {
 } from '../services/identityService';
 import { fetchOemBrand, readCachedBrand } from '../services/brandService';
 import { AuthProvider } from '../utils/authUrls';
-import { readFlowSnapshot } from '../utils/flowSnapshot';
+import { readTrustedOAuthReturn } from '../utils/flowSnapshot';
 import { message, type Text } from '../i18n';
 import { useParamsHandler } from '../hooks';
 import { getDefaultExpirationDate } from '../utils/dateUtils';
 import { sendMessageToReferrer } from '../utils/messageHandler';
 import { isStandalone } from '../utils/isStandalone';
+import { getEmbedderOrigin, isEmbed } from '../utils/isEmbed';
+import { originOf } from '../utils/urlHelpers';
 import { getConfigurationById } from '../services/configurationService';
-import { filterMessageParams } from '../utils/messageParams';
+import { CALLER_PARAM_KEYS, filterMessageParams } from '../utils/messageParams';
 
 const DEFAULT_CONTEXT: AllParams = {
   clientId: null,
@@ -75,29 +77,25 @@ const DEFAULT_LOADING_STATE: LoadingState = {
 const HANDSHAKE_RETRY_INTERVAL_MS = 2000;
 const HANDSHAKE_RETRY_LIMIT = 5;
 
+// A CIDv1 in base32, the only form a subdomain gateway takes: the CID becomes
+// part of the config's hostname, so anything else could point it elsewhere.
+const CID_PATTERN = /^b[a-z2-7]{20,100}$/;
+
 /**
- * Reads the `state` an OAuth provider sends back. When the flow config was
- * saved before leaving (flowSnapshot.ts), it replaces the state's URL-derived
- * fields, which are empty in popup and configurationId modes. Google/Apple
- * resume the original flow; Tesla resumes on CONNECT_TESLA, which its state
- * names.
+ * The flow to resume after an OAuth provider sends the user back, from the
+ * snapshot saved before leaving (flowSnapshot.ts). Google/Apple resume the
+ * original flow; Tesla resumes on CONNECT_TESLA, which its state names.
+ * Null for a `state` this tab didn't send: nothing from it is applied.
  */
-const parseOAuthState = (stateFromUrl: string) => {
-  // Older builds put the email choice in `state`; it's now asked after
-  // sign-in, so it's dropped here rather than applied as config.
-  const { flowRef, ...stateParams } = JSON.parse(stateFromUrl);
-  delete stateParams.emailPermissionGranted;
-  const snapshot = readFlowSnapshot(flowRef);
-  const isTesla = stateParams.provider === AuthProvider.TESLA;
-  return snapshot
-    ? {
-        ...stateParams,
-        ...snapshot,
-        entryState: isTesla
-          ? stateParams.entryState
-          : (snapshot.entryState ?? stateParams.entryState),
-      }
-    : stateParams;
+const readOAuthReturnConfig = () => {
+  const trusted = readTrustedOAuthReturn();
+  if (!trusted) return null;
+  const { state, snapshot } = trusted;
+  const isTesla = state.provider === AuthProvider.TESLA;
+  return {
+    ...snapshot,
+    entryState: isTesla ? state.entryState : (snapshot.entryState ?? state.entryState),
+  };
 };
 
 const DevCredentialsContext = createContext<AllParams & { loadingState: LoadingState }>({
@@ -122,16 +120,14 @@ export const DevCredentialsProvider = ({
     devCredentialsState;
 
   const parseStateFromUrl = () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const hasState = urlParams.has('state');
-    const stateFromUrl = urlParams.get('state');
-    if (!hasState || !stateFromUrl) return false;
+    if (!new URLSearchParams(window.location.search).get('state')) return false;
 
-    applyDevCredentialsConfig({
-      ...parseOAuthState(stateFromUrl),
-      waitingForParams: false,
-    });
-
+    const config = readOAuthReturnConfig();
+    applyDevCredentialsConfig(
+      config
+        ? { ...config, waitingForParams: false }
+        : { waitingForParams: false, untrustedOAuthReturn: true },
+    );
     return true;
   };
 
@@ -155,7 +151,7 @@ export const DevCredentialsProvider = ({
       }
     }
     applyDevCredentialsConfig({
-      ...parsedUrlParams,
+      ...filterMessageParams(parsedUrlParams),
       waitingForParams: false,
     });
 
@@ -163,12 +159,19 @@ export const DevCredentialsProvider = ({
   };
 
   const handleAuthInitMessage = (event: MessageEvent) => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const stateFromUrl = urlParams.get('state');
+    // Only the window that opened or embeds this one may configure it, and
+    // after its AUTH_INIT only from that same origin: another tab or frame
+    // could otherwise repoint the flow mid-way.
+    if (event.source !== (window.opener || window.parent)) return;
+    if (!event.data || typeof event.data !== 'object') return;
 
     const { eventType, entryState, ...sourceParams } = event.data;
 
     if (!(eventType in Event)) return;
+    const lockedOrigin = callerOriginRef.current;
+    if (lockedOrigin !== null && event.origin !== lockedOrigin) return;
+    // Action data answers the request AUTH_INIT made; there's none before it.
+    if (eventType !== Event.AUTH_INIT && lockedOrigin === null) return;
 
     // If URL params were already parsed (waitingForParams=false), ignore AUTH_INIT.
     // The popup was opened with a full URL (e.g. PROVISION_DEVELOPER_LICENSE) and
@@ -178,10 +181,13 @@ export const DevCredentialsProvider = ({
     if (eventType === Event.AUTH_INIT && !waitingForParams) return;
 
     const customParams: Partial<AllParams> = {};
+    const params = filterMessageParams(sourceParams);
 
     if (eventType === Event.AUTH_INIT) {
-      const finalEntryState = stateFromUrl
-        ? parseOAuthState(stateFromUrl).entryState
+      callerOriginRef.current = event.origin;
+      const fromOAuthReturn = readOAuthReturnConfig();
+      const finalEntryState = fromOAuthReturn
+        ? (fromOAuthReturn.entryState as string)
         : entryState || UiStates.EMAIL_INPUT;
 
       customParams.entryState = finalEntryState;
@@ -194,14 +200,15 @@ export const DevCredentialsProvider = ({
       }
     } else {
       customParams.waitingForParams = false;
+      CALLER_PARAM_KEYS.forEach((key) => delete params[key]);
     }
 
-    // Allowlist the inbound payload: a postMessage can come from any window, so
-    // only keys the app legitimately acts on are written to state. Internal
-    // control flags (waitingForDevLicense, invalidCredentials, oemBrand, …) and
-    // unknown keys are dropped. customParams is app-computed, not from the wire.
+    // Allowlist the inbound payload: only keys the app legitimately acts on are
+    // written to state. Internal control flags (waitingForDevLicense,
+    // invalidCredentials, oemBrand, …) and unknown keys are dropped.
+    // customParams is app-computed, not from the wire.
     applyDevCredentialsConfig({
-      ...filterMessageParams(sourceParams),
+      ...params,
       ...customParams,
     });
   };
@@ -212,12 +219,16 @@ export const DevCredentialsProvider = ({
     const cid = urlParams.get('configCID');
 
     if (!hasCID || !cid) return false;
+    if (!CID_PATTERN.test(cid)) {
+      console.error('Ignoring a configCID that is not a base32 CIDv1');
+      return false;
+    }
 
     try {
       const config = await fetchConfigFromIPFS(cid);
 
       applyDevCredentialsConfig({
-        ...config,
+        ...filterMessageParams(config),
         waitingForParams: false,
         configCID: cid,
       });
@@ -238,7 +249,7 @@ export const DevCredentialsProvider = ({
     try {
       const config = await getConfigurationById(configurationId!);
       applyDevCredentialsConfig({
-        ...config.configuration,
+        ...filterMessageParams(config.configuration),
         waitingForParams: false,
         clientId: config.client_id,
       });
@@ -296,20 +307,37 @@ export const DevCredentialsProvider = ({
     // what this flow sets up. Skip all license validation so KernelSigner is
     // always initialized and the user can proceed to provisioning.
     const isProvisionFlow = entryState === UiStates.PROVISION_DEVELOPER_LICENSE;
-    const isValid = isProvisionFlow
+    const isRegistered = isProvisionFlow
       ? true
       : await isValidDeveloperLicense(licenseData, redirectUri);
     if (isStale()) return;
+
+    // A popup's opener and an embedding page must be the app itself: answers
+    // go to the redirect URI's origin, so any other page would be driving
+    // the screens (or clicks) for an app it isn't. Provisioning included,
+    // since its key goes to that origin.
+    const appOrigin = originOf(redirectUri);
+    const callers = [
+      callerOriginRef.current,
+      isEmbed() ? (getEmbedderOrigin() ?? 'unknown') : null,
+    ].filter((origin): origin is string => origin !== null);
+    const fromApp = callers.every((origin) => origin === appOrigin);
+    const isValid = isRegistered && fromApp;
 
     applyDevCredentialsConfig({
       devLicenseAlias: alias,
       oemBrand: brand,
       invalidCredentials: !isValid,
+      untrustedCaller: !fromApp,
       waitingForDevLicense: false,
     });
 
     if (!isValid) {
-      console.error('Invalid client ID or redirect URI.');
+      console.error(
+        fromApp
+          ? 'Invalid client ID or redirect URI.'
+          : `This page (${callers.join(', ')}) isn't the redirect URI's origin (${appOrigin}).`,
+      );
       return;
     }
 
@@ -340,6 +368,8 @@ export const DevCredentialsProvider = ({
   // Monotonic counter so an in-flight validateCredentials run can detect it has
   // been superseded by a newer clientId and stop writing stale state.
   const validateSeqRef = useRef(0);
+  // The origin of the accepted AUTH_INIT: the only one later messages may come from.
+  const callerOriginRef = useRef<string | null>(null);
 
   const initAuthProcess = async () => {
     const isProcessedByConfigId = await processConfigByConfigId();
@@ -387,7 +417,7 @@ export const DevCredentialsProvider = ({
   useEffect(() => {
     void validateCredentials();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId]);
+  }, [clientId, redirectUri]);
 
   useEffect(() => {
     setLoadingState({

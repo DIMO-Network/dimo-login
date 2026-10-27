@@ -84,15 +84,17 @@ https://login.dimo.org/?clientId=0xYourClientId&redirectUri=https%3A%2F%2Fyourap
 
 ## ⚙️ What Happens Inside dimo-login
 
-Once the user is authenticated, the `ProvisionDeveloperLicense` component runs automatically. The flow has two stages:
+Once the user is authenticated, the `ProvisionDeveloperLicense` component shows what it will do and waits for the user. Nothing is signed until they tap Continue (or one of the existing-license buttons): any page can open this flow, and a key or redirect address given to the wrong site hands it the license.
+
+Every screen names the site that gets the key (the `redirectUri`'s host) and, when it isn't registered yet, the redirect address that will be added. A request without a `redirectUri` stops with an error. In popup and embed mode, the page that opened the flow must be on the `redirectUri`'s origin. Cancel tells the app `error: 'User cancelled developer license setup'`.
 
 ### Step 1 — Detect or mint the license
 
 On mount, the component checks whether the authenticated wallet already owns a developer license (via `getFirstOwnedDeveloperLicense`).
 
 - **Existing license found (and no `existingTokenId` passed):** The user is shown a prompt asking whether they have their existing API key. They can confirm (sends back `clientId` only, no new key) or choose to generate a new API key (proceeds to Step 2).
-- **`existingTokenId` + `existingClientId` passed explicitly:** Skips detection and goes directly to Step 2 with those values.
-- **No existing license:** Calls `issueInDimo` on the `DeveloperLicense` contract to mint a new license NFT. The `Issued` event is parsed from the transaction receipt to get the `tokenId` and `clientId`.
+- **`existingTokenId` + `existingClientId` passed explicitly:** The license must be owned by the signed-in account (checked against the identity API); otherwise the flow stops with "This developer license isn't in your account." After the user confirms, it goes to Step 2 with those values.
+- **No existing license:** After the user confirms, calls `issueInDimo` on the `DeveloperLicense` contract to mint a new license NFT. The `Issued` event is parsed from the transaction receipt to get the `tokenId` and `clientId`.
 
 ### Step 2 — Register the API key and redirect URI
 
@@ -105,7 +107,7 @@ A fresh private key is generated **once on component mount** and held in a ref (
 
 After Step 2 completes, the component sends a `provisionResponse` message and redirects:
 
-- **Popup mode:** `postMessage` to the opener window (origin-validated).
+- **Popup mode:** `postMessage` to the opener window, addressed to the `redirectUri`'s origin. It is never sent to the referrer.
 - **Redirect mode:** `tokenId` and `clientId` are appended to the `redirectUri` as query params. **The private key is never sent via redirect** — it can only be delivered through `postMessage` to avoid exposure in URLs, server logs, and browser history.
 
 ---
@@ -147,11 +149,11 @@ After Step 2 completes, the component sends a `provisionResponse` message and re
          ProvisionDeveloperLicense mounts, generates fresh private key
                ↓
          Check: does wallet already own a license?
-           ├── Yes (no existingTokenId) → show prompt
+           ├── Yes (no existingTokenId) → show prompt naming the site
            │     ├── "I have my key" → skip to response (clientId only)
            │     └── "Generate new key" → Step 2
-           ├── Yes (existingTokenId passed) → skip mint, go to Step 2
-           └── No → Step 1: mint license NFT (issueInDimo)
+           ├── existingTokenId passed → must be this account's → confirm → Step 2
+           └── No → confirm → Step 1: mint license NFT (issueInDimo)
                          ↓
                      Step 2: enableSigner + setRedirectUri (batch tx)
                ↓
@@ -170,4 +172,4 @@ After Step 2 completes, the component sends a `provisionResponse` message and re
 
 - The private key is generated fresh each time the component mounts. If the user closes and reopens the popup, a new key is generated and a new `enableSigner` transaction is submitted — the old signer address remains registered on-chain but the old key is effectively superseded.
 - In redirect mode, the private key is intentionally omitted from the response. Apps using redirect mode must prompt the user to enter their key manually (e.g., from a previously saved copy).
-- The flow works without a pre-registered `clientId` in the SDK config — this is the one flow where `login.dimo.org` relaxes the dev license validation check, since the license is being created in this session.
+- The flow works without a pre-registered `clientId` in the SDK config — this is the one flow where `login.dimo.org` relaxes the dev license validation check, since the license is being created in this session. That is why it always asks the user first.

@@ -1,5 +1,6 @@
 import { sendAuthPayloadToParent } from '../authUtils';
-import { backToThirdParty, sendMessageToReferrer } from '../messageHandler';
+import { backToThirdParty, sendMessageToReferrer, setAppState } from '../messageHandler';
+import { saveFlowSnapshot } from '../flowSnapshot';
 import { sendSignatureResponseToParent, sendTxnResponseToParent } from '../txnUtils';
 
 // authUtils pulls in the Turnkey / kernel-signer stack (ESM-only under jest; jest hoists these above the imports); only the postMessage path is under test.
@@ -55,6 +56,13 @@ describe('messages carrying the user token', () => {
     expect(postMessage).toHaveBeenCalledTimes(2);
   });
 
+  it('never fall back to the referrer when the redirect URI is missing', () => {
+    jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    const postMessage = openedBy('https://other.example/');
+    sendAuthPayloadToParent(payload, '', () => undefined);
+    expect(postMessage).not.toHaveBeenCalled();
+  });
+
   it('are not sent at all when the redirectUri has no web origin', () => {
     jest.spyOn(console, 'error').mockImplementation(() => undefined);
     const postMessage = openedBy('https://other.example/');
@@ -70,6 +78,33 @@ it('non-sensitive notices still go to the referrer origin', () => {
     expect.objectContaining({ eventType: 'READY' }),
     'https://app.example.com',
   );
+});
+
+describe('after an OAuth round-trip', () => {
+  it("notices go to the referrer saved in this tab's state", () => {
+    const flowRef = saveFlowSnapshot({ entryState: 'EMAIL_INPUT' });
+    const postMessage = openedBy('https://accounts.google.com/', {
+      referrer: 'https://app.example.com/page',
+      flowRef,
+    });
+    sendMessageToReferrer({ eventType: 'READY' });
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.anything(),
+      'https://app.example.com',
+    );
+  });
+
+  it("ignore a referrer in a state this tab didn't send", () => {
+    const postMessage = openedBy('https://accounts.google.com/', {
+      referrer: 'https://attacker.example/',
+      flowRef: '0123456789abcdef0123456789abcdef',
+    });
+    sendMessageToReferrer({ eventType: 'READY' });
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.anything(),
+      'https://accounts.google.com',
+    );
+  });
 });
 
 describe('redirect back to the app', () => {
@@ -106,6 +141,15 @@ describe('redirect back to the app', () => {
     const params = new URL(assigned).searchParams;
     expect(params.get('token')).toBe('jwt');
     expect(params.has('email')).toBe(false);
+  });
+
+  it("returns the SDK's dimoState so the app knows it asked", () => {
+    setAppState('abcdefABCDEF0123456789');
+    backToThirdParty({ token: 'jwt' }, REGISTERED, '');
+    setAppState(undefined);
+    expect(new URL(assigned).searchParams.get('dimoState')).toBe(
+      'abcdefABCDEF0123456789',
+    );
   });
 
   it('sends the email when it was shared', () => {

@@ -46,6 +46,12 @@ const ja: LocaleResources = {
   'error.missing_redirect_uri.title': 'リダイレクトURIがありません',
   'error.missing_redirect_uri.message':
     'アプリからリダイレクトURIが送信されていません。有効なリダイレクトURIを設定するよう{{appName}}に依頼してください。',
+  'error.untrusted_return.title': 'ここではこのサインインを完了できません',
+  'error.untrusted_return.message':
+    'このウィンドウで開始されたサインインではありません。アプリに戻って、そこからサインインしてください。',
+  'error.untrusted_caller.title': 'このページからはこのサインインを開けません',
+  'error.untrusted_caller.message':
+    '開けるのは{{appName}}のサイトだけです。{{appName}}から始めてください。',
   'error.invalid_credentials.title': 'このアプリは正しく設定されていません',
   'error.invalid_credentials.message':
     'このアプリのDIMO認証情報を確認できなかったため、ここからサインインや共有はできません。アプリのサポート窓口にお問い合わせください。',
@@ -128,6 +134,8 @@ const ja: LocaleResources = {
     'アカウント情報を取得できませんでした。もう一度お試しください。',
   'signin.error.oauth':
     'GoogleまたはAppleでのサインインを完了できませんでした。もう一度お試しください。',
+  'signin.error.storage':
+    'このブラウザはサイトデータの保存をブロックしています。この手順には保存が必要です。許可してから、もう一度お試しください。',
   'signin.error.no_email':
     'このアカウントはDIMOにメールアドレスを共有していません。別の方法でサインインしてください。',
 
@@ -345,7 +353,19 @@ const ja: LocaleResources = {
   'license.status.done': '完了',
   'license.existing.subtitle': 'すでに開発者ライセンスをお持ちです',
   'license.existing.body':
-    'このアカウントにはすでに開発者ライセンス（{{clientId}}）があります。そのAPIキーをお持ちですか？',
+    '{{host}}がAPIアクセスを求めています。このアカウントにはすでに開発者ライセンス（{{clientId}}）があります。そのAPIキーをお持ちですか？',
+  'license.existing.redirect':
+    'どちらを選んでも、{{uri}}がリダイレクト先として追加されます。',
+  'license.confirm.subtitle': '{{host}}がAPIアクセスを求めています',
+  'license.confirm.key':
+    '続行すると、このアカウントに開発者ライセンスが作成され、{{host}}がそのAPIキーを受け取ります。',
+  'license.confirm.new_key':
+    '続行すると、{{host}}がライセンス「{{license}}」の新しいAPIキーを受け取ります。',
+  'license.confirm.redirect': 'あわせて{{uri}}がリダイレクト先として追加されます。',
+  'license.confirm.warning':
+    'APIキーがあると、{{host}}はこのライセンスとして動作でき、共有されたデータも読み取れます。{{host}}を信頼できる場合のみ続行してください。',
+  'license.not_owner': 'この開発者ライセンスはあなたのアカウントのものではありません。',
+  'license.no_redirect_uri': 'APIキーの送信先がアプリから指定されていません。',
   'license.existing.has_key': 'はい、APIキーを持っています',
   'license.existing.new_key': 'いいえ、新しいAPIキーを生成します',
   'license.error': '開発者ライセンスの設定を完了できませんでした。',

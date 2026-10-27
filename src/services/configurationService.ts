@@ -10,7 +10,7 @@ export async function getConfigurationById(
 ): Promise<Configuration> {
   try {
     const response = await fetch(
-      `${process.env.REACT_APP_DEVELOPER_CONSOLE_URL}/api/configurations/${configurationId}`,
+      `${process.env.REACT_APP_DEVELOPER_CONSOLE_URL}/api/configurations/${encodeURIComponent(configurationId)}`,
     );
 
     if (!response.ok) {

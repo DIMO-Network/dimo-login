@@ -64,6 +64,19 @@ export const ALLOWED_MESSAGE_PARAM_KEYS = new Set<string>([
   // Developer license provisioning flow (key rotation)
   'existingTokenId',
   'existingClientId',
+  // Redirect mode: the SDK's nonce, echoed on the way back (backToThirdParty)
+  'dimoState',
+]);
+
+/**
+ * Who is asking and where answers go. Set by AUTH_INIT (or the URL) only: an
+ * action message comes later and is never allowed to repoint the flow.
+ */
+export const CALLER_PARAM_KEYS = new Set<string>([
+  'clientId',
+  'redirectUri',
+  'apiKey',
+  'configCID',
 ]);
 
 /**

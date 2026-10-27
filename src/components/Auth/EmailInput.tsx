@@ -82,7 +82,9 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   };
 
   const handleProviderAuth = (provider: AuthProvider) => {
-    window.location.href = constructOAuthUrl(provider);
+    const url = constructOAuthUrl(provider);
+    if (!url) return setError(message('signin.error.storage'));
+    window.location.href = url;
   };
 
   const handleToken = async (token: string) => {

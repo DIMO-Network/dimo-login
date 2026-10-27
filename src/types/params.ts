@@ -38,11 +38,17 @@ export interface BaseParams {
   shareVehiclesSectionDescription: string;
   existingTokenId?: number;
   existingClientId?: string;
+  /** The SDK's redirect-mode nonce, returned with every redirect back. */
+  dimoState?: string;
 }
 
 export interface FetchedParams {
   devLicenseAlias: string;
   invalidCredentials: boolean;
+  /** The popup's opener, or the embedding page, isn't the app's redirect URI origin. */
+  untrustedCaller?: boolean;
+  /** The URL has an OAuth `state` this tab didn't send (see readTrustedOAuthReturn). */
+  untrustedOAuthReturn?: boolean;
   /**
    * OEM brand record fetched from console-api keyed on `clientId`. Drives the
    * Header logo + title + document.title. `null` while still loading or if

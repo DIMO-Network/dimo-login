@@ -3,10 +3,16 @@
 // expect(element).toHaveTextContent(/react/i)
 // learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom';
+import { webcrypto } from 'crypto';
 
 // Components render real English copy in tests, and a key with no copy fails
 // the test instead of rendering the raw key.
 import i18n from './i18n';
+
+// Every browser has it; this jsdom doesn't, and flow references need it.
+if (!window.crypto?.getRandomValues) {
+  Object.defineProperty(window, 'crypto', { value: webcrypto });
+}
 
 void i18n.changeLanguage('en');
 i18n.options.saveMissing = true;

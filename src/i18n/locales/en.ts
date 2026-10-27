@@ -53,6 +53,12 @@ const en = {
   'error.missing_redirect_uri.title': 'Missing redirect URI',
   'error.missing_redirect_uri.message':
     'The app didn’t send a redirect URI. Please ask {{appName}} to set up a valid redirect URI.',
+  'error.untrusted_return.title': 'This sign-in can’t be finished here',
+  'error.untrusted_return.message':
+    'It wasn’t started in this window. Go back to the app and sign in from there.',
+  'error.untrusted_caller.title': 'This page can’t open this sign-in',
+  'error.untrusted_caller.message':
+    'Only {{appName}}’s own site can open it. Go to {{appName}} and start from there.',
   'error.invalid_credentials.title': 'This app isn’t set up correctly',
   'error.invalid_credentials.message':
     'Its DIMO credentials couldn’t be verified, so you can’t sign in or share from here. Please contact the app’s support team.',
@@ -141,6 +147,8 @@ const en = {
   'signin.signing_in': 'Signing you in…',
   'signin.error.details': 'Couldn’t get your account details. Try again.',
   'signin.error.oauth': 'Couldn’t finish signing in with Google or Apple. Try again.',
+  'signin.error.storage':
+    'This browser is blocking site storage, which this step needs. Allow it and try again.',
   'signin.error.no_email':
     'That account didn’t share an email address with DIMO. Try another way to sign in.',
 
@@ -379,7 +387,18 @@ const en = {
   'license.status.done': 'Done',
   'license.existing.subtitle': 'You already have a developer license',
   'license.existing.body':
-    'Your account already has a developer license ({{clientId}}). Do you have an API key for it?',
+    '{{host}} is asking for API access. Your account already has a developer license ({{clientId}}). Do you have an API key for it?',
+  'license.existing.redirect': 'Either way, {{uri}} is added as a redirect address.',
+  'license.confirm.subtitle': '{{host}} is asking for API access',
+  'license.confirm.key':
+    'If you continue, a developer license is created in your account and {{host}} gets an API key for it.',
+  'license.confirm.new_key':
+    'If you continue, {{host}} gets a new API key for your license {{license}}.',
+  'license.confirm.redirect': '{{uri}} is also added as a redirect address.',
+  'license.confirm.warning':
+    'An API key lets {{host}} act as this license, including reading what people share with it. Continue only if you trust {{host}}.',
+  'license.not_owner': 'This developer license isn’t in your account.',
+  'license.no_redirect_uri': 'The app didn’t say where to send the API key.',
   'license.existing.has_key': 'Yes, I have my API key',
   'license.existing.new_key': 'No, generate a new API key',
   'license.error': 'Couldn’t finish setting up the developer license.',

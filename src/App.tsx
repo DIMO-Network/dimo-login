@@ -82,8 +82,13 @@ const App = () => {
     },
   });
 
+  // Nothing from a stored session is shown or sent until the request is known
+  // to be the app's own (validateCredentials): embedded, a returning session
+  // posts the login right away.
+  const credentialsChecked = !params.waitingForDevLicense && !params.invalidCredentials;
+
   useEffect(() => {
-    if (clientId) {
+    if (clientId && credentialsChecked) {
       initializeSession({
         clientId,
         setJwt,
@@ -108,7 +113,7 @@ const App = () => {
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId, incomingEntryState]);
+  }, [clientId, incomingEntryState, credentialsChecked]);
 
   if (isLoading) {
     return (

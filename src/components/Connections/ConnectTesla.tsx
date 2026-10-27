@@ -1,6 +1,7 @@
 import { useEffect, useState, type FC } from 'react';
 
 import {
+  ErrorMessage,
   PermissionsStep,
   VirtualKeyStep,
   PollingVirtualKeyStep,
@@ -15,7 +16,11 @@ import { useUIManager } from '../../context/UIManagerContext';
 import { getRedirectHost } from '../../utils/urlHelpers';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { constructAuthUrl } from '../../utils/authUrls';
-import { buildFlowSnapshot, saveFlowSnapshot } from '../../utils/flowSnapshot';
+import {
+  buildFlowSnapshot,
+  readTrustedOAuthReturn,
+  saveFlowSnapshot,
+} from '../../utils/flowSnapshot';
 import { useOracles } from '../../context/OraclesContext';
 import {
   checkIntegrationInfo,
@@ -38,24 +43,32 @@ enum TeslaOnboardingStep {
 
 export const ConnectTesla: FC = () => {
   const t = useT();
-  const { componentData, setUiState, setLoadingState, setComponentData, entryState } =
-    useUIManager();
+  const {
+    componentData,
+    setUiState,
+    setLoadingState,
+    setComponentData,
+    entryState,
+    error,
+    setError,
+  } = useUIManager();
   const { onboardingEnabled } = useOracles();
   const [step, setStep] = useState<TeslaOnboardingStep>(TeslaOnboardingStep.PERMISSIONS);
   const [vehicleToAdd, setVehicleToAdd] = useState<TeslaVehicle>();
   const devCredentials = useDevCredentials();
-  const { clientId, redirectUri, cloudEvent } = devCredentials;
+  const { redirectUri } = devCredentials;
   const displayName = useAppName();
   const { jwt } = useAuthContext();
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const authCode = urlParams.get('code');
-    const stateFromUrl = urlParams.get('state');
+    const authCode = new URLSearchParams(window.location.search).get('code');
+    // Only a return this tab started: a forged link's code would attach the
+    // linker's Tesla account to this user.
+    const trusted = readTrustedOAuthReturn();
+    if (!trusted) return;
 
-    if (!stateFromUrl) return;
-
-    const decodedStateFromUrl = JSON.parse(stateFromUrl);
+    // Saved by handleNextStep below, which always sets it.
+    const decodedStateFromUrl = trusted.state as { vehicleToAdd: any };
     setVehicleToAdd(decodedStateFromUrl.vehicleToAdd);
 
     if (componentData && componentData.permissionsGranted) {
@@ -200,30 +213,21 @@ export const ConnectTesla: FC = () => {
 
   const handleNextStep = () => {
     if (step === TeslaOnboardingStep.PERMISSIONS) {
-      const urlParams = new URLSearchParams(window.location.search);
       // Restores the vehicle-sharing request after Tesla's redirect; the
       // return itself lands on CONNECT_TESLA from `state`.
       const flowRef = saveFlowSnapshot(
         buildFlowSnapshot({ devCredentials, entryState, onboardingEnabled }),
       );
-      const authUrl = constructAuthUrl({
+      if (!flowRef) {
+        setError(message('signin.error.storage'));
+        return;
+      }
+      window.location.href = constructAuthUrl({
         provider: AuthProvider.TESLA,
-        clientId,
-        redirectUri,
         entryState: UiStates.CONNECT_TESLA,
-        expirationDate: urlParams.get('expirationDate'),
-        permissionTemplateId: urlParams.get('permissionTemplateId'),
-        permissions: urlParams.get('permissions'),
-        utm: urlParams.getAll('utm'),
-        vehicleMakes: urlParams.getAll('vehicleMakes'),
-        vehicles: urlParams.getAll('vehicles'),
-        powertrainTypes: urlParams.getAll('powertrainTypes'),
-        cloudEvent,
         vehicleToAdd,
         flowRef,
       });
-
-      window.location.href = authUrl;
     } else if (step === TeslaOnboardingStep.VIRTUAL_KEY) {
       // Open to Tesla's Virtual Key setup
       window.open(process.env.REACT_APP_TESLA_VIRTUAL_KEY_URL, '_blank');
@@ -299,6 +303,7 @@ export const ConnectTesla: FC = () => {
           title={t(STEP_CONTENT_MAP[step].title)}
           host={getRedirectHost(redirectUri)}
         />
+        {error && <ErrorMessage message={error} />}
         {renderStep(step, displayName, vehicleToAdd)}
       </Screen>
     </UIManagerLoaderWrapper>

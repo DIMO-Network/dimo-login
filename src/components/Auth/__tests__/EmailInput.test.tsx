@@ -7,9 +7,10 @@ jest.mock('../../../services', () =>
   jest.requireActual('../../../services/storageService'),
 );
 const mockGo = jest.fn();
+let mockOAuthUrl: string | null = 'https://accounts.example/oauth';
 jest.mock('../../../hooks', () => ({
   useOAuthCodeExchange: () => ({ isExchanging: false }),
-  useConstructOAuthUrl: () => () => 'https://accounts.example/oauth',
+  useConstructOAuthUrl: () => () => mockOAuthUrl,
   useGoToLoginOrSignUp: () => mockGo,
 }));
 jest.mock('../../../context/DevCredentialsContext', () => ({
@@ -46,6 +47,18 @@ beforeEach(() => {
   localStorage.clear();
   setForceEmail(false);
   mockGo.mockResolvedValue(undefined);
+  mockOAuthUrl = 'https://accounts.example/oauth';
+});
+
+it("doesn't leave for Google when the return couldn't be checked", () => {
+  // Storage blocked: no flow reference, so the return would look forged.
+  mockOAuthUrl = null;
+  render(<EmailInput onSubmit={onSubmit} />);
+  fireEvent.click(screen.getByRole('button', { name: /Google/ }));
+
+  expect(mockUi.setError).toHaveBeenCalledWith(
+    expect.objectContaining({ key: 'signin.error.storage' }),
+  );
 });
 
 it('signs in with the email as typed on a Japanese keyboard', async () => {

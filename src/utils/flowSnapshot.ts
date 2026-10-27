@@ -8,7 +8,9 @@
  * drop it and a share started with Google came back as a plain login.
  *
  * The config is saved to sessionStorage, which survives the round-trip in the
- * same tab, and only a reference to it travels in `state`.
+ * same tab, and only a reference to it travels in `state`. The reference is
+ * also what makes a return trusted: anyone can link here with their own `code`
+ * and `state`, but only this tab knows a reference it saved.
  */
 import { filterMessageParams } from './messageParams';
 
@@ -33,11 +35,7 @@ const reviver = (_key: string, value: unknown) => {
 
 const createRef = (): string => {
   const bytes = new Uint8Array(16);
-  if (window.crypto?.getRandomValues) {
-    window.crypto.getRandomValues(bytes);
-  } else {
-    for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
-  }
+  window.crypto.getRandomValues(bytes);
   return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 };
 
@@ -68,14 +66,17 @@ export const buildFlowSnapshot = ({
   };
 };
 
-/** Saves the flow config and returns the reference to put in OAuth `state`. */
+/**
+ * Saves the flow config and returns the reference to put in OAuth `state`.
+ * Undefined when storage is blocked or full: the return couldn't be trusted,
+ * so the caller doesn't leave.
+ */
 export const saveFlowSnapshot = (config: Record<string, unknown>): string | undefined => {
   try {
     const ref = createRef();
     sessionStorage.setItem(KEY_PREFIX + ref, JSON.stringify(config, replacer));
     return ref;
   } catch {
-    // Storage blocked or full: the round-trip falls back to a plain login.
     return undefined;
   }
 };
@@ -94,4 +95,31 @@ export const readFlowSnapshot = (ref: unknown): Record<string, unknown> | null =
   } catch {
     return null;
   }
+};
+
+/** The OAuth `state` in this page's URL, parsed; null when absent or not JSON. */
+export const readOAuthState = (): Record<string, unknown> | null => {
+  const raw = new URLSearchParams(window.location.search).get('state');
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * An OAuth return this tab started: its `state` names a snapshot saved here
+ * before leaving. Anything else is someone else's link, whose `code` would
+ * sign the visitor in with the linker's Google account or attach the linker's
+ * Tesla, so nothing from it is used.
+ */
+export const readTrustedOAuthReturn = (): {
+  state: Record<string, unknown>;
+  snapshot: Record<string, unknown>;
+} | null => {
+  const state = readOAuthState();
+  const snapshot = state ? readFlowSnapshot(state.flowRef) : null;
+  return state && snapshot ? { state, snapshot } : null;
 };

@@ -7,6 +7,14 @@ export type ErrorMessage = {
 
 // Messages may name the app as {{appName}}; ErrorScreen fills it in.
 export const GLOBAL_ERROR_MESSAGES = {
+  untrustedOAuthReturn: {
+    title: message('error.untrusted_return.title'),
+    message: message('error.untrusted_return.message'),
+  },
+  untrustedCaller: {
+    title: message('error.untrusted_caller.title'),
+    message: message('error.untrusted_caller.message'),
+  },
   missingClientId: {
     title: message('error.missing_client_id.title'),
     message: message('error.missing_client_id.message'),

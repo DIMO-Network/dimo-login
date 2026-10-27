@@ -15,7 +15,9 @@ export function sendMessageToReferrer(data: object, registeredRedirectUri?: stri
   }
 
   let parentOrigin = getAppUrl().origin;
-  if (registeredRedirectUri) {
+  // Passed at all (even empty) means the message is secret: it never falls
+  // back to the referrer, which the opening page controls.
+  if (registeredRedirectUri !== undefined) {
     let origin = 'null';
     try {
       origin = new URL(registeredRedirectUri).origin;
@@ -48,6 +50,13 @@ export function sendMessageToReferrer(data: object, registeredRedirectUri?: stri
   }
 }
 
+// The SDK's redirect-mode nonce (dimoState), returned with every redirect back
+// so the app can tell its own returns from a forged link. One flow per page.
+let appState: string | undefined;
+export const setAppState = (value: string | undefined) => {
+  appState = value;
+};
+
 export function backToThirdParty(
   payload: Record<string, string | number | boolean | undefined | null>,
   redirectUri: string,
@@ -62,6 +71,7 @@ export function backToThirdParty(
       if (value === undefined || value === null) return;
       redirectUriWithUtm.searchParams.set(key, String(value));
     });
+    if (appState) redirectUriWithUtm.searchParams.set('dimoState', appState);
 
     window.location.href = redirectUriWithUtm.toString();
     return;
