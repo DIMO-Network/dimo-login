@@ -5,7 +5,7 @@ import {
   mergePermissions,
   needsPermissionUpdate,
 } from '../permissions';
-import { getShareButtonLabel } from '../../components/Vehicles/Footer';
+import { getShareButtonLabel } from '../../components/Vehicles/shareButtonLabel';
 
 // The package ships ESM only; mirror its Permission enum and 2-bit encoding.
 jest.mock('@dimo-network/transactions', () => {
@@ -138,11 +138,12 @@ describe('getAddedPermissions', () => {
 
 describe('getShareButtonLabel', () => {
   it.each([
-    [0, 0, 'Share vehicles'],
+    [0, 0, 'Select a vehicle'],
+    [1, 0, 'Share 1 vehicle'],
     [2, 0, 'Share 2 vehicles'],
-    [1, 1, 'Update 1 vehicle'],
-    [3, 1, 'Share and update 3 vehicles'],
-  ])('%i selected, %i updates -> %s', (selected, updates, label) => {
-    expect(getShareButtonLabel(selected, updates)).toBe(label);
+    [0, 1, 'Update 1 vehicle'],
+    [2, 1, 'Share 2 · Update 1'],
+  ])('%i new, %i updates -> %s', (shares, updates, label) => {
+    expect(getShareButtonLabel(shares, updates)).toBe(label);
   });
 });

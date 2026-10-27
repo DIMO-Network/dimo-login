@@ -136,6 +136,44 @@ export const ActionBar = ({
   </div>
 );
 
+const DONE_TONE = {
+  positive: 'text-positive',
+  neutral: 'text-muted',
+  negative: 'text-negative',
+};
+
+/**
+ * The top of a done or result screen: a status tile, the heading (focused
+ * when the screen opens, like ScreenHeader) and one line on what it means.
+ */
+export const DoneHeader = ({
+  tone = 'positive',
+  icon,
+  title,
+  children,
+}: {
+  tone?: keyof typeof DONE_TONE;
+  icon?: React.ReactNode;
+  title: React.ReactNode;
+  children?: React.ReactNode;
+}) => (
+  <div className="flex flex-col items-start gap-2 pt-1">
+    <span
+      className={cn(
+        'mb-1 flex size-12 items-center justify-center rounded-[14px] bg-card',
+        DONE_TONE[tone],
+      )}
+      aria-hidden="true"
+    >
+      {icon ?? <CheckCircleIcon className="size-[26px]" />}
+    </span>
+    <h1 tabIndex={-1} data-screen-heading className="text-title text-ink outline-none">
+      {title}
+    </h1>
+    {children && <p className="text-body-sm text-muted">{children}</p>}
+  </div>
+);
+
 /** A screen: content, then an optional sticky action bar. */
 export const Screen = ({
   children,

@@ -59,6 +59,9 @@ export interface AuthPayload {
   email?: string;
   walletAddress: string;
   sharedVehicles?: BigInt[] | string[];
+  // Manage → Extend 1 year / Stop sharing, as redirect mode reports them too.
+  extendedVehicles?: string[];
+  revokedVehicles?: string[];
   // Account-sharing lane: surfaced to the SDK on a successful account grant.
   accountGranted?: boolean;
   transactionHash?: string;

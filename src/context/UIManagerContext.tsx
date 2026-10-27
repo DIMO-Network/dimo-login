@@ -26,6 +26,12 @@ interface UIManagerContextProps {
   setError: React.Dispatch<React.SetStateAction<Text | null>>;
   altTitle: boolean;
   setAltTitle: React.Dispatch<React.SetStateAction<boolean>>;
+  /**
+   * A screen is signing or sending something and shows its own progress.
+   * The shell hides Back meanwhile, so the step can't be left half done.
+   */
+  busy: boolean;
+  setBusy: (busy: boolean) => void;
 }
 
 const UIManagerContext = createContext<UIManagerContextProps | undefined>(undefined);
@@ -38,6 +44,7 @@ export const UIManagerProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setLoadingState, loadingMessage] = useLoading(false);
   const [error, setError] = useState<Text | null>(null);
   const [altTitle, setAltTitle] = useState<boolean>(false);
+  const [busy, setBusy] = useState<boolean>(false);
 
   const handleUiState = (
     value: UiStates,
@@ -85,6 +92,8 @@ export const UIManagerProvider = ({ children }: { children: ReactNode }) => {
         setError,
         altTitle,
         setAltTitle,
+        busy,
+        setBusy,
       }}
     >
       {children}

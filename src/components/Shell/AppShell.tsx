@@ -24,7 +24,7 @@ export const AppShell = ({
 }) => {
   const t = useT();
   const { oemBrand } = useDevCredentials();
-  const { uiState, prevUiStates, goBack } = useUIManager();
+  const { uiState, prevUiStates, goBack, busy } = useUIManager();
   const mainRef = useRef<HTMLElement>(null);
   const firstRender = useRef(true);
 
@@ -62,7 +62,7 @@ export const AppShell = ({
       <div className="flex h-[100dvh] w-full flex-col overflow-hidden bg-sheet md:h-auto md:max-h-[min(760px,calc(100dvh-3rem))] md:min-h-[600px] md:max-w-[520px] md:rounded-panel md:shadow-float">
         <header className="flex h-14 shrink-0 items-center justify-between gap-2 px-3">
           <div className="flex min-w-0 items-center gap-1 pl-1">
-            {!loading && prevUiStates.length > 1 && (
+            {!loading && !busy && prevUiStates.length > 1 && (
               <Button
                 variant="ghost"
                 size="icon"

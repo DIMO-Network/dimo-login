@@ -59,7 +59,18 @@ export interface ButtonProps
   disabled?: boolean;
   /** id of the element that explains why the button is disabled. */
   disabledReasonId?: string;
+  /** Shown next to the dots while loading, e.g. "Sharing…". */
+  loadingLabel?: React.ReactNode;
 }
+
+/** The button recipe, for links that look like buttons (app store links). */
+export const buttonClassName = (variant: Variant = 'primary', size: Size = 'md') =>
+  cn(
+    'inline-flex select-none items-center justify-center gap-2 rounded-full text-center font-semibold transition-[filter,background-color,color] duration-150',
+    SIZES[size],
+    VARIANTS[variant].base,
+    VARIANTS[variant].hover,
+  );
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   (
@@ -70,6 +81,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       fullWidth = false,
       disabled = false,
       disabledReasonId,
+      loadingLabel,
       className,
       children,
       onClick,
@@ -86,7 +98,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         type={type}
         aria-disabled={inactive || undefined}
         aria-busy={loading || undefined}
-        aria-describedby={disabled ? disabledReasonId : undefined}
+        aria-describedby={inactive ? disabledReasonId : undefined}
         onClick={(event) => {
           if (inactive) {
             event.preventDefault();
@@ -98,13 +110,22 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           'inline-flex select-none items-center justify-center gap-2 rounded-full text-center font-semibold transition-[filter,background-color,color] duration-150',
           SIZES[size],
           recipe.base,
-          inactive ? 'cursor-not-allowed opacity-40' : recipe.hover,
+          loading && 'cursor-progress',
+          disabled && !loading && 'cursor-not-allowed opacity-40',
+          !inactive && recipe.hover,
           fullWidth && 'w-full',
           className,
         )}
         {...rest}
       >
-        {loading ? <Dots /> : children}
+        {loading ? (
+          <>
+            <Dots />
+            {loadingLabel}
+          </>
+        ) : (
+          children
+        )}
       </button>
     );
   },

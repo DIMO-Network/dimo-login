@@ -1,6 +1,6 @@
 /* eslint-disable import/first -- jest.mock calls must precede the imports they mock */
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 // The package ships ESM only; mirror its Permission enum and 2-bit encoding.
 jest.mock('@dimo-network/transactions', () => {
@@ -29,17 +29,17 @@ jest.mock('@dimo-network/transactions', () => {
 });
 const mockUpdate = jest.fn();
 const mockFinishShare = jest.fn();
+const mockFinish = jest.fn();
 jest.mock('../../../hooks', () => ({
   useUpdateVehiclePermissions: () => mockUpdate,
   useFinishShareVehicles: () => mockFinishShare,
+  useFinishVehicles: () => mockFinish,
 }));
 const mockUi = {
   componentData: {} as Record<string, unknown>,
   setUiState: jest.fn(),
   setComponentData: jest.fn(),
-  setLoadingState: jest.fn(),
-  setError: jest.fn(),
-  error: null,
+  setBusy: jest.fn(),
 };
 jest.mock('../../../context/UIManagerContext', () => ({
   useUIManager: () => mockUi,
@@ -47,6 +47,7 @@ jest.mock('../../../context/UIManagerContext', () => ({
 jest.mock('../../../context/DevCredentialsContext', () => ({
   useDevCredentials: () => ({
     clientId: '0x2222222222222222222222222222222222222222',
+    devLicenseAlias: 'Acme',
     expirationDate: BigInt(4102444800),
   }),
 }));
@@ -55,20 +56,12 @@ jest.mock('../../../context/AuthContext', () => ({
     user: { smartContractAddress: '0x1111111111111111111111111111111111111111' },
   }),
 }));
-// Keep the turnkey-backed services and shared UI out of the module graph.
+// Keep the turnkey-backed services out of the module graph.
 jest.mock('../../../services', () => ({}));
 jest.mock('../../../utils/authUtils', () => ({ isInvalidSessionError: () => false }));
 jest.mock('@sentry/react', () => ({ captureException: jest.fn() }));
-jest.mock('../../Shared', () => ({
-  UIManagerLoaderWrapper: ({ children }: { children: React.ReactNode }) => (
-    <>{children}</>
-  ),
-  ErrorMessage: ({ message }: { message: string }) => <p>{message}</p>,
-}));
-jest.mock('../ManageVehicleDetails', () => ({ ManageVehicleDetails: () => null }));
 
 import { ManageVehicle } from '../ManageVehicle';
-import { UiStates } from '../../../enums';
 
 // The grant has non-location history only (permission 1 at bits 2..3).
 const sharedVehicle = () => ({
@@ -98,33 +91,88 @@ beforeEach(() => {
 it('reports an update to the app the way a share from the list is reported', async () => {
   // The app now also asks for commands, which the grant lacks.
   renderManage('11');
+  expect(screen.getByText('Acme is asking for more access')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Update permissions' }));
 
   await waitFor(() =>
     expect(mockFinishShare).toHaveBeenCalledWith([
-      expect.objectContaining({ tokenId: 1, shared: false }),
+      expect.objectContaining({
+        vehicle: expect.objectContaining({ tokenId: 1 }),
+        outcome: 'updated',
+        // The request runs to 2100, past the current grant.
+        expiration: BigInt(4102444800),
+      }),
     ]),
   );
   expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ action: 'update' }));
-  // useFinishShareVehicles shows the success screen after telling the app.
-  expect(mockUi.setUiState).not.toHaveBeenCalled();
+  expect(mockFinish).not.toHaveBeenCalled();
 });
 
-it.each([
-  ['Extend (1 year)', 'extend', 'extended'],
-  ['Stop sharing', 'revoke', 'revoked'],
-])('%s still goes straight to its success screen', async (button, action, done) => {
+it('extends by a year from the current end and tells the app', async () => {
   // The grant already covers the request, so Extend is offered.
   renderManage('1');
-  fireEvent.click(screen.getByRole('button', { name: button }));
+  fireEvent.click(screen.getByRole('button', { name: 'Extend 1 year' }));
+
+  const nextYear = BigInt(Date.parse('2028-01-01T00:00:00Z') / 1000);
+  await waitFor(() =>
+    expect(mockFinish).toHaveBeenCalledWith('extended', [
+      {
+        vehicle: expect.objectContaining({ tokenId: 1 }),
+        outcome: 'extended',
+        expiration: nextYear,
+      },
+    ]),
+  );
+  expect(mockUpdate).toHaveBeenCalledWith(
+    expect.objectContaining({ action: 'extend', expiration: nextYear }),
+  );
+});
+
+it('asks before stopping, then tells the app', async () => {
+  renderManage('1');
+  fireEvent.click(screen.getByRole('button', { name: 'Stop sharing' }));
+
+  const dialog = screen.getByRole('alertdialog', { name: 'Stop sharing this vehicle?' });
+  expect(mockUpdate).not.toHaveBeenCalled();
+  // Focus starts on the safe choice.
+  expect(within(dialog).getByRole('button', { name: 'Keep sharing' })).toHaveFocus();
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Stop sharing' }));
 
   await waitFor(() =>
-    expect(mockUi.setUiState).toHaveBeenCalledWith(UiStates.VEHICLES_SHARED_SUCCESS),
+    expect(mockFinish).toHaveBeenCalledWith('revoked', [
+      { vehicle: expect.objectContaining({ tokenId: 1 }), outcome: 'revoked' },
+    ]),
   );
-  expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ action }));
-  expect(mockUi.setComponentData).toHaveBeenCalledWith({
-    action: done,
-    vehicles: [expect.objectContaining({ tokenId: 1, shared: false })],
-  });
-  expect(mockFinishShare).not.toHaveBeenCalled();
+  expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ action: 'revoke' }));
+});
+
+it('keeps sharing when the confirmation is declined', () => {
+  renderManage('1');
+  fireEvent.click(screen.getByRole('button', { name: 'Stop sharing' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Keep sharing' }));
+
+  expect(screen.queryByRole('alertdialog')).toBeNull();
+  expect(mockUpdate).not.toHaveBeenCalled();
+});
+
+it('offers no Extend on a share with no end date', () => {
+  mockUi.componentData = {
+    vehicle: { ...sharedVehicle(), grantExpiresAt: '2125-01-01T00:00:00Z' },
+    permissions: '1',
+  };
+  render(<ManageVehicle />);
+
+  expect(screen.queryByRole('button', { name: 'Extend 1 year' })).toBeNull();
+  expect(screen.getByRole('button', { name: 'Stop sharing' })).toBeInTheDocument();
+  expect(screen.getByText('No end date')).toBeInTheDocument();
+});
+
+it('says what went wrong and changes nothing when the update fails', async () => {
+  mockUpdate.mockRejectedValue(new Error('network'));
+  renderManage('1');
+  fireEvent.click(screen.getByRole('button', { name: 'Extend 1 year' }));
+
+  expect(await screen.findByRole('alert')).toHaveTextContent('Couldn’t change sharing');
+  expect(mockFinish).not.toHaveBeenCalled();
+  expect(mockUi.setBusy).toHaveBeenLastCalledWith(false);
 });

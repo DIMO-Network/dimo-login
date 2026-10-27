@@ -68,15 +68,9 @@ export function shareEndOf(expirationSeconds: BigInt): { noEnd: boolean; date: D
   return { noEnd: date.getTime() >= noEnd.getTime(), date };
 }
 
-/** How long a share will last, for consent text: "until Jan 1, 2027". */
-export function describeShareEnd(expirationSeconds: BigInt): string {
-  const ms = Number(expirationSeconds.toString()) * 1000;
-  const noEnd = new Date();
-  noEnd.setFullYear(noEnd.getFullYear() + NO_END_YEARS);
-  if (ms >= noEnd.getTime()) return 'with no end date';
-  return `until ${new Date(ms).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })}`;
+/** shareEndOf for a grant's ISO expiry (Vehicle.grantExpiresAt); null if unknown. */
+export function grantEndOf(isoDate?: string): { noEnd: boolean; date: Date } | null {
+  const ms = isoDate ? Date.parse(isoDate) : NaN;
+  if (Number.isNaN(ms)) return null;
+  return shareEndOf(BigInt(Math.floor(ms / 1000)));
 }

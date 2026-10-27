@@ -1,56 +1,80 @@
 import React, { useEffect, useState } from 'react';
-import { UiStates } from '../../enums';
-import { useUIManager } from '../../context/UIManagerContext';
-import { isInvalidSessionError } from '../../utils/authUtils';
 import { captureException } from '@sentry/react';
-import { UIManagerLoaderWrapper, ErrorMessage } from '../Shared';
-import { useFinishShareVehicles, useUpdateVehiclePermissions } from '../../hooks';
-import { VehiclePermissionsAction } from '../../types';
-import { getNewExpirationDate } from '../../utils/vehicles';
-import { ManageVehicleDetails } from './ManageVehicleDetails';
-import { ManageVehicleFooter } from './ManageVehicleFooter';
-import { useDevCredentials } from '../../context/DevCredentialsContext';
-import { VehicleManagerMandatoryParams } from '../../types';
-import { needsPermissionUpdate } from '../../utils/permissions';
+import { getPermissionsArray, Permission } from '@dimo-network/transactions';
+import {
+  ArrowPathIcon,
+  ExclamationCircleIcon,
+  InformationCircleIcon,
+  SparklesIcon,
+} from '@heroicons/react/24/outline';
+
 import { useAuthContext } from '../../context/AuthContext';
-import { describeShareEnd } from '../../utils/dateUtils';
+import { useDevCredentials } from '../../context/DevCredentialsContext';
+import { useUIManager } from '../../context/UIManagerContext';
+import {
+  useFinishShareVehicles,
+  useFinishVehicles,
+  useUpdateVehiclePermissions,
+} from '../../hooks';
+import { translateText, useT, type Text } from '../../i18n';
+import { formatDate, formatList } from '../../i18n/format';
+import { SharingResult, Vehicle } from '../../models/vehicle';
 import {
   checkDocumentAccess,
-  getFileLabels,
-  readGrantAgreements,
   GrantUnreadableError,
+  readGrantAgreements,
   toCloudEventAgreements,
 } from '../../services/vehicleDocumentAgreements';
+import {
+  CloudEventAgreement,
+  VehicleManagerMandatoryParams,
+  VehiclePermissionsAction,
+} from '../../types';
+import { isInvalidSessionError } from '../../utils/authUtils';
+import { grantEndOf, shareEndOf } from '../../utils/dateUtils';
+import { getAddedPermissions, needsPermissionUpdate } from '../../utils/permissions';
+import { getNewExpirationDate } from '../../utils/vehicles';
+import { ActionBar, Button, Notice, Screen, ScreenHeader, StatusChip } from '../ui';
+import { fileItems, permissionItem } from './access';
+import { AccessRows } from './AccessRows';
+import { StopSharingDialog } from './StopSharingDialog';
+import { useVehicleName } from './VehicleRow';
 
-const LOADING_MESSAGES: Record<VehiclePermissionsAction, string> = {
-  revoke: 'Revoking vehicles',
-  extend: 'Extending vehicles',
-  update: 'Updating permissions',
+const BUSY_LABEL_KEYS = {
+  revoke: 'manage.busy.revoke',
+  extend: 'manage.busy.extend',
+  update: 'manage.busy.update',
+} as const;
+
+const grantedPermissions = (vehicle: Vehicle): Permission[] => {
+  try {
+    return getPermissionsArray(BigInt(vehicle.permissions || '0'));
+  } catch {
+    return [];
+  }
 };
 
-// Revoke and extend go straight to their success screen. An update is
-// reported like a share instead (see handleSuccess).
-const SUCCESS_ACTIONS: Record<Exclude<VehiclePermissionsAction, 'update'>, string> = {
-  revoke: 'revoked',
-  extend: 'extended',
-};
-
+/**
+ * One shared vehicle: what the app can access and until when, then Update
+ * (when the app asks for more), Extend 1 year (when the share has an end
+ * date), or Stop sharing after a confirmation.
+ */
 export const ManageVehicle: React.FC = () => {
+  const t = useT();
+  const name = useVehicleName();
   const {
     componentData: { vehicle, permissionTemplateId, permissions },
-    setUiState,
-    setComponentData,
-    setLoadingState,
-    setError,
-    error,
+    setBusy,
   } = useUIManager();
-  const { expirationDate, cloudEvent, clientId } =
+  const { expirationDate, cloudEvent, clientId, devLicenseAlias, oemBrand } =
     useDevCredentials<VehicleManagerMandatoryParams>();
+  const appName = oemBrand?.name || devLicenseAlias;
   const { user } = useAuthContext();
   const updateVehiclePermissions = useUpdateVehiclePermissions();
   const finishShareVehicles = useFinishShareVehicles();
+  const finishVehicles = useFinishVehicles();
 
-  // The vehicle was captured when its card was clicked, possibly before the
+  // The vehicle was captured when Manage was clicked, possibly before the
   // list's file check returned. Finish that check here so the right action
   // (Update vs Extend) is offered.
   const requestedFiles = toCloudEventAgreements(cloudEvent);
@@ -76,8 +100,8 @@ export const ManageVehicle: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   // The files the current grant already shares. Update and Extend carry them
-  // over, so say so rather than re-sign them unseen.
-  const [keptFiles, setKeptFiles] = useState<string[]>([]);
+  // over, so they're listed rather than re-signed unseen.
+  const [keptFiles, setKeptFiles] = useState<CloudEventAgreement[]>([]);
   useEffect(() => {
     if (!vehicle.shared) return;
     let cancelled = false;
@@ -86,7 +110,7 @@ export const ManageVehicle: React.FC = () => {
       grantee: clientId,
     })
       .then((agreements) => {
-        if (!cancelled) setKeptFiles(getFileLabels(agreements));
+        if (!cancelled) setKeptFiles(agreements);
       })
       // Unreadable grants surface their error when an action is attempted.
       .catch(() => {});
@@ -96,90 +120,191 @@ export const ManageVehicle: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const currentVehicle = { ...vehicle, documentAccess };
+  const [busyAction, setBusyAction] = useState<VehiclePermissionsAction | null>(null);
+  const [error, setError] = useState<Text | null | undefined>(undefined);
+  const [confirmStop, setConfirmStop] = useState(false);
+
+  const currentVehicle: Vehicle = { ...vehicle, documentAccess };
   const needsUpdate = needsPermissionUpdate(
     currentVehicle,
     permissions,
     permissionTemplateId,
   );
+  const added = needsUpdate
+    ? getAddedPermissions([currentVehicle], permissions, permissionTemplateId)
+    : [];
+  const filesMissing = needsUpdate && documentAccess === false;
+  const items = [
+    ...grantedPermissions(currentVehicle).map((p) => permissionItem(p, t)),
+    ...added.map((p) => permissionItem(p, t, true)),
+    ...fileItems(keptFiles, t),
+    ...(filesMissing
+      ? fileItems(requestedFiles, t, true).filter(
+          (item) => !fileItems(keptFiles, t).some((kept) => kept.id === item.id),
+        )
+      : []),
+  ];
+  const addedLabels = items.filter((item) => item.isNew).map((item) => item.label);
 
-  const handleSuccess = (actionType: VehiclePermissionsAction) => {
-    vehicle.shared = false;
-    // An update is a share with the requested permissions, so report it the
-    // way the vehicle list does: a popup-mode app gets sharedVehicles now,
-    // since the success screen's Back button only closes the popup.
-    if (actionType === 'update') {
-      finishShareVehicles([vehicle]);
+  const grantEnd = grantEndOf(vehicle.grantExpiresAt);
+  const noEnd = !!grantEnd?.noEnd;
+  const nextEnd = shareEndOf(
+    getNewExpirationDate(vehicle, needsUpdate ? 'update' : 'extend', expirationDate),
+  );
+
+  const report = (action: VehiclePermissionsAction, expiration: bigint) => {
+    // An update is a share with the requested permissions, reported the way
+    // the vehicle list reports one.
+    if (action === 'update') {
+      finishShareVehicles([{ vehicle, outcome: 'updated', expiration }]);
       return;
     }
-    setComponentData({ action: SUCCESS_ACTIONS[actionType], vehicles: [vehicle] });
-    setUiState(UiStates.VEHICLES_SHARED_SUCCESS);
+    const result: SharingResult =
+      action === 'extend'
+        ? { vehicle, outcome: 'extended', expiration }
+        : { vehicle, outcome: 'revoked' };
+    finishVehicles(action === 'extend' ? 'extended' : 'revoked', [result]);
   };
 
-  const handleError = (error: unknown) => {
-    captureException(error);
-    if (error instanceof GrantUnreadableError) {
-      setError(error.message);
-    } else if (!isInvalidSessionError(error)) {
-      setError('Error updating vehicle permissions');
-    }
-  };
-
-  const handlePermissionUpdate = async (actionType: VehiclePermissionsAction) => {
+  const run = async (action: VehiclePermissionsAction) => {
+    setError(undefined);
+    setBusyAction(action);
+    setBusy(true);
+    const expiration = getNewExpirationDate(vehicle, action, expirationDate);
     try {
-      setError(null);
-      setLoadingState(true, LOADING_MESSAGES[actionType], true);
       await updateVehiclePermissions({
         permissionTemplateId,
         permissions,
-        expiration: getNewExpirationDate(vehicle, actionType, expirationDate),
+        expiration,
         vehicle: currentVehicle,
-        action: actionType,
+        action,
       });
-      handleSuccess(actionType);
+      report(action, expiration);
     } catch (err) {
-      handleError(err);
+      captureException(err);
+      if (!isInvalidSessionError(err)) {
+        setError(err instanceof GrantUnreadableError ? err.toMessage() : null);
+      }
     } finally {
-      setLoadingState(false);
+      setBusyAction(null);
+      setBusy(false);
     }
   };
 
-  const handleRevoke = () => {
-    handlePermissionUpdate('revoke');
-  };
+  const busy = busyAction !== null;
+  const primary = needsUpdate ? 'update' : noEnd ? null : 'extend';
 
-  const handleExtend = async () => {
-    handlePermissionUpdate('extend');
-  };
+  const actions = (
+    <ActionBar>
+      <Button
+        variant={primary ? 'destructive-ghost' : 'destructive'}
+        onClick={() => setConfirmStop(true)}
+        loading={busyAction === 'revoke'}
+        loadingLabel={t(BUSY_LABEL_KEYS.revoke)}
+        disabled={busy}
+      >
+        {t('manage.stop')}
+      </Button>
+      {primary && (
+        <Button
+          onClick={() => run(primary)}
+          loading={busyAction === primary}
+          loadingLabel={t(BUSY_LABEL_KEYS[primary])}
+          // Wait for the file check, or Extend could be offered where Update is due.
+          disabled={checking || busy}
+        >
+          {primary === 'update' ? t('manage.update') : t('manage.extend')}
+        </Button>
+      )}
+    </ActionBar>
+  );
 
-  const handleUpdate = () => {
-    handlePermissionUpdate('update');
-  };
+  let note: React.ReactNode = null;
+  if (needsUpdate) {
+    note = nextEnd.noEnd
+      ? t('manage.update_note_no_end')
+      : t('manage.update_note', { date: formatDate(nextEnd.date) });
+  } else if (noEnd) {
+    note = t('manage.no_end_note');
+  } else if (!checking) {
+    note = t('manage.extend_note', { date: formatDate(nextEnd.date) });
+  }
+  const NoteIcon = needsUpdate || !noEnd ? ArrowPathIcon : InformationCircleIcon;
 
   return (
-    <UIManagerLoaderWrapper>
-      <ManageVehicleDetails
-        vehicle={currentVehicle}
-        needsUpdate={needsUpdate}
-        newShareEnd={describeShareEnd(
-          getNewExpirationDate(
-            vehicle,
-            needsUpdate ? 'update' : 'extend',
-            expirationDate,
-          ),
+    <Screen actions={actions}>
+      <ScreenHeader
+        title={name(vehicle)}
+        subtitle={t('vehicle.id', { id: vehicle.tokenId })}
+      />
+
+      <div className="flex flex-col gap-1.5 rounded-card bg-card px-4 py-3.5">
+        <StatusChip tone={checking ? 'checking' : needsUpdate ? 'pending' : 'on'}>
+          {checking
+            ? t('vehicle.checking')
+            : needsUpdate
+              ? t('vehicle.needs_update')
+              : t('manage.status', { appName })}
+        </StatusChip>
+        {grantEnd && (
+          <span className="text-body-sm text-fg">
+            {noEnd
+              ? t('manage.no_end')
+              : t('manage.until', { date: formatDate(grantEnd.date) })}
+          </span>
         )}
-        keptFiles={keptFiles}
+      </div>
+
+      {needsUpdate && (
+        <Notice
+          title={t('manage.update_title', { appName })}
+          icon={<SparklesIcon className="size-[18px]" />}
+        >
+          {t('manage.update_body', { list: formatList(addedLabels) })}
+        </Notice>
+      )}
+
+      {error !== undefined && (
+        <div
+          role="alert"
+          className="flex items-start gap-2.5 rounded-control bg-negative-soft px-3 py-2.5 text-[13px] leading-[18px] text-fg"
+        >
+          <ExclamationCircleIcon
+            className="size-[18px] shrink-0 text-negative"
+            aria-hidden="true"
+          />
+          <span className="flex flex-col">
+            <b className="font-semibold text-ink">{t('manage.error.title')}</b>
+            {error ? translateText(error, t) : t('manage.error.body')}
+          </span>
+        </div>
+      )}
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-card-title text-ink">
+          {t('manage.access_heading', { appName })}
+        </h2>
+        <AccessRows items={items} tileClassName="bg-card" />
+      </section>
+
+      {note && (
+        <p className="flex items-center gap-2 text-body-sm text-muted">
+          <NoteIcon className="size-[18px] shrink-0" aria-hidden="true" />
+          <span>{note}</span>
+        </p>
+      )}
+
+      <StopSharingDialog
+        open={confirmStop}
+        appName={appName}
+        vehicleName={name(vehicle)}
+        onCancel={() => setConfirmStop(false)}
+        onConfirm={() => {
+          setConfirmStop(false);
+          run('revoke');
+        }}
       />
-      {!!error && <ErrorMessage message={error} />}
-      <ManageVehicleFooter
-        onRevoke={handleRevoke}
-        onExtend={handleExtend}
-        onUpdate={handleUpdate}
-        needsUpdate={needsUpdate}
-        // Wait for the file check, or Extend could be offered where Update is due.
-        disabled={checking}
-      />
-    </UIManagerLoaderWrapper>
+    </Screen>
   );
 };
 

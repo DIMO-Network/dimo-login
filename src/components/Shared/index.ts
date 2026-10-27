@@ -2,7 +2,6 @@ export * from './AutoCompleteInput';
 export * from './Back';
 export * from './Card';
 export * from './Checkbox';
-export * from './ConnectCarButton';
 export * from './ErrorMessage';
 export * from './ErrorScreen';
 export * from './Header';

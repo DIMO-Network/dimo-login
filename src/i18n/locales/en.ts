@@ -129,6 +129,145 @@ const en = {
   'share_end.until': 'Until {{date}}',
   'share_end.no_end': 'No end date',
 
+  // Email sharing, as a switch row
+  'email.share_title': 'Share my email with {{appName}}',
+  'email.share_desc': '{{appName}} can use it to contact you.',
+  'email.required': 'Required',
+  'email.required_hint':
+    '{{appName}} needs your email. Turn on email sharing to continue.',
+  'email.required_hint_below':
+    '{{appName}} needs your email. Turn on email sharing below to continue.',
+
+  // Sharing vehicles
+  'share.title': '{{appName}} wants access to your vehicles',
+  'share.access_label': 'Access requested',
+  'share.also_asks': 'Now also asks for {{list}}',
+  'share.stop_anytime': 'Stop anytime in the DIMO app',
+  'share.details': 'Details',
+  'share.details_label': 'What’s included and full terms',
+  'share.vehicles_heading': 'Your vehicles',
+  'share.select_all': 'Select all',
+  'share.select_page': 'Select page',
+  'share.deselect_all': 'Deselect all',
+  'share.group.ready': 'Ready to share',
+  'share.group.shared': 'Already shared',
+  'share.group.unsupported': 'Can’t be shared',
+  'share.add_vehicle': 'Add a vehicle',
+  'share.unsupported.vehicles': '{{appName}} asked for specific vehicles only.',
+  'share.unsupported.makes': '{{appName}} works only with {{makes}} vehicles.',
+  'share.unsupported.powertrains':
+    '{{appName}} works only with {{powertrains}} vehicles.',
+  'share.unsupported.makes_powertrains':
+    '{{appName}} works only with {{powertrains}} vehicles from {{makes}}.',
+  'share.cta.select': 'Select a vehicle',
+  'share.cta.share_one': 'Share 1 vehicle',
+  'share.cta.share_other': 'Share {{count}} vehicles',
+  'share.cta.update_one': 'Update 1 vehicle',
+  'share.cta.update_other': 'Update {{count}} vehicles',
+  'share.cta.mixed': 'Share {{share}} · Update {{update}}',
+  'share.hint.select': 'Choose at least one vehicle to share.',
+  'share.sharing': 'Sharing…',
+  'share.keep_open':
+    'Keep this window open until sharing is done. It takes a few seconds per vehicle.',
+  'share.error.title': 'Couldn’t share your vehicles',
+  'share.error.body': 'Nothing was shared. Check your connection and try again.',
+  'share.load_error.title': 'Couldn’t load your vehicles',
+  'share.load_error.body': 'Check your connection and try again.',
+  'share.empty.title': 'No vehicles connected yet',
+  'share.empty.body': 'Connect a vehicle in the DIMO app, then come back to share it.',
+  'share.all_shared.title': 'All your vehicles are already shared',
+  'share.all_shared.body':
+    'There’s nothing new to share. You can manage each vehicle below.',
+  'store.app_store': 'App Store',
+  'store.google_play': 'Google Play',
+  'pager.page': 'Page {{page}}',
+  'pager.previous': 'Previous',
+  'pager.next': 'Next',
+
+  // Powertrains, as they fit share.unsupported.* ("… with electric vehicles")
+  'powertrain.BEV': 'electric',
+  'powertrain.PHEV': 'plug-in hybrid',
+  'powertrain.HEV': 'hybrid',
+  'powertrain.ICE': 'gas',
+  'powertrain.FCEV': 'hydrogen fuel cell',
+
+  // A vehicle in a list
+  'vehicle.name': '{{make}} {{model}} {{year}}',
+  'vehicle.id': 'ID {{id}}',
+  'vehicle.not_shared': 'Not shared yet',
+  'vehicle.shared_until': 'Shared until {{date}}',
+  'vehicle.shared_no_end': 'Shared, no end date',
+  'vehicle.needs_update': 'Needs update',
+  'vehicle.adds': 'Adds {{list}}',
+  'vehicle.unsupported': 'Not supported by this app',
+  'vehicle.checking': 'Checking sharing terms…',
+  'vehicle.manage': 'Manage',
+  'vehicle.manage_label': 'Manage sharing for {{vehicle}}',
+  'chip.new': 'New',
+  'chip.updated': 'Updated',
+  'chip.stopped': 'Stopped',
+  'chip.not_updated': 'Not updated',
+
+  // The terms sheet behind "Details"
+  'terms.title': 'What’s included',
+  'terms.access': 'Access',
+  'terms.duration': 'How long',
+  'terms.duration_until':
+    'Access ends on {{date}}. You can stop sharing sooner at any time.',
+  'terms.duration_no_end':
+    'Access has no end date. You can stop sharing anytime in the DIMO app.',
+  'terms.full': 'Full terms',
+
+  // Managing one shared vehicle
+  'manage.status': 'Shared with {{appName}}',
+  'manage.until': 'Until {{date}}',
+  'manage.no_end': 'No end date',
+  'manage.access_heading': 'What {{appName}} can access',
+  'manage.update_title': '{{appName}} is asking for more access',
+  'manage.update_body': 'Updating adds {{list}}. Everything else stays the same.',
+  'manage.update_note': 'After the update it stays shared until {{date}}.',
+  'manage.update_note_no_end': 'After the update it stays shared with no end date.',
+  'manage.extend_note': 'Extending keeps this vehicle shared until {{date}}.',
+  'manage.no_end_note': 'Shared with no end date. Stop sharing whenever you like.',
+  'manage.extend': 'Extend 1 year',
+  'manage.update': 'Update permissions',
+  'manage.stop': 'Stop sharing',
+  'manage.busy.revoke': 'Stopping…',
+  'manage.busy.extend': 'Extending…',
+  'manage.busy.update': 'Updating…',
+  'manage.error.title': 'Couldn’t change sharing',
+  'manage.error.body': 'Nothing changed. Check your connection and try again.',
+  'stop.title': 'Stop sharing this vehicle?',
+  'stop.body':
+    '{{appName}} will lose access to your {{vehicle}}. You can share it again anytime.',
+  'stop.confirm': 'Stop sharing',
+  'stop.keep': 'Keep sharing',
+
+  // Done screens after sharing
+  'success.shared_title_one': 'Shared 1 vehicle with {{appName}}',
+  'success.shared_title_other': 'Shared {{count}} vehicles with {{appName}}',
+  'success.shared_body_one': '{{appName}} can access it until {{date}}.',
+  'success.shared_body_other': '{{appName}} can access them until {{date}}.',
+  'success.shared_body_no_end_one': '{{appName}} can access it until you stop sharing.',
+  'success.shared_body_no_end_other':
+    '{{appName}} can access them until you stop sharing.',
+  'success.updated_title_one': 'Updated sharing for 1 vehicle',
+  'success.updated_title_other': 'Updated sharing for {{count}} vehicles',
+  'success.updated_body': '{{appName}} now has the access it asked for.',
+  'success.extended_title': 'Sharing extended',
+  'success.extended_body':
+    'Your {{vehicle}} stays shared with {{appName}} until {{date}}.',
+  'success.stopped_title': 'Sharing stopped',
+  'success.stopped_body': '{{appName}} no longer has access to your {{vehicle}}.',
+  'success.skipped_title_one': '1 vehicle wasn’t updated',
+  'success.skipped_title_other': '{{count}} vehicles weren’t updated',
+  'success.skipped_body_one':
+    'It’s still shared as before. You can update it later from the vehicle list.',
+  'success.skipped_body_other':
+    'They’re still shared as before. You can update them later from the vehicle list.',
+  'done.next': 'You can change or stop sharing anytime in the DIMO app.',
+  'app.powered_by': 'Powered by DIMO',
+
   // The sharing contract, as summarized before signing. Display only: the
   // signed document is produced by the transactions SDK.
   'contract.intro':

@@ -21,9 +21,14 @@ export const useFetchVehicles = () => {
   const [incompatibleVehicles, setIncompatibleVehicles] = useState<Vehicle[]>([]);
   // When the app asks for files, check each existing grant for them so a share
   // without file access is offered as an update. This runs after the list is
-  // shown; the badge appears when the check returns.
+  // shown; the row says it's checking until the check returns.
+  const requestedFiles = toCloudEventAgreements(cloudEvent);
+  const markChecking = (fetched: Vehicle[]) =>
+    requestedFiles.length
+      ? fetched.map((v) => (v.shared ? { ...v, checkingAccess: true } : v))
+      : fetched;
   const checkFileAccess = (fetched: Vehicle[]) => {
-    const requested = toCloudEventAgreements(cloudEvent);
+    const requested = requestedFiles;
     if (!requested.length) return;
     fetched
       .filter((vehicle) => vehicle.shared)
@@ -37,7 +42,7 @@ export const useFetchVehicles = () => {
         setVehicles((current) =>
           current.map((v) =>
             v.tokenId === vehicle.tokenId && v.source === vehicle.source
-              ? { ...v, documentAccess }
+              ? { ...v, documentAccess, checkingAccess: false }
               : v,
           ),
         );
@@ -57,7 +62,7 @@ export const useFetchVehicles = () => {
         powertrainTypes,
       },
     });
-    setVehicles(transformedVehicles.compatibleVehicles);
+    setVehicles(markChecking(transformedVehicles.compatibleVehicles));
     checkFileAccess(transformedVehicles.compatibleVehicles);
     setIncompatibleVehicles(transformedVehicles.incompatibleVehicles);
     setEndCursor(transformedVehicles.endCursor);

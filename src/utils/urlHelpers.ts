@@ -31,6 +31,23 @@ export const getAppUrl = () => {
   }
 };
 
+/**
+ * Where the request comes from, for the origin chip: the host of the redirect
+ * URI the license registered (validated before any screen shows), not the
+ * referrer, which the page that opened the popup controls.
+ */
+export const getRedirectHost = (redirectUri?: string | null): string => {
+  if (!redirectUri) return '';
+  try {
+    const url = new URL(redirectUri);
+    if (url.protocol === 'https:' || url.protocol === 'http:') return url.host;
+    // An app scheme (myapp://callback) has no web host; show the scheme.
+    return `${url.protocol}//${url.host}`;
+  } catch {
+    return '';
+  }
+};
+
 export const getRedirectUriWithUtm = (redirectUri: string, utm: string) => {
   try {
     const url = new URL(redirectUri);

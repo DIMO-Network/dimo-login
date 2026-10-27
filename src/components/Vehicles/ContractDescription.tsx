@@ -16,12 +16,12 @@ const Paragraph = ({ text }: { text: string }) => {
   const link = text.trim().match(ATTACHMENT_LINK);
   if (link && POLICY_CIDS.includes(link[1])) {
     return (
-      <p className="mb-4">
+      <p>
         <a
           href={`https://assets.dimo.org/ipfs/${link[1]}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-zinc-500 underline"
+          className="text-ink underline underline-offset-2"
         >
           {link[2]}
         </a>
@@ -34,36 +34,40 @@ const Paragraph = ({ text }: { text: string }) => {
   if (bullets.length) {
     const intro = lines.filter((line) => !line.startsWith('- ') && line.trim());
     return (
-      <ul className="list-disc list-inside mb-4">
+      <div className="flex flex-col gap-1">
         {intro.map((line, i) => (
-          <p key={`intro-${i}`} className="mb-2">
-            {line.trim()}
-          </p>
+          <p key={`intro-${i}`}>{line.trim()}</p>
         ))}
-        {bullets.map((line, i) => (
-          <li key={i} className="ml-4">
-            {line.slice(2).trim()}
-          </li>
-        ))}
-      </ul>
+        <ul className="list-disc pl-[18px]">
+          {bullets.map((line, i) => (
+            <li key={i}>{line.slice(2).trim()}</li>
+          ))}
+        </ul>
+      </div>
     );
   }
 
-  return <p className="mb-4">{text}</p>;
+  return <p className="whitespace-pre-line">{text}</p>;
 };
 
 export const ContractDescription = ({
   description,
-  isExpanded,
+  isExpanded = true,
+  lang,
 }: {
   description: string;
-  isExpanded: boolean;
+  isExpanded?: boolean;
+  /** Set when the text isn't in the language on screen (the English original). */
+  lang?: string;
 }) => {
   const paragraphs = description.split('\n\n').filter((p) => p.trim());
   // Show only the first paragraph until expanded.
   const shown = isExpanded ? paragraphs : paragraphs.slice(0, 1);
   return (
-    <div>
+    <div
+      lang={lang}
+      className="flex flex-col gap-2 rounded-control bg-card px-3.5 py-3 text-code text-fg"
+    >
       {shown.map((paragraph, index) => (
         <Paragraph key={index} text={paragraph} />
       ))}
