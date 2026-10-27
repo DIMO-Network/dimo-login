@@ -28,7 +28,7 @@ const en = {
   'common.error_detail': 'Details: {{detail}}',
 
   // Loading
-  'loading.waiting_for_credentials': 'Waiting for credentials…',
+  'loading.waiting_for_credentials': 'Getting things ready…',
   'loading.still_working': 'Still working…',
   'loading.almost_there': 'Hang tight, almost there',
 
@@ -56,9 +56,9 @@ const en = {
   'error.missing_redirect_uri.title': 'Missing redirect URI',
   'error.missing_redirect_uri.message':
     'The app didn’t send a redirect URI. Please ask {{appName}} to set up a valid redirect URI.',
-  'error.invalid_credentials.title': 'Invalid app credentials',
+  'error.invalid_credentials.title': 'This app isn’t set up correctly',
   'error.invalid_credentials.message':
-    'There’s a problem with this app’s credentials. It may not be set up or registered correctly. Please contact the app’s support team.',
+    'Its DIMO credentials couldn’t be verified, so you can’t sign in or share from here. Please contact the app’s support team.',
   'error.missing_transaction_data.title': 'Missing transaction data',
   'error.missing_transaction_data.message':
     'The app didn’t send a transaction to sign. Check the configuration and reload.',
@@ -143,6 +143,7 @@ const en = {
   'signin.apple': 'Continue with Apple',
   'signin.signing_in': 'Signing you in…',
   'signin.error.details': 'Couldn’t get your account details. Try again.',
+  'signin.error.oauth': 'Couldn’t finish signing in with Google or Apple. Try again.',
   'signin.error.no_email':
     'That account didn’t share an email address with DIMO. Try another way to sign in.',
 
@@ -324,6 +325,124 @@ const en = {
   'success.docs_body': '{{appName}} can see your driver documents until {{date}}.',
   'success.docs_body_no_end':
     '{{appName}} can see your driver documents until you stop sharing.',
+  // Transactions and message signing
+  'tx.title': 'Approve a transaction',
+  'tx.warning_title': 'Only approve if you trust {{appName}}',
+  'tx.warning_body':
+    '{{host}} is asking you to sign a non-standard transaction from your DIMO account.',
+  'tx.function': 'Function',
+  'tx.parameters': 'Parameters',
+  'tx.none': 'None',
+  'tx.address': 'Contract',
+  'tx.value': 'Value',
+  'tx.approve': 'Approve',
+  'tx.approving': 'Approving…',
+  'tx.reject': 'Reject',
+  'tx.error': 'Couldn’t complete the transaction. Try again.',
+  'tx.done_title': 'Transaction complete',
+  'tx.done_body': 'It went through and {{appName}} has the details.',
+  'tx.view': 'View transaction',
+  'tx.missing.title': 'Transaction not completed',
+  'tx.missing.body': 'There’s no transaction to show. It may not have gone through.',
+  'sign.title': 'Sign a message',
+  'sign.warning_title': 'Only sign if you trust {{appName}}',
+  'sign.warning_body':
+    '{{host}} is asking you to sign a message. The signature proves you control this DIMO account.',
+  'sign.message': 'Message',
+  'sign.hash': 'Hash',
+  'sign.show_full': 'Show full message',
+  'sign.show_less': 'Show less',
+  'sign.sign': 'Sign',
+  'sign.signing': 'Signing…',
+  'sign.error': 'Couldn’t sign the message. Try again.',
+  'sign.done_title': 'Message signed',
+  'sign.done_body': '{{appName}} has the signature.',
+  'sign.copy': 'Copy signature',
+  'sign.copied': 'Copied',
+  'sign.missing.title': 'Message not signed',
+  'sign.missing.body':
+    'There’s no signature to show. The message may not have been signed.',
+  'cancelled.title': 'Request cancelled',
+  'cancelled.body': 'Nothing was shared or signed. You can close this window.',
+
+  // Developer license setup
+  'license.title': 'Developer license',
+  'license.subtitle': 'Setting up API access for {{appName}}',
+  'license.step.mint': 'Mint developer license',
+  'license.step.register': 'Register API key and redirect URI',
+  'license.status.starting': 'Setting up your developer license…',
+  'license.status.minting': 'Step 1 of 2: minting your developer license…',
+  'license.status.registering': 'Step 2 of 2: registering the API key and redirect URI…',
+  'license.status.generating': 'Generating your API key…',
+  'license.status.done': 'Done',
+  'license.existing.subtitle': 'You already have a developer license',
+  'license.existing.body':
+    'Your account already has a developer license ({{clientId}}). Do you have an API key for it?',
+  'license.existing.has_key': 'Yes, I have my API key',
+  'license.existing.new_key': 'No, generate a new API key',
+  'license.error': 'Couldn’t finish setting up the developer license.',
+
+  // Adding a vehicle
+  'add.title': 'Add a vehicle',
+  'add.tabs_label': 'Find the vehicle by',
+  'add.tab.make_model': 'Make, model, year',
+  'add.tab.vin': 'VIN',
+  'add.make_model': 'Make and model',
+  'add.make_model_placeholder': 'Ford Bronco',
+  'add.year': 'Model year',
+  'add.country': 'Country where the vehicle is',
+  'add.vin': 'VIN (vehicle identification number)',
+  'add.vin_placeholder': '1N6AD0EVXCC459517',
+  'add.check': 'Check compatibility',
+  'compat.checking': 'Checking compatibility…',
+  'compat.supported': 'Your {{vehicle}} is supported',
+  'compat.unsupported': 'Your {{vehicle}} isn’t supported',
+  'compat.unsupported_generic': 'This vehicle isn’t supported',
+  'compat.supported_body': 'Connect it next, then share it with {{appName}}.',
+  'compat.unsupported_body': 'DIMO can’t connect this vehicle yet. Try another one.',
+  'compat.add': 'Add this vehicle',
+  'compat.try_another': 'Try another vehicle',
+  'device.title': 'Connect your {{vehicle}}',
+  'device.body':
+    'This vehicle needs a DIMO adapter to connect to {{appName}}. Adapters are set up in the DIMO mobile app.',
+  'device.image_alt': 'DIMO adapter',
+  'device.open_app': 'Open the DIMO app',
+  'device.shop': 'Shop adapters',
+  'device.later': 'Later',
+  'mint.creating': 'Creating your vehicle…',
+  'mint.failed.title': 'Couldn’t add your vehicle',
+  'mint.failed.body': 'Try again from your vehicle list, or add it in the DIMO app.',
+  'mint.failed.cta': 'Back to your vehicles',
+
+  // Connecting a Tesla
+  'tesla.authorize.title': 'Authorize your Tesla account',
+  'tesla.needs_access':
+    '{{appName}} needs access to your Tesla’s data to provide its service.',
+  'tesla.perm.info': 'Vehicle information',
+  'tesla.perm.location': 'Vehicle location',
+  'tesla.perm.profile': 'Profile',
+  'tesla.perm.commands': 'Vehicle commands',
+  'tesla.perm.charging': 'Charging management',
+  'tesla.required': 'Required',
+  'tesla.recommended': 'Recommended',
+  'tesla.authorize.cta': 'Continue to Tesla',
+  'tesla.key.title': 'Add the virtual key',
+  'tesla.key.body':
+    'The virtual key encrypts data end to end, sends updates more often and lets you send commands from your phone.',
+  'tesla.key.remove':
+    'You can remove it anytime in the Tesla app. <learn>Learn more</learn>',
+  'tesla.key.vin': 'VIN {{vin}}',
+  'tesla.key.cta': 'Set up the virtual key',
+  'tesla.waiting.title': 'Waiting for the virtual key',
+  'tesla.waiting.body': 'Finish adding the key in the Tesla app, then come back here.',
+  'tesla.waiting.cta': 'I’ve added the virtual key',
+  'tesla.done.title': 'Setup complete',
+  'tesla.done.body':
+    'Your Tesla is connected. {{appName}} can now use its data and commands.',
+  'tesla.done.cta': 'Done',
+  'tesla.checking': 'Checking Tesla permissions…',
+  'tesla.finalizing': 'Finishing setup…',
+
   'done.next': 'You can change or stop sharing anytime in the DIMO app.',
   'app.powered_by': 'Powered by DIMO',
 

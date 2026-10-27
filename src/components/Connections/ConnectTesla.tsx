@@ -1,18 +1,18 @@
 import { useEffect, useState, type FC } from 'react';
 
 import {
-  PrimaryButton,
-  Header,
   PermissionsStep,
   VirtualKeyStep,
   PollingVirtualKeyStep,
   MintingStep,
   UIManagerLoaderWrapper,
 } from '../Shared';
+import { ActionBar, Button, Screen, ScreenHeader } from '../ui';
+import { message, useT, type TranslationKey } from '../../i18n';
 import { AuthProvider } from '../../utils/authUrls';
 import { UiStates } from '../../enums';
 import { useUIManager } from '../../context/UIManagerContext';
-import { getAppUrl } from '../../utils/urlHelpers';
+import { getRedirectHost } from '../../utils/urlHelpers';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { constructAuthUrl } from '../../utils/authUrls';
 import { buildFlowSnapshot, saveFlowSnapshot } from '../../utils/flowSnapshot';
@@ -36,6 +36,7 @@ enum TeslaOnboardingStep {
 }
 
 export const ConnectTesla: FC = () => {
+  const t = useT();
   const { componentData, setUiState, setLoadingState, setComponentData, entryState } =
     useUIManager();
   const { onboardingEnabled } = useOracles();
@@ -45,7 +46,6 @@ export const ConnectTesla: FC = () => {
   const { devLicenseAlias, clientId, redirectUri, oemBrand, cloudEvent } = devCredentials;
   const displayName = oemBrand?.name || devLicenseAlias;
   const { jwt } = useAuthContext();
-  const appUrl = getAppUrl();
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -79,7 +79,7 @@ export const ConnectTesla: FC = () => {
       country: any;
     },
   ) => {
-    setLoadingState(true, 'Checking Tesla permissions...');
+    setLoadingState(true, message('tesla.checking'));
 
     try {
       //Submit Auth Code, to get authorized vehicles
@@ -231,7 +231,7 @@ export const ConnectTesla: FC = () => {
       setLoadingState(false);
       setUiState(UiStates.MINT_VEHICLE);
     } else {
-      setLoadingState(true, 'Finalizing setup...');
+      setLoadingState(true, message('tesla.finalizing'));
       setTimeout(() => {
         setLoadingState(false);
         setUiState(UiStates.VEHICLE_MANAGER);
@@ -259,22 +259,25 @@ export const ConnectTesla: FC = () => {
     return stepComponents[step] || null;
   };
 
-  const DEFAULT_STEP_CONTENT = { title: 'Setup Complete', buttonText: 'Done' };
+  const DEFAULT_STEP_CONTENT = {
+    title: 'tesla.done.title',
+    buttonText: 'tesla.done.cta',
+  } as const;
   const STEP_CONTENT_MAP: Record<
     TeslaOnboardingStep,
-    { title: string; buttonText: string }
+    { title: TranslationKey; buttonText: TranslationKey }
   > = {
     [TeslaOnboardingStep.PERMISSIONS]: {
-      title: 'Authorize your Tesla account',
-      buttonText: 'Continue',
+      title: 'tesla.authorize.title',
+      buttonText: 'tesla.authorize.cta',
     },
     [TeslaOnboardingStep.VIRTUAL_KEY]: {
-      title: 'Add Virtual Key',
-      buttonText: 'Setup Virtual Key',
+      title: 'tesla.key.title',
+      buttonText: 'tesla.key.cta',
     },
     [TeslaOnboardingStep.POLLING_VIRTUAL_KEY]: {
-      title: 'Waiting for Virtual Key',
-      buttonText: "I've added my Virtual Key!",
+      title: 'tesla.waiting.title',
+      buttonText: 'tesla.waiting.cta',
     },
     [TeslaOnboardingStep.MINTING]: DEFAULT_STEP_CONTENT,
     [TeslaOnboardingStep.READY]: DEFAULT_STEP_CONTENT,
@@ -282,19 +285,21 @@ export const ConnectTesla: FC = () => {
 
   return (
     <UIManagerLoaderWrapper>
-      <Header
-        title={STEP_CONTENT_MAP[step].title}
-        subtitle={appUrl.hostname}
-        link={`${appUrl.protocol}//${appUrl.host}`}
-      />
-
-      {renderStep(step, displayName, vehicleToAdd)}
-
-      <div className="flex flex-col w-full mt-3">
-        <PrimaryButton onClick={handleNextStep} width="w-full py-3">
-          {STEP_CONTENT_MAP[step].buttonText}
-        </PrimaryButton>
-      </div>
+      <Screen
+        actions={
+          <ActionBar>
+            <Button fullWidth onClick={handleNextStep}>
+              {t(STEP_CONTENT_MAP[step].buttonText)}
+            </Button>
+          </ActionBar>
+        }
+      >
+        <ScreenHeader
+          title={t(STEP_CONTENT_MAP[step].title)}
+          host={getRedirectHost(redirectUri)}
+        />
+        {renderStep(step, displayName, vehicleToAdd)}
+      </Screen>
     </UIManagerLoaderWrapper>
   );
 };

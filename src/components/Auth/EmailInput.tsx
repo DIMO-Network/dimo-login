@@ -125,7 +125,11 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     clientId: 'login-with-dimo',
     redirectUri: getOAuthRedirectUri(),
     onSuccess: (token) => handleToken(token),
-    onFailure: (error) => setError(error),
+    onFailure: (reason) => {
+      // The provider's reason is for developers; the user gets what to do.
+      console.error('OAuth code exchange failed:', reason);
+      setError(message('signin.error.oauth'));
+    },
   });
 
   if (isExchanging) {

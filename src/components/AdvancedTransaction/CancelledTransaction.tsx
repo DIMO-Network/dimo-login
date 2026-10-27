@@ -1,12 +1,22 @@
-// src/components/SuccessPage.tsx
 import React from 'react';
-import Header from '../Shared/Header';
+import { XCircleIcon } from '@heroicons/react/24/outline';
 
+import { useT } from '../../i18n';
+import { DoneHeader, Screen } from '../ui';
+
+/** After Reject or Cancel in embed mode; the app has been told. */
 export const CancelledTransaction: React.FC = () => {
+  const t = useT();
   return (
-    <>
-      <Header title="Transaction Cancelled" subtitle={''} />
-    </>
+    <Screen>
+      <DoneHeader
+        tone="neutral"
+        icon={<XCircleIcon className="size-[26px]" />}
+        title={t('cancelled.title')}
+      >
+        {t('cancelled.body')}
+      </DoneHeader>
+    </Screen>
   );
 };
 

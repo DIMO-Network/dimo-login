@@ -1,6 +1,7 @@
 import { useEffect, type FC } from 'react';
 
-import VehicleThumbnail from '../../assets/images/vehicle-thumbnail.png';
+import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+
 import { UiStates } from '../../enums';
 import { useUIManager } from '../../context/UIManagerContext';
 import { useAuthContext } from '../../context/AuthContext';
@@ -14,8 +15,11 @@ import {
 import { IntegrationNft, MintVehicleNft } from '../../models/typedData';
 import { SAMPLE_B64_IMAGE } from '../../utils/constants';
 import { UIManagerLoaderWrapper } from '../Shared';
+import { message, useT } from '../../i18n';
+import { ActionBar, Button, DoneHeader, Screen } from '../ui';
 
 export const MintVehicle: FC = () => {
+  const t = useT();
   const { componentData, setLoadingState, setUiState, setComponentData } = useUIManager();
   const { user, jwt, validateSession } = useAuthContext();
 
@@ -25,7 +29,7 @@ export const MintVehicle: FC = () => {
     const controller = new AbortController();
     const processMint = async () => {
       try {
-        setLoadingState(true, 'Creating vehicle...', true);
+        setLoadingState(true, message('mint.creating'), true);
 
         const { integrationID, userDeviceID } = componentData;
 
@@ -122,22 +126,27 @@ export const MintVehicle: FC = () => {
     );
   };
 
+  // Shown only once creating stopped without a vehicle (the loader covers the
+  // work itself).
   return (
     <UIManagerLoaderWrapper>
-      <img
-        style={{ height: '40px', width: '40px' }}
-        className="rounded-full object-cover mr-4"
-        src={VehicleThumbnail}
-        alt="Vehicle Thumbnail"
-      />
-      <div className="flex flex-col items-center gap-2">
-        <h2 className="text-gray-500 text-xl font-medium">No cars connected yet</h2>
-        <p className="text-sm">Connect your car in the DIMO app to share permissions.</p>
-      </div>
-      <div className="flex flex-col items-center gap-6">
-        <p className="text-xl font-medium">Download the DIMO app now</p>
-        <div className="flex flex-row gap-6"></div>
-      </div>
+      <Screen
+        actions={
+          <ActionBar>
+            <Button fullWidth onClick={() => setUiState(UiStates.VEHICLE_MANAGER)}>
+              {t('mint.failed.cta')}
+            </Button>
+          </ActionBar>
+        }
+      >
+        <DoneHeader
+          tone="negative"
+          icon={<ExclamationTriangleIcon className="size-[26px]" />}
+          title={t('mint.failed.title')}
+        >
+          {t('mint.failed.body')}
+        </DoneHeader>
+      </Screen>
     </UIManagerLoaderWrapper>
   );
 };

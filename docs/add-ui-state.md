@@ -8,7 +8,7 @@ This guide covers how to introduce a new UI screen in the DIMO Webapp using the 
 
 ## 🪟 Step 1 — Define the New UIState
 
-Open the `UIManagerContext.tsx` file and add your new enum entry:
+Open `src/enums/state.ts` and add your new enum entry:
 
 ```tsx
 export enum UiStates {
@@ -23,13 +23,41 @@ Create a new file in the appropriate folder inside `components/`, for example:
 
 `components/Vehicles/MyNewVehicleComponent.tsx`
 
-Standard React component — can be a form, flow step, confirmation, etc.
+Standard React component — can be a form, flow step, confirmation, etc. Build it from the design-system primitives in `src/components/ui` so it matches the other screens:
+
+```tsx
+import { ActionBar, Button, Screen, ScreenHeader } from '../ui';
+import { useT } from '../../i18n';
+
+export const MyNewVehicleComponent = () => {
+  const t = useT();
+  return (
+    <Screen
+      actions={
+        <ActionBar>
+          <Button onClick={onContinue}>{t('common.continue')}</Button>
+        </ActionBar>
+      }
+    >
+      <ScreenHeader title={t('my_view.title')} />
+      …
+    </Screen>
+  );
+};
+```
+
+- `ScreenHeader` (or `DoneHeader` for a result) renders the `h1` that `AppShell` focuses when the screen opens. Use one per screen.
+- `ActionBar` stays pinned at the bottom of the popup. A disabled button says why with `disabledReasonId` pointing at the bar's `hint`.
+- While the screen signs or sends something, show it on the button (`loading`, `loadingLabel`) and call `setBusy(true)` from `useUIManager` so Back hides until it's done.
+- Every string goes in `src/i18n/locales/en.ts` and `ja.ts` (see `i18n.md`). The locales test fails if Japanese is missing a key.
 
 ## 🧩 Step 3 — Render It in App.tsx
 
-In the App.tsx return, simply render your new component, based on a condition check
+Add it to the `componentMap` in `App.tsx`; `AppShell` wraps it:
 
-`{uiState === UiStates.MY_NEW_VIEW && <MyNewVehicleComponent />}`
+`[UiStates.MY_NEW_VIEW]: <MyNewVehicleComponent />,`
+
+Then list it in `docs/flows.md`: how it's reached, what it signs and what the app is told.
 
 ## ⚙️ Step 4 — Trigger the UIState
 

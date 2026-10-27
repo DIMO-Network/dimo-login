@@ -7,8 +7,10 @@ import { useUIManager } from '../../context/UIManagerContext';
 import { UiStates } from '../../enums';
 import { executeTransactionWithReceipt, executeBatchTransactions } from '../../services/turnkeyService';
 import { sendMessageToReferrer, backToThirdParty } from '../../utils/messageHandler';
-import { ErrorMessage, Header, PrimaryButton, UIManagerLoaderWrapper } from '../Shared';
 import { captureException } from '@sentry/react';
+import { useT } from '../../i18n';
+import { ActionBar, Button, ErrorBox, Screen, ScreenHeader } from '../ui';
+import { cn } from '../ui/cn';
 import { getFirstOwnedDeveloperLicense } from '../../services/identityService';
 
 const isProd = process.env.REACT_APP_ENVIRONMENT === 'prod';
@@ -85,10 +87,28 @@ function buildAlias(email: string, devLicenseAlias: string): string {
 
 type Step = 'idle' | 'step1' | 'step2' | 'done' | 'error' | 'existing_prompt';
 
+const StepRow = ({ state, label }: { state: 'todo' | 'active' | 'done'; label: string }) => (
+  <li className="flex items-center gap-2.5 text-body-sm">
+    <span
+      aria-hidden="true"
+      className={cn(
+        'size-2 shrink-0 rounded-full',
+        state === 'active' && 'animate-pulse bg-accent',
+        state === 'done' && 'bg-positive',
+        state === 'todo' && 'bg-outline-strong',
+      )}
+    />
+    <span className={state === 'todo' ? 'text-muted' : 'text-ink'}>{label}</span>
+  </li>
+);
+
 export const ProvisionDeveloperLicense: React.FC = () => {
+  const t = useT();
   const { redirectUri, utm, devLicenseAlias, existingTokenId, existingClientId } = useDevCredentials();
   const { user, validateSession } = useAuthContext();
-  const { setUiState, error, setError } = useUIManager();
+  const { setUiState } = useUIManager();
+  // Shown under a translated line; the underlying reason stays as is.
+  const [error, setError] = useState('');
 
   const [step, setStep] = useState<Step>('idle');
   const [tokenId, setTokenId] = useState<number | null>(existingTokenId ?? null);
@@ -174,7 +194,7 @@ export const ProvisionDeveloperLicense: React.FC = () => {
       console.error('[ProvisionDeveloperLicense] handleHasExistingKey failed:', e);
       captureException(e);
       setStep('error');
-      setError(e instanceof Error ? e.message : 'Could not register redirect URI');
+      setError(e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -190,7 +210,7 @@ export const ProvisionDeveloperLicense: React.FC = () => {
       console.error('[ProvisionDeveloperLicense] handleGenerateNewKey failed:', e);
       captureException(e);
       setStep('error');
-      setError(e instanceof Error ? e.message : 'Could not generate API key');
+      setError(e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -236,7 +256,7 @@ export const ProvisionDeveloperLicense: React.FC = () => {
       console.error('[ProvisionDeveloperLicense] runProvision failed:', e);
       captureException(e);
       setStep('error');
-      setError(e instanceof Error ? e.message : 'Could not provision developer license');
+      setError(e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -249,69 +269,89 @@ export const ProvisionDeveloperLicense: React.FC = () => {
       console.error('[ProvisionDeveloperLicense] retryStep2 failed:', e);
       captureException(e);
       setStep('error');
-      setError(e instanceof Error ? e.message : 'Could not complete setup');
+      setError(e instanceof Error ? e.message : String(e));
     }
   };
 
+  const errorBox = step === 'error' && (
+    <ErrorBox title={t('license.error')}>
+      {error && (
+        <span className="text-label font-normal text-muted">
+          {t('common.error_detail', { detail: error })}
+        </span>
+      )}
+    </ErrorBox>
+  );
+
   if (step === 'existing_prompt') {
     return (
-      <UIManagerLoaderWrapper>
-        <Header title="Developer License" subtitle="You already have a developer license" />
-        {error && <ErrorMessage message={error} />}
-        <div className="flex flex-col gap-4 w-full text-sm">
-          <p className="text-gray-600">
-            Your wallet already has a developer license (<span className="font-mono text-xs">{clientId}</span>).
-            Do you have an existing API key for it?
-          </p>
-          <div className="flex flex-col gap-2 w-full pt-2">
-            <PrimaryButton onClick={handleHasExistingKey} width="w-full">
-              Yes, I have my API key
-            </PrimaryButton>
-            <button
-              onClick={handleGenerateNewKey}
-              className="w-full text-sm text-gray-500 underline hover:text-gray-700"
-            >
-              No, generate a new API key
-            </button>
-          </div>
-        </div>
-      </UIManagerLoaderWrapper>
+      <Screen
+        actions={
+          <ActionBar className="[&>div]:flex-col">
+            <Button fullWidth onClick={handleHasExistingKey}>
+              {t('license.existing.has_key')}
+            </Button>
+            <Button variant="ghost" fullWidth onClick={handleGenerateNewKey}>
+              {t('license.existing.new_key')}
+            </Button>
+          </ActionBar>
+        }
+      >
+        <ScreenHeader title={t('license.title')} subtitle={t('license.existing.subtitle')} />
+        {errorBox}
+        <p className="text-body-sm text-fg [overflow-wrap:anywhere]">
+          {t('license.existing.body', { clientId: clientId ?? '' })}
+        </p>
+      </Screen>
     );
   }
 
-  const stepLabel =
-    step === 'step1' ? 'Step 1 of 2: Minting your developer license…'
-    : step === 'step2' ? (skipMint ? 'Generating your API key…' : 'Step 2 of 2: Registering API key and redirect URI…')
-    : step === 'done' ? 'Done!'
-    : 'Setting up your developer license…';
+  const status =
+    step === 'step1'
+      ? t('license.status.minting')
+      : step === 'step2'
+        ? skipMint
+          ? t('license.status.generating')
+          : t('license.status.registering')
+        : step === 'done'
+          ? t('license.status.done')
+          : t('license.status.starting');
 
   return (
-    <UIManagerLoaderWrapper>
-      <Header title="Developer License" subtitle="Setting up API access for this app" />
-      {error && <ErrorMessage message={error} />}
-
-      <div className="flex flex-col gap-4 w-full text-sm">
-        <p className="text-gray-600">{stepLabel}</p>
-        <div className="flex flex-col gap-2">
+    <Screen
+      actions={
+        step === 'error' && tokenId != null ? (
+          <ActionBar>
+            <Button fullWidth onClick={retryStep2}>
+              {t('common.try_again')}
+            </Button>
+          </ActionBar>
+        ) : undefined
+      }
+    >
+      <ScreenHeader
+        title={t('license.title')}
+        subtitle={t('license.subtitle', { appName: devLicenseAlias })}
+      />
+      {errorBox}
+      <section className="flex flex-col gap-3 rounded-card bg-card px-4 py-3.5">
+        <p className="text-body-sm text-fg" role="status">
+          {status}
+        </p>
+        <ol className="flex flex-col gap-2">
           {!skipMint && (
-            <div className="flex items-center gap-2">
-              <span className={`h-2 w-2 rounded-full ${step === 'step1' ? 'bg-blue-500 animate-pulse' : step !== 'idle' ? 'bg-green-500' : 'bg-gray-300'}`} />
-              <span className={step !== 'idle' ? 'text-gray-900' : 'text-gray-400'}>Mint developer license</span>
-            </div>
+            <StepRow
+              state={step === 'step1' ? 'active' : step !== 'idle' ? 'done' : 'todo'}
+              label={t('license.step.mint')}
+            />
           )}
-          <div className="flex items-center gap-2">
-            <span className={`h-2 w-2 rounded-full ${step === 'step2' ? 'bg-blue-500 animate-pulse' : step === 'done' ? 'bg-green-500' : 'bg-gray-300'}`} />
-            <span className={step === 'step2' || step === 'done' ? 'text-gray-900' : 'text-gray-400'}>Register API key &amp; redirect URI</span>
-          </div>
-        </div>
-      </div>
-
-      {step === 'error' && tokenId != null && (
-        <div className="flex justify-end w-full pt-4">
-          <PrimaryButton onClick={retryStep2} width="w-[214px]">Retry</PrimaryButton>
-        </div>
-      )}
-    </UIManagerLoaderWrapper>
+          <StepRow
+            state={step === 'step2' ? 'active' : step === 'done' ? 'done' : 'todo'}
+            label={t('license.step.register')}
+          />
+        </ol>
+      </section>
+    </Screen>
   );
 };
 

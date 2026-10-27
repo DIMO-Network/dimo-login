@@ -1,4 +1,7 @@
-import { FC } from 'react';
+import { FC, useId } from 'react';
+
+import { useT } from '../../i18n';
+import { FieldLabel, type SelectOption } from '../ui';
 import { AutoCompleteInput } from './AutoCompleteInput';
 import { Select } from './Select';
 
@@ -10,8 +13,11 @@ interface MakeModelYearTabProps {
   country: string;
   setCountry: (value: string) => void;
   supportedMakeModels: string[];
-  countryList: string[];
+  countryOptions: SelectOption[];
 }
+
+const thisYear = new Date().getFullYear() + 1;
+const YEARS = Array.from({ length: thisYear - 1900 + 1 }, (_, i) => String(thisYear - i));
 
 export const MakeModelYearTab: FC<MakeModelYearTabProps> = ({
   makeModel,
@@ -21,33 +27,38 @@ export const MakeModelYearTab: FC<MakeModelYearTabProps> = ({
   country,
   setCountry,
   supportedMakeModels,
-  countryList,
+  countryOptions,
 }) => {
+  const t = useT();
+  const makeModelId = useId();
   return (
-    <div className="mt-4">
-      <label className="block text-sm">Make and model</label>
-      <AutoCompleteInput
-        options={supportedMakeModels}
-        value={makeModel}
-        onChange={setMakeModel}
-        placeholder="Ford Bronco"
-      />
-
-      <label className="block mt-4 text-sm">Model year</label>
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
+        <FieldLabel htmlFor={makeModelId}>{t('add.make_model')}</FieldLabel>
+        <AutoCompleteInput
+          id={makeModelId}
+          options={supportedMakeModels}
+          value={makeModel}
+          onChange={setMakeModel}
+          placeholder={t('add.make_model_placeholder')}
+        />
+      </div>
       <Select
-        options={Array.from({ length: 2026 - 1900 + 1 }, (_, i) => (2026 - i).toString())}
+        id="model-year"
+        name="model-year"
+        label={t('add.year')}
+        options={YEARS}
         value={modelYear}
         onChange={(e) => setModelYear(e.target.value)}
-        className="w-full mt-1"
         includeEmptyOption
       />
-
-      <label className="block mt-4 text-sm">Country of location</label>
       <Select
-        options={countryList}
+        id="country"
+        name="country"
+        label={t('add.country')}
+        options={countryOptions}
         value={country}
         onChange={(e) => setCountry(e.target.value)}
-        className="w-full mt-1"
       />
     </div>
   );

@@ -1,17 +1,18 @@
 import React, { FC } from 'react';
 
+import { useT } from '../../i18n';
+
 interface MintingStepProps {
   devLicenseAlias: string;
 }
 
-export const MintingStep: FC<MintingStepProps> = ({ devLicenseAlias }) => (
-  <>
-    <div className="w-full text-gray-600 text-sm text-center">
-      Your Tesla is now connected! You can now access vehicle data and commands via{' '}
-      {devLicenseAlias}.
-    </div>
-    <p className="text-lg font-medium text-black">All set! 🚀</p>
-  </>
-);
+export const MintingStep: FC<MintingStepProps> = ({ devLicenseAlias }) => {
+  const t = useT();
+  return (
+    <p className="text-body-sm text-fg">
+      {t('tesla.done.body', { appName: devLicenseAlias })}
+    </p>
+  );
+};
 
 export default MintingStep;

@@ -1,0 +1,61 @@
+# Flows and screens
+
+Every screen of Login with DIMO, how a user gets there, what it signs and what the app is told. The app starts a flow with `entryState` (popup `AUTH_INIT` message, redirect query, or a `configurationId`/`configCID` configuration). Screens switch through `UIManagerContext.setUiState`; there is no router. Each one renders inside `AppShell` (top bar with Back, logo and language switcher; a sticky `ActionBar` for its buttons).
+
+How the app is told, by transport:
+
+| Transport      | What happens                                                                                                              |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Popup          | `postMessage` to the opener, addressed to the registered `redirectUri`'s origin. The done screen's Back closes the popup. |
+| Embed (iframe) | `postMessage` to the parent, same origin rule. Done screens hide Back; the embedder navigates.                            |
+| Redirect       | The done screen's Back redirects to `redirectUri` with the same keys in the query (values are never `undefined`).         |
+
+The SDK turns `authResponse` messages into `onSuccess({ token, email?, sharedVehicles?, revokedVehicles?, extendedVehicles?, accountGranted? })`.
+
+## Signing in
+
+Reached first whenever there is no valid session. A valid session skips it and goes to `entryState` (or `SUCCESS` for a plain login).
+
+| State                | Screen                                                                                                      | Next                                                                                                                                           |
+| -------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `EMAIL_INPUT`        | Email, Google or Apple, and the email-sharing switch. "Welcome back" for an account used on this device.    | Known account: `PASSKEY_LOGIN`. New account: `PASSKEY_GENERATOR`. Google/Apple leave for the provider and return here with `code` and `state`. |
+| `PASSKEY_LOGIN`      | "Confirm it's you". The passkey prompt opens by itself (60 s cap).                                          | Signed in: `entryState`. Any failure: `PASSKEY_LOGIN_FAIL`.                                                                                    |
+| `PASSKEY_LOGIN_FAIL` | Use passkey again, email me a code, use another account. Shows the error unless it was a cancel or timeout. | `PASSKEY_LOGIN`, `OTP_INPUT` or `EMAIL_INPUT`.                                                                                                 |
+| `OTP_INPUT`          | Six boxes, numeric keypad, one-time-code autofill; full-width digits are accepted.                          | Signed in: `entryState`.                                                                                                                       |
+| `PASSKEY_GENERATOR`  | Create a passkey for a new account.                                                                         | `PASSKEY_LOGIN`.                                                                                                                               |
+| `SUCCESS`            | Plain sign-in done: Back to the app, Log out.                                                               | Back sends `authResponse` (token, walletAddress, email if shared).                                                                             |
+| `LOGOUT`             | Signs out, posts `logout`, returns to the app.                                                              |                                                                                                                                                |
+
+**Email sharing.** The choice is stored per app and account (`email_granted_<clientId>_<email>`). It is sent as `email` only when granted. With `forceEmail`, every way forward waits for the switch and says why. A returning session that never answered is asked on the screen that sends it back: share vehicles, share documents or `SUCCESS`. Before a Google/Apple redirect the choice waits in `AuthStateStore` until the provider's email is known; the flow itself is saved in sessionStorage under a nonce (`flowRef` in OAuth `state`) and restored on return.
+
+## Sharing vehicles (`entryState=VEHICLE_MANAGER`)
+
+| State                                                                                       | Screen                                                                                                                                                                                                                                                                                | Signs                                                                                                                                                                          | Tells the app                                                                                                                |
+| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| `VEHICLE_MANAGER`                                                                           | The request (permission and document chips, how long, Details sheet with the contract) and the user's vehicles: Ready to share, Already shared (Needs update when the share lacks something requested), Can't be shared (with the app's filter as the reason). Email row when needed. | One SACD per vehicle, or a bulk document for a plain first share without files. An update keeps everything the current grant has, adds the request and keeps the later expiry. | `sharedVehicles` (shares and updates) when signing finishes. Cancel or Continue: `sharedVehicles: []`, then back to the app. |
+| `MANAGE_VEHICLE`                                                                            | One shared vehicle: status, end date, what the app can access (requested additions marked New). Update (when behind the request), Extend 1 year (when the share has an end date), Stop sharing (after a confirmation).                                                                | Update/Extend re-sign the current grant plus the request; Stop sharing signs an expiry of 0.                                                                                   | `sharedVehicles`, `extendedVehicles` or `revokedVehicles` right away.                                                        |
+| `VEHICLES_SHARED_SUCCESS`                                                                   | Each vehicle's outcome (shared, updated, extended, stopped) and new end date; updates skipped because the current terms couldn't be read, with the reason.                                                                                                                            |                                                                                                                                                                                | Redirect mode: the same key on Back.                                                                                         |
+| `ADD_VEHICLE` → `COMPATIBILITY_CHECK` → `CONNECT_TESLA` / `CONNECT_DEVICE` → `MINT_VEHICLE` | Shown when `onboarding` includes `tesla` ("Add a vehicle" row). Countries are ISO alpha-3.                                                                                                                                                                                            | Minting signs a typed-data payload.                                                                                                                                            | Returns to `VEHICLE_MANAGER` with the new vehicle.                                                                           |
+
+"No end date" is any expiry 50 or more years out (the default is 100 years). While a share's file access is being checked the row says "Checking sharing terms…" so it doesn't move between groups.
+
+## Sharing documents (`entryState=ACCOUNT_MANAGER`)
+
+| State                         | Screen                                                          | Signs                                                                 | Tells the app                                                                                           |
+| ----------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `ACCOUNT_MANAGER`             | Driver documents and their original files, how long, email row. | An account SACD with `GetRawData` on the driver-document event types. | `accountGranted: true`. Cancel: `error: 'User cancelled document sharing'` and `TRANSACTION_CANCELLED`. |
+| `ACCOUNT_PERMISSIONS_SUCCESS` | Done, with the end date.                                        |                                                                       | Redirect: `accountGranted=true` on Back.                                                                |
+
+## Transactions and signatures
+
+| State                         | Screen                                                                                                              | Tells the app                                                                                        |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `ADVANCED_TRANSACTION`        | The contract call as sent (function, parameters, contract, value) under a warning naming the requesting app's host. | `transactionResponse` with the hash. Reject: `error: 'User Rejected the Transaction'`.               |
+| `SIGN_MESSAGE`                | The message or 32-byte hash, verbatim.                                                                              | `messageResponse` with signature and signer. Reject: `error: 'User Rejected the Signature Request'`. |
+| `TRANSACTION_SUCCESS`         | Done; view on Polygonscan or copy the signature.                                                                    | Redirect: hash or signature on Back.                                                                 |
+| `TRANSACTION_CANCELLED`       | After Reject or Cancel in embed mode.                                                                               |                                                                                                      |
+| `PROVISION_DEVELOPER_LICENSE` | Mints a developer license and registers a signer and the redirect URI (see `developer-license-provisioning.md`).    | `provisionResponse`.                                                                                 |
+
+## Language
+
+`language` (`en`, `ja`, `ja-JP`…) can come from the app (SDK option or button prop, redirect query, configuration). The user's pick in the switcher wins and is stored per app. Without either, a Japanese browser or the `Asia/Tokyo` time zone gets Japanese. Protocol strings above (error reasons, payload keys, event types) stay English. See `i18n.md`.

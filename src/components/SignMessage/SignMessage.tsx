@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { captureException } from '@sentry/react';
 
 import { useDevCredentials } from '../../context/DevCredentialsContext';
@@ -7,17 +7,24 @@ import { useUIManager } from '../../context/UIManagerContext';
 import { signArbitraryMessage } from '../../services/turnkeyService';
 import { sendSignatureResponseToParent } from '../../utils/txnUtils';
 import { sendErrorToParent } from '../../utils/errorUtils';
+import { getRedirectHost } from '../../utils/urlHelpers';
 import { UiStates } from '../../enums';
-import { ErrorMessage, Header, PrimaryButton, UIManagerLoaderWrapper } from '../Shared';
+import { useT } from '../../i18n';
+import { ActionBar, Button, ErrorBox, Notice, Screen, ScreenHeader } from '../ui';
 
 const PREVIEW_LIMIT = 280;
 
+/** A message (or 32-byte hash) the app wants signed, shown before signing. */
 export const SignMessage: React.FC = () => {
-  const { redirectUri, utm, messageData } = useDevCredentials();
-  const { setUiState, setComponentData, setLoadingState, error, setError } =
-    useUIManager();
+  const t = useT();
+  const { redirectUri, utm, messageData, devLicenseAlias, oemBrand } =
+    useDevCredentials();
+  const appName = oemBrand?.name || devLicenseAlias || t('common.app_developer_fallback');
+  const { setUiState, setComponentData, setBusy } = useUIManager();
   const { jwt, validateSession } = useAuthContext();
-  const [showFull, setShowFull] = React.useState(false);
+  const [showFull, setShowFull] = useState(false);
+  const [signing, setSigning] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   const message = messageData?.message ?? '';
   const isHex = Boolean(messageData?.isHex);
@@ -25,27 +32,26 @@ export const SignMessage: React.FC = () => {
   const preview = !showFull && tooLong ? `${message.slice(0, PREVIEW_LIMIT)}…` : message;
 
   const onApprove = async () => {
-    setLoadingState(true, 'Signing Message', true);
+    setFailed(false);
+    setSigning(true);
+    setBusy(true);
     try {
       const validSession = await validateSession();
-      if (!validSession) {
-        setLoadingState(false);
-        return;
-      }
+      if (!validSession) return;
 
       const { signature, signer } = await signArbitraryMessage(message, isHex);
 
       sendSignatureResponseToParent(signature, signer, jwt!, redirectUri, () => {
         setComponentData({ signature, signer, flowKind: 'signature' });
         setUiState(UiStates.TRANSACTION_SUCCESS);
-        setLoadingState(false);
       });
     } catch (e) {
       console.log(e);
       captureException(e);
-      setError('Could not sign message, please try again');
+      setFailed(true);
     } finally {
-      setLoadingState(false);
+      setSigning(false);
+      setBusy(false);
     }
   };
 
@@ -58,47 +64,45 @@ export const SignMessage: React.FC = () => {
     );
   };
 
-  return (
-    <UIManagerLoaderWrapper>
-      <Header title="Sign Message" subtitle="" />
-      {error && <ErrorMessage message={error} />}
-      <div className="flex flex-col gap-[12px] text-sm">
-        <p>Warning:</p>
-        <p>
-          {window.location.hostname} is requesting that you sign a message. The signature
-          can be used to prove your identity to {window.location.hostname}. Only sign if
-          you trust the developer.
-        </p>
-      </div>
+  const host = getRedirectHost(redirectUri);
+  const actions = (
+    <ActionBar>
+      <Button variant="secondary" onClick={onReject} disabled={signing}>
+        {t('tx.reject')}
+      </Button>
+      <Button onClick={onApprove} loading={signing} loadingLabel={t('sign.signing')}>
+        {failed ? t('common.try_again') : t('sign.sign')}
+      </Button>
+    </ActionBar>
+  );
 
-      <div className="flex flex-col w-full gap-[8px] rounded-md text-sm">
-        <p className="text-gray-600">{isHex ? 'HASH:' : 'MESSAGE:'}</p>
-        <pre className="text-gray-700 whitespace-pre-wrap break-all bg-gray-50 border border-gray-200 rounded p-3 font-mono text-xs">
+  return (
+    <Screen actions={actions}>
+      <ScreenHeader title={t('sign.title')} host={host} />
+      <Notice tone="warning" title={t('sign.warning_title', { appName })}>
+        {t('sign.warning_body', { host: host || appName })}
+      </Notice>
+      {failed && <ErrorBox title={t('sign.error')} />}
+      <section className="flex flex-col gap-2">
+        <h2 className="text-label text-muted">
+          {isHex ? t('sign.hash') : t('sign.message')}
+        </h2>
+        {/* The app's own text, shown verbatim: never translated or formatted. */}
+        <pre className="whitespace-pre-wrap break-all rounded-control bg-card p-3 font-mono text-code text-fg">
           {preview}
         </pre>
         {tooLong && (
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="sm"
+            className="self-start"
             onClick={() => setShowFull((v) => !v)}
-            className="text-xs text-blue-600 self-start"
           >
-            {showFull ? 'Show less' : 'Show full message'}
-          </button>
+            {showFull ? t('sign.show_less') : t('sign.show_full')}
+          </Button>
         )}
-      </div>
-
-      <div className="flex justify-between w-full pt-4">
-        <button
-          onClick={onReject}
-          className="bg-white w-[214px] font-medium text-[#09090B] border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500"
-        >
-          Reject
-        </button>
-        <PrimaryButton onClick={onApprove} width="w-[214px]">
-          Sign
-        </PrimaryButton>
-      </div>
-    </UIManagerLoaderWrapper>
+      </section>
+    </Screen>
   );
 };
 

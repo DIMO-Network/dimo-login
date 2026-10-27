@@ -9,6 +9,8 @@ interface AutoCompleteInputProps {
   onChange: (value: string) => void;
   placeholder?: string;
   maxSuggestions?: number;
+  /** For a FieldLabel's htmlFor. */
+  id?: string;
 }
 
 export const AutoCompleteInput: React.FC<AutoCompleteInputProps> = ({
@@ -17,6 +19,7 @@ export const AutoCompleteInput: React.FC<AutoCompleteInputProps> = ({
   onChange,
   placeholder,
   maxSuggestions = 5,
+  id,
 }) => {
   const t = useT();
   const listboxId = useId();
@@ -73,6 +76,7 @@ export const AutoCompleteInput: React.FC<AutoCompleteInputProps> = ({
     <div className="relative w-full" ref={containerRef}>
       <div className="relative">
         <input
+          id={id}
           type="text"
           role="combobox"
           aria-controls={listboxId}

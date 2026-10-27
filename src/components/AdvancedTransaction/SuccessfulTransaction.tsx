@@ -1,17 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { ArrowTopRightOnSquareIcon, CheckIcon } from '@heroicons/react/24/outline';
 
 import { backToThirdParty } from '../../utils/messageHandler';
 import { isEmbed } from '../../utils/isEmbed';
 import { useAuthContext } from '../../context/AuthContext';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { useUIManager } from '../../context/UIManagerContext';
+import { message, useT } from '../../i18n';
+import { ErrorContent } from '../Shared';
+import { ActionBar, Button, DoneHeader, Screen } from '../ui';
 
-import { ErrorContent, Header, PrimaryButton } from '../Shared';
-
+/** Done: a signed message or a completed transaction. */
 export const SuccessfulTransaction: React.FC = () => {
-  const { redirectUri, utm, devLicenseAlias } = useDevCredentials();
+  const t = useT();
+  const { redirectUri, utm, devLicenseAlias, oemBrand } = useDevCredentials();
+  const appName = oemBrand?.name || devLicenseAlias || t('common.app_developer_fallback');
   const { componentData } = useUIManager();
   const { jwt } = useAuthContext();
+  const [copied, setCopied] = useState(false);
 
   const isSignature = componentData?.flowKind === 'signature';
 
@@ -19,14 +25,16 @@ export const SuccessfulTransaction: React.FC = () => {
     if (!componentData.signature) {
       return (
         <ErrorContent
-          title="Missing Signature"
-          message="Message was not successfully signed."
+          title={message('sign.missing.title')}
+          message={message('sign.missing.body')}
         />
       );
     }
 
     const handleCopy = () => {
-      void navigator.clipboard.writeText(componentData.signature);
+      void navigator.clipboard
+        .writeText(componentData.signature)
+        .then(() => setCopied(true));
     };
 
     const handleBackToThirdParty = () => {
@@ -39,31 +47,36 @@ export const SuccessfulTransaction: React.FC = () => {
     };
 
     return (
-      <>
-        <Header title="Message Signed!" subtitle="" />
-        <div className="space-y-4 w-full">
-          {!isEmbed() && (
-            <div className="flex justify-center">
-              <PrimaryButton onClick={handleBackToThirdParty} width="w-64">
-                Back to {devLicenseAlias}
-              </PrimaryButton>
-            </div>
-          )}
-          <div className="flex justify-center">
-            <PrimaryButton onClick={handleCopy} width="w-64">
-              Copy Signature
-            </PrimaryButton>
-          </div>
-        </div>
-      </>
+      <Screen
+        actions={
+          <ActionBar className="[&>div]:flex-col">
+            {!isEmbed() && (
+              <Button fullWidth onClick={handleBackToThirdParty}>
+                {t('common.back_to_app', { appName })}
+              </Button>
+            )}
+            <Button variant="secondary" fullWidth onClick={handleCopy}>
+              {copied && <CheckIcon className="size-4" aria-hidden="true" />}
+              {copied ? t('sign.copied') : t('sign.copy')}
+            </Button>
+          </ActionBar>
+        }
+      >
+        <DoneHeader title={t('sign.done_title')}>
+          {t('sign.done_body', { appName })}
+        </DoneHeader>
+        <p className="break-all rounded-control bg-card p-3 font-mono text-code text-fg">
+          {componentData.signature}
+        </p>
+      </Screen>
     );
   }
 
   if (!componentData?.transactionHash) {
     return (
       <ErrorContent
-        title="Missing Transaction Hash"
-        message="Transaction was not successfully completed."
+        title={message('tx.missing.title')}
+        message={message('tx.missing.body')}
       />
     );
   }
@@ -91,23 +104,26 @@ export const SuccessfulTransaction: React.FC = () => {
   };
 
   return (
-    <>
-      <Header title="Successful Transaction!" subtitle={''} />
-      <div className="space-y-4 w-full">
-        {!isEmbed() && (
-          <div className="flex justify-center">
-            <PrimaryButton onClick={handleBackToThirdParty} width="w-64">
-              Back to {devLicenseAlias}
-            </PrimaryButton>
-          </div>
-        )}
-        <div className="flex justify-center">
-          <PrimaryButton onClick={handleView} width="w-64">
-            View Transaction
-          </PrimaryButton>
-        </div>
-      </div>
-    </>
+    <Screen
+      actions={
+        <ActionBar className="[&>div]:flex-col">
+          {!isEmbed() && (
+            <Button fullWidth onClick={handleBackToThirdParty}>
+              {t('common.back_to_app', { appName })}
+            </Button>
+          )}
+          <Button variant="secondary" fullWidth onClick={handleView}>
+            {t('tx.view')}
+            <ArrowTopRightOnSquareIcon className="size-4" aria-hidden="true" />
+          </Button>
+        </ActionBar>
+      }
+    >
+      <DoneHeader title={t('tx.done_title')}>{t('tx.done_body', { appName })}</DoneHeader>
+      <p className="break-all rounded-control bg-card p-3 font-mono text-code text-fg">
+        {componentData.transactionHash}
+      </p>
+    </Screen>
   );
 };
 
