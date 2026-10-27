@@ -50,6 +50,7 @@ import {
 import { setVehiclePermissionsBatch } from '../../services/turnkeyService';
 import { Vehicle } from '../../models/vehicle';
 import { clearGrantReadCache } from '../../services/vehicleDocumentAgreements';
+import { translateText } from '../../i18n';
 
 const vehicle = (tokenId: number) =>
   ({
@@ -216,7 +217,10 @@ it("shares the other vehicles when a shared vehicle's current grant can't be rea
   // The unreadable one is left as it was and reported; the new ones go ahead.
   expect(result.shared.map((v) => v.tokenId)).toEqual([1, 2]);
   expect(result.skipped.map((s) => s.vehicle.tokenId)).toEqual([5]);
-  expect(result.skipped[0].reason).toContain("Couldn't read the current sharing terms");
+  // The reason is shown in the user's language (English in tests).
+  expect(translateText(result.skipped[0].reason)).toContain(
+    'Couldn’t read the current sharing terms',
+  );
   const grants = (setVehiclePermissionsBatch as jest.Mock).mock.calls[0][0];
   expect(grants.map((g: any) => g.tokenId)).toEqual([BigInt(1), BigInt(2)]);
   // Nothing was signed for the skipped vehicle.

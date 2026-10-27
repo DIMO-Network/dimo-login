@@ -1,3 +1,5 @@
+import { message, type Message } from '../i18n';
+
 export function isValidEmail(email: string) {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
   return emailRegex.test(email);
@@ -13,11 +15,11 @@ export const validateEmail = ({
   email,
   emailPermissionGranted,
   forceEmail,
-}: ValidateEmailProps) => {
+}: ValidateEmailProps): Message | undefined => {
   if (!email || !isValidEmail(email)) {
-    return 'Please enter a valid email';
+    return message('email.invalid');
   }
   if (forceEmail && !emailPermissionGranted) {
-    return 'Email sharing is required to proceed. Please check the box.';
+    return message('email.sharing_required');
   }
 };

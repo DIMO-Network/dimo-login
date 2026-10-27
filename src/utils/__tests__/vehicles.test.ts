@@ -1,4 +1,4 @@
-import { keepLaterExpiration } from '../vehicles';
+import { getNewExpirationDate, keepLaterExpiration } from '../vehicles';
 
 describe('keepLaterExpiration', () => {
   const seconds = (iso: string) => BigInt(Date.parse(iso) / 1000);
@@ -16,5 +16,17 @@ describe('keepLaterExpiration', () => {
       later,
     );
     expect(keepLaterExpiration({}, later)).toBe(later);
+  });
+});
+
+describe('getNewExpirationDate', () => {
+  it('extends from the grant’s ISO expiry, whatever language dates are shown in', () => {
+    const vehicle = {
+      grantExpiresAt: '2027-01-15T00:00:00Z',
+      expiresAt: '2027年1月15日',
+    } as Parameters<typeof getNewExpirationDate>[0];
+    expect(getNewExpirationDate(vehicle, 'extend')).toBe(
+      BigInt(Date.parse('2028-01-15T00:00:00Z') / 1000),
+    );
   });
 });

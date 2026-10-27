@@ -30,6 +30,7 @@ import { fetchOemBrand, readCachedBrand } from '../services/brandService';
 import { setPendingEmailGrant } from '../stores/AuthStateStore';
 import { AuthProvider } from '../utils/authUrls';
 import { readFlowSnapshot } from '../utils/flowSnapshot';
+import { message, type Text } from '../i18n';
 import { useParamsHandler } from '../hooks';
 import { getDefaultExpirationDate } from '../utils/dateUtils';
 import { sendMessageToReferrer } from '../utils/messageHandler';
@@ -60,12 +61,12 @@ const DEFAULT_CONTEXT: AllParams = {
 
 interface LoadingState {
   isLoading: boolean;
-  message: string;
+  message: Text;
 }
 
 const DEFAULT_LOADING_STATE: LoadingState = {
   isLoading: true,
-  message: 'Waiting for credentials...',
+  message: message('loading.waiting_for_credentials'),
 };
 
 // If the SDK's AUTH_INIT never arrives (raced the listener attach, dropped, or
@@ -402,7 +403,7 @@ export const DevCredentialsProvider = ({
   useEffect(() => {
     setLoadingState({
       isLoading: waitingForParams || waitingForDevLicense,
-      message: 'Waiting for credentials...',
+      message: message('loading.waiting_for_credentials'),
     });
   }, [waitingForParams, waitingForDevLicense]);
 

@@ -1,5 +1,6 @@
 import { ValidationFunction } from '../hooks/useErrorHandler';
 import { PERMISSIONS } from '../types';
+import { message } from '../i18n';
 
 const validatePermissionTemplate: ValidationFunction = ({
   permissionTemplateId,
@@ -9,8 +10,8 @@ const validatePermissionTemplate: ValidationFunction = ({
     return {
       isValid: false,
       error: {
-        title: 'Missing Permissions',
-        message: 'Missing permissions, please specify permissions requested.',
+        title: message('error.missing_permissions.title'),
+        message: message('error.missing_permissions.message'),
       },
     };
   }
@@ -25,8 +26,10 @@ const validatePermissionParams: ValidationFunction = ({ permissions }) => {
     return {
       isValid: false,
       error: {
-        title: 'Invalid Permissions Format',
-        message: `Permissions must be a string of 0s and 1s with a maximum length of ${Object.keys(PERMISSIONS).length}.`,
+        title: message('error.invalid_permissions_format.title'),
+        message: message('error.invalid_permissions_format.message', {
+          max: Object.keys(PERMISSIONS).length,
+        }),
       },
     };
   }

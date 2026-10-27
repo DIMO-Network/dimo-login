@@ -1,7 +1,8 @@
 import { getPermissionsArray, Permission } from '@dimo-network/transactions';
 import { createPermissionsFromParams } from '../services/permissionsService';
 import { GrantUnreadableError } from '../services/vehicleDocumentAgreements';
-import { PermissionKey, PERMISSIONS_LABEL } from '../types/permissions';
+import { PermissionKey } from '../types/permissions';
+import { t, type TranslationKey } from '../i18n';
 
 /**
  * A vehicle needs an update when it's already shared with this grantee but is
@@ -64,14 +65,24 @@ export const mergePermissions = (
 ): Permission[] => {
   const value = BigInt(vehicle.permissions || '0');
   if (!isFullyKnown(value)) {
-    throw new GrantUnreadableError(
-      vehicle,
-      "It uses permissions this version of DIMO can't carry over.",
-    );
+    throw new GrantUnreadableError(vehicle, 'unknown_permissions');
   }
   const granted = getPermissionsArray(value);
   return Array.from(new Set([...granted, ...requested])).sort((a, b) => a - b);
 };
 
-export const getPermissionLabel = (permission: Permission) =>
-  PERMISSIONS_LABEL[Permission[permission] as PermissionKey];
+export const permissionKey = (permission: Permission) =>
+  Permission[permission] as PermissionKey | undefined;
+
+// One argument only, so these work as `.map(getPermissionLabel)`.
+export const getPermissionLabel = (permission: Permission): string => {
+  const key = permissionKey(permission);
+  return key
+    ? t(`permission.${key}.label` as TranslationKey)
+    : t('permission.unknown.label', { id: permission });
+};
+
+export const getPermissionDescription = (permission: Permission): string => {
+  const key = permissionKey(permission);
+  return key ? t(`permission.${key}.description` as TranslationKey) : '';
+};

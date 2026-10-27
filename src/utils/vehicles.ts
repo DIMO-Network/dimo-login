@@ -103,7 +103,8 @@ export const keepLaterExpiration = (
   const currentSeconds = BigInt(Math.floor(currentMs / 1000));
   return currentSeconds > requestedSeconds ? currentSeconds : requestedSeconds;
 };
+// From the grant's ISO expiry, not the formatted `expiresAt` shown on screen.
 const extendExpirationDateByYear = (vehicle: Vehicle) => {
-  const extendedDate = extendByYear(vehicle.expiresAt);
-  return parseExpirationDate(extendedDate);
+  const current = vehicle.grantExpiresAt || new Date().toISOString();
+  return parseExpirationDate(extendByYear(current));
 };

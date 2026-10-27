@@ -1,3 +1,5 @@
+import { formatDate as formatDisplayDate } from '../i18n/format';
+
 // dateUtils.js
 
 /**
@@ -29,25 +31,6 @@ export function parseExpirationDate(isoDateString: string | null): bigint {
 }
 
 /**
- * Converts a BigInt Unix timestamp to a human-readable string in UTC.
- *
- * @param {BigInt} bigIntDate - Unix timestamp as BigInt.
- * @returns {string} - Formatted date string.
- */
-export function formatBigIntAsReadableDate(bigIntDate: BigInt): string {
-  const unixTimestamp = Number(bigIntDate); // BigInt -> Number
-  const date = new Date(unixTimestamp * 1000); // Convert seconds to ms
-
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    dateStyle: 'long',
-    timeStyle: 'short',
-    timeZone: 'UTC',
-  });
-
-  return formatter.format(date);
-}
-
-/**
  * Gets the default expiration date as a BigInt (one year from today).
  *
  * @returns {BigInt} - Default expiration date.
@@ -56,33 +39,34 @@ export function getDefaultExpirationDate(): BigInt {
   return parseExpirationDate(null);
 }
 
+/** A date for display, in the language on screen. Never parse it back. */
 export function formatDate(dateString: string | null): string {
   if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    month: '2-digit',
-    day: '2-digit',
-    year: 'numeric',
-  });
+  return formatDisplayDate(dateString);
 }
 
-export function extendByYear(dateString: string, years = 1): string {
-  // Parse the string into a Date object
-
-  const date = new Date(dateString);
-
-  // Add 1 year
-  date.setFullYear(date.getFullYear() + years);
-
-  // Format the updated date back to a string
-  const updatedDateString = date.toLocaleDateString('en-US'); // Format as MM/DD/YYYY
-
-  return updatedDateString;
+/**
+ * Moves an ISO date forward by whole years and returns it as ISO. It used to
+ * parse and return the en-US display string, which broke as soon as dates were
+ * shown in another language.
+ */
+export function extendByYear(isoDate: string, years = 1): string {
+  const date = new Date(isoDate);
+  date.setUTCFullYear(date.getUTCFullYear() + years);
+  return date.toISOString();
 }
 
 // Grants this far out are the "no expiry" default (100 years), not a date
 // anyone chose; show them as such.
 const NO_END_YEARS = 50;
+
+/** When a share ends, for copy keyed `share_end.*`: no end date, or a date. */
+export function shareEndOf(expirationSeconds: BigInt): { noEnd: boolean; date: Date } {
+  const date = new Date(Number(expirationSeconds.toString()) * 1000);
+  const noEnd = new Date();
+  noEnd.setFullYear(noEnd.getFullYear() + NO_END_YEARS);
+  return { noEnd: date.getTime() >= noEnd.getTime(), date };
+}
 
 /** How long a share will last, for consent text: "until Jan 1, 2027". */
 export function describeShareEnd(expirationSeconds: BigInt): string {

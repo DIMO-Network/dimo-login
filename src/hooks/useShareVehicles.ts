@@ -25,12 +25,13 @@ import {
 import { mergePermissions } from '../utils/permissions';
 import { keepLaterExpiration } from '../utils/vehicles';
 import { mapWithConcurrency } from '../utils/mapWithConcurrency';
+import type { Text } from '../i18n';
 
 export interface ShareResult {
   shared: Vehicle[];
   // Already-shared vehicles left exactly as they were, because their current
   // grant couldn't be read or carried over in full.
-  skipped: { vehicle: Vehicle; reason: string }[];
+  skipped: { vehicle: Vehicle; reason: Text }[];
 }
 
 // Grants are read (IPFS) and documents signed (Turnkey) and uploaded (IPFS)
@@ -142,7 +143,11 @@ export const useShareVehicles = () => {
             return { plan: await planGrant(vehicle), skip: undefined, error: undefined };
           } catch (error) {
             if (vehicle.shared && error instanceof GrantUnreadableError) {
-              return { plan: undefined, skip: { vehicle, reason: error.message }, error };
+              return {
+                plan: undefined,
+                skip: { vehicle, reason: error.toMessage() },
+                error,
+              };
             }
             throw error;
           }

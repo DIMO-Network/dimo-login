@@ -36,10 +36,10 @@ import { useErrorHandler } from './hooks/useErrorHandler';
 import { PasskeyLogin } from './components/Auth/PasskeyLogin';
 import { PasskeyLoginFail } from './components/Auth/PasskeyLoginFail';
 import { readableTextOn } from './utils/colorContrast';
+import { useLanguage, useT } from './i18n';
+import { useLanguageSync } from './i18n/useLanguageSync';
 
 import './App.css';
-
-const DEFAULT_DOCUMENT_TITLE = 'Login with DIMO';
 
 const App = () => {
   const { setJwt, setUser } = useAuthContext();
@@ -53,20 +53,23 @@ const App = () => {
   } = useDevCredentials();
   const { uiState, setUiState, entryState } = useUIManager();
   const [email, setEmail] = useState('');
+  const t = useT();
+  const language = useLanguage();
+
+  useLanguageSync(clientId, params.language);
 
   // Bind document.title to the OEM brand when one is loaded. Restores the
   // default DIMO title if the popup unmounts (covers in-flight branding
   // changes without leaking previous OEM names across mounts).
   useEffect(() => {
-    if (oemBrand?.name) {
-      document.title = `Sign in with ${oemBrand.name}`;
-    } else {
-      document.title = DEFAULT_DOCUMENT_TITLE;
-    }
+    const defaultTitle = t('app.document_title');
+    document.title = oemBrand?.name
+      ? t('app.document_title_brand', { name: oemBrand.name })
+      : defaultTitle;
     return () => {
-      document.title = DEFAULT_DOCUMENT_TITLE;
+      document.title = defaultTitle;
     };
-  }, [oemBrand?.name]);
+  }, [oemBrand?.name, language, t]);
 
   const { error } = useErrorHandler({
     customValidations: getValidationsForState(entryState || ''),
@@ -101,10 +104,13 @@ const App = () => {
     return (
       <ErrorScreen
         title={error.title}
-        message={error.message.replace(
-          '<license_alias>',
-          devLicenseAlias || 'the application developer',
-        )}
+        message={{
+          ...error.message,
+          params: {
+            appName: devLicenseAlias || t('common.app_developer_fallback'),
+            ...error.message.params,
+          },
+        }}
       />
     );
   }

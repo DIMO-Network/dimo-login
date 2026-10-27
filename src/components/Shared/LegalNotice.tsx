@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { Trans } from '../../i18n';
+
 const DEFAULT_TOS_URL = 'https://dimo.org/legal/terms-of-use';
 const DEFAULT_PRIVACY_URL = 'https://dimo.org/legal/privacy-policy';
 
@@ -20,20 +22,22 @@ interface LegalNoticeProps {
 }
 
 export const LegalNotice: React.FC<LegalNoticeProps> = ({ tosUrl, privacyPolicyUrl, brandName }) => {
-  const renderLink = (href: string, text: string) => (
-    <a href={href} className="underline whitespace-nowrap">
-      {text}
-    </a>
+  // Whole sentences per language: the possessive and word order differ.
+  const link = (href: string) => (
+    // eslint-disable-next-line jsx-a11y/anchor-has-content -- Trans fills the text
+    <a href={href} className="underline whitespace-nowrap" />
   );
 
-  const owner = brandName ? `${brandName}'s` : 'our';
-
   return (
-    <p className="flex flex-wrap justify-center text-center text-xs text-gray-500">
-      By continuing you agree to {owner}&nbsp;
-      {renderLink(safeHttpsUrl(privacyPolicyUrl, DEFAULT_PRIVACY_URL), 'Privacy Policy')}
-      &nbsp;and&nbsp;
-      {renderLink(safeHttpsUrl(tosUrl, DEFAULT_TOS_URL), 'Terms of Service')}
+    <p className="text-center text-xs text-gray-500">
+      <Trans
+        k={brandName ? 'legal.notice_brand' : 'legal.notice'}
+        values={{ brandName }}
+        components={{
+          privacy: link(safeHttpsUrl(privacyPolicyUrl, DEFAULT_PRIVACY_URL)),
+          terms: link(safeHttpsUrl(tosUrl, DEFAULT_TOS_URL)),
+        }}
+      />
     </p>
   );
 };

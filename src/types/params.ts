@@ -1,6 +1,7 @@
 import { UiStates } from '../enums';
 import { OemBrand } from '../services/brandService';
 import { CloudEventAgreement } from './permissions';
+import type { Language } from '../i18n/language';
 
 export interface BaseParams {
   clientId: `0x${string}` | null;
@@ -27,6 +28,9 @@ export interface BaseParams {
   /** Custom Privacy Policy URL supplied by the relying party. When set, the
    * legal notice swaps the default DIMO Privacy Policy link for this URL. */
   privacyPolicyUrl?: string;
+  /** Language the app asked for (`en` or `ja`). The user's own pick in the
+   * language switcher still wins; see i18n/language.ts. */
+  language?: Language;
   newVehicleSectionDescription: string;
   shareVehiclesSectionDescription: string;
   existingTokenId?: number;

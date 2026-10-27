@@ -1,9 +1,10 @@
 import { CloudEventAgreement } from '../types';
 import {
-  DOCUMENT_EVENT_TYPE_LABELS,
+  DOCUMENT_EVENT_TYPE_LABEL_KEYS,
   DOCUMENT_EVENT_TYPES,
 } from '../enums/documentEventTypes';
 import { fetchWithTimeout } from '../utils/withTimeout';
+import { message, t, type Message, type TranslationKey } from '../i18n';
 
 // Same gateway dimo-app-backend reads SACD sources from.
 const IPFS_GATEWAY = 'https://assets.dimo.org/ipfs';
@@ -56,8 +57,13 @@ const isDocumentEventType = (value: unknown): value is string =>
   typeof value === 'string' && DOCUMENT_EVENT_TYPE_VALUES.includes(value);
 
 // Labels come only from DIMO's own list, never from app-supplied text.
+export const getAgreementLabelKey = (agreement: CloudEventAgreement): TranslationKey =>
+  DOCUMENT_EVENT_TYPE_LABEL_KEYS[
+    eventTypeOf(agreement) as keyof typeof DOCUMENT_EVENT_TYPE_LABEL_KEYS
+  ] ?? 'document.other';
+
 export const getAgreementLabel = (agreement: CloudEventAgreement): string =>
-  DOCUMENT_EVENT_TYPE_LABELS[eventTypeOf(agreement)] ?? 'Other files';
+  t(getAgreementLabelKey(agreement));
 
 export const getFileLabels = (agreements: CloudEventAgreement[]): string[] =>
   Array.from(new Set(agreements.map(getAgreementLabel)));
@@ -166,16 +172,43 @@ type VehicleLabel = { make?: string; model?: string; tokenId: number };
 const vehicleName = (vehicle: VehicleLabel) =>
   vehicle.make ? `${vehicle.make} ${vehicle.model}` : `vehicle ${vehicle.tokenId}`;
 
+export type GrantUnreadableReason =
+  | 'retry'
+  | 'unknown_permissions'
+  | 'unverified_storage'
+  | 'other_app';
+
+// English for logs and Sentry; toMessage() is what the user reads.
+const REASON_TEXT: Record<GrantUnreadableReason, string> = {
+  retry: 'Try again.',
+  unknown_permissions: "It uses permissions this version of DIMO can't carry over.",
+  unverified_storage: "Its terms are stored somewhere DIMO can't verify.",
+  other_app: "Its terms don't match this app.",
+};
+
 /**
  * Raised instead of rewriting a grant whose current terms can't be carried
  * over in full, so an update never drops access nobody could see.
  */
 export class GrantUnreadableError extends Error {
-  constructor(vehicle: VehicleLabel, reason = 'Try again.') {
+  readonly reason: GrantUnreadableReason;
+  private readonly vehicle: VehicleLabel;
+
+  constructor(vehicle: VehicleLabel, reason: GrantUnreadableReason = 'retry') {
     super(
-      `Couldn't read the current sharing terms for ${vehicleName(vehicle)}. ${reason}`,
+      `Couldn't read the current sharing terms for ${vehicleName(vehicle)}. ${REASON_TEXT[reason]}`,
     );
     this.name = 'GrantUnreadableError';
+    this.reason = reason;
+    this.vehicle = vehicle;
+  }
+
+  /** The reason in the user's language. */
+  toMessage(): Message {
+    const { make, model, tokenId } = this.vehicle;
+    return message(`grant_unreadable.${this.reason}`, {
+      vehicle: make ? `${make} ${model}` : t('vehicle.fallback_name', { tokenId }),
+    });
   }
 }
 
@@ -245,10 +278,7 @@ export const readGrantAgreements = async (
   // A grant signed without a source document has no agreements at all.
   if (!source) return [];
   if (!source.startsWith('ipfs://')) {
-    throw new GrantUnreadableError(
-      vehicle,
-      "Its terms are stored somewhere DIMO can't verify.",
-    );
+    throw new GrantUnreadableError(vehicle, 'unverified_storage');
   }
   let document: unknown;
   try {
@@ -268,7 +298,7 @@ export const readGrantAgreements = async (
     throw new GrantUnreadableError(vehicle);
   }
   if (!isBetween(document, parties)) {
-    throw new GrantUnreadableError(vehicle, "Its terms don't match this app.");
+    throw new GrantUnreadableError(vehicle, 'other_app');
   }
   return getVehicleAgreements(document, vehicle.tokenDID);
 };

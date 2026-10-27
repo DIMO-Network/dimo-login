@@ -11,6 +11,7 @@ import { useOracles } from '../context/OraclesContext';
 import { UiStates } from '../enums';
 import { setForceEmail } from '../stores/AuthStateStore';
 import { parseBooleanParam } from '../utils/parseBooleanParam';
+import { normalizeLanguage } from '../i18n/language';
 import { parseExpirationDate, getDefaultExpirationDate } from '../utils/dateUtils';
 import { toCloudEventAgreements } from '../services/vehicleDocumentAgreements';
 import { DOCUMENT_EVENT_TYPES } from '../enums/documentEventTypes';
@@ -81,6 +82,12 @@ export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
         altTitle,
       }));
     },
+    // Unsupported values are dropped, so the browser's language decides.
+    language: (value: unknown) =>
+      setDevCredentialsState((prev) => ({
+        ...prev,
+        language: normalizeLanguage(value),
+      })),
     vehicles: (value: unknown) =>
       setDevCredentialsState((prev) => ({
         ...prev,
