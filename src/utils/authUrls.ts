@@ -11,7 +11,6 @@ interface AuthUrlParams {
   provider: AuthProvider;
   clientId?: `0x${string}` | null;
   redirectUri: string;
-  emailPermissionGranted?: boolean;
   altTitle?: boolean;
   entryState?: string;
   referrer?: string;
@@ -53,7 +52,6 @@ export function constructAuthUrl(params: AuthUrlParams): string {
 function buildStateParams(params: AuthUrlParams): Record<string, any> {
   return {
     clientId: params.clientId,
-    emailPermissionGranted: params.emailPermissionGranted,
     entryState: params.entryState,
     expirationDate: params.expirationDate,
     permissionTemplateId: params.permissionTemplateId,

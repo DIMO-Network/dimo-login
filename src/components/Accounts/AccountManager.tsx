@@ -3,7 +3,7 @@ import { captureException } from '@sentry/react';
 
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { useUIManager } from '../../context/UIManagerContext';
-import { useEmailShare } from '../../hooks/useEmailShare';
+import { useEmailRequest } from '../../hooks/useEmailRequest';
 import { useShareAccounts } from '../../hooks/useShareAccounts';
 import { useFinishShareAccounts } from '../../hooks/useFinishShareAccounts';
 import { useT } from '../../i18n';
@@ -48,7 +48,7 @@ export const AccountManager: React.FC = () => {
   const { setUiState, setBusy } = useUIManager();
   const shareAccounts = useShareAccounts();
   const finishShareAccounts = useFinishShareAccounts();
-  const emailShare = useEmailShare();
+  const emailRequest = useEmailRequest();
   const endLabel = useShareEndLabel();
   const hintId = useId();
   const [sharing, setSharing] = useState(false);
@@ -63,6 +63,8 @@ export const AccountManager: React.FC = () => {
     setBusy(true);
     try {
       await shareAccounts();
+      // Approving the request approves its email item too.
+      emailRequest.commit();
       finishShareAccounts();
     } catch (err) {
       // Log the real error to the console — captureException ships it to Sentry,
@@ -86,22 +88,14 @@ export const AccountManager: React.FC = () => {
     sendErrorToParent('User cancelled document sharing', redirectUri, utm, setUiState);
   };
 
-  let hint: string | undefined;
-  if (sharing) hint = t('share.keep_open');
-  else if (emailShare.blocked) hint = t('email.required_hint', { appName });
+  const hint = sharing ? t('share.keep_open') : undefined;
 
   const actions = (
     <ActionBar hint={hint} hintId={hintId}>
       <Button variant="secondary" onClick={onCancel} disabled={sharing}>
         {t('common.cancel')}
       </Button>
-      <Button
-        onClick={handleShare}
-        loading={sharing}
-        loadingLabel={t('share.sharing')}
-        disabled={emailShare.blocked}
-        disabledReasonId={hintId}
-      >
+      <Button onClick={handleShare} loading={sharing} loadingLabel={t('share.sharing')}>
         {error !== undefined ? t('common.try_again') : t('docs.allow')}
       </Button>
     </ActionBar>
@@ -128,9 +122,19 @@ export const AccountManager: React.FC = () => {
         aria-labelledby={`${hintId}-access`}
       >
         <h2 id={`${hintId}-access`} className="text-card-title text-ink">
-          {t('share.access_label')}
+          {t('request.about_you')}
         </h2>
         <AccessRows items={fileItems(DRIVER_DOCUMENTS, t)} />
+        {emailRequest.asked && emailRequest.email && (
+          <EmailShareRow
+            compact
+            appName={appName}
+            email={emailRequest.email}
+            required={emailRequest.required}
+            checked={emailRequest.shared}
+            onChange={emailRequest.setShared}
+          />
+        )}
         <p className="text-body-sm text-fg">
           {endLabel(end)}
           <span className="text-muted" aria-hidden="true">
@@ -139,16 +143,6 @@ export const AccountManager: React.FC = () => {
           {t('share.stop_anytime')}
         </p>
       </section>
-      {emailShare.ask && (
-        <EmailShareRow
-          appName={appName}
-          checked={emailShare.shared}
-          onChange={emailShare.setShare}
-          required={emailShare.required}
-          description={emailShare.email}
-          showIcon
-        />
-      )}
       <LegalNotice
         tosUrl={tosUrl}
         privacyPolicyUrl={privacyPolicyUrl}

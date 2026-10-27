@@ -34,9 +34,6 @@ const ja: LocaleResources = {
   'signin.title_alt': 'DIMOで{{appName}}にログイン',
 
   'email.invalid': '有効なメールアドレスを入力してください',
-  'email.sharing_required':
-    '続行するにはメールアドレスの共有が必要です。チェックボックスをオンにしてください。',
-  'email.share_with_app': 'メールアドレスを{{appName}}と共有することに同意します',
 
   'legal.notice_brand':
     '続行すると、{{brandName}}の<privacy>プライバシーポリシー</privacy>と<terms>利用規約</terms>に同意したものとみなされます',
@@ -168,13 +165,16 @@ const ja: LocaleResources = {
   'login_done.body': '{{email}}でサインインしています。',
   'logout.signing_out': 'サインアウトしています…',
 
+  'email.item': 'メールアドレス',
+  'request.about_you': 'あなたについて',
+  'request.about_vehicles': '車両について',
+  'consent.title': '{{appName}}に進む',
+  'consent.optional':
+    '{{appName}}がメールアドレスの共有を求めています。共有しなくても続行できます。',
+  'consent.required': '{{appName}}を利用するにはメールアドレスの共有が必要です。',
+  'consent.share_and_continue': '共有して続行',
   'email.share_title': 'メールアドレスを{{appName}}と共有',
-  'email.share_desc': '{{appName}}からの連絡に使われます。',
   'email.required': '必須',
-  'email.required_hint':
-    '{{appName}}を利用するにはメールアドレスの共有が必要です。共有をオンにしてください。',
-  'email.required_hint_below':
-    '{{appName}}を利用するにはメールアドレスの共有が必要です。下の共有をオンにしてください。',
 
   'share.title': '{{appName}}が車両へのアクセスを求めています',
   'share.access_label': '要求されているアクセス',

@@ -69,6 +69,7 @@ jest.mock('../../../hooks', () => ({
   useShareVehicles: () => mockShare,
   useFinishShareVehicles: () => mockFinish,
 }));
+const mockCreds: Record<string, unknown> = {};
 jest.mock('../../../context/DevCredentialsContext', () => ({
   useDevCredentials: () => ({
     clientId: mockClientId,
@@ -76,6 +77,7 @@ jest.mock('../../../context/DevCredentialsContext', () => ({
     redirectUri: 'https://acme.example/callback',
     permissions: '11',
     expirationDate: mockExpiration,
+    ...mockCreds,
   }),
 }));
 jest.mock('../../../context/AuthContext', () => ({
@@ -97,15 +99,15 @@ jest.mock('../../../utils/authUtils', () => ({ isInvalidSessionError: () => fals
 jest.mock('@sentry/react', () => ({ captureException: jest.fn() }));
 
 import { SelectVehicles } from '../SelectVehicles';
-import { setForceEmail } from '../../../stores/AuthStateStore';
-import { isEmailGranted } from '../../../services/storageService';
+import { getEmailChoice } from '../../../services/storageService';
 
 const cta = () => screen.getAllByRole('button').at(-1) as HTMLElement;
 
 beforeEach(() => {
   jest.clearAllMocks();
   localStorage.clear();
-  setForceEmail(false);
+  Object.keys(mockCreds).forEach((key) => delete mockCreds[key]);
+  mockShare.mockImplementation(async (vehicles) => ({ shared: vehicles, skipped: [] }));
 });
 
 it('offers the outdated share as an update and names the button after what it does', async () => {
@@ -166,26 +168,53 @@ it('Cancel goes back to the app with nothing shared', async () => {
   expect(mockFinish).toHaveBeenCalledWith([]);
 });
 
-it('holds sharing until the email is shared when the app requires it', async () => {
-  setForceEmail(true);
+it('lists a required email as part of the request and shares it on approve', async () => {
+  // Old apps say this with forceEmail.
+  mockCreds.forceEmail = true;
   render(<SelectVehicles />);
-  await waitFor(() => expect(cta()).toHaveTextContent('Update 1 vehicle'));
+  await screen.findByText('Needs update');
 
-  expect(cta()).toHaveAttribute('aria-disabled', 'true');
-  expect(cta()).toHaveAccessibleDescription(
-    'Acme needs your email. Turn on email sharing below to continue.',
-  );
-  fireEvent.click(cta());
-  expect(mockShare).not.toHaveBeenCalled();
-
-  fireEvent.click(screen.getByRole('switch', { name: /Share my email with Acme/ }));
-  expect(isEmailGranted(mockClientId, 'jun@example.com')).toBe(true);
+  expect(screen.getByText('About you')).toBeInTheDocument();
+  expect(screen.getByText('About your vehicles')).toBeInTheDocument();
+  expect(screen.getByText('Email address')).toBeInTheDocument();
+  expect(screen.getByText('Required')).toBeInTheDocument();
+  expect(screen.queryByRole('switch')).toBeNull();
+  // Nothing to switch on first: approving the request shares it.
   expect(cta()).not.toHaveAttribute('aria-disabled');
+  fireEvent.click(cta());
+
+  await waitFor(() => expect(mockFinish).toHaveBeenCalled());
+  expect(getEmailChoice(mockClientId, 'jun@example.com')).toBe(true);
 });
 
-it("doesn't ask for the email again once this account shared it", async () => {
+it('records an optional email only when the request is approved', async () => {
+  render(<SelectVehicles />);
+  await screen.findByText('Needs update');
+  const toggle = screen.getByRole('switch', { name: /Share my email with Acme/ });
+  expect(toggle).toHaveAttribute('aria-checked', 'false');
+  fireEvent.click(toggle);
+
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  expect(getEmailChoice(mockClientId, 'jun@example.com')).toBeUndefined();
+
+  fireEvent.click(cta());
+  await waitFor(() => expect(mockShare).toHaveBeenCalled());
+  await waitFor(() => expect(getEmailChoice(mockClientId, 'jun@example.com')).toBe(true));
+});
+
+it('starts from the answer this account gave the app before', async () => {
   localStorage.setItem(`email_granted_${mockClientId}_jun@example.com`, 'true');
   render(<SelectVehicles />);
   await screen.findByText('Needs update');
-  expect(screen.queryByRole('switch')).toBeNull();
+  expect(
+    screen.getByRole('switch', { name: /Share my email with Acme/ }),
+  ).toHaveAttribute('aria-checked', 'true');
+});
+
+it("doesn't mention the email when the app doesn't ask for it", async () => {
+  mockCreds.emailRequest = 'none';
+  render(<SelectVehicles />);
+  await screen.findByText('Needs update');
+  expect(screen.queryByText(/email/i)).toBeNull();
+  expect(screen.queryByText('About you')).toBeNull();
 });

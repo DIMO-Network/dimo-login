@@ -39,9 +39,6 @@ const en = {
 
   // Email
   'email.invalid': 'Please enter a valid email',
-  'email.sharing_required':
-    'Email sharing is required to continue. Please check the box.',
-  'email.share_with_app': 'I agree to share my email with {{appName}}',
 
   // Legal notice
   'legal.notice_brand':
@@ -181,13 +178,17 @@ const en = {
   'logout.signing_out': 'Signing out…',
 
   // Email sharing, as a switch row
+  // The email as part of the app's request
+  'email.item': 'Email address',
+  'request.about_you': 'About you',
+  'request.about_vehicles': 'About your vehicles',
+  'consent.title': 'Continue to {{appName}}',
+  'consent.optional':
+    '{{appName}} would like your email address. You can continue without sharing it.',
+  'consent.required': '{{appName}} needs your email address to continue.',
+  'consent.share_and_continue': 'Share and continue',
   'email.share_title': 'Share my email with {{appName}}',
-  'email.share_desc': '{{appName}} can use it to contact you.',
   'email.required': 'Required',
-  'email.required_hint':
-    '{{appName}} needs your email. Turn on email sharing to continue.',
-  'email.required_hint_below':
-    '{{appName}} needs your email. Turn on email sharing below to continue.',
 
   // Sharing vehicles
   'share.title': '{{appName}} wants access to your vehicles',

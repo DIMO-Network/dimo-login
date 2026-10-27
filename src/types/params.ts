@@ -2,6 +2,7 @@ import { UiStates } from '../enums';
 import { OemBrand } from '../services/brandService';
 import { CloudEventAgreement } from './permissions';
 import type { Language } from '../i18n/language';
+import type { EmailRequest } from '../utils/emailRequest';
 
 export interface BaseParams {
   clientId: `0x${string}` | null;
@@ -12,7 +13,9 @@ export interface BaseParams {
   utm: string;
   entryState?: UiStates;
   altTitle?: boolean;
+  /** @deprecated by emailRequest; true means 'required'. */
   forceEmail?: boolean;
+  emailRequest?: EmailRequest;
   configCID?: string;
   /**
    * Brand the relying party selected, forwarded by the SDK — a URL query param

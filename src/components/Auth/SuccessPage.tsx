@@ -1,4 +1,4 @@
-import React, { useId } from 'react';
+import React from 'react';
 
 import { useAuthContext } from '../../context/AuthContext';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
@@ -6,7 +6,7 @@ import { buildAuthPayload, logout, sendAuthPayloadToParent } from '../../utils/a
 import { useUIManager } from '../../context/UIManagerContext';
 import { isEmbed } from '../../utils/isEmbed';
 import { backToThirdParty } from '../../utils/messageHandler';
-import { useEmailShare } from '../../hooks/useEmailShare';
+import { useEmailRequest } from '../../hooks/useEmailRequest';
 import { useT } from '../../i18n';
 import { EmailShareRow } from '../Shared/EmailShareRow';
 import { ActionBar, Button, DoneHeader, Screen } from '../ui';
@@ -18,10 +18,9 @@ export const SuccessPage: React.FC = () => {
   const { redirectUri, utm, clientId, devLicenseAlias, oemBrand } = useDevCredentials();
   const appName = oemBrand?.name || devLicenseAlias || t('common.app_developer_fallback');
   const { setUiState } = useUIManager();
-  // A returning session skips the sign-in screen, so a user who never chose
-  // (or whose choice was lost) is asked here before going back to the app.
-  const emailShare = useEmailShare();
-  const hintId = useId();
+  // A returning session lands here instead of the consent step, so the
+  // email item (when the app asks for it) is part of going back.
+  const emailRequest = useEmailRequest();
 
   const sendJwtAfterPermissions = () => {
     if (jwt && redirectUri && clientId) {
@@ -33,7 +32,7 @@ export const SuccessPage: React.FC = () => {
   };
 
   const handleContinue = () => {
-    if (emailShare.blocked) return;
+    emailRequest.commit();
     sendJwtAfterPermissions();
   };
 
@@ -45,22 +44,9 @@ export const SuccessPage: React.FC = () => {
 
   const embedded = isEmbed();
   const actions = (
-    <ActionBar
-      hint={
-        emailShare.blocked && !embedded
-          ? t('email.required_hint', { appName })
-          : undefined
-      }
-      hintId={hintId}
-      className="[&>div]:flex-col"
-    >
+    <ActionBar className="[&>div]:flex-col">
       {!embedded && (
-        <Button
-          fullWidth
-          onClick={handleContinue}
-          disabled={emailShare.blocked}
-          disabledReasonId={hintId}
-        >
+        <Button fullWidth onClick={handleContinue}>
           {t('common.back_to_app', { appName })}
         </Button>
       )}
@@ -75,13 +61,17 @@ export const SuccessPage: React.FC = () => {
       <DoneHeader title={t('login_done.title')}>
         {user?.email ? t('login_done.body', { email: user.email }) : undefined}
       </DoneHeader>
-      {emailShare.ask && (
-        <EmailShareRow
-          appName={appName}
-          checked={emailShare.shared}
-          onChange={emailShare.setShare}
-          required={emailShare.required}
-        />
+      {emailRequest.asked && emailRequest.email && (
+        <section className="flex flex-col gap-2">
+          <h2 className="px-0.5 text-label text-muted">{t('request.about_you')}</h2>
+          <EmailShareRow
+            appName={appName}
+            email={emailRequest.email}
+            required={emailRequest.required}
+            checked={emailRequest.shared}
+            onChange={emailRequest.setShared}
+          />
+        </section>
       )}
     </Screen>
   );

@@ -11,7 +11,7 @@ export const useConstructOAuthUrl = () => {
   const { onboardingEnabled } = useOracles();
   const { altTitle, entryState } = useUIManager();
 
-  return (provider: AuthProvider, emailPermissionGranted: boolean) => {
+  return (provider: AuthProvider) => {
     const urlParams = new URLSearchParams(window.location.search);
     // The flow (share vehicles, documents, a transaction…) is restored from this
     // snapshot on return; the URL params below only cover the redirect mode
@@ -36,7 +36,6 @@ export const useConstructOAuthUrl = () => {
       cloudEvent,
       onboarding: onboardingEnabled ? ['tesla'] : [], //TODO: Should have full onboarding array here
       altTitle,
-      emailPermissionGranted,
       flowRef,
     });
   };

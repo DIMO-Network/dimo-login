@@ -2,6 +2,7 @@ import React from 'react';
 import { Permission } from '@dimo-network/transactions';
 import {
   ChartBarIcon,
+  EnvelopeIcon,
   CodeBracketIcon,
   DocumentTextIcon,
   ExclamationTriangleIcon,
@@ -36,7 +37,18 @@ export interface AccessItem {
   caution?: string;
   /** Requested now but not in the vehicle's current grant. */
   isNew?: boolean;
+  /** About the person (email, driver documents) or their vehicles. */
+  group: AccessGroup;
 }
+
+export type AccessGroup = 'you' | 'vehicles';
+
+// Driver documents are about the person, even when a vehicle share carries
+// them.
+const PERSONAL_DOCUMENTS: readonly TranslationKey[] = [
+  'document.driver',
+  'document.raw_driver',
+];
 
 const PERMISSION_ICONS: Record<PermissionKey, Icon> = {
   GetNonLocationHistory: ChartBarIcon,
@@ -68,6 +80,7 @@ export const permissionItem = (
       description: '',
       Icon: ShieldCheckIcon,
       isNew,
+      group: 'vehicles',
     };
   }
   return {
@@ -78,6 +91,7 @@ export const permissionItem = (
     caution:
       key === 'ExecuteCommands' ? t('permission.ExecuteCommands.caution') : undefined,
     isNew,
+    group: 'vehicles',
   };
 };
 
@@ -94,4 +108,17 @@ export const fileItems = (
       labelKey === 'document.other' ? '' : t(`${labelKey}.description` as TranslationKey),
     Icon: DOCUMENT_ICONS[labelKey] ?? DocumentTextIcon,
     isNew,
+    group: PERSONAL_DOCUMENTS.includes(labelKey) ? 'you' : 'vehicles',
   }));
+
+/** The user's email, for the terms sheet once it will be shared. */
+export const emailItem = (email: string, t: Translate): AccessItem => ({
+  id: 'email',
+  label: t('email.item'),
+  description: email,
+  Icon: EnvelopeIcon,
+  group: 'you',
+});
+
+export const inGroup = (items: AccessItem[], group: AccessGroup) =>
+  items.filter((item) => item.group === group);

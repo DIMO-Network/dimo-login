@@ -17,7 +17,8 @@
  *
  * Verified against the login-with-dimo SDK (sdk/src/utils/eventHandler.ts):
  *   AUTH_INIT message → clientId, redirectUri, apiKey, entryState, forceEmail,
- *                       brandName, altTitle, tosUrl, privacyPolicyUrl, language
+ *                       emailRequest, brandName, altTitle, tosUrl,
+ *                       privacyPolicyUrl, language
  *   action message    → DimoActionPayload: permissionTemplateId, vehicles,
  *                       vehicleMakes, onboarding, expirationDate, utm,
  *                       powertrainTypes, permissions, transactionData, messageData
@@ -36,9 +37,10 @@ export const ALLOWED_MESSAGE_PARAM_KEYS = new Set<string>([
   'configCID',
   'entryState',
   'brandName',
-  // UI behavior  (SDK AUTH_INIT: altTitle, forceEmail, tosUrl, privacyPolicyUrl, language)
+  // UI behavior  (SDK AUTH_INIT: altTitle, forceEmail, emailRequest, tosUrl, privacyPolicyUrl, language)
   'altTitle',
   'forceEmail',
+  'emailRequest',
   'tosUrl',
   'privacyPolicyUrl',
   'language',

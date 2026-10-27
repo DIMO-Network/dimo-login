@@ -68,11 +68,15 @@ export const setEmailGranted = (
   localStorage.setItem(emailGrantKey(clientId, email), JSON.stringify(granted));
 };
 
-export const isEmailGranted = (
+/**
+ * The account's answer for this app: true (shares), false (declined), or
+ * undefined (never asked).
+ */
+export const getEmailChoice = (
   clientId: `0x${string}` | null,
   email: string | null | undefined,
-): boolean => {
-  if (!clientId || !email) return false;
+): boolean | undefined => {
+  if (!clientId || !email) return undefined;
   const value = localStorage.getItem(emailGrantKey(clientId, email));
   if (value !== null) return value === 'true';
   // Grants stored before they were keyed by account: they belonged to the
@@ -81,8 +85,14 @@ export const isEmailGranted = (
   const loggedEmail = getLoggedEmail(clientId);
   const isSameAccount =
     !!loggedEmail && loggedEmail.trim().toLowerCase() === email.trim().toLowerCase();
-  return isSameAccount && legacy === 'true';
+  if (!isSameAccount || legacy === null) return undefined;
+  return legacy === 'true';
 };
+
+export const isEmailGranted = (
+  clientId: `0x${string}` | null,
+  email: string | null | undefined,
+): boolean => getEmailChoice(clientId, email) === true;
 
 export const setLoggedEmail = (clientId: `0x${string}` | null, email: string): void => {
   if (!clientId) return;

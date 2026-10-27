@@ -22,6 +22,8 @@ import { UserObject } from '../models/user';
 import { backToThirdParty, sendMessageToReferrer } from './messageHandler';
 import { GenerateChallengeParams, SubmitChallengeParams } from '../models/web3';
 import { UiStates } from '../enums';
+import { getEmailRequest } from '../stores/AuthStateStore';
+import { needsEmailConsent } from './emailRequest';
 import { TStamper } from '@turnkey/http/dist/base';
 import { ApiKeyStamper } from '@turnkey/api-key-stamper';
 
@@ -37,7 +39,9 @@ export function buildAuthPayload(
   //Won't send to SDK until these are set in cookies/storage (may not work in incognito though?)
   const token = getJWTFromCookies(clientId) || jwt;
   const user = getUserFromLocalStorage(clientId) || userObj;
-  const emailGranted = isEmailGranted(clientId, user?.email);
+  // An app that asked for no email never gets one, whatever was granted.
+  const emailGranted =
+    getEmailRequest() !== 'none' && isEmailGranted(clientId, user?.email);
 
   if (!token) {
     throw new Error('JWT is missing. Ensure the user is authenticated.');
@@ -121,6 +125,29 @@ export const updateTurnkeySession = (sessionData: TurnkeySessionDataWithExpiry) 
   return saveToLocalStorage(TurnkeySessionKey, sessionData);
 };
 
+/** Plain login: hand the token (and the email, if shared) to the app. */
+export function sendLoginToApp({
+  clientId,
+  jwt,
+  user,
+  redirectUri,
+  utm,
+  setUiState,
+}: {
+  clientId: `0x${string}` | null;
+  jwt: string;
+  user: UserObject;
+  redirectUri: string;
+  utm: string;
+  setUiState: (step: UiStates) => void;
+}) {
+  const authPayload = buildAuthPayload(clientId, jwt, user);
+  sendAuthPayloadToParent(authPayload, redirectUri, (payload) => {
+    backToThirdParty(payload, redirectUri, utm);
+    setUiState(UiStates.SUCCESS); //For Embed Mode
+  });
+}
+
 export function handlePostAuthUIState({
   entryState,
   clientId,
@@ -139,11 +166,13 @@ export function handlePostAuthUIState({
   setUiState: (step: UiStates) => void;
 }) {
   if (entryState === UiStates.EMAIL_INPUT) {
-    const authPayload = buildAuthPayload(clientId, jwt, user);
-    sendAuthPayloadToParent(authPayload, redirectUri, (payload) => {
-      backToThirdParty(payload, redirectUri, utm);
-      setUiState(UiStates.SUCCESS); //For Embed Mode
-    });
+    // A plain login asks for the email on its own step, once per app and
+    // account; the other flows ask with the rest of their request.
+    if (needsEmailConsent(clientId, user?.email, getEmailRequest())) {
+      setUiState(UiStates.EMAIL_CONSENT);
+      return;
+    }
+    sendLoginToApp({ clientId, jwt, user, redirectUri, utm, setUiState });
   } else if (entryState === UiStates.VEHICLE_MANAGER) {
     //Note: If the user is unauthenticated but the vehicle manager is the entry state, the payload will be sent to parent in the vehicle manager, after vehicles are shared
     setUiState(UiStates.VEHICLE_MANAGER); //Move to vehicle manager

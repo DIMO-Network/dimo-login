@@ -7,7 +7,7 @@ import { useOracles } from '../../context/OraclesContext';
 import { useUIManager } from '../../context/UIManagerContext';
 import { UiStates } from '../../enums';
 import { useFetchVehicles, useFinishShareVehicles, useShareVehicles } from '../../hooks';
-import { useEmailShare } from '../../hooks/useEmailShare';
+import { useEmailRequest } from '../../hooks/useEmailRequest';
 import useSelectVehicles from '../../hooks/useSelectVehicles';
 import {
   translateText,
@@ -37,10 +37,9 @@ import {
 } from '../../utils/permissions';
 import { getRedirectHost } from '../../utils/urlHelpers';
 import { keepLaterExpiration } from '../../utils/vehicles';
-import { EmailShareRow } from '../Shared/EmailShareRow';
 import { LegalNotice } from '../Shared/LegalNotice';
 import { ActionBar, Button, ErrorBox, Notice, Screen, ScreenHeader } from '../ui';
-import { fileItems, permissionItem } from './access';
+import { emailItem, fileItems, permissionItem } from './access';
 import { getShareButtonLabel } from './shareButtonLabel';
 import { AccessSummary } from './AccessSummary';
 import { EmptyState } from './EmptyState';
@@ -106,7 +105,7 @@ export const SelectVehicles: React.FC = () => {
   const appName = oemBrand?.name || devLicenseAlias;
   const { componentData, setComponentData, setUiState, setBusy } = useUIManager();
   const { onboardingEnabled } = useOracles();
-  const emailShare = useEmailShare();
+  const emailRequest = useEmailRequest();
   const hintId = useId();
 
   const { fetchVehicles, vehicles, incompatibleVehicles, hasNextPage, hasPreviousPage } =
@@ -210,6 +209,8 @@ export const SelectVehicles: React.FC = () => {
           : BigInt(expirationDate.toString()),
       }));
       clearSelectedVehicles();
+      // Approving the request approves its email item too.
+      emailRequest.commit();
       finishShareVehicles(results, skipped);
     } catch (err) {
       captureException(err);
@@ -223,7 +224,13 @@ export const SelectVehicles: React.FC = () => {
     }
   };
 
+  // Cancel leaves the email answer as it was; Continue (nothing to share)
+  // still approves the email item.
   const handleCancel = () => finishShareVehicles([]);
+  const handleContinue = () => {
+    emailRequest.commit();
+    finishShareVehicles([]);
+  };
 
   const handleManage = (vehicle: Vehicle) => {
     // Keeps the requested permissions VehicleManager put in componentData.
@@ -251,20 +258,13 @@ export const SelectVehicles: React.FC = () => {
   // The action bar explains a disabled button, or asks to keep the window open.
   let hint: string | undefined;
   if (sharing) hint = t('share.keep_open');
-  else if (emailShare.blocked) hint = t('email.required_hint_below', { appName });
   else if (!nothingToShare && loaded && !selectedVehicles.length)
     hint = t('share.hint.select');
 
   const actions = (
     <ActionBar hint={hint} hintId={hintId}>
       {nothingToShare || noVehicles ? (
-        <Button
-          onClick={handleCancel}
-          disabled={emailShare.blocked}
-          disabledReasonId={hintId}
-        >
-          {t('common.continue')}
-        </Button>
+        <Button onClick={handleContinue}>{t('common.continue')}</Button>
       ) : (
         <>
           <Button variant="secondary" onClick={handleCancel} disabled={sharing}>
@@ -274,7 +274,7 @@ export const SelectVehicles: React.FC = () => {
             onClick={handleShare}
             loading={sharing}
             loadingLabel={t('share.sharing')}
-            disabled={!loaded || !selectedVehicles.length || emailShare.blocked}
+            disabled={!loaded || !selectedVehicles.length}
             disabledReasonId={hintId}
           >
             {shareError !== undefined ? t('common.try_again') : ctaLabel}
@@ -295,7 +295,22 @@ export const SelectVehicles: React.FC = () => {
         title={t('share.title', { appName })}
         host={getRedirectHost(redirectUri)}
       />
-      <AccessSummary items={items} end={end} onDetails={() => setTermsOpen(true)} />
+      <AccessSummary
+        items={items}
+        email={
+          emailRequest.asked && emailRequest.email
+            ? {
+                appName,
+                email: emailRequest.email,
+                required: emailRequest.required,
+                shared: emailRequest.shared,
+                onChange: emailRequest.setShared,
+              }
+            : undefined
+        }
+        end={end}
+        onDetails={() => setTermsOpen(true)}
+      />
 
       {noVehicles ? (
         <EmptyState>{addVehicle}</EmptyState>
@@ -404,16 +419,6 @@ export const SelectVehicles: React.FC = () => {
         </section>
       )}
 
-      {emailShare.ask && (
-        <EmailShareRow
-          appName={appName}
-          checked={emailShare.shared}
-          onChange={emailShare.setShare}
-          required={emailShare.required}
-          description={emailShare.email}
-          showIcon
-        />
-      )}
       <LegalNotice
         tosUrl={tosUrl}
         privacyPolicyUrl={privacyPolicyUrl}
@@ -423,7 +428,11 @@ export const SelectVehicles: React.FC = () => {
       <TermsSheet
         open={termsOpen}
         onClose={() => setTermsOpen(false)}
-        items={items}
+        items={
+          emailRequest.asked && emailRequest.shared && emailRequest.email
+            ? [emailItem(emailRequest.email, t), ...items]
+            : items
+        }
         end={end}
         contract={contract}
       />

@@ -35,6 +35,7 @@ import { AppShell } from './components/Shell/AppShell';
 import { useErrorHandler } from './hooks/useErrorHandler';
 import { PasskeyLogin } from './components/Auth/PasskeyLogin';
 import { PasskeyLoginFail } from './components/Auth/PasskeyLoginFail';
+import { EmailConsent } from './components/Auth/EmailConsent';
 import { useLanguage, useT } from './i18n';
 import { useLanguageSync } from './i18n/useLanguageSync';
 
@@ -139,6 +140,7 @@ const App = () => {
     [UiStates.CONNECT_TESLA]: <ConnectTesla />,
     [UiStates.TRANSACTION_CANCELLED]: <CancelledTransaction />,
     [UiStates.SUCCESS]: <SuccessPage />,
+    [UiStates.EMAIL_CONSENT]: <EmailConsent />,
     [UiStates.LOGOUT]: <Logout />,
     [UiStates.PROVISION_DEVELOPER_LICENSE]: <ProvisionDeveloperLicense />,
   };

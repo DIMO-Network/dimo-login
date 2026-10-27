@@ -5,22 +5,10 @@ export function isValidEmail(email: string) {
   return emailRegex.test(email);
 }
 
-interface ValidateEmailProps {
-  email: string;
-  emailPermissionGranted: boolean;
-  forceEmail: boolean;
-}
-
-export const validateEmail = ({
-  email,
-  emailPermissionGranted,
-  forceEmail,
-}: ValidateEmailProps): Message | undefined => {
+/** Whether an address can be signed in with. Sharing it is asked later. */
+export const validateEmail = (email: string): Message | undefined => {
   if (!email || !isValidEmail(email)) {
     return message('email.invalid');
-  }
-  if (forceEmail && !emailPermissionGranted) {
-    return message('email.sharing_required');
   }
 };
 

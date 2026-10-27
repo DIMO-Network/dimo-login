@@ -9,7 +9,8 @@ import {
 import { useUIManager } from '../context/UIManagerContext';
 import { useOracles } from '../context/OraclesContext';
 import { UiStates } from '../enums';
-import { setForceEmail } from '../stores/AuthStateStore';
+import { setEmailRequest, setForceEmail } from '../stores/AuthStateStore';
+import { normalizeEmailRequest } from '../utils/emailRequest';
 import { parseBooleanParam } from '../utils/parseBooleanParam';
 import { normalizeLanguage } from '../i18n/language';
 import { parseExpirationDate, getDefaultExpirationDate } from '../utils/dateUtils';
@@ -73,6 +74,12 @@ export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
         ...prev,
         forceEmail,
       }));
+    },
+    // Unknown values are dropped: the app then gets the default (optional).
+    emailRequest: (value: unknown) => {
+      const emailRequest = normalizeEmailRequest(value);
+      setEmailRequest(emailRequest);
+      setDevCredentialsState((prev) => ({ ...prev, emailRequest }));
     },
     altTitle: (value: unknown) => {
       const altTitle = parseBooleanParam(value);

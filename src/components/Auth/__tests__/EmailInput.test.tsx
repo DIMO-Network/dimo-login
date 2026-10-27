@@ -37,7 +37,7 @@ jest.mock('@sentry/react', () => ({ captureException: jest.fn() }));
 
 import { EmailInput } from '../EmailInput';
 import { setForceEmail } from '../../../stores/AuthStateStore';
-import { isEmailGranted } from '../../../services/storageService';
+import { getEmailChoice } from '../../../services/storageService';
 
 const onSubmit = jest.fn();
 
@@ -58,11 +58,9 @@ it('signs in with the email as typed on a Japanese keyboard', async () => {
   fireEvent.change(screen.getByLabelText('Email'), {
     target: { value: ' ｊｕｎ＠ｅｘａｍｐｌｅ．ｃｏｍ ' },
   });
-  fireEvent.click(screen.getByRole('switch', { name: /Share my email with Acme/ }));
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
   await waitFor(() => expect(mockGo).toHaveBeenCalledWith('jun@example.com'));
-  expect(isEmailGranted(mockClientId, 'jun@example.com')).toBe(true);
 });
 
 it('explains an invalid email next to the field', () => {
@@ -76,36 +74,28 @@ it('explains an invalid email next to the field', () => {
   expect(mockGo).not.toHaveBeenCalled();
 });
 
-it('holds every way in until the email is shared when the app requires it', () => {
+it('never asks to share the email at sign-in, even when the app requires it', () => {
+  // The email is asked for after sign-in, with the rest of the request.
   setForceEmail(true);
   render(<EmailInput onSubmit={onSubmit} />);
-  const hint = 'Acme needs your email. Turn on email sharing to continue.';
 
+  expect(screen.queryByRole('switch')).toBeNull();
   for (const name of ['Continue', 'Continue with Google', 'Continue with Apple']) {
-    const button = screen.getByRole('button', { name });
-    expect(button).toHaveAttribute('aria-disabled', 'true');
-    expect(button).toHaveAccessibleDescription(hint);
+    expect(screen.getByRole('button', { name })).not.toHaveAttribute('aria-disabled');
   }
-  expect(screen.getByText('Required')).toBeInTheDocument();
-
-  fireEvent.click(screen.getByRole('switch', { name: /Share my email with Acme/ }));
-  expect(screen.getByRole('button', { name: 'Continue' })).not.toHaveAttribute(
-    'aria-disabled',
-  );
-  expect(screen.queryByText(hint)).toBeNull();
 });
 
-it('welcomes back an account used here before, with its last choice', async () => {
+it('welcomes back an account used here before, keeping its email answer', async () => {
   localStorage.setItem(`logged_email_${mockClientId}`, 'jun@example.com');
   localStorage.setItem(`email_granted_${mockClientId}_jun@example.com`, 'true');
   render(<EmailInput onSubmit={onSubmit} />);
 
   expect(screen.getByRole('heading', { name: 'Welcome back' })).toBeInTheDocument();
-  expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'true');
   fireEvent.click(screen.getByRole('button', { name: 'Continue as jun@example.com' }));
   await waitFor(() => expect(mockGo).toHaveBeenCalledWith('jun@example.com'));
+  // Signing in doesn't touch the answer given before.
+  expect(getEmailChoice(mockClientId, 'jun@example.com')).toBe(true);
 
   fireEvent.click(screen.getByRole('button', { name: 'Use another account' }));
   expect(screen.getByLabelText('Email')).toHaveValue('');
-  expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'false');
 });

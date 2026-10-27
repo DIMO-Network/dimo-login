@@ -5,7 +5,6 @@ import { DevCredentialsProvider, useDevCredentials } from '../DevCredentialsCont
 import { UIManagerProvider } from '../UIManagerContext';
 import { GlobalOraclesProvider } from '../OraclesContext';
 import { fetchOemBrand } from '../../services/brandService';
-import { takePendingEmailGrant } from '../../stores/AuthStateStore';
 import { saveFlowSnapshot } from '../../utils/flowSnapshot';
 
 // The seam under test is `validateCredentials` → `fetchOemBrand(clientId, brandName)`.
@@ -208,7 +207,6 @@ describe('DevCredentialsContext OAuth return', () => {
 
   beforeEach(() => {
     sessionStorage.clear();
-    takePendingEmailGrant();
   });
 
   it('resumes the share flow saved before a Google sign-in (popup mode)', async () => {
@@ -278,19 +276,18 @@ describe('DevCredentialsContext OAuth return', () => {
     );
   });
 
-  it('holds the Google/Apple email choice until the account is known', async () => {
-    returnWith({ clientId: CLIENT_ID, provider: 'google', emailPermissionGranted: true });
-    renderProvider();
+  it('ignores the email choice older builds put in the state', async () => {
+    // Sign-in no longer asks; the choice is made after it. A state from a
+    // build that did ask must not leak in as config.
+    returnWith({
+      clientId: CLIENT_ID,
+      provider: 'google',
+      entryState: 'EMAIL_INPUT',
+      emailPermissionGranted: true,
+    });
+    renderProvider('emailPermissionGranted');
 
     await waitFor(() => expect(fetchOemBrandMock).toHaveBeenCalled());
-    expect(takePendingEmailGrant()).toBe(true);
-  });
-
-  it('Tesla: leaves the email choice alone', async () => {
-    returnWith({ clientId: CLIENT_ID, provider: 'tesla', entryState: 'CONNECT_TESLA' });
-    renderProvider();
-
-    await waitFor(() => expect(fetchOemBrandMock).toHaveBeenCalled());
-    expect(takePendingEmailGrant()).toBeUndefined();
+    expect(screen.getByTestId('probe').textContent).toBe('null');
   });
 });

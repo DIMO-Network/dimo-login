@@ -4,7 +4,7 @@ import { CalendarIcon } from '@heroicons/react/24/outline';
 import { Button, Dialog } from '../ui';
 import { formatDate } from '../../i18n/format';
 import { Language, useLanguage, useT } from '../../i18n';
-import { AccessItem } from './access';
+import { AccessItem, inGroup } from './access';
 import { AccessRows } from './AccessRows';
 import { ShareEnd, useShareEndLabel } from './AccessSummary';
 import { ContractDescription } from './ContractDescription';
@@ -62,9 +62,22 @@ export const TermsSheet = ({
       title={t('terms.title')}
       closeLabel={t('common.close')}
     >
-      <Section title={t('terms.access')}>
-        <AccessRows items={items} tileClassName="bg-card" />
-      </Section>
+      {inGroup(items, 'you').length > 0 && (
+        <Section title={t('request.about_you')}>
+          <AccessRows items={inGroup(items, 'you')} tileClassName="bg-card" />
+        </Section>
+      )}
+      {inGroup(items, 'vehicles').length > 0 && (
+        <Section
+          title={
+            inGroup(items, 'you').length > 0
+              ? t('request.about_vehicles')
+              : t('terms.access')
+          }
+        >
+          <AccessRows items={inGroup(items, 'vehicles')} tileClassName="bg-card" />
+        </Section>
+      )}
       <Section title={t('terms.duration')}>
         <div className="flex items-start gap-3">
           <span className="flex size-8 shrink-0 items-center justify-center rounded-control bg-card text-ink">
