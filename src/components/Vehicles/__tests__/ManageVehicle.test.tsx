@@ -44,17 +44,26 @@ const mockUi = {
 jest.mock('../../../context/UIManagerContext', () => ({
   useUIManager: () => mockUi,
 }));
+const mockClientId = '0x2222222222222222222222222222222222222222';
+const mockCreds: Record<string, unknown> = {};
 jest.mock('../../../context/DevCredentialsContext', () => ({
   useDevCredentials: () => ({
-    clientId: '0x2222222222222222222222222222222222222222',
+    clientId: mockClientId,
     devLicenseAlias: 'Acme',
     expirationDate: BigInt(4102444800),
+    ...mockCreds,
   }),
 }));
+const mockUser: { smartContractAddress: string; email?: string } = {
+  smartContractAddress: '0x1111111111111111111111111111111111111111',
+};
 jest.mock('../../../context/AuthContext', () => ({
-  useAuthContext: () => ({
-    user: { smartContractAddress: '0x1111111111111111111111111111111111111111' },
-  }),
+  useAuthContext: () => ({ user: mockUser }),
+}));
+const mockReadGrant = jest.fn();
+jest.mock('../../../services/vehicleDocumentAgreements', () => ({
+  ...jest.requireActual('../../../services/vehicleDocumentAgreements'),
+  readGrantAgreements: (...args: unknown[]) => mockReadGrant(...args),
 }));
 // Keep the turnkey-backed services out of the module graph.
 jest.mock('../../../services', () => ({}));
@@ -62,6 +71,7 @@ jest.mock('../../../utils/authUtils', () => ({ isInvalidSessionError: () => fals
 jest.mock('@sentry/react', () => ({ captureException: jest.fn() }));
 
 import { ManageVehicle } from '../ManageVehicle';
+import { getEmailChoice } from '../../../services/storageService';
 
 // The grant has non-location history only (permission 1 at bits 2..3).
 const sharedVehicle = () => ({
@@ -85,7 +95,11 @@ const renderManage = (requestedPermissions: string) => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  localStorage.clear();
+  Object.keys(mockCreds).forEach((key) => delete mockCreds[key]);
+  delete mockUser.email;
   mockUpdate.mockResolvedValue(undefined);
+  mockReadGrant.mockResolvedValue([]);
 });
 
 it('reports an update to the app the way a share from the list is reported', async () => {
@@ -175,4 +189,89 @@ it('says what went wrong and changes nothing when the update fails', async () =>
   expect(await screen.findByRole('alert')).toHaveTextContent('Couldn’t change sharing');
   expect(mockFinish).not.toHaveBeenCalled();
   expect(mockUi.setBusy).toHaveBeenLastCalledWith(false);
+});
+
+describe('a required email', () => {
+  beforeEach(() => {
+    mockCreds.emailRequest = 'required';
+    mockUser.email = 'jun@example.com';
+  });
+
+  it('is listed with an update and shared when it goes through', async () => {
+    renderManage('11');
+    expect(screen.getByText('Email address')).toBeInTheDocument();
+    expect(screen.getByText(/Updating adds .*Email address/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Update permissions' }));
+
+    await waitFor(() => expect(mockFinishShare).toHaveBeenCalled());
+    expect(getEmailChoice(mockClientId, 'jun@example.com')).toBe(true);
+  });
+
+  it('is shared with an extension too', async () => {
+    renderManage('1');
+    fireEvent.click(screen.getByRole('button', { name: 'Extend 1 year' }));
+
+    await waitFor(() => expect(mockFinish).toHaveBeenCalled());
+    expect(getEmailChoice(mockClientId, 'jun@example.com')).toBe(true);
+  });
+
+  it('is not shared by stopping', async () => {
+    renderManage('1');
+    fireEvent.click(screen.getByRole('button', { name: 'Stop sharing' }));
+    fireEvent.click(
+      within(screen.getByRole('alertdialog')).getByRole('button', {
+        name: 'Stop sharing',
+      }),
+    );
+    await waitFor(() => expect(mockFinish).toHaveBeenCalled());
+    expect(getEmailChoice(mockClientId, 'jun@example.com')).toBeUndefined();
+  });
+
+  it('is not listed once this account has shared it', () => {
+    localStorage.setItem(`email_granted_${mockClientId}_jun@example.com`, 'true');
+    renderManage('11');
+    expect(screen.queryByText('Email address')).toBeNull();
+  });
+});
+
+it('marks a request for more of a document type as New, as Update signs it', async () => {
+  // The grant shares one vehicle document; the app now asks for all of them.
+  mockCreds.cloudEvent = [{ eventType: 'dimo.document.vehicle.*', ids: [], tags: [] }];
+  mockReadGrant.mockResolvedValue([
+    {
+      eventType: 'dimo.document.vehicle.*',
+      source: '0x1111111111111111111111111111111111111111',
+      ids: ['doc-1'],
+      tags: [],
+    },
+  ]);
+  mockUi.componentData = {
+    vehicle: { ...sharedVehicle(), documentAccess: false },
+    permissions: '1',
+  };
+  render(<ManageVehicle />);
+
+  expect(
+    await screen.findByText(
+      'Updating adds Vehicle documents. Everything else stays the same.',
+    ),
+  ).toBeInTheDocument();
+  const item = screen
+    .getAllByRole('listitem')
+    .find((li) => within(li).queryByText('Vehicle documents'))!;
+  expect(within(item).getByText('New')).toBeInTheDocument();
+  expect(screen.getAllByText('Vehicle documents')).toHaveLength(1);
+});
+
+it('offers no Extend and still shows the screen when the end date is unknown', () => {
+  for (const grantExpiresAt of ['', 'not a date']) {
+    mockUi.componentData = {
+      vehicle: { ...sharedVehicle(), grantExpiresAt },
+      permissions: '1',
+    };
+    const { unmount } = render(<ManageVehicle />);
+    expect(screen.queryByRole('button', { name: 'Extend 1 year' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Stop sharing' })).toBeInTheDocument();
+    unmount();
+  }
 });

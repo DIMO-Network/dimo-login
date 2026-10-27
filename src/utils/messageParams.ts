@@ -21,9 +21,10 @@
  *                       privacyPolicyUrl, language
  *   action message    → DimoActionPayload: permissionTemplateId, vehicles,
  *                       vehicleMakes, onboarding, expirationDate, utm,
- *                       powertrainTypes, permissions, transactionData, messageData
+ *                       powertrainTypes, permissions, cloudEvent (documents),
+ *                       transactionData, messageData
  * Every SDK-sent key is covered below. The remaining keys (configCID, region,
- * cloudEvent, vehicleTokenIds, *SectionDescription) are app-side params from the
+ * vehicleTokenIds, *SectionDescription) are app-side params from the
  * config-CID/configurationId flows or special-setter aliases (vehicles →
  * vehicleTokenIds), not sent over postMessage but kept as legitimate state.
  */

@@ -7,7 +7,17 @@ import { UiStates } from '../enums';
 
 export const useConstructOAuthUrl = () => {
   const devCredentials = useDevCredentials();
-  const { clientId, redirectUri, cloudEvent } = devCredentials;
+  const {
+    clientId,
+    redirectUri,
+    cloudEvent,
+    emailRequest,
+    forceEmail,
+    language,
+    brandName,
+    tosUrl,
+    privacyPolicyUrl,
+  } = devCredentials;
   const { onboardingEnabled } = useOracles();
   const { altTitle, entryState } = useUIManager();
 
@@ -37,6 +47,12 @@ export const useConstructOAuthUrl = () => {
       onboarding: onboardingEnabled ? ['tesla'] : [], //TODO: Should have full onboarding array here
       altTitle,
       flowRef,
+      emailRequest,
+      forceEmail,
+      language,
+      brandName,
+      tosUrl,
+      privacyPolicyUrl,
     });
   };
 };

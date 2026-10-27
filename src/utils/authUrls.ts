@@ -1,4 +1,6 @@
 import { CloudEventAgreement } from '../types';
+import type { Language } from '../i18n/language';
+import type { EmailRequest } from './emailRequest';
 
 export enum AuthProvider {
   TESLA = 'tesla',
@@ -34,6 +36,14 @@ interface AuthUrlParams {
   testMode?: boolean; // Smartcar test mode
   // Reference to the flow config saved before leaving (see flowSnapshot.ts).
   flowRef?: string;
+  // How the app wants the screens after sign-in. Carried in `state` too, so
+  // they survive when the snapshot couldn't be saved (storage blocked).
+  emailRequest?: EmailRequest;
+  forceEmail?: boolean;
+  language?: Language;
+  brandName?: string | null;
+  tosUrl?: string;
+  privacyPolicyUrl?: string;
 }
 
 export function constructAuthUrl(params: AuthUrlParams): string {
@@ -71,6 +81,12 @@ function buildStateParams(params: AuthUrlParams): Record<string, any> {
     testMode: params.testMode,
     provider: params.provider,
     flowRef: params.flowRef,
+    emailRequest: params.emailRequest,
+    forceEmail: params.forceEmail,
+    language: params.language,
+    brandName: params.brandName,
+    tosUrl: params.tosUrl,
+    privacyPolicyUrl: params.privacyPolicyUrl,
   };
 }
 

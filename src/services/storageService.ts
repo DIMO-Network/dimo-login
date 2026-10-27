@@ -77,16 +77,30 @@ export const getEmailChoice = (
   email: string | null | undefined,
 ): boolean | undefined => {
   if (!clientId || !email) return undefined;
+  migrateLegacyEmailGrant(clientId);
   const value = localStorage.getItem(emailGrantKey(clientId, email));
-  if (value !== null) return value === 'true';
-  // Grants stored before they were keyed by account: they belonged to the
-  // account last signed in to this app.
-  const legacy = localStorage.getItem(`email_granted_${clientId}`);
-  const loggedEmail = getLoggedEmail(clientId);
-  const isSameAccount =
-    !!loggedEmail && loggedEmail.trim().toLowerCase() === email.trim().toLowerCase();
-  if (!isSameAccount || legacy === null) return undefined;
-  return legacy === 'true';
+  return value === null ? undefined : value === 'true';
+};
+
+/**
+ * Grants stored before they were keyed by account belong to the account last
+ * signed in to this app, so they move to that account's key. Runs before the
+ * logged account changes (and on every read), so a later sign-in can never
+ * inherit another account's grant; one that can't be attributed is dropped
+ * and the user is asked again.
+ */
+const migrateLegacyEmailGrant = (clientId: `0x${string}`): void => {
+  const legacyKey = `email_granted_${clientId}`;
+  const legacy = localStorage.getItem(legacyKey);
+  if (legacy === null) return;
+  const owner = getLoggedEmail(clientId);
+  if (owner && localStorage.getItem(emailGrantKey(clientId, owner)) === null) {
+    localStorage.setItem(
+      emailGrantKey(clientId, owner),
+      legacy === 'true' ? 'true' : 'false',
+    );
+  }
+  localStorage.removeItem(legacyKey);
 };
 
 export const isEmailGranted = (
@@ -96,6 +110,7 @@ export const isEmailGranted = (
 
 export const setLoggedEmail = (clientId: `0x${string}` | null, email: string): void => {
   if (!clientId) return;
+  migrateLegacyEmailGrant(clientId);
   const key = `logged_email_${clientId}`;
   localStorage.setItem(key, email);
 };
@@ -109,6 +124,7 @@ export const getLoggedEmail = (clientId: `0x${string}` | null): string | null =>
 
 export const clearLoggedEmail = (clientId: `0x${string}` | null): void => {
   if (!clientId) return;
+  migrateLegacyEmailGrant(clientId);
   localStorage.removeItem(`logged_email_${clientId}`);
 };
 

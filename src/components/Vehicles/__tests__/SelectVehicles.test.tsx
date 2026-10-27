@@ -58,11 +58,12 @@ const mockRav4 = {
 
 const mockShare = jest.fn();
 const mockFinish = jest.fn();
+const mockIncompatible: unknown[] = [];
 jest.mock('../../../hooks', () => ({
   useFetchVehicles: () => ({
     fetchVehicles: () => Promise.resolve(),
     vehicles: [mockRav4, mockTesla],
-    incompatibleVehicles: [],
+    incompatibleVehicles: mockIncompatible,
     hasNextPage: false,
     hasPreviousPage: false,
   }),
@@ -96,6 +97,10 @@ jest.mock('../../../context/UIManagerContext', () => ({
   useUIManager: () => mockUi,
 }));
 jest.mock('../../../utils/authUtils', () => ({ isInvalidSessionError: () => false }));
+const mockSendError = jest.fn();
+jest.mock('../../../utils/errorUtils', () => ({
+  sendErrorToParent: (...args: unknown[]) => mockSendError(...args),
+}));
 jest.mock('@sentry/react', () => ({ captureException: jest.fn() }));
 
 import { SelectVehicles } from '../SelectVehicles';
@@ -107,6 +112,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   localStorage.clear();
   Object.keys(mockCreds).forEach((key) => delete mockCreds[key]);
+  mockIncompatible.length = 0;
   mockShare.mockImplementation(async (vehicles) => ({ shared: vehicles, skipped: [] }));
 });
 
@@ -217,4 +223,61 @@ it("doesn't mention the email when the app doesn't ask for it", async () => {
   await screen.findByText('Needs update');
   expect(screen.queryByText(/email/i)).toBeNull();
   expect(screen.queryByText('About you')).toBeNull();
+});
+
+describe('Cancel with a required email', () => {
+  it('reports a decline while the email was never shared', async () => {
+    mockCreds.emailRequest = 'required';
+    render(<SelectVehicles />);
+    await screen.findByText('Needs update');
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(mockSendError).toHaveBeenCalledWith(
+      'User declined to share their email',
+      'https://acme.example/callback',
+      undefined,
+      mockUi.setUiState,
+    );
+    expect(mockFinish).not.toHaveBeenCalled();
+    expect(getEmailChoice(mockClientId, 'jun@example.com')).toBeUndefined();
+  });
+
+  it('returns to the app as usual once the email is shared', async () => {
+    mockCreds.emailRequest = 'required';
+    localStorage.setItem(`email_granted_${mockClientId}_jun@example.com`, 'true');
+    render(<SelectVehicles />);
+    await screen.findByText('Needs update');
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(mockFinish).toHaveBeenCalledWith([]);
+    expect(mockSendError).not.toHaveBeenCalled();
+  });
+
+  it('leaves an optional email’s Cancel as it was', async () => {
+    render(<SelectVehicles />);
+    await screen.findByText('Needs update');
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(mockFinish).toHaveBeenCalledWith([]);
+    expect(mockSendError).not.toHaveBeenCalled();
+  });
+});
+
+it('still shows a share with the app on a vehicle outside its filters', async () => {
+  mockIncompatible.push({
+    ...mockTesla,
+    tokenId: 3,
+    make: 'Mazda',
+    model: 'CX-5',
+    grantExpiresAt: '2125-01-01T00:00:00Z',
+  });
+  render(<SelectVehicles />);
+  await screen.findByText('Needs update');
+
+  expect(screen.getByText('Not supported by this app')).toBeInTheDocument();
+  expect(screen.getByText('Shared, no end date')).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /Manage sharing for Mazda/ })).toBeNull();
+  expect(
+    screen.getByRole('button', { name: /Manage sharing for Tesla/ }),
+  ).toBeInTheDocument();
 });

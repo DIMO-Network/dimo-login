@@ -226,6 +226,7 @@ const ja: LocaleResources = {
   'vehicle.name': '{{make}} {{model}} {{year}}',
   'vehicle.id': 'ID {{id}}',
   'vehicle.not_shared': '未共有',
+  'vehicle.shared': '共有中',
   'vehicle.shared_until': '{{date}}まで共有',
   'vehicle.shared_no_end': '無期限で共有中',
   'vehicle.needs_update': '更新が必要',
@@ -432,7 +433,7 @@ const ja: LocaleResources = {
   'contract.outro':
     '署名することで、両当事者はこれらの条件と指定されたアクセス範囲に同意します。',
   'contract.attachment': 'ポリシーの添付資料',
-  'contract.courtesy': 'これは参考訳です。署名されるのは英語版の条件です。',
+  'contract.courtesy': 'これは英語の原文の参考訳です。',
   'contract.view_original': '英語で表示',
   'contract.view_translation': '日本語で表示',
   'contract.permission.GetNonLocationHistory':

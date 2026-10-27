@@ -27,6 +27,8 @@ export const useEmailRequest = () => {
     /** The request shows an email item. */
     asked: request !== 'none' && !!email,
     shared: required || choice,
+    /** The answer already stored for this app and account is a yes. */
+    granted: getEmailChoice(clientId, email) === true,
     setShared: setChoice,
     commit: () => {
       if (request === 'none' || !email) return;

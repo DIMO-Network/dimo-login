@@ -29,6 +29,7 @@ import {
 } from '../../services/vehicleDocumentAgreements';
 import { VehicleManagerMandatoryParams } from '../../types';
 import { isInvalidSessionError } from '../../utils/authUtils';
+import { sendErrorToParent } from '../../utils/errorUtils';
 import { shareEndOf } from '../../utils/dateUtils';
 import {
   getAddedPermissions,
@@ -84,7 +85,8 @@ const unsupportedNote = (
 /**
  * Choose vehicles to share with the app (grant new), or bring shares made
  * with older terms up to date (update). Cancel and Continue still return the
- * token to the app with an empty sharedVehicles.
+ * token to the app with an empty sharedVehicles (except Cancel on a required
+ * email that isn't shared, which reports a decline).
  */
 export const SelectVehicles: React.FC = () => {
   const t = useT();
@@ -94,6 +96,7 @@ export const SelectVehicles: React.FC = () => {
     devLicenseAlias,
     oemBrand,
     redirectUri,
+    utm,
     tosUrl,
     privacyPolicyUrl,
     permissions,
@@ -225,8 +228,21 @@ export const SelectVehicles: React.FC = () => {
   };
 
   // Cancel leaves the email answer as it was; Continue (nothing to share)
-  // still approves the email item.
-  const handleCancel = () => finishShareVehicles([]);
+  // still approves the email item. A required email that was never shared
+  // ends the flow with a decline, as on the plain-login step, so the app
+  // never gets a login without it.
+  const handleCancel = () => {
+    if (emailRequest.asked && emailRequest.required && !emailRequest.granted) {
+      sendErrorToParent(
+        'User declined to share their email',
+        redirectUri,
+        utm,
+        setUiState,
+      );
+      return;
+    }
+    finishShareVehicles([]);
+  };
   const handleContinue = () => {
     emailRequest.commit();
     finishShareVehicles([]);

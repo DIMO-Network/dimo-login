@@ -61,7 +61,9 @@ export const SuccessPage: React.FC = () => {
       <DoneHeader title={t('login_done.title')}>
         {user?.email ? t('login_done.body', { email: user.email }) : undefined}
       </DoneHeader>
-      {emailRequest.asked && emailRequest.email && (
+      {/* Embedded, the app already has the login and there's no Back to send
+          a new answer with, so the switch would change nothing. */}
+      {!embedded && emailRequest.asked && emailRequest.email && (
         <section className="flex flex-col gap-2">
           <h2 className="px-0.5 text-label text-muted">{t('request.about_you')}</h2>
           <EmailShareRow

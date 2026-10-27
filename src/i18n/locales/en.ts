@@ -247,6 +247,7 @@ const en = {
   'vehicle.name': '{{make}} {{model}} {{year}}',
   'vehicle.id': 'ID {{id}}',
   'vehicle.not_shared': 'Not shared yet',
+  'vehicle.shared': 'Shared',
   'vehicle.shared_until': 'Shared until {{date}}',
   'vehicle.shared_no_end': 'Shared, no end date',
   'vehicle.needs_update': 'Needs update',
@@ -468,8 +469,7 @@ const en = {
   'contract.outro':
     'By signing, both parties agree to these terms and the specified access scope.',
   'contract.attachment': 'Policy attachment',
-  'contract.courtesy':
-    'This is a courtesy translation. The English version is what you sign.',
+  'contract.courtesy': 'This is a courtesy translation of the English text.',
   'contract.view_original': 'View in English',
   'contract.view_translation': 'View translation',
   'contract.permission.GetNonLocationHistory':

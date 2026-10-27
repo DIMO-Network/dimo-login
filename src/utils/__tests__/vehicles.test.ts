@@ -29,4 +29,11 @@ describe('getNewExpirationDate', () => {
       BigInt(Date.parse('2028-01-15T00:00:00Z') / 1000),
     );
   });
+
+  it('refuses to extend a share whose end date is unknown', () => {
+    for (const grantExpiresAt of [undefined, '', 'not a date']) {
+      const vehicle = { grantExpiresAt } as Parameters<typeof getNewExpirationDate>[0];
+      expect(() => getNewExpirationDate(vehicle, 'extend')).toThrow();
+    }
+  });
 });

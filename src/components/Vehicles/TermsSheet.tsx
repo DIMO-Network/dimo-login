@@ -18,8 +18,9 @@ const Section = ({ title, children }: { title: string; children: React.ReactNode
 
 /**
  * "Details": every item with a plain description, how long it lasts, and the
- * contract text. A translated contract is a courtesy; the English one is what
- * gets signed, so Japanese readers can switch to it.
+ * contract text. A translation is a courtesy, so Japanese readers can switch
+ * to the English original. (The signed document itself is built by
+ * the transactions SDK from the same terms.)
  */
 export const TermsSheet = ({
   open,

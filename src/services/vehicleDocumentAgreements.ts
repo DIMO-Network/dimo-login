@@ -139,7 +139,7 @@ const sameSource = (a?: string, b?: string) =>
 const coversIds = (existing: string[] = [], wanted: string[] = []) =>
   !existing.length || (wanted.length > 0 && wanted.every((id) => existing.includes(id)));
 
-const covers = (existing: CloudEventAgreement, wanted: CloudEventAgreement) =>
+export const covers = (existing: CloudEventAgreement, wanted: CloudEventAgreement) =>
   eventTypeOf(existing) === eventTypeOf(wanted) &&
   sameSource(existing.source, wanted.source) &&
   coversIds(existing.ids, wanted.ids);

@@ -15,11 +15,13 @@ import {
   useFinishVehicles,
   useUpdateVehiclePermissions,
 } from '../../hooks';
+import { useEmailRequest } from '../../hooks/useEmailRequest';
 import { translateText, useT, type Text } from '../../i18n';
 import { formatDate, formatList } from '../../i18n/format';
 import { SharingResult, Vehicle } from '../../models/vehicle';
 import {
   checkDocumentAccess,
+  covers,
   GrantUnreadableError,
   readGrantAgreements,
   toCloudEventAgreements,
@@ -42,7 +44,7 @@ import {
   ScreenHeader,
   StatusChip,
 } from '../ui';
-import { fileItems, permissionItem } from './access';
+import { emailItem, fileItems, permissionItem } from './access';
 import { AccessRows } from './AccessRows';
 import { StopSharingDialog } from './StopSharingDialog';
 import { useVehicleName } from './VehicleRow';
@@ -80,6 +82,7 @@ export const ManageVehicle: React.FC = () => {
   const updateVehiclePermissions = useUpdateVehiclePermissions();
   const finishShareVehicles = useFinishShareVehicles();
   const finishVehicles = useFinishVehicles();
+  const emailRequest = useEmailRequest();
 
   // The vehicle was captured when Manage was clicked, possibly before the
   // list's file check returned. Finish that check here so the right action
@@ -140,24 +143,47 @@ export const ManageVehicle: React.FC = () => {
   const added = needsUpdate
     ? getAddedPermissions([currentVehicle], permissions, permissionTemplateId)
     : [];
+  const grantEnd = grantEndOf(vehicle.grantExpiresAt);
+  const noEnd = !!grantEnd?.noEnd;
+  // Extend needs a known end date to count from; "no end" has nothing to extend.
+  const primary = needsUpdate ? 'update' : grantEnd && !noEnd ? 'extend' : null;
+  // Update and Extend re-sign the app's request, so a required email this
+  // account hasn't shared yet is listed and approved with them.
+  const emailNew =
+    primary !== null &&
+    emailRequest.asked &&
+    emailRequest.required &&
+    !emailRequest.granted;
+
   const filesMissing = needsUpdate && documentAccess === false;
+  // Requested files the grant doesn't cover yet, judged as Update merges them
+  // (all of a document type is wider than some ids of it). One that widens a
+  // kept file is listed as New in its place.
+  const newFileItems = filesMissing
+    ? fileItems(
+        requestedFiles.filter(
+          (wanted) => !keptFiles.some((kept) => covers(kept, wanted)),
+        ),
+        t,
+        true,
+      )
+    : [];
   const items = [
     ...grantedPermissions(currentVehicle).map((p) => permissionItem(p, t)),
     ...added.map((p) => permissionItem(p, t, true)),
-    ...fileItems(keptFiles, t),
-    ...(filesMissing
-      ? fileItems(requestedFiles, t, true).filter(
-          (item) => !fileItems(keptFiles, t).some((kept) => kept.id === item.id),
-        )
+    ...fileItems(keptFiles, t).filter(
+      (kept) => !newFileItems.some((item) => item.id === kept.id),
+    ),
+    ...newFileItems,
+    ...(emailNew && emailRequest.email
+      ? [{ ...emailItem(emailRequest.email, t), isNew: true }]
       : []),
   ];
   const addedLabels = items.filter((item) => item.isNew).map((item) => item.label);
 
-  const grantEnd = grantEndOf(vehicle.grantExpiresAt);
-  const noEnd = !!grantEnd?.noEnd;
-  const nextEnd = shareEndOf(
-    getNewExpirationDate(vehicle, needsUpdate ? 'update' : 'extend', expirationDate),
-  );
+  const nextEnd = primary
+    ? shareEndOf(getNewExpirationDate(vehicle, primary, expirationDate))
+    : null;
 
   const report = (action: VehiclePermissionsAction, expiration: bigint) => {
     // An update is a share with the requested permissions, reported the way
@@ -186,6 +212,7 @@ export const ManageVehicle: React.FC = () => {
         vehicle: currentVehicle,
         action,
       });
+      if (emailNew && action !== 'revoke') emailRequest.commit();
       report(action, expiration);
     } catch (err) {
       captureException(err);
@@ -199,7 +226,6 @@ export const ManageVehicle: React.FC = () => {
   };
 
   const busy = busyAction !== null;
-  const primary = needsUpdate ? 'update' : noEnd ? null : 'extend';
 
   const actions = (
     <ActionBar>
@@ -227,13 +253,13 @@ export const ManageVehicle: React.FC = () => {
   );
 
   let note: React.ReactNode = null;
-  if (needsUpdate) {
+  if (needsUpdate && nextEnd) {
     note = nextEnd.noEnd
       ? t('manage.update_note_no_end')
       : t('manage.update_note', { date: formatDate(nextEnd.date) });
   } else if (noEnd) {
     note = t('manage.no_end_note');
-  } else if (!checking) {
+  } else if (nextEnd && !checking) {
     note = t('manage.extend_note', { date: formatDate(nextEnd.date) });
   }
   const NoteIcon = needsUpdate || !noEnd ? ArrowPathIcon : InformationCircleIcon;

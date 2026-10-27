@@ -51,11 +51,14 @@ describe('when a plain login asks', () => {
   });
 
   it('counts answers stored before grants were keyed by account', () => {
-    localStorage.setItem(`email_granted_${CLIENT}`, 'true');
+    // The old key held the answer of the account last signed in.
     setLoggedEmail(CLIENT, EMAIL);
+    localStorage.setItem(`email_granted_${CLIENT}`, 'true');
     expect(getEmailChoice(CLIENT, EMAIL)).toBe(true);
     expect(needsEmailConsent(CLIENT, EMAIL, 'required')).toBe(false);
-    // Not another account's.
+    // Not another account's, even once it signs in.
+    setLoggedEmail(CLIENT, 'someone@example.com');
     expect(getEmailChoice(CLIENT, 'someone@example.com')).toBeUndefined();
+    expect(needsEmailConsent(CLIENT, 'someone@example.com', 'required')).toBe(true);
   });
 });

@@ -91,9 +91,11 @@ export const SharedStatus = ({ vehicle }: { vehicle: Vehicle }) => {
   const end = grantEndOf(vehicle.grantExpiresAt);
   return (
     <StatusChip tone="on">
-      {!end || end.noEnd
-        ? t('vehicle.shared_no_end')
-        : t('vehicle.shared_until', { date: formatDate(end.date) })}
+      {!end
+        ? t('vehicle.shared')
+        : end.noEnd
+          ? t('vehicle.shared_no_end')
+          : t('vehicle.shared_until', { date: formatDate(end.date) })}
     </StatusChip>
   );
 };
@@ -158,13 +160,20 @@ export const SharedVehicleRow = ({
   );
 };
 
+// A vehicle outside the app's filters can't be shared or managed here, but an
+// existing share with this app is still shown, so the user knows it exists.
 export const UnsupportedVehicleRow = ({ vehicle }: { vehicle: Vehicle }) => {
   const t = useT();
   return (
     <VehicleRow
       vehicle={vehicle}
       muted
-      status={<StatusChip tone="off">{t('vehicle.unsupported')}</StatusChip>}
+      status={
+        <>
+          <StatusChip tone="off">{t('vehicle.unsupported')}</StatusChip>
+          {vehicle.shared && <SharedStatus vehicle={vehicle} />}
+        </>
+      }
     />
   );
 };
