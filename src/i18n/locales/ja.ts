@@ -252,8 +252,6 @@ const ja: LocaleResources = {
   'terms.duration': '共有期間',
   'terms.duration_until':
     '{{date}}にアクセスが終了します。それより前でも、いつでも共有を停止できます。',
-  'terms.duration_no_end':
-    'アクセスに期限はありません。DIMOアプリからいつでも共有を停止できます。',
   'terms.full': '利用条件の全文',
 
   'manage.status': '{{appName}}と共有中',
@@ -430,7 +428,6 @@ const ja: LocaleResources = {
   'tesla.checking': 'Teslaの権限を確認しています…',
   'tesla.finalizing': '設定を完了しています…',
 
-  'done.next': '共有内容の変更や停止は、DIMOアプリからいつでもできます。',
   'app.powered_by': 'Powered by DIMO',
 
   'contract.intro':

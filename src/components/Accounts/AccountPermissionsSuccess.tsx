@@ -9,7 +9,6 @@ import { buildAuthPayload } from '../../utils/authUtils';
 import { getDefaultExpirationDate, shareEndOf } from '../../utils/dateUtils';
 import { isEmbed } from '../../utils/isEmbed';
 import { backToThirdParty } from '../../utils/messageHandler';
-import { ManageInAppNote } from '../Shared/ManageInAppNote';
 import { ActionBar, Button, DoneHeader, Screen } from '../ui';
 import { useAppName } from '../../hooks/useAppName';
 
@@ -44,7 +43,6 @@ export const AccountPermissionsSuccess: React.FC = () => {
           ? t('success.docs_body_no_end', { appName })
           : t('success.docs_body', { appName, date: formatDate(end.date) })}
       </DoneHeader>
-      <ManageInAppNote />
     </Screen>
   );
 };

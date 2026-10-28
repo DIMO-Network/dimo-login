@@ -288,8 +288,6 @@ const es: PluralLocaleResources = {
   'terms.duration': 'Duración',
   'terms.duration_until':
     'El acceso termina el {{date}}. Puedes dejar de compartir antes en cualquier momento.',
-  'terms.duration_no_end':
-    'El acceso no tiene fecha de vencimiento. Puedes dejar de compartir en cualquier momento en la app DIMO.',
   'terms.full': 'Condiciones completas',
 
   // Managing one shared vehicle
@@ -497,7 +495,6 @@ const es: PluralLocaleResources = {
   'tesla.checking': 'Verificando los permisos de Tesla…',
   'tesla.finalizing': 'Terminando la configuración…',
 
-  'done.next': 'Puedes cambiar o dejar de compartir en cualquier momento en la app DIMO.',
   'app.powered_by': 'Powered by DIMO',
 
   // The sharing contract, as summarized before signing. Display only: the

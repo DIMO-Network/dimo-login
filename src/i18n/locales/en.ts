@@ -276,8 +276,6 @@ const en = {
   'terms.duration': 'How long',
   'terms.duration_until':
     'Access ends on {{date}}. You can stop sharing sooner at any time.',
-  'terms.duration_no_end':
-    'Access has no end date. You can stop sharing anytime in the DIMO app.',
   'terms.full': 'Full terms',
 
   // Managing one shared vehicle
@@ -465,7 +463,6 @@ const en = {
   'tesla.checking': 'Checking Tesla permissions…',
   'tesla.finalizing': 'Finishing setup…',
 
-  'done.next': 'You can change or stop sharing anytime in the DIMO app.',
   'app.powered_by': 'Powered by DIMO',
 
   // The sharing contract, as summarized before signing. Display only: the

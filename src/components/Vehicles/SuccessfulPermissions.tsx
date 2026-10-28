@@ -12,7 +12,6 @@ import { buildAuthPayload } from '../../utils/authUtils';
 import { shareEndOf } from '../../utils/dateUtils';
 import { isEmbed } from '../../utils/isEmbed';
 import { backToThirdParty } from '../../utils/messageHandler';
-import { ManageInAppNote } from '../Shared/ManageInAppNote';
 import { ActionBar, Button, DoneHeader, Notice, Screen, StatusChip } from '../ui';
 import { useVehicleName, VehicleRow } from './VehicleRow';
 import { useAppName } from '../../hooks/useAppName';
@@ -170,7 +169,6 @@ export const SuccessfulPermissions: React.FC = () => {
         </div>
       )}
       {skipped.length > 0 && <SkippedUpdates skipped={skipped} />}
-      {!stopped && <ManageInAppNote />}
     </Screen>
   );
 };

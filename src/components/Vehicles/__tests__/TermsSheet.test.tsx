@@ -43,3 +43,21 @@ it('labels the translation and the English original for what each is', async () 
   expect(screen.getByText('This contract gives permission…')).toBeInTheDocument();
   expect(screen.getByRole('button', { name: '日本語で表示' })).toBeInTheDocument();
 });
+
+it('states how long access lasts, without pointing to the DIMO app', () => {
+  const sheet = (end: { noEnd: boolean; date: Date }) => (
+    <TermsSheet open onClose={jest.fn()} items={[]} end={end} contract={contract} />
+  );
+  const { rerender } = render(
+    sheet({ noEnd: true, date: new Date('2077-01-01T00:00:00Z') }),
+  );
+  expect(screen.getByText('No end date')).toBeInTheDocument();
+  expect(screen.queryByText(/DIMO app/)).not.toBeInTheDocument();
+
+  rerender(sheet({ noEnd: false, date: new Date('2027-10-27T12:00:00Z') }));
+  expect(
+    screen.getByText(
+      'Access ends on Oct 27, 2027. You can stop sharing sooner at any time.',
+    ),
+  ).toBeInTheDocument();
+});
