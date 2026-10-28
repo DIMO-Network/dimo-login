@@ -28,7 +28,7 @@ describe('LegalNotice', () => {
     expect(screen.queryByText(/Hanami Insurance’s/)).toBeNull();
     expect(screen.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute(
       'href',
-      'https://dimo.org/legal/privacy-policy',
+      'https://dimo.org/privacy',
     );
   });
 
