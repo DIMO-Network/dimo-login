@@ -70,9 +70,7 @@ it('shows each shared vehicle with the date sharing ends', () => {
     screen.getByText('Toyota can access them until Oct 27, 2027.'),
   ).toBeInTheDocument();
   expect(screen.getAllByText('Shared until Oct 27, 2027')).toHaveLength(2);
-  expect(
-    screen.getByText('You can change or stop sharing anytime in the DIMO app.'),
-  ).toBeInTheDocument();
+  expect(screen.queryByText(/DIMO app/)).not.toBeInTheDocument();
 });
 
 it('says "no end date" for the 100-year default', () => {

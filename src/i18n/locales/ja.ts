@@ -187,7 +187,6 @@ const ja: LocaleResources = {
   'share.title': '{{appName}}が車両へのアクセスを求めています',
   'share.access_label': '要求されているアクセス',
   'share.also_asks': '新たに「{{list}}」を求めています',
-  'share.stop_anytime': 'DIMOアプリでいつでも停止できます',
   'share.details': '詳細',
   'share.details_label': '内容と利用条件を確認',
   'share.vehicles_heading': 'あなたの車両',
@@ -253,8 +252,6 @@ const ja: LocaleResources = {
   'terms.duration': '共有期間',
   'terms.duration_until':
     '{{date}}にアクセスが終了します。それより前でも、いつでも共有を停止できます。',
-  'terms.duration_no_end':
-    'アクセスに期限はありません。DIMOアプリからいつでも共有を停止できます。',
   'terms.full': '利用条件の全文',
 
   'manage.status': '{{appName}}と共有中',
@@ -431,7 +428,6 @@ const ja: LocaleResources = {
   'tesla.checking': 'Teslaの権限を確認しています…',
   'tesla.finalizing': '設定を完了しています…',
 
-  'done.next': '共有内容の変更や停止は、DIMOアプリからいつでもできます。',
   'app.powered_by': 'Powered by DIMO',
 
   'contract.intro':

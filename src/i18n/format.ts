@@ -1,12 +1,15 @@
 import { i18n } from './instance';
+import type { Language } from './language';
 
 /**
  * Dates, lists and numbers in the language on screen. Display only: never
  * parse these strings back (dates for logic stay ISO or unix seconds).
  */
+const INTL_LOCALES: Record<Language, string> = { en: 'en-US', ja: 'ja-JP', es: 'es' };
+
 const locale = (lng?: string) => {
   const language = lng ?? i18n.resolvedLanguage ?? i18n.language ?? 'en';
-  return language === 'ja' ? 'ja-JP' : 'en-US';
+  return INTL_LOCALES[language as Language] ?? INTL_LOCALES.en;
 };
 
 const toDate = (value: Date | string | number | bigint | BigInt): Date => {
@@ -16,7 +19,7 @@ const toDate = (value: Date | string | number | bigint | BigInt): Date => {
   return new Date(Number(value.toString()) * 1000);
 };
 
-/** "Oct 27, 2027" / "2027年10月27日". */
+/** "Oct 27, 2027" / "2027年10月27日" / "27 oct 2027". */
 export const formatDate = (
   value: Date | string | number | bigint | BigInt,
   lng?: string,
@@ -45,7 +48,7 @@ export const formatDateTimeUTC = (
   }).format(date)} UTC`;
 };
 
-/** "A, B and C" / "A、B、C". */
+/** "A, B and C" / "A、B、C" / "A, B y C". */
 export const formatList = (items: string[], lng?: string) => {
   const ListFormat = (
     Intl as unknown as {

@@ -3,6 +3,7 @@ import { i18n } from './instance';
 import { initReactI18next, Trans as I18nTrans, useTranslation } from 'react-i18next';
 
 import en from './locales/en';
+import es from './locales/es';
 import ja from './locales/ja';
 import {
   DEFAULT_LANGUAGE,
@@ -31,7 +32,11 @@ const setDocumentLanguage = (language: string) => {
 i18n.on('languageChanged', setDocumentLanguage);
 
 void i18n.use(initReactI18next).init({
-  resources: { en: { translation: en }, ja: { translation: ja } },
+  resources: {
+    en: { translation: en },
+    ja: { translation: ja },
+    es: { translation: es },
+  },
   lng: initialLanguage(),
   fallbackLng: DEFAULT_LANGUAGE,
   supportedLngs: [...SUPPORTED_LANGUAGES],

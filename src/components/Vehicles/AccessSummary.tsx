@@ -127,20 +127,12 @@ export const AccessSummary = ({
           <ItemChips items={vehicles} />
         </div>
       )}
-      {/* One run of text, so a narrow card wraps it as a sentence, never
-          leaving the separator at a line end. */}
       <div className="flex items-start gap-2 text-body-sm text-fg">
         <CalendarIcon
           className="mt-px size-[18px] shrink-0 text-muted"
           aria-hidden="true"
         />
-        <span className="min-w-0 flex-1 [word-break:auto-phrase]">
-          {endLabel(end)}
-          <span className="text-muted" aria-hidden="true">
-            {' · '}
-          </span>
-          {t('share.stop_anytime')}
-        </span>
+        <span className="min-w-0 flex-1 [word-break:auto-phrase]">{endLabel(end)}</span>
         <button
           type="button"
           onClick={onDetails}

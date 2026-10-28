@@ -1,10 +1,12 @@
 /**
  * English copy, the source of truth for keys and `{{params}}`. Japanese
- * (ja.ts) must have every key; locales.test.ts checks they match.
+ * (ja.ts) and Spanish (es.ts) must have every key; locales.test.ts checks
+ * they match.
  *
  * Keys are flat, dot-namespaced and snake_case, as in DIMO Driver. Plurals use
- * i18next suffixes (`_one`, `_other`); Japanese has only `_other`. Tags such
- * as `<terms>…</terms>` are filled by <Trans> with links.
+ * i18next suffixes (`_one`, `_other`); Japanese has only `_other`, and Spanish
+ * adds `_many`. Tags such as `<terms>…</terms>` are filled by <Trans> with
+ * links.
  */
 const en = {
   // App shell
@@ -202,7 +204,6 @@ const en = {
   'share.title': '{{appName}} wants access to your vehicles',
   'share.access_label': 'Access requested',
   'share.also_asks': 'Now also asks for {{list}}',
-  'share.stop_anytime': 'Stop anytime in the DIMO app',
   'share.details': 'Details',
   'share.details_label': 'What’s included and full terms',
   'share.vehicles_heading': 'Your vehicles',
@@ -275,8 +276,6 @@ const en = {
   'terms.duration': 'How long',
   'terms.duration_until':
     'Access ends on {{date}}. You can stop sharing sooner at any time.',
-  'terms.duration_no_end':
-    'Access has no end date. You can stop sharing anytime in the DIMO app.',
   'terms.full': 'Full terms',
 
   // Managing one shared vehicle
@@ -464,7 +463,6 @@ const en = {
   'tesla.checking': 'Checking Tesla permissions…',
   'tesla.finalizing': 'Finishing setup…',
 
-  'done.next': 'You can change or stop sharing anytime in the DIMO app.',
   'app.powered_by': 'Powered by DIMO',
 
   // The sharing contract, as summarized before signing. Display only: the

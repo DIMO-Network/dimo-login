@@ -86,11 +86,11 @@ export const TermsSheet = ({
           </span>
           <span className="flex min-w-0 flex-col gap-0.5">
             <span className="text-body-sm font-medium text-ink">{endLabel(end)}</span>
-            <span className="text-label font-normal text-muted">
-              {end.noEnd
-                ? t('terms.duration_no_end')
-                : t('terms.duration_until', { date: formatDate(end.date) })}
-            </span>
+            {!end.noEnd && (
+              <span className="text-label font-normal text-muted">
+                {t('terms.duration_until', { date: formatDate(end.date) })}
+              </span>
+            )}
           </span>
         </div>
       </Section>

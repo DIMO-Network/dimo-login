@@ -15,6 +15,14 @@ export type LocaleResources = {
   [K in EnglishKey as K extends `${string}_one` ? never : K]: string;
 };
 
+/**
+ * Every English key, plus a `_many` form beside each `_other` one, for
+ * languages such as Spanish that use it ("1.000.000 de vehículos").
+ */
+export type PluralLocaleResources = { [K in EnglishKey]: string } & {
+  [K in EnglishKey as K extends `${infer Base}_other` ? `${Base}_many` : never]: string;
+};
+
 export type TranslationParams = Record<string, string | number | null | undefined>;
 
 /**
