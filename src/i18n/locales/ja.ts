@@ -187,7 +187,6 @@ const ja: LocaleResources = {
   'share.title': '{{appName}}が車両へのアクセスを求めています',
   'share.access_label': '要求されているアクセス',
   'share.also_asks': '新たに「{{list}}」を求めています',
-  'share.stop_anytime': 'DIMOアプリでいつでも停止できます',
   'share.details': '詳細',
   'share.details_label': '内容と利用条件を確認',
   'share.vehicles_heading': 'あなたの車両',

@@ -129,13 +129,7 @@ export const AccountManager: React.FC = () => {
             onChange={emailRequest.setShared}
           />
         )}
-        <p className="text-body-sm text-fg">
-          {endLabel(end)}
-          <span className="text-muted" aria-hidden="true">
-            {' · '}
-          </span>
-          {t('share.stop_anytime')}
-        </p>
+        <p className="text-body-sm text-fg">{endLabel(end)}</p>
       </section>
       <LegalNotice />
     </Screen>

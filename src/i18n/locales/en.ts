@@ -202,7 +202,6 @@ const en = {
   'share.title': '{{appName}} wants access to your vehicles',
   'share.access_label': 'Access requested',
   'share.also_asks': 'Now also asks for {{list}}',
-  'share.stop_anytime': 'Stop anytime in the DIMO app',
   'share.details': 'Details',
   'share.details_label': 'What’s included and full terms',
   'share.vehicles_heading': 'Your vehicles',
