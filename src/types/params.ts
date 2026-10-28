@@ -31,7 +31,7 @@ export interface BaseParams {
   /** Custom Privacy Policy URL supplied by the relying party. When set, the
    * legal notice swaps the default DIMO Privacy Policy link for this URL. */
   privacyPolicyUrl?: string;
-  /** Language the app asked for (`en` or `ja`). The user's own pick in the
+  /** Language the app asked for (`en`, `ja` or `es`). The user's own pick in the
    * language switcher still wins; see i18n/language.ts. */
   language?: Language;
   newVehicleSectionDescription: string;

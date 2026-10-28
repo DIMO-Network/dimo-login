@@ -1,10 +1,12 @@
 /**
  * English copy, the source of truth for keys and `{{params}}`. Japanese
- * (ja.ts) must have every key; locales.test.ts checks they match.
+ * (ja.ts) and Spanish (es.ts) must have every key; locales.test.ts checks
+ * they match.
  *
  * Keys are flat, dot-namespaced and snake_case, as in DIMO Driver. Plurals use
- * i18next suffixes (`_one`, `_other`); Japanese has only `_other`. Tags such
- * as `<terms>…</terms>` are filled by <Trans> with links.
+ * i18next suffixes (`_one`, `_other`); Japanese has only `_other`, and Spanish
+ * adds `_many`. Tags such as `<terms>…</terms>` are filled by <Trans> with
+ * links.
  */
 const en = {
   // App shell
