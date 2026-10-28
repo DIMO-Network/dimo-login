@@ -3,8 +3,8 @@ import React from 'react';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { Trans, useT } from '../../i18n';
 
-const DEFAULT_TOS_URL = 'https://dimo.org/legal/terms-of-use';
-const DEFAULT_PRIVACY_URL = 'https://dimo.org/legal/privacy-policy';
+const DEFAULT_TOS_URL = 'https://dimo.org/terms';
+const DEFAULT_PRIVACY_URL = 'https://dimo.org/privacy';
 
 const safeHttpsUrl = (url: string | undefined, fallback: string): string => {
   if (!url) return fallback;
