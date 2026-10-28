@@ -84,4 +84,14 @@ it('says the code did not work, with the reason underneath', async () => {
   const alert = await screen.findByRole('alert');
   expect(alert).toHaveTextContent('That code didn’t work');
   expect(alert).toHaveTextContent('Details: OTP expired');
+  boxes().forEach((box) => expect(box).toHaveAttribute('aria-invalid', 'true'));
+});
+
+it('leaves the boxes valid when the code could not be sent', async () => {
+  mockSendOtp.mockResolvedValue({ success: false, error: 'User not found' });
+  await renderSent();
+
+  const alert = await screen.findByRole('alert');
+  expect(alert).toHaveTextContent('Details: User not found');
+  boxes().forEach((box) => expect(box).not.toHaveAttribute('aria-invalid'));
 });

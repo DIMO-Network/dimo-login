@@ -110,7 +110,7 @@ it('shows the new end date after extending', () => {
   });
   expect(screen.getByRole('heading', { name: 'Sharing extended' })).toBeInTheDocument();
   expect(
-    screen.getByText('Your Ford F-150 2022 stays shared with Toyota until Jan 1, 2028.'),
+    screen.getByText('Your 2022 Ford F-150 stays shared with Toyota until Jan 1, 2028.'),
   ).toBeInTheDocument();
 });
 

@@ -16,7 +16,14 @@ export const ConnectDevice: FC = () => {
   const { componentData, goBack } = useUIManager();
   const { redirectUri } = useDevCredentials();
   const appName = useAppName();
-  const vehicle = [componentData?.modelYear, componentData?.makeModel]
+  // The compatibility check hands over only `vehicleToAdd`; a make, model and
+  // year typed on Add a vehicle are the fallback.
+  const toAdd = componentData?.vehicleToAdd;
+  const vehicle = (
+    toAdd
+      ? [toAdd.year, toAdd.make, toAdd.model]
+      : [componentData?.modelYear, componentData?.makeModel]
+  )
     .filter(Boolean)
     .join(' ');
 

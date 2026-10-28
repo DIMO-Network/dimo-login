@@ -171,15 +171,29 @@
     font-feature-settings: 'tnum';
   }
   /* Euclid has no Japanese glyphs: Latin stays in Euclid, Japanese falls
-     through to the system's Japanese fonts. No web font is downloaded. */
-  html:lang(ja) {
+     through to the system's Japanese fonts. No web font is downloaded.
+     The Linux and ChromeOS names come before the generic families, which
+     there can resolve to a Chinese font and draw kanji in Chinese shapes.
+     [lang='ja'] covers Japanese inside English pages (the switcher's 日本語). */
+  html:lang(ja),
+  [lang='ja'] {
     font-family:
       'Euclid Circular A', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI',
-      Meiryo, 'Noto Sans JP', system-ui, sans-serif;
+      Meiryo, 'Noto Sans JP', 'Noto Sans CJK JP', 'Source Han Sans JP', 'IPAPGothic',
+      'IPAGothic', system-ui, sans-serif;
+  }
+  /* Titles break into lines of similar length, as in the design. */
+  h1,
+  h2 {
+    text-wrap: balance;
   }
   /* Break Japanese headings and buttons between phrases, not mid-word. */
   :lang(ja) :is(h1, h2, h3, button, label) {
     word-break: auto-phrase;
+  }
+  /* The title's tighter Latin tracking crowds Japanese. */
+  html:lang(ja) .text-title {
+    letter-spacing: 0;
   }
   :focus-visible {
     outline: 2px solid rgb(var(--focus-ring));

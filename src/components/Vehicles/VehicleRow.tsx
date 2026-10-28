@@ -75,9 +75,10 @@ export const VehicleRow = ({
       >
         <VehicleTile make={vehicle.make} muted={muted} />
         <span className="flex min-w-0 flex-1 flex-col gap-1">
+          {/* Wraps on narrow phones rather than cutting off the year. */}
           <span
             className={cn(
-              'truncate text-body-sm font-medium',
+              'text-body-sm font-medium [overflow-wrap:anywhere]',
               muted ? 'text-muted' : 'text-ink',
             )}
           >

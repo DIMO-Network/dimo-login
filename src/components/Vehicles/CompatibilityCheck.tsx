@@ -12,6 +12,7 @@ import { AuthProvider } from '../../utils/authUrls';
 import {
   formatVehicleString,
   getDeviceDefinitionIdFromVin,
+  vehicleNameFromDefinitionId,
 } from '../../services/deviceDefinitionsService';
 import { useAuthContext } from '../../context/AuthContext';
 import { MakeModelYearEntry, makeModelYearMapping } from '../../utils/tablelandUtils';
@@ -67,7 +68,8 @@ export const CompatibilityCheck: FC = () => {
 
         if (!mapping) {
           console.warn('Vehicle not supported in local mapping');
-          setVehicleString(key);
+          // Year first, as vehicle names are everywhere else.
+          setVehicleString(`${year} ${makeModel}`);
           return updateCompatibilityState(false);
         }
 
@@ -136,13 +138,10 @@ export const CompatibilityCheck: FC = () => {
     updateCompatibilityState(true, isTesla ? AuthProvider.TESLA : AuthProvider.CONNECT);
   };
 
-  const safeFormatVehicleString = (data: any): string => {
-    try {
-      return formatVehicleString(data.deviceDefinitionId);
-    } catch {
-      return formatVehicleString(`${data.year} ${data.make} ${data.model}`);
-    }
-  };
+  const safeFormatVehicleString = (data: any): string =>
+    typeof data.deviceDefinitionId === 'string' && data.deviceDefinitionId
+      ? vehicleNameFromDefinitionId(data.deviceDefinitionId)
+      : formatVehicleString(`${data.year} ${data.make} ${data.model}`);
 
   useEffect(() => {
     if (!componentData) {

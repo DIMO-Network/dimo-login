@@ -19,7 +19,9 @@ interface OtpInputProps {
   email: string;
 }
 
-type OtpError = { message: Message; detail?: string };
+// codeRejected: the code itself was wrong, so the boxes show as invalid; a
+// code that couldn't be sent leaves them alone.
+type OtpError = { message: Message; detail?: string; codeRejected?: boolean };
 
 export const OtpInput: React.FC<OtpInputProps> = ({ email: emailProp }) => {
   const t = useT();
@@ -104,6 +106,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({ email: emailProp }) => {
       setError({
         message: message('otp.error.verify'),
         detail: err instanceof Error ? err.message : undefined,
+        codeRejected: true,
       });
     } finally {
       setVerifying(false);
@@ -178,7 +181,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({ email: emailProp }) => {
               // Lets the browser or keyboard offer the emailed code.
               autoComplete={index === 0 ? 'one-time-code' : 'off'}
               aria-label={t('otp.digit_label', { index: index + 1 })}
-              aria-invalid={error ? true : undefined}
+              aria-invalid={error?.codeRejected ? true : undefined}
               value={digit}
               onChange={(e) => fillFrom(index, e.target.value)}
               onPaste={(e) => {
@@ -189,7 +192,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({ email: emailProp }) => {
               onKeyDown={(e) => handleKeyDown(e, index)}
               className={cn(
                 'h-12 w-full min-w-0 max-w-12 rounded-control border bg-control text-center text-title text-ink outline-none transition-[border-color,box-shadow] focus:border-focus-ring focus:ring-[3px] focus:ring-accent-soft',
-                error ? 'border-negative' : 'border-control-border',
+                error?.codeRejected ? 'border-negative' : 'border-control-border',
               )}
             />
           ))}

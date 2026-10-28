@@ -231,7 +231,7 @@ const ja: LocaleResources = {
   'powertrain.ICE': 'ガソリン車',
   'powertrain.FCEV': '燃料電池車',
 
-  'vehicle.name': '{{make}} {{model}} {{year}}',
+  'vehicle.name': '{{year}} {{make}} {{model}}',
   'vehicle.id': 'ID {{id}}',
   'vehicle.not_shared': '未共有',
   'vehicle.shared': '共有中',
@@ -454,6 +454,7 @@ const ja: LocaleResources = {
     '署名することで、両当事者はこれらの条件と指定されたアクセス範囲に同意します。',
   'contract.attachment': 'ポリシーの添付資料',
   'contract.courtesy': 'これは英語の原文の参考訳です。',
+  'contract.original_note': 'これは英語の原文です。',
   'contract.view_original': '英語で表示',
   'contract.view_translation': '日本語で表示',
   'contract.permission.GetNonLocationHistory':

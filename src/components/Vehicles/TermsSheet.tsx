@@ -98,7 +98,9 @@ export const TermsSheet = ({
         <Section title={t('terms.full')}>
           {translated && (
             <div className="flex flex-wrap items-center justify-between gap-2.5 text-label font-normal text-muted">
-              <span>{t('contract.courtesy')}</span>
+              <span>
+                {t(showOriginal ? 'contract.original_note' : 'contract.courtesy')}
+              </span>
               <Button
                 variant="secondary"
                 size="sm"

@@ -128,14 +128,14 @@ it('offers the outdated share as an update and names the button after what it do
 
   // The outdated share starts selected.
   await waitFor(() => expect(cta()).toHaveTextContent('Update 1 vehicle'));
-  fireEvent.click(screen.getByLabelText(/Toyota RAV4 2022/));
+  fireEvent.click(screen.getByLabelText(/2022 Toyota RAV4/));
   expect(cta()).toHaveTextContent('Share 1 · Update 1');
 });
 
 it('reports each vehicle as shared or updated, with its new end date', async () => {
   mockShare.mockImplementation(async (vehicles) => ({ shared: vehicles, skipped: [] }));
   render(<SelectVehicles />);
-  fireEvent.click(await screen.findByLabelText(/Toyota RAV4 2022/));
+  fireEvent.click(await screen.findByLabelText(/2022 Toyota RAV4/));
   await waitFor(() => expect(cta()).toHaveTextContent('Share 1 · Update 1'));
   fireEvent.click(cta());
 
@@ -275,8 +275,8 @@ it('still shows a share with the app on a vehicle outside its filters', async ()
 
   expect(screen.getByText('Not supported by this app')).toBeInTheDocument();
   expect(screen.getByText('Shared, no end date')).toBeInTheDocument();
-  expect(screen.queryByRole('button', { name: /Manage sharing for Mazda/ })).toBeNull();
+  expect(screen.queryByRole('button', { name: /Manage sharing for .*Mazda/ })).toBeNull();
   expect(
-    screen.getByRole('button', { name: /Manage sharing for Tesla/ }),
+    screen.getByRole('button', { name: /Manage sharing for .*Tesla/ }),
   ).toBeInTheDocument();
 });

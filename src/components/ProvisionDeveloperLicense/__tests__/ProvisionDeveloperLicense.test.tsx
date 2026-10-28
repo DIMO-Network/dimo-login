@@ -116,6 +116,8 @@ it("refuses a license that isn't the user's, with nothing to retry", async () =>
 
   expect(await screen.findByText(/isn’t in your account/)).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull();
+  // No "Setting up…" progress under an error for a setup that never started.
+  expect(screen.queryByRole('status')).toBeNull();
   expect(mockBatch).not.toHaveBeenCalled();
 });
 

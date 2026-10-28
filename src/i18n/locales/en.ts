@@ -252,7 +252,7 @@ const en = {
   'powertrain.FCEV': 'hydrogen fuel cell',
 
   // A vehicle in a list
-  'vehicle.name': '{{make}} {{model}} {{year}}',
+  'vehicle.name': '{{year}} {{make}} {{model}}',
   'vehicle.id': 'ID {{id}}',
   'vehicle.not_shared': 'Not shared yet',
   'vehicle.shared': 'Shared',
@@ -489,6 +489,7 @@ const en = {
     'By signing, both parties agree to these terms and the specified access scope.',
   'contract.attachment': 'Policy attachment',
   'contract.courtesy': 'This is a courtesy translation of the English text.',
+  'contract.original_note': 'This is the English original.',
   'contract.view_original': 'View in English',
   'contract.view_translation': 'View translation',
   'contract.permission.GetNonLocationHistory':

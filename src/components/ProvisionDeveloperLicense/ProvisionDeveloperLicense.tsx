@@ -450,29 +450,33 @@ export const ProvisionDeveloperLicense: React.FC = () => {
         subtitle={t('license.subtitle', { appName: devLicenseAlias })}
       />
       {errorBox}
-      <section className="flex flex-col gap-3 rounded-card bg-card px-4 py-3.5">
-        <p className="text-body-sm text-fg" role="status">
-          {status}
-        </p>
-        <ol className="flex flex-col gap-2">
-          {!skipMint && (
+      {/* After an error the box says what happened; a "Setting up…" card
+          under it would say the opposite. Try again brings it back. */}
+      {step !== 'error' && (
+        <section className="flex flex-col gap-3 rounded-card bg-card px-4 py-3.5">
+          <p className="text-body-sm text-fg" role="status">
+            {status}
+          </p>
+          <ol className="flex flex-col gap-2">
+            {!skipMint && (
+              <StepRow
+                state={
+                  step === 'step1'
+                    ? 'active'
+                    : step === 'step2' || step === 'done'
+                      ? 'done'
+                      : 'todo'
+                }
+                label={t('license.step.mint')}
+              />
+            )}
             <StepRow
-              state={
-                step === 'step1'
-                  ? 'active'
-                  : step === 'step2' || step === 'done'
-                    ? 'done'
-                    : 'todo'
-              }
-              label={t('license.step.mint')}
+              state={step === 'step2' ? 'active' : step === 'done' ? 'done' : 'todo'}
+              label={t('license.step.register')}
             />
-          )}
-          <StepRow
-            state={step === 'step2' ? 'active' : step === 'done' ? 'done' : 'todo'}
-            label={t('license.step.register')}
-          />
-        </ol>
-      </section>
+          </ol>
+        </section>
+      )}
     </Screen>
   );
 };
