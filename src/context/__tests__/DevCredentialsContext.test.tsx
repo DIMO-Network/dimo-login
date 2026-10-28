@@ -8,6 +8,7 @@ import { fetchOemBrand } from '../../services/brandService';
 import { fetchConfigFromIPFS } from '../../services';
 import { getConfigurationById } from '../../services/configurationService';
 import { saveFlowSnapshot } from '../../utils/flowSnapshot';
+import { reportRefusal } from '../../utils/reportRefusal';
 import {
   getDeveloperLicense,
   getLicenseAlias,
@@ -38,6 +39,7 @@ jest.mock('../../utils/messageHandler', () => ({
   setAppState: jest.fn(),
 }));
 jest.mock('../../utils/isStandalone', () => ({ isStandalone: () => false }));
+jest.mock('../../utils/reportRefusal', () => ({ reportRefusal: jest.fn() }));
 let mockEmbedded = false;
 let mockEmbedderOrigin: string | null = null;
 jest.mock('../../utils/isEmbed', () => ({
@@ -263,6 +265,7 @@ describe('DevCredentialsContext OAuth return', () => {
     await waitFor(() =>
       expect(screen.getByTestId('probe').textContent).toBe('"VEHICLE_MANAGER"'),
     );
+    expect(reportRefusal).not.toHaveBeenCalled();
   });
 
   it('keeps the permission template from the snapshot over the empty state field', async () => {
@@ -290,6 +293,9 @@ describe('DevCredentialsContext OAuth return', () => {
 
     await waitFor(() => expect(probe()).toBe('true'));
     expect(fetchOemBrandMock).not.toHaveBeenCalled();
+    expect(reportRefusal).toHaveBeenCalledWith('untrusted_oauth_return', {
+      provider: 'google',
+    });
   });
 
   it('refuses a return with no flow reference at all', async () => {
@@ -297,6 +303,16 @@ describe('DevCredentialsContext OAuth return', () => {
     renderProvider('clientId');
 
     await waitFor(() => expect(probe()).toBe('null'));
+  });
+
+  it("reports only a provider name it knows from a return it doesn't trust", async () => {
+    returnWith({ provider: '<img src=x>', flowRef: '0123456789abcdef0123456789abcdef' });
+    renderProvider('untrustedOAuthReturn');
+
+    await waitFor(() => expect(probe()).toBe('true'));
+    expect(reportRefusal).toHaveBeenCalledWith('untrusted_oauth_return', {
+      provider: 'unknown',
+    });
   });
 
   it('Tesla: returns to CONNECT_TESLA, not the original entry state', async () => {
@@ -387,6 +403,12 @@ describe('DevCredentialsContext: who may configure the login', () => {
     await dispatchAuthInit({ clientId: CLIENT_ID }, { origin: attacker });
 
     await waitFor(() => expect(probe()).toBe('true'));
+    expect(reportRefusal).toHaveBeenCalledWith('untrusted_caller', {
+      clientId: CLIENT_ID,
+      appOrigin: APP_ORIGIN,
+      callers: attacker,
+      mode: 'popup',
+    });
   });
 
   it("accepts the app's own page", async () => {
@@ -394,6 +416,7 @@ describe('DevCredentialsContext: who may configure the login', () => {
     await dispatchAuthInit({ clientId: CLIENT_ID });
 
     await waitFor(() => expect(probe()).toBe('false'));
+    expect(reportRefusal).not.toHaveBeenCalled();
   });
 
   it('refuses an embed under another site, even with a valid link', async () => {
@@ -419,6 +442,10 @@ describe('DevCredentialsContext: who may configure the login', () => {
     renderProvider('untrustedCaller');
 
     await waitFor(() => expect(probe()).toBe('true'));
+    expect(reportRefusal).toHaveBeenCalledWith(
+      'untrusted_caller',
+      expect.objectContaining({ callers: 'unknown', mode: 'embed' }),
+    );
   });
 
   it('accepts an embed under the app itself', async () => {

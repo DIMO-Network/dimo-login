@@ -1,4 +1,7 @@
 import { buildFlowSnapshot, readFlowSnapshot, saveFlowSnapshot } from '../flowSnapshot';
+import { reportRefusal } from '../reportRefusal';
+
+jest.mock('../reportRefusal', () => ({ reportRefusal: jest.fn() }));
 
 beforeEach(() => sessionStorage.clear());
 
@@ -35,6 +38,21 @@ describe('flow snapshot for the OAuth round-trip', () => {
     });
     expect(restored).not.toHaveProperty('devLicenseAlias');
     expect(restored).not.toHaveProperty('invalidCredentials');
+    expect(reportRefusal).not.toHaveBeenCalled();
+  });
+
+  it('reports a save that storage refuses, and returns no reference', () => {
+    const setItem = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('The operation is insecure.', 'SecurityError');
+    });
+    try {
+      const clientId = '0xb92d74B468B4047289AEa7c9B953066E39768C16';
+      expect(saveFlowSnapshot({ clientId, entryState: 'EMAIL_INPUT' })).toBeUndefined();
+      expect(reportRefusal).toHaveBeenCalledTimes(1);
+      expect(reportRefusal).toHaveBeenCalledWith('storage_blocked', { clientId });
+    } finally {
+      setItem.mockRestore();
+    }
   });
 
   it('keeps bigint values in transaction data', () => {

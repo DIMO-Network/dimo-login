@@ -28,7 +28,8 @@ import {
 } from '../services/identityService';
 import { fetchOemBrand, readCachedBrand } from '../services/brandService';
 import { AuthProvider } from '../utils/authUrls';
-import { readTrustedOAuthReturn } from '../utils/flowSnapshot';
+import { readOAuthState, readTrustedOAuthReturn } from '../utils/flowSnapshot';
+import { reportRefusal } from '../utils/reportRefusal';
 import { message, type Text } from '../i18n';
 import { useParamsHandler } from '../hooks';
 import { getDefaultExpirationDate } from '../utils/dateUtils';
@@ -123,6 +124,15 @@ export const DevCredentialsProvider = ({
     if (!new URLSearchParams(window.location.search).get('state')) return false;
 
     const config = readOAuthReturnConfig();
+    if (!config) {
+      // The state isn't trusted, so only a provider name we know is reported.
+      const provider = readOAuthState()?.provider;
+      reportRefusal('untrusted_oauth_return', {
+        provider: (Object.values(AuthProvider) as unknown[]).includes(provider)
+          ? String(provider)
+          : 'unknown',
+      });
+    }
     applyDevCredentialsConfig(
       config
         ? { ...config, waitingForParams: false }
@@ -333,6 +343,14 @@ export const DevCredentialsProvider = ({
     });
 
     if (!isValid) {
+      if (!fromApp) {
+        reportRefusal('untrusted_caller', {
+          clientId,
+          appOrigin,
+          callers: callers.join(', '),
+          mode: isEmbed() ? 'embed' : 'popup',
+        });
+      }
       console.error(
         fromApp
           ? 'Invalid client ID or redirect URI.'

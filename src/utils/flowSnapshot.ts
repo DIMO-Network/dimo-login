@@ -13,6 +13,7 @@
  * and `state`, but only this tab knows a reference it saved.
  */
 import { filterMessageParams } from './messageParams';
+import { reportRefusal } from './reportRefusal';
 
 const KEY_PREFIX = 'dimo_login_flow_';
 const REF_PATTERN = /^[a-f0-9]{16,64}$/;
@@ -77,6 +78,9 @@ export const saveFlowSnapshot = (config: Record<string, unknown>): string | unde
     sessionStorage.setItem(KEY_PREFIX + ref, JSON.stringify(config, replacer));
     return ref;
   } catch {
+    reportRefusal('storage_blocked', {
+      clientId: typeof config.clientId === 'string' ? config.clientId : undefined,
+    });
     return undefined;
   }
 };
