@@ -1,49 +1,78 @@
-import React from 'react';
+import React, { useId, useState } from 'react';
 import { captureException } from '@sentry/react';
 
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { useUIManager } from '../../context/UIManagerContext';
-import { Header, ErrorMessage, PrimaryButton, UIManagerLoaderWrapper } from '../Shared';
+import { useEmailRequest } from '../../hooks/useEmailRequest';
 import { useShareAccounts } from '../../hooks/useShareAccounts';
 import { useFinishShareAccounts } from '../../hooks/useFinishShareAccounts';
+import { useT } from '../../i18n';
+import { DOCUMENT_EVENT_TYPES } from '../../enums/documentEventTypes';
+import { AccountManagerMandatoryParams, CloudEventAgreement } from '../../types';
 import { isInvalidSessionError } from '../../utils/authUtils';
+import { getDefaultExpirationDate, shareEndOf } from '../../utils/dateUtils';
 import { sendErrorToParent } from '../../utils/errorUtils';
-import { getAppUrl } from '../../utils/urlHelpers';
-import { AccountManagerMandatoryParams } from '../../types';
+import { getRedirectHost } from '../../utils/urlHelpers';
+import { EmailShareRow } from '../Shared/EmailShareRow';
+import { LegalNotice } from '../Shared/LegalNotice';
+import { ActionBar, Button, ErrorBox, Screen, ScreenHeader } from '../ui';
+import { fileItems } from '../Vehicles/access';
+import { AccessRows } from '../Vehicles/AccessRows';
+import { useShareEndLabel } from '../Vehicles/AccessSummary';
+import { useAppName } from '../../hooks/useAppName';
 
-// Account-level consent screen — the no-vehicle-list sibling of VehicleManager.
-// Renders the documents the renter is about to share (driver's license +
-// insurance card) and an Allow/Cancel footer that signs the account SACD.
+// What the account SACD grants (see accountDocumentAgreements.ts), named from
+// the same event types so the screen matches what is signed.
+const DRIVER_DOCUMENTS: CloudEventAgreement[] = [
+  { eventType: DOCUMENT_EVENT_TYPES.driverDocuments, ids: [], tags: [] },
+  { eventType: DOCUMENT_EVENT_TYPES.rawDriverDocuments, ids: [], tags: [] },
+];
+
+/**
+ * Account-level consent, the no-vehicle-list sibling of VehicleManager: the
+ * documents the app can see, for how long, and Allow / Cancel. Cancel reports
+ * a rejection to the app and shows the cancelled screen; it never reports
+ * success.
+ */
 export const AccountManager: React.FC = () => {
-  const { devLicenseAlias, redirectUri, utm } =
+  const t = useT();
+  const { redirectUri, utm, expirationDate } =
     useDevCredentials<AccountManagerMandatoryParams>();
-  const { setLoadingState, setError, error, setUiState } = useUIManager();
+  const appName = useAppName();
+  const { setUiState, setBusy } = useUIManager();
   const shareAccounts = useShareAccounts();
   const finishShareAccounts = useFinishShareAccounts();
+  const emailRequest = useEmailRequest();
+  const endLabel = useShareEndLabel();
+  const hintId = useId();
+  const [sharing, setSharing] = useState(false);
+  // undefined: no error. A string is the underlying error, shown as detail.
+  const [error, setError] = useState<string | undefined>(undefined);
 
-  const appUrl = getAppUrl();
-  const brand = devLicenseAlias || 'the application developer';
-
-  const documents = ["Driver's license", 'Insurance card'];
+  const end = shareEndOf(expirationDate ?? getDefaultExpirationDate());
 
   const handleShare = async () => {
+    setError(undefined);
+    setSharing(true);
+    setBusy(true);
     try {
-      setLoadingState(true, 'Sharing documents', true);
       await shareAccounts();
+      // Approving the request approves its email item too.
+      emailRequest.commit();
       finishShareAccounts();
     } catch (err) {
       // Log the real error to the console — captureException ships it to Sentry,
       // but that request is often blocked (content blockers/CORS), leaving only
-      // the opaque "Failed to share documents". This makes the cause legible.
+      // the opaque failure. This makes the cause legible.
       // eslint-disable-next-line no-console
       console.error('Account document sharing failed:', err);
       captureException(err);
       if (!isInvalidSessionError(err)) {
-        const detail = err instanceof Error ? err.message : String(err);
-        setError(`Failed to share documents: ${detail}`);
+        setError(err instanceof Error ? err.message : String(err));
       }
     } finally {
-      setLoadingState(false);
+      setSharing(false);
+      setBusy(false);
     }
   };
 
@@ -53,42 +82,63 @@ export const AccountManager: React.FC = () => {
     sendErrorToParent('User cancelled document sharing', redirectUri, utm, setUiState);
   };
 
-  return (
-    <>
-      <Header
-        title={`${brand} wants to use DIMO to access your documents`}
-        subtitle={appUrl.hostname}
-        link={`${appUrl.protocol}//${appUrl.host}`}
-      />
-      <div className="flex flex-col items-center justify-center max-h-[480px] lg:max-h-[584px] box-border overflow-y-auto w-full">
-        {error && <ErrorMessage message={error} />}
+  const hint = sharing ? t('share.keep_open') : undefined;
 
-        <UIManagerLoaderWrapper>
-          <div className="w-full mt-2 text-sm font-normal text-[#313131]">
-            <p className="mb-4">
-              {brand} will be able to view these documents until you revoke
-              access:
-            </p>
-            <ul className="list-disc list-inside mb-4">
-              {documents.map((doc) => (
-                <li key={doc} className="ml-4">
-                  {doc}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="grid grid-flow-col auto-cols-fr gap-4 justify-between w-full max-w-[440px] pt-4">
-            <button
-              onClick={onCancel}
-              className="bg-white font-medium text-[#09090B] border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500"
-            >
-              Cancel
-            </button>
-            <PrimaryButton onClick={handleShare}>Allow</PrimaryButton>
-          </div>
-        </UIManagerLoaderWrapper>
-      </div>
-    </>
+  const actions = (
+    <ActionBar hint={hint} hintId={hintId}>
+      <Button variant="secondary" onClick={onCancel} disabled={sharing}>
+        {t('common.cancel')}
+      </Button>
+      <Button onClick={handleShare} loading={sharing} loadingLabel={t('share.sharing')}>
+        {error !== undefined ? t('common.try_again') : t('docs.allow')}
+      </Button>
+    </ActionBar>
+  );
+
+  return (
+    <Screen actions={actions}>
+      <ScreenHeader
+        title={t('docs.title', { appName })}
+        host={getRedirectHost(redirectUri)}
+      />
+      {error !== undefined && (
+        <ErrorBox title={t('docs.error.title')}>
+          <span>{t('docs.error.body')}</span>
+          {error && (
+            <span className="text-label font-normal text-muted">
+              {t('common.error_detail', { detail: error })}
+            </span>
+          )}
+        </ErrorBox>
+      )}
+      <section
+        className="flex flex-col gap-3 rounded-card bg-card px-4 py-3.5"
+        aria-labelledby={`${hintId}-access`}
+      >
+        <h2 id={`${hintId}-access`} className="text-card-title text-ink">
+          {t('request.about_you')}
+        </h2>
+        <AccessRows items={fileItems(DRIVER_DOCUMENTS, t)} />
+        {emailRequest.asked && emailRequest.email && (
+          <EmailShareRow
+            compact
+            appName={appName}
+            email={emailRequest.email}
+            required={emailRequest.required}
+            checked={emailRequest.shared}
+            onChange={emailRequest.setShared}
+          />
+        )}
+        <p className="text-body-sm text-fg">
+          {endLabel(end)}
+          <span className="text-muted" aria-hidden="true">
+            {' · '}
+          </span>
+          {t('share.stop_anytime')}
+        </p>
+      </section>
+      <LegalNotice />
+    </Screen>
   );
 };
 

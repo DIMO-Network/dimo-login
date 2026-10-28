@@ -1,33 +1,47 @@
-export const getParamFromUrlOrState = (
-  key: string,
-  urlParams: URLSearchParams,
-  decodedState: Record<string, any>,
-): string | string[] | undefined => {
-  // Handle array fields via `getAll()`
-  const fromUrl = urlParams.getAll(key);
-  const fromState = decodedState[key];
+import { readTrustedOAuthReturn } from './flowSnapshot';
 
-  // Return array if applicable
-  if (fromUrl.length > 0) {
-    return fromUrl.length === 1 ? fromUrl[0] : fromUrl;
-  }
-
-  // Handle state fallback (array or string)
-  return fromState ?? undefined;
-};
-
+/**
+ * The page that opened or embeds this one, for messages that carry nothing
+ * secret (READY, data requests, errors). After an OAuth round-trip the
+ * referrer is the provider, so the one saved in a trusted `state` is used.
+ */
 export const getAppUrl = () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const state = urlParams.get('state');
-
+  const trustedReturn = readTrustedOAuthReturn();
+  const referrer = trustedReturn ? trustedReturn.state.referrer : document.referrer;
   try {
-    const referrer = state
-      ? JSON.parse(decodeURIComponent(state))?.referrer
-      : document.referrer;
-
-    return new URL(referrer || 'https://dimo.org');
+    return new URL(
+      typeof referrer === 'string' && referrer ? referrer : 'https://dimo.org',
+    );
   } catch (error) {
     return new URL('https://dimo.org');
+  }
+};
+
+/** The origin of a URL, or null for a malformed one or a custom scheme. */
+export const originOf = (url?: string | null): string | null => {
+  if (!url) return null;
+  try {
+    const { origin } = new URL(url);
+    return origin === 'null' ? null : origin;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Where the request comes from, for the origin chip: the host of the redirect
+ * URI the license registered (validated before any screen shows), not the
+ * referrer, which the page that opened the popup controls.
+ */
+export const getRedirectHost = (redirectUri?: string | null): string => {
+  if (!redirectUri) return '';
+  try {
+    const url = new URL(redirectUri);
+    if (url.protocol === 'https:' || url.protocol === 'http:') return url.host;
+    // An app scheme (myapp://callback) has no web host; show the scheme.
+    return `${url.protocol}//${url.host}`;
+  } catch {
+    return '';
   }
 };
 

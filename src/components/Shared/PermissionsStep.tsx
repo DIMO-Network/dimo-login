@@ -1,64 +1,41 @@
 import React, { FC } from 'react';
 
+import { useT, type TranslationKey } from '../../i18n';
+import { Chip } from '../ui';
+
 interface PermissionsStepProps {
   devLicenseAlias: string;
 }
 
-enum PermissionType {
-  REQUIRED = 'required',
-  RECOMMENDED = 'recommended',
-}
-
-type Permission = {
-  name: string;
-  type: PermissionType;
-};
-
-const permissions: Permission[] = [
-  { name: 'Vehicle information', type: PermissionType.REQUIRED },
-  { name: 'Vehicle location', type: PermissionType.REQUIRED },
-  { name: 'Profile', type: PermissionType.RECOMMENDED },
-  { name: 'Vehicle commands', type: PermissionType.RECOMMENDED },
-  { name: 'Vehicle charging management', type: PermissionType.RECOMMENDED },
+// What Tesla's own consent screen will ask for next.
+const TESLA_PERMISSIONS: { key: TranslationKey; required: boolean }[] = [
+  { key: 'tesla.perm.info', required: true },
+  { key: 'tesla.perm.location', required: true },
+  { key: 'tesla.perm.profile', required: false },
+  { key: 'tesla.perm.commands', required: false },
+  { key: 'tesla.perm.charging', required: false },
 ];
 
 export const PermissionsStep: FC<PermissionsStepProps> = ({ devLicenseAlias }) => {
-  const renderPermission = ({ name, type }: Permission) => {
-    const typeMap = {
-      [PermissionType.REQUIRED]: {
-        badgeClass: 'bg-[#E80303] text-white',
-        badgeText: 'Required',
-      },
-      [PermissionType.RECOMMENDED]: {
-        badgeClass: 'bg-[#E4E4E7] text-[#3F3F46]',
-        badgeText: 'Recommended',
-      },
-    };
-
-    const { badgeClass, badgeText } = typeMap[type];
-
-    return (
-      <div
-        key={name}
-        className="flex justify-between items-center p-4 border border-gray-200 rounded-2xl w-full"
-      >
-        <span className="text-black font-normal">{name}</span>
-        <span className={`px-3 py-1 text-sm font-normal rounded-full ${badgeClass}`}>
-          {badgeText}
-        </span>
-      </div>
-    );
-  };
-
+  const t = useT();
   return (
     <>
-      <div className="w-full text-gray-600 text-sm text-center">
-        {devLicenseAlias} requires access to your car's data to offer you their service.
-      </div>
-
-      <div className="flex flex-col gap-[10px] w-full">
-        {permissions.map(renderPermission)}
-      </div>
+      <p className="text-body-sm text-fg">
+        {t('tesla.needs_access', { appName: devLicenseAlias })}
+      </p>
+      <ul className="flex flex-col gap-1.5">
+        {TESLA_PERMISSIONS.map(({ key, required }) => (
+          <li
+            key={key}
+            className="flex items-center justify-between gap-3 rounded-control bg-card px-3.5 py-3 text-body-sm text-ink"
+          >
+            <span>{t(key)}</span>
+            <Chip tone={required ? 'new' : 'neutral'}>
+              {required ? t('tesla.required') : t('tesla.recommended')}
+            </Chip>
+          </li>
+        ))}
+      </ul>
     </>
   );
 };

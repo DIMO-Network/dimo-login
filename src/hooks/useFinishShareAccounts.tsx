@@ -8,12 +8,11 @@ import { UiStates } from '../enums';
 // NOT call backToThirdParty here — doing so closed the popup before the success
 // screen was ever shown.
 export const useFinishShareAccounts = () => {
-  const { setUiState, setComponentData } = useUIManager();
+  const { setUiState } = useUIManager();
   const sendAuthPayloadToParent = useSendAuthPayloadToParent();
 
   return () => {
     sendAuthPayloadToParent({ accountGranted: true }, () => {
-      setComponentData({ action: 'account-shared' });
       setUiState(UiStates.ACCOUNT_PERMISSIONS_SUCCESS);
     });
   };

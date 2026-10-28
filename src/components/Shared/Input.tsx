@@ -1,11 +1,17 @@
 import React from 'react';
-import { XCircleIcon } from '@heroicons/react/16/solid';
+
+import { useT } from '../../i18n';
+import { TextField } from '../ui';
 
 interface InputProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   type?: string;
+  id?: string;
+  label?: string;
+  autoComplete?: string;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'];
 }
 
 export const Input: React.FC<InputProps> = ({
@@ -13,31 +19,19 @@ export const Input: React.FC<InputProps> = ({
   onChange,
   placeholder = '',
   type = 'text',
+  ...rest
 }) => {
+  const t = useT();
   return (
-    <div className="relative w-full">
-      <div className="relative">
-        <input
-          type={type}
-          className="w-full mt-1 p-2 border rounded-md text-sm text-[#080808] border-gray-300
-                  focus:border-[var(--popup-brand-color,#080808)]
-                  focus:ring-[var(--popup-brand-color,#080808)]
-                  focus:outline-none pr-10"
-          placeholder={placeholder}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-        />
-        {value && (
-          <button
-            type="button"
-            className="absolute inset-y-0 right-0 flex items-center pr-2 mt-1"
-            onClick={() => onChange('')}
-          >
-            <XCircleIcon className="size-4 text-[#080808]" />
-          </button>
-        )}
-      </div>
-    </div>
+    <TextField
+      type={type}
+      value={value}
+      placeholder={placeholder}
+      onValueChange={onChange}
+      clearLabel={t('common.clear')}
+      className="w-full"
+      {...rest}
+    />
   );
 };
 

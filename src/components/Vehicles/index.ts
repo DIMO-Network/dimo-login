@@ -4,7 +4,6 @@ export * from './EmptyState';
 export * from './ManageVehicle';
 export * from './MintVehicle';
 export * from './SelectVehicles';
-export * from './SharedPermissionsNote';
 export * from './SuccessfulPermissions';
-export * from './VehicleCard';
+export * from './VehicleRow';
 export * from './VehicleManager';

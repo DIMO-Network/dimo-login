@@ -56,6 +56,7 @@ describe('filterMessageParams', () => {
       'messageData',
       'tosUrl',
       'privacyPolicyUrl',
+      'language',
     ].forEach((key) => expect(ALLOWED_MESSAGE_PARAM_KEYS.has(key)).toBe(true));
   });
 });

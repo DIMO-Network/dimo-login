@@ -1,60 +1,66 @@
 import { type FC } from 'react';
+import { ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
 
 import PhysicalAdapter from '../../assets/images/physical-adapter.png';
-import { Header, PrimaryButton } from '../Shared';
 import { useUIManager } from '../../context/UIManagerContext';
-import { getAppUrl } from '../../utils/urlHelpers';
+import { getRedirectHost } from '../../utils/urlHelpers';
 import { IOS_URL, SHOP_DIMO_URL } from '../../utils/constants';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
+import { useT } from '../../i18n';
+import { ActionBar, Button, Screen, ScreenHeader } from '../ui';
+import { useAppName } from '../../hooks/useAppName';
 
+/** A vehicle that needs a DIMO adapter, which is set up in the mobile app. */
 export const ConnectDevice: FC = () => {
-  const { componentData, goBack } = useUIManager(); // Access the manage function from the context
-  const { devLicenseAlias, oemBrand } = useDevCredentials();
-  const displayName = oemBrand?.name || devLicenseAlias;
-  const appUrl = getAppUrl();
+  const t = useT();
+  const { componentData, goBack } = useUIManager();
+  const { redirectUri } = useDevCredentials();
+  const appName = useAppName();
+  // The compatibility check hands over only `vehicleToAdd`; a make, model and
+  // year typed on Add a vehicle are the fallback.
+  const toAdd = componentData?.vehicleToAdd;
+  const vehicle = (
+    toAdd
+      ? [toAdd.year, toAdd.make, toAdd.model]
+      : [componentData?.modelYear, componentData?.makeModel]
+  )
+    .filter(Boolean)
+    .join(' ');
 
   return (
-    <>
-      {/* Header */}
-      <Header
-        title={`Connect Data Source for ${componentData.modelYear} ${componentData.makeModel}`}
-        subtitle={appUrl.hostname}
+    <Screen
+      actions={
+        <ActionBar className="[&>div]:flex-col">
+          <Button fullWidth onClick={() => window.open(IOS_URL, '_blank')}>
+            {t('device.open_app')}
+            <ArrowTopRightOnSquareIcon className="size-4" aria-hidden="true" />
+          </Button>
+          <Button
+            variant="secondary"
+            fullWidth
+            onClick={() => window.open(SHOP_DIMO_URL, '_blank')}
+          >
+            {t('device.shop')}
+            <ArrowTopRightOnSquareIcon className="size-4" aria-hidden="true" />
+          </Button>
+          <Button variant="ghost" fullWidth onClick={goBack}>
+            {t('device.later')}
+          </Button>
+        </ActionBar>
+      }
+    >
+      <ScreenHeader
+        title={t('device.title', { vehicle })}
+        host={getRedirectHost(redirectUri)}
       />
-
-      {/* Text Wrapper - Restrict Width */}
-      <div className="max-w-[480px] text-gray-600 text-sm text-center">
-        A physical adapter is required to connect this car to {displayName}. Device
-        connection is currently only supported inside the DIMO Mobile app.
-      </div>
-
-      {/* Adapter Image */}
-      <div className="flex justify-center pt-2">
+      <p className="text-body-sm text-fg">{t('device.body', { appName })}</p>
+      <div className="flex justify-center rounded-card bg-card p-6">
         <img
-          style={{ height: '120px', width: '120px' }}
-          className="rounded-full object-cover"
+          className="size-28 rounded-full object-cover"
           src={PhysicalAdapter}
-          alt="DIMO Adapter"
+          alt={t('device.image_alt')}
         />
       </div>
-
-      {/* Buttons */}
-      <div className="flex flex-col w-full max-w-[480px] px-4 space-y-3">
-        <PrimaryButton onClick={() => window.open(IOS_URL, '_blank')} width="w-full py-3">
-          Go to the DIMO App
-        </PrimaryButton>
-
-        <button
-          onClick={() => window.open(SHOP_DIMO_URL, '_blank')}
-          className="w-full border border-gray-300 bg-white font-medium text-black px-4 py-3 rounded-3xl hover:text-gray-500"
-        >
-          Shop Devices
-        </button>
-
-        {/* Smaller "Later" button */}
-        <button onClick={goBack} className="text-gray-500 text-sm hover:text-black mt-2">
-          Later
-        </button>
-      </div>
-    </>
+    </Screen>
   );
 };

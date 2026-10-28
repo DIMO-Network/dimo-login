@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import debounce from 'lodash/debounce';
 import { submitCodeExchange } from '../services';
 import { captureException } from '@sentry/react';
+import { readTrustedOAuthReturn } from '../utils/flowSnapshot';
 
 const USED_CODES_KEY = 'used_oauth_codes';
 
@@ -69,6 +70,12 @@ export const useOAuthCodeExchange = ({
   useEffect(() => {
     const handleCodeExchange = async () => {
       if (!code || isCodeUsed(code)) {
+        return;
+      }
+      // Someone else's sign-in link: its code would sign this visitor in to
+      // the linker's account (see readTrustedOAuthReturn).
+      if (!readTrustedOAuthReturn()) {
+        handleFailure(new Error('OAuth return was not started in this tab'));
         return;
       }
       try {

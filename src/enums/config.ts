@@ -1,8 +1,3 @@
-export enum HEADERS {
-  DEFAULT = '%s uses DIMO to connect to your cars',
-  ALT = 'Login to %s using DIMO',
-}
-
 /**
  * Enum representing the policy attachment CIDs (Content Identifiers) by region.
  *

@@ -30,6 +30,8 @@ export const useErrorHandler = ({
   params,
 }: UseErrorHandlerProps): { error: GlobalErrorMessage | null } => {
   const globalError = getGlobalError({
+    untrustedOAuthReturn: Boolean(params.untrustedOAuthReturn),
+    untrustedCaller: Boolean(params.untrustedCaller),
     missingClientId: !Boolean(params.clientId),
     missingRedirectUri: !Boolean(params.redirectUri),
     invalidCredentials: Boolean(params.invalidCredentials),

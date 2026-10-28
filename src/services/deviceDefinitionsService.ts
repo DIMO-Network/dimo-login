@@ -123,3 +123,16 @@ export function formatVehicleString(input: string) {
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1)) // Capitalize each word
     .join(' '); // Join back into a string
 }
+
+/**
+ * "2021 Ford Bronco" from a definition id ("ford_bronco_2021"): ids are
+ * make_model_year, and vehicle names put the year first (`vehicle.name`).
+ */
+export function vehicleNameFromDefinitionId(id: string) {
+  const parts = id.split('_');
+  const year =
+    parts.length >= 3 && /^\d{4}$/.test(parts[parts.length - 1])
+      ? parts.pop()
+      : undefined;
+  return formatVehicleString([year, ...parts].filter(Boolean).join(' '));
+}

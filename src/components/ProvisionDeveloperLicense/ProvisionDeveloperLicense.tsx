@@ -7,9 +7,16 @@ import { useUIManager } from '../../context/UIManagerContext';
 import { UiStates } from '../../enums';
 import { executeTransactionWithReceipt, executeBatchTransactions } from '../../services/turnkeyService';
 import { sendMessageToReferrer, backToThirdParty } from '../../utils/messageHandler';
-import { ErrorMessage, Header, PrimaryButton, UIManagerLoaderWrapper } from '../Shared';
+import { sendErrorToParent } from '../../utils/errorUtils';
+import { getRedirectHost } from '../../utils/urlHelpers';
 import { captureException } from '@sentry/react';
-import { getFirstOwnedDeveloperLicense } from '../../services/identityService';
+import { useT } from '../../i18n';
+import { ActionBar, Button, ErrorBox, Screen, ScreenHeader } from '../ui';
+import { cn } from '../ui/cn';
+import {
+  getDeveloperLicense,
+  getFirstOwnedDeveloperLicense,
+} from '../../services/identityService';
 
 const isProd = process.env.REACT_APP_ENVIRONMENT === 'prod';
 
@@ -83,19 +90,52 @@ function buildAlias(email: string, devLicenseAlias: string): string {
   return `${devLicenseAlias} - ${date} ${time}`;
 }
 
-type Step = 'idle' | 'step1' | 'step2' | 'done' | 'error' | 'existing_prompt';
+type Step =
+  | 'checking'
+  | 'confirm'
+  | 'step1'
+  | 'step2'
+  | 'done'
+  | 'error'
+  | 'existing_prompt';
+
+const sameAddress = (a?: string | null, b?: string | null) =>
+  !!a && !!b && a.toLowerCase() === b.toLowerCase();
+
+const StepRow = ({ state, label }: { state: 'todo' | 'active' | 'done'; label: string }) => (
+  <li className="flex items-center gap-2.5 text-body-sm">
+    <span
+      aria-hidden="true"
+      className={cn(
+        'size-2 shrink-0 rounded-full',
+        state === 'active' && 'animate-pulse bg-accent',
+        state === 'done' && 'bg-positive',
+        state === 'todo' && 'bg-outline-strong',
+      )}
+    />
+    <span className={state === 'todo' ? 'text-muted' : 'text-ink'}>{label}</span>
+  </li>
+);
 
 export const ProvisionDeveloperLicense: React.FC = () => {
+  const t = useT();
   const { redirectUri, utm, devLicenseAlias, existingTokenId, existingClientId } = useDevCredentials();
   const { user, validateSession } = useAuthContext();
-  const { setUiState, error, setError } = useUIManager();
+  const { setUiState } = useUIManager();
+  // Who gets the key: the redirect URI's host, which the key is posted to.
+  const host = getRedirectHost(redirectUri);
+  const rotating = existingTokenId != null && !!existingClientId;
+  // Shown under a translated line; the underlying reason stays as is.
+  const [error, setError] = useState('');
 
-  const [step, setStep] = useState<Step>('idle');
+  const [step, setStep] = useState<Step>('checking');
   const [tokenId, setTokenId] = useState<number | null>(existingTokenId ?? null);
   const [clientId, setClientId] = useState<string | null>(existingClientId ?? null);
   const [skipMint, setSkipMint] = useState(existingTokenId != null);
   // Redirect URIs already registered on the existing license (populated when we detect one).
   const [registeredUris, setRegisteredUris] = useState<string[]>([]);
+  // The existing license's name, for the confirm screen.
+  const [licenseLabel, setLicenseLabel] = useState(existingClientId ?? '');
 
   // Generated once on mount — never sent anywhere except back to the app in the response
   const keyRef = useRef<{ privateKey: `0x${string}`; address: `0x${string}` } | null>(null);
@@ -104,11 +144,13 @@ export const ProvisionDeveloperLicense: React.FC = () => {
     keyRef.current = { privateKey: pk, address: privateKeyToAccount(pk).address };
   }
 
+  // Nothing is signed until the user agrees: any page can open this flow, and
+  // a key or redirect address given to the wrong site hands it the license.
   const startedRef = useRef(false);
   useEffect(() => {
     if (startedRef.current) return;
     startedRef.current = true;
-    runProvision();
+    void prepare();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -174,7 +216,7 @@ export const ProvisionDeveloperLicense: React.FC = () => {
       console.error('[ProvisionDeveloperLicense] handleHasExistingKey failed:', e);
       captureException(e);
       setStep('error');
-      setError(e instanceof Error ? e.message : 'Could not register redirect URI');
+      setError(e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -190,17 +232,32 @@ export const ProvisionDeveloperLicense: React.FC = () => {
       console.error('[ProvisionDeveloperLicense] handleGenerateNewKey failed:', e);
       captureException(e);
       setStep('error');
-      setError(e instanceof Error ? e.message : 'Could not generate API key');
+      setError(e instanceof Error ? e.message : String(e));
     }
   };
 
-  const runProvision = async () => {
+  // Works out what Continue would do, without signing anything.
+  const prepare = async () => {
     try {
-      const validSession = await validateSession();
-      if (!validSession) return;
-
-      if (existingTokenId != null && existingClientId) {
-        await runStep2(existingTokenId, existingClientId, []);
+      if (!host) {
+        setStep('error');
+        setError(t('license.no_redirect_uri'));
+        return;
+      }
+      if (rotating) {
+        // A new key for a license the app names: it must be this account's.
+        const license = await getDeveloperLicense(existingClientId!);
+        if (!license || !sameAddress(license.owner, user.smartContractAddress)) {
+          setTokenId(null); // nothing to retry on someone else's license
+          setStep('error');
+          setError(t('license.not_owner'));
+          return;
+        }
+        setRegisteredUris(
+          license.redirectURIs?.nodes?.map((n: { uri: string }) => n.uri) ?? [],
+        );
+        if (license.alias) setLicenseLabel(license.alias);
+        setStep('confirm');
         return;
       }
 
@@ -216,6 +273,32 @@ export const ProvisionDeveloperLicense: React.FC = () => {
           setStep('existing_prompt');
           return;
         }
+      }
+      setStep('confirm');
+    } catch (e) {
+      console.error('[ProvisionDeveloperLicense] prepare failed:', e);
+      captureException(e);
+      setStep('error');
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const handleCancel = () =>
+    sendErrorToParent(
+      'User cancelled developer license setup',
+      redirectUri,
+      utm,
+      setUiState,
+    );
+
+  const runProvision = async () => {
+    try {
+      const validSession = await validateSession();
+      if (!validSession) return;
+
+      if (rotating) {
+        await runStep2(existingTokenId!, existingClientId!, registeredUris);
+        return;
       }
 
       setStep('step1');
@@ -236,7 +319,7 @@ export const ProvisionDeveloperLicense: React.FC = () => {
       console.error('[ProvisionDeveloperLicense] runProvision failed:', e);
       captureException(e);
       setStep('error');
-      setError(e instanceof Error ? e.message : 'Could not provision developer license');
+      setError(e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -244,74 +327,157 @@ export const ProvisionDeveloperLicense: React.FC = () => {
     if (tokenId == null || clientId == null) return;
     setError('');
     try {
-      await runStep2(tokenId, clientId);
+      await runStep2(tokenId, clientId, registeredUris);
     } catch (e) {
       console.error('[ProvisionDeveloperLicense] retryStep2 failed:', e);
       captureException(e);
       setStep('error');
-      setError(e instanceof Error ? e.message : 'Could not complete setup');
+      setError(e instanceof Error ? e.message : String(e));
     }
   };
 
-  if (step === 'existing_prompt') {
+  const errorBox = step === 'error' && (
+    <ErrorBox title={t('license.error')}>
+      {error && (
+        <span className="text-label font-normal text-muted">
+          {t('common.error_detail', { detail: error })}
+        </span>
+      )}
+    </ErrorBox>
+  );
+
+  const redirectNote = needsRedirectUri(registeredUris) && (
+    <p className="text-body-sm text-fg [overflow-wrap:anywhere]">
+      {t(step === 'confirm' ? 'license.confirm.redirect' : 'license.existing.redirect', {
+        uri: redirectUri,
+      })}
+    </p>
+  );
+  const warning = (
+    <p className="text-label font-normal text-muted">
+      {t('license.confirm.warning', { host })}
+    </p>
+  );
+
+  if (step === 'confirm') {
     return (
-      <UIManagerLoaderWrapper>
-        <Header title="Developer License" subtitle="You already have a developer license" />
-        {error && <ErrorMessage message={error} />}
-        <div className="flex flex-col gap-4 w-full text-sm">
-          <p className="text-gray-600">
-            Your wallet already has a developer license (<span className="font-mono text-xs">{clientId}</span>).
-            Do you have an existing API key for it?
+      <Screen
+        actions={
+          <ActionBar>
+            <Button variant="secondary" onClick={handleCancel}>
+              {t('common.cancel')}
+            </Button>
+            <Button onClick={() => void runProvision()}>{t('common.continue')}</Button>
+          </ActionBar>
+        }
+      >
+        <ScreenHeader
+          title={t('license.title')}
+          subtitle={t('license.confirm.subtitle', { host })}
+        />
+        <section className="flex flex-col gap-2 rounded-card bg-card px-4 py-3.5">
+          <p className="text-body-sm text-fg [overflow-wrap:anywhere]">
+            {rotating
+              ? t('license.confirm.new_key', { host, license: licenseLabel })
+              : t('license.confirm.key', { host })}
           </p>
-          <div className="flex flex-col gap-2 w-full pt-2">
-            <PrimaryButton onClick={handleHasExistingKey} width="w-full">
-              Yes, I have my API key
-            </PrimaryButton>
-            <button
-              onClick={handleGenerateNewKey}
-              className="w-full text-sm text-gray-500 underline hover:text-gray-700"
-            >
-              No, generate a new API key
-            </button>
-          </div>
-        </div>
-      </UIManagerLoaderWrapper>
+          {redirectNote}
+        </section>
+        {warning}
+      </Screen>
     );
   }
 
-  const stepLabel =
-    step === 'step1' ? 'Step 1 of 2: Minting your developer license…'
-    : step === 'step2' ? (skipMint ? 'Generating your API key…' : 'Step 2 of 2: Registering API key and redirect URI…')
-    : step === 'done' ? 'Done!'
-    : 'Setting up your developer license…';
+  if (step === 'existing_prompt') {
+    return (
+      <Screen
+        actions={
+          <ActionBar className="[&>div]:flex-col">
+            <Button fullWidth onClick={handleHasExistingKey}>
+              {t('license.existing.has_key')}
+            </Button>
+            <Button variant="ghost" fullWidth onClick={handleGenerateNewKey}>
+              {t('license.existing.new_key')}
+            </Button>
+            <Button variant="ghost" fullWidth onClick={handleCancel}>
+              {t('common.cancel')}
+            </Button>
+          </ActionBar>
+        }
+      >
+        <ScreenHeader title={t('license.title')} subtitle={t('license.existing.subtitle')} />
+        {errorBox}
+        <p className="text-body-sm text-fg [overflow-wrap:anywhere]">
+          {t('license.existing.body', { host, clientId: clientId ?? '' })}
+        </p>
+        {redirectNote}
+        {warning}
+      </Screen>
+    );
+  }
+
+  const status =
+    step === 'step1'
+      ? t('license.status.minting')
+      : step === 'step2'
+        ? skipMint
+          ? t('license.status.generating')
+          : t('license.status.registering')
+        : step === 'done'
+          ? t('license.status.done')
+          : t('license.status.starting');
 
   return (
-    <UIManagerLoaderWrapper>
-      <Header title="Developer License" subtitle="Setting up API access for this app" />
-      {error && <ErrorMessage message={error} />}
-
-      <div className="flex flex-col gap-4 w-full text-sm">
-        <p className="text-gray-600">{stepLabel}</p>
-        <div className="flex flex-col gap-2">
-          {!skipMint && (
-            <div className="flex items-center gap-2">
-              <span className={`h-2 w-2 rounded-full ${step === 'step1' ? 'bg-blue-500 animate-pulse' : step !== 'idle' ? 'bg-green-500' : 'bg-gray-300'}`} />
-              <span className={step !== 'idle' ? 'text-gray-900' : 'text-gray-400'}>Mint developer license</span>
-            </div>
-          )}
-          <div className="flex items-center gap-2">
-            <span className={`h-2 w-2 rounded-full ${step === 'step2' ? 'bg-blue-500 animate-pulse' : step === 'done' ? 'bg-green-500' : 'bg-gray-300'}`} />
-            <span className={step === 'step2' || step === 'done' ? 'text-gray-900' : 'text-gray-400'}>Register API key &amp; redirect URI</span>
-          </div>
-        </div>
-      </div>
-
-      {step === 'error' && tokenId != null && (
-        <div className="flex justify-end w-full pt-4">
-          <PrimaryButton onClick={retryStep2} width="w-[214px]">Retry</PrimaryButton>
-        </div>
+    <Screen
+      actions={
+        step === 'error' ? (
+          <ActionBar>
+            {tokenId != null ? (
+              <Button fullWidth onClick={retryStep2}>
+                {t('common.try_again')}
+              </Button>
+            ) : (
+              <Button variant="secondary" fullWidth onClick={handleCancel}>
+                {t('common.cancel')}
+              </Button>
+            )}
+          </ActionBar>
+        ) : undefined
+      }
+    >
+      <ScreenHeader
+        title={t('license.title')}
+        subtitle={t('license.subtitle', { appName: devLicenseAlias })}
+      />
+      {errorBox}
+      {/* After an error the box says what happened; a "Setting up…" card
+          under it would say the opposite. Try again brings it back. */}
+      {step !== 'error' && (
+        <section className="flex flex-col gap-3 rounded-card bg-card px-4 py-3.5">
+          <p className="text-body-sm text-fg" role="status">
+            {status}
+          </p>
+          <ol className="flex flex-col gap-2">
+            {!skipMint && (
+              <StepRow
+                state={
+                  step === 'step1'
+                    ? 'active'
+                    : step === 'step2' || step === 'done'
+                      ? 'done'
+                      : 'todo'
+                }
+                label={t('license.step.mint')}
+              />
+            )}
+            <StepRow
+              state={step === 'step2' ? 'active' : step === 'done' ? 'done' : 'todo'}
+              label={t('license.step.register')}
+            />
+          </ol>
+        </section>
       )}
-    </UIManagerLoaderWrapper>
+    </Screen>
   );
 };
 

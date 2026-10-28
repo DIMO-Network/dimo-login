@@ -1,6 +1,6 @@
 import { VehicleFilters, VehiclePermissionsAction } from '../types';
 import { LocalVehicle, Vehicle } from '../models/vehicle';
-import { extendByYear, formatDate, parseExpirationDate } from './dateUtils';
+import { extendByYear, grantEndOf, parseExpirationDate } from './dateUtils';
 
 const transformVehicle = (
   vehicle: LocalVehicle,
@@ -11,7 +11,6 @@ const transformVehicle = (
     ...vehicle.normalize(),
     permissions: sacd ? sacd.permissions : '0',
     shared: !!sacd,
-    expiresAt: sacd ? formatDate(sacd.expiresAt) : '',
     source: sacd?.source ?? '',
     grantExpiresAt: sacd?.expiresAt ?? '',
   };
@@ -103,7 +102,12 @@ export const keepLaterExpiration = (
   const currentSeconds = BigInt(Math.floor(currentMs / 1000));
   return currentSeconds > requestedSeconds ? currentSeconds : requestedSeconds;
 };
+// From the grant's ISO expiry.
+// An unknown end isn't extended: counting a year from today could shorten the
+// share (Manage doesn't offer Extend then).
 const extendExpirationDateByYear = (vehicle: Vehicle) => {
-  const extendedDate = extendByYear(vehicle.expiresAt);
-  return parseExpirationDate(extendedDate);
+  if (!grantEndOf(vehicle.grantExpiresAt)) {
+    throw new Error("Can't extend a share whose end date is unknown");
+  }
+  return parseExpirationDate(extendByYear(vehicle.grantExpiresAt!));
 };

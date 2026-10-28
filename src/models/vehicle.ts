@@ -10,16 +10,28 @@ export interface Vehicle {
   model: string;
   year: number;
   shared: boolean;
-  expiresAt: string;
   permissions: string;
   // ipfs:// URI of the grant's signed SACD document, when shared.
   source?: string;
-  // The grant's expiry as identity-api returns it (ISO), unlike the display
-  // string in expiresAt.
+  // The grant's expiry as identity-api returns it (ISO); screens format it
+  // in the language shown.
   grantExpiresAt?: string;
   // Whether the grant already includes the requested file agreements;
   // undefined when no files are requested or it couldn't be determined.
   documentAccess?: boolean;
+  // True while that file check is running, so the list can say so instead of
+  // showing the share as up to date and then flipping it to "Needs update".
+  checkingAccess?: boolean;
+}
+
+/** What happened to a vehicle, for the done screen and the app. */
+export type SharingOutcome = 'shared' | 'updated' | 'extended' | 'revoked';
+
+export interface SharingResult {
+  vehicle: Vehicle;
+  outcome: SharingOutcome;
+  /** The grant's new expiry in unix seconds; absent once sharing stopped. */
+  expiration?: bigint;
 }
 
 export interface VehicleResponse {

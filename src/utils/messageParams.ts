@@ -17,12 +17,14 @@
  *
  * Verified against the login-with-dimo SDK (sdk/src/utils/eventHandler.ts):
  *   AUTH_INIT message → clientId, redirectUri, apiKey, entryState, forceEmail,
- *                       brandName, altTitle
+ *                       emailRequest, brandName, altTitle, tosUrl,
+ *                       privacyPolicyUrl, language
  *   action message    → DimoActionPayload: permissionTemplateId, vehicles,
  *                       vehicleMakes, onboarding, expirationDate, utm,
- *                       powertrainTypes, permissions, transactionData, messageData
+ *                       powertrainTypes, permissions, cloudEvent (documents),
+ *                       transactionData, messageData
  * Every SDK-sent key is covered below. The remaining keys (configCID, region,
- * cloudEvent, vehicleTokenIds, *SectionDescription) are app-side params from the
+ * vehicleTokenIds, *SectionDescription) are app-side params from the
  * config-CID/configurationId flows or special-setter aliases (vehicles →
  * vehicleTokenIds), not sent over postMessage but kept as legitimate state.
  */
@@ -36,11 +38,13 @@ export const ALLOWED_MESSAGE_PARAM_KEYS = new Set<string>([
   'configCID',
   'entryState',
   'brandName',
-  // UI behavior  (SDK AUTH_INIT: altTitle, forceEmail, tosUrl, privacyPolicyUrl)
+  // UI behavior  (SDK AUTH_INIT: altTitle, forceEmail, emailRequest, tosUrl, privacyPolicyUrl, language)
   'altTitle',
   'forceEmail',
+  'emailRequest',
   'tosUrl',
   'privacyPolicyUrl',
+  'language',
   'newVehicleSectionDescription',
   'shareVehiclesSectionDescription',
   // Vehicle sharing flow  (SDK action payload)
@@ -60,6 +64,19 @@ export const ALLOWED_MESSAGE_PARAM_KEYS = new Set<string>([
   // Developer license provisioning flow (key rotation)
   'existingTokenId',
   'existingClientId',
+  // Redirect mode: the SDK's nonce, echoed on the way back (backToThirdParty)
+  'dimoState',
+]);
+
+/**
+ * Who is asking and where answers go. Set by AUTH_INIT (or the URL) only: an
+ * action message comes later and is never allowed to repoint the flow.
+ */
+export const CALLER_PARAM_KEYS = new Set<string>([
+  'clientId',
+  'redirectUri',
+  'apiKey',
+  'configCID',
 ]);
 
 /**

@@ -13,31 +13,8 @@ export type PermissionsObject = {
   [K in PermissionKey]: boolean;
 };
 
-export const PERMISSIONS_DESCRIPTION: Record<PermissionKey, string> = {
-  GetNonLocationHistory:
-    'NONLOCATION_TELEMETRY: non-location vehicle data such as fuel levels and odometer.',
-  ExecuteCommands:
-    'COMMANDS: ability to send commands to the vehicle such as lock and unlock.',
-  GetCurrentLocation: 'CURRENT_LOCATION: access to the vehicle current location.',
-  GetLocationHistory: 'ALLTIME_LOCATION: access to the vehicle full location history.',
-  GetVINCredential:
-    'CREDENTIALS: access to any stored credentials and attestations such as insurance and service records.',
-  GetLiveData: 'STREAMS: access to real-time data streams.',
-  GetRawData: 'RAW_DATA: access to raw payload data.',
-  GetApproximateLocation: 'APPROXIMATE_LOCATION: access to approximate vehicle location.',
-};
-
-// Short, user-facing names for the permission chips in the update flow.
-export const PERMISSIONS_LABEL: Record<PermissionKey, string> = {
-  GetNonLocationHistory: 'Vehicle data history',
-  ExecuteCommands: 'Lock and unlock commands',
-  GetCurrentLocation: 'Current location',
-  GetLocationHistory: 'Location history',
-  GetVINCredential: 'Documents and credentials',
-  GetLiveData: 'Live data',
-  GetRawData: 'Raw data',
-  GetApproximateLocation: 'Approximate location',
-};
+// Labels, descriptions and contract wording for each permission live in
+// i18n/locales under `permission.<key>.*` and `contract.permission.<key>`.
 
 export type Attachment = {
   name: string;

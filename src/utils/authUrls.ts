@@ -1,5 +1,3 @@
-import { CloudEventAgreement } from '../types';
-
 export enum AuthProvider {
   TESLA = 'tesla',
   GOOGLE = 'google',
@@ -7,23 +5,14 @@ export enum AuthProvider {
   CONNECT = 'connect',
 }
 
+// `state` carries only what the return needs besides the flow, which is in the
+// snapshot `flowRef` names (flowSnapshot.ts). A return without that snapshot
+// isn't trusted, so nothing else would be read from `state` anyway.
 interface AuthUrlParams {
   provider: AuthProvider;
-  clientId?: `0x${string}` | null;
-  redirectUri: string;
-  emailPermissionGranted?: boolean;
-  altTitle?: boolean;
+  // Where the flow continues on return when not the snapshot's (Tesla: CONNECT_TESLA).
   entryState?: string;
   referrer?: string;
-  utm?: string[];
-  vehicleMakes?: string[];
-  onboarding?: string[];
-  vehicles?: string[];
-  permissionTemplateId?: string | null;
-  permissions?: string | null;
-  expirationDate?: string | null;
-  powertrainTypes?: string[];
-  cloudEvent?: CloudEventAgreement | CloudEventAgreement[];
   vehicleToAdd?: {
     make: string;
     model: string;
@@ -32,7 +21,7 @@ interface AuthUrlParams {
     vin?: string;
     country: string;
   };
-  testMode?: boolean; // Smartcar test mode
+  flowRef: string;
 }
 
 export function constructAuthUrl(params: AuthUrlParams): string {
@@ -48,28 +37,13 @@ export function constructAuthUrl(params: AuthUrlParams): string {
   }
 }
 
-function buildStateParams(params: AuthUrlParams): Record<string, any> {
+function buildStateParams(params: AuthUrlParams): Record<string, unknown> {
   return {
-    clientId: params.clientId,
-    emailPermissionGranted: params.emailPermissionGranted,
-    entryState: params.entryState,
-    expirationDate: params.expirationDate,
-    permissionTemplateId: params.permissionTemplateId,
-    permissions: params.permissions,
-    redirectUri: params.redirectUri,
-    referrer: params.referrer ?? document.referrer,
-    utm: params.utm ?? [],
-    vehicleMakes: params.vehicleMakes ?? [],
-    onboarding: params.onboarding ?? [],
-    vehicles: params.vehicles ?? [],
-    powertrainTypes: params.powertrainTypes ?? [],
-    // The share's document request must survive the OAuth round-trip, or the
-    // user comes back to a share that grants less than the app asked for.
-    cloudEvent: params.cloudEvent,
-    vehicleToAdd: params.vehicleToAdd,
-    altTitle: params.altTitle,
-    testMode: params.testMode,
     provider: params.provider,
+    flowRef: params.flowRef,
+    entryState: params.entryState,
+    referrer: params.referrer ?? document.referrer,
+    vehicleToAdd: params.vehicleToAdd,
   };
 }
 

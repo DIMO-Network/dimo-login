@@ -1,29 +1,42 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { captureException } from '@sentry/react';
 
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { useAuthContext } from '../../context/AuthContext';
 import { executeAdvancedTransaction } from '../../services/turnkeyService';
 import { sendTxnResponseToParent } from '../../utils/txnUtils';
 import { sendErrorToParent } from '../../utils/errorUtils';
+import { getRedirectHost } from '../../utils/urlHelpers';
 import { UiStates } from '../../enums';
 import { useUIManager } from '../../context/UIManagerContext';
-import { ErrorMessage, Header, PrimaryButton, UIManagerLoaderWrapper } from '../Shared';
-import { captureException } from '@sentry/react';
+import { useT } from '../../i18n';
+import { ActionBar, Button, ErrorBox, Notice, Screen, ScreenHeader } from '../ui';
+import { useAppName } from '../../hooks/useAppName';
 
+const Detail = ({ label, children }: { label: string; children: React.ReactNode }) => (
+  <div className="flex flex-col gap-1">
+    <dt className="text-label text-muted">{label}</dt>
+    <dd className="break-all font-mono text-code text-fg">{children}</dd>
+  </div>
+);
+
+/** A contract call the app wants signed, shown as is before approving. */
 export const AdvancedTransaction: React.FC = () => {
+  const t = useT();
   const { redirectUri, utm, transactionData } = useDevCredentials();
-  const { setUiState, setComponentData, setLoadingState, error, setError } =
-    useUIManager();
+  const appName = useAppName();
+  const { setUiState, setComponentData, setBusy } = useUIManager();
   const { jwt, validateSession } = useAuthContext();
+  const [approving, setApproving] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   const onApprove = async () => {
-    setLoadingState(true, 'Executing Transaction', true);
+    setFailed(false);
+    setApproving(true);
+    setBusy(true);
     try {
       const validSession = await validateSession();
-      if (!validSession) {
-        setLoadingState(false);
-        return;
-      }
+      if (!validSession) return;
       const receipt = await executeAdvancedTransaction(
         transactionData!.address,
         transactionData!.abi,
@@ -36,70 +49,60 @@ export const AdvancedTransaction: React.FC = () => {
       sendTxnResponseToParent(receipt, jwt!, redirectUri, (transactionHash) => {
         setComponentData({ transactionHash });
         setUiState(UiStates.TRANSACTION_SUCCESS);
-        setLoadingState(false);
       });
     } catch (e) {
       console.log(e);
       captureException(e);
-      setError('Could not execute transaction, please try again');
+      setFailed(true);
     } finally {
-      setLoadingState(false);
+      setApproving(false);
+      setBusy(false);
     }
   };
 
   const onReject = async () => {
-    //This will send the message, and close the winodw
-    //Doesn't currently handle redirecting
+    // Tells the app (message, or redirect with `error`) and closes or leaves.
     sendErrorToParent(`User Rejected the Transaction`, redirectUri, utm, setUiState);
   };
 
+  const args = transactionData?.args ?? [];
+  const actions = (
+    <ActionBar>
+      <Button variant="secondary" onClick={onReject} disabled={approving}>
+        {t('tx.reject')}
+      </Button>
+      <Button onClick={onApprove} loading={approving} loadingLabel={t('tx.approving')}>
+        {failed ? t('common.try_again') : t('tx.approve')}
+      </Button>
+    </ActionBar>
+  );
+
   return (
-    <UIManagerLoaderWrapper>
-      <Header title="Advanced Transaction" subtitle="" />
-      {error && <ErrorMessage message={error} />}
-      <div className="flex flex-col gap-[12px] text-sm">
-        <p>Warning:</p>
-        <p>
-          {window.location.hostname} is requesting that you sign a non-standard
-          transaction. Only complete this transaction if you trust the developer.
-        </p>
-      </div>
-
-      <div className="flex flex-col w-full gap-[8px] rounded-md text-sm">
-        <p className="text-gray-600">FUNCTION TYPE: {transactionData?.functionName}</p>
-        <p className="text-gray-600">PARAMETERS:</p>
-        <ul className="list-disc pl-5 text-gray-600">
-          {transactionData?.args.map((arg, idx) => <li key={idx}>{arg.toString()}</li>)}
-        </ul>
-      </div>
-
-      <div className="flex flex-col w-full gap-[8px] rounded-md text-sm">
-        <>
-          <p className="text-gray-600">ADDRESS:</p>
-          <p className="text-gray-600">{transactionData!.address}</p>
-
-          {transactionData!.value && (
-            <>
-              <p className="text-gray-600">VALUE:</p>
-              <p className="text-gray-600">{transactionData!.value?.toString()}</p>
-            </>
+    <Screen actions={actions}>
+      <ScreenHeader title={t('tx.title')} host={getRedirectHost(redirectUri)} />
+      <Notice tone="warning" title={t('tx.warning_title', { appName })}>
+        {t('tx.warning_body', { host: getRedirectHost(redirectUri) || appName })}
+      </Notice>
+      {failed && <ErrorBox title={t('tx.error')} />}
+      <dl className="flex flex-col gap-3 rounded-card bg-card px-4 py-3.5">
+        <Detail label={t('tx.function')}>{transactionData?.functionName}</Detail>
+        <Detail label={t('tx.parameters')}>
+          {args.length ? (
+            <ul className="list-disc pl-4">
+              {args.map((arg, idx) => (
+                <li key={idx}>{String(arg)}</li>
+              ))}
+            </ul>
+          ) : (
+            t('tx.none')
           )}
-        </>
-      </div>
-
-      {/* Render buttons */}
-      <div className={`flex justify-between w-full pt-4`}>
-        <button
-          onClick={onReject}
-          className="bg-white w-[214px] font-medium text-[#09090B] border border-gray-300 px-4 py-2 rounded-3xl hover:border-gray-500"
-        >
-          Reject
-        </button>
-        <PrimaryButton onClick={onApprove} width="w-[214px]">
-          Approve
-        </PrimaryButton>
-      </div>
-    </UIManagerLoaderWrapper>
+        </Detail>
+        <Detail label={t('tx.address')}>{transactionData?.address}</Detail>
+        {transactionData?.value != null && (
+          <Detail label={t('tx.value')}>{transactionData.value.toString()}</Detail>
+        )}
+      </dl>
+    </Screen>
   );
 };
 

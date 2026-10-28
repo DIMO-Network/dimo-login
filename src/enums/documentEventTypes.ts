@@ -1,3 +1,5 @@
+import type { TranslationKey } from '../i18n/types';
+
 // Cloudevent patterns for documents, shared by the vehicle and account flows.
 // Same values as dimo-app-backend's DOC_EVENT_TYPE_PATTERNS and the SDK's
 // DocumentAccess enum. The trailing `*` is a prefix match.
@@ -8,10 +10,10 @@ export const DOCUMENT_EVENT_TYPES = {
   rawDriverDocuments: 'dimo.raw.driver.*',
 } as const;
 
-// Plain names for the consent screen, keyed by pattern.
-export const DOCUMENT_EVENT_TYPE_LABELS: Record<string, string> = {
-  [DOCUMENT_EVENT_TYPES.vehicleDocuments]: 'Vehicle documents',
-  [DOCUMENT_EVENT_TYPES.driverDocuments]: 'Driver documents',
-  [DOCUMENT_EVENT_TYPES.rawVehicleDocuments]: 'Original vehicle document files',
-  [DOCUMENT_EVENT_TYPES.rawDriverDocuments]: 'Original driver document files',
-};
+// Plain names for the consent screen, keyed by pattern (see i18n/locales).
+export const DOCUMENT_EVENT_TYPE_LABEL_KEYS = {
+  [DOCUMENT_EVENT_TYPES.vehicleDocuments]: 'document.vehicle',
+  [DOCUMENT_EVENT_TYPES.driverDocuments]: 'document.driver',
+  [DOCUMENT_EVENT_TYPES.rawVehicleDocuments]: 'document.raw_vehicle',
+  [DOCUMENT_EVENT_TYPES.rawDriverDocuments]: 'document.raw_driver',
+} as const satisfies Record<string, TranslationKey>;

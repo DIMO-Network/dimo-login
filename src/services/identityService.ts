@@ -184,7 +184,14 @@ export const getFirstOwnedDeveloperLicense = async (
   };
 };
 
+const ADDRESS_PATTERN = /^0x[0-9a-fA-F]{40}$/;
+
 export const getDeveloperLicense = async (clientId: string) => {
+  // The client ID comes from the app and goes into the query text.
+  if (!ADDRESS_PATTERN.test(clientId)) {
+    console.error('Client ID is not an address.');
+    return null;
+  }
   const query = `{
     developerLicense(by: { clientId: "${clientId}" }) {
       owner

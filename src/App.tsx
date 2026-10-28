@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 
 import { initializeSession } from './services/sessionService';
+import { handlePostAuthUIState } from './utils/authUtils';
+import { isEmbed } from './utils/isEmbed';
 import { useAuthContext } from './context/AuthContext';
 import { useDevCredentials } from './context/DevCredentialsContext';
 import { UiStates } from './enums';
@@ -31,15 +33,13 @@ import {
   ConnectTesla,
   Logout,
 } from './components';
-import { Card } from './components/Shared/Card';
+import { AppShell } from './components/Shell/AppShell';
 import { useErrorHandler } from './hooks/useErrorHandler';
 import { PasskeyLogin } from './components/Auth/PasskeyLogin';
 import { PasskeyLoginFail } from './components/Auth/PasskeyLoginFail';
-import { readableTextOn } from './utils/colorContrast';
-
-import './App.css';
-
-const DEFAULT_DOCUMENT_TITLE = 'Login with DIMO';
+import { EmailConsent } from './components/Auth/EmailConsent';
+import { useLanguage, useT } from './i18n';
+import { useLanguageSync } from './i18n/useLanguageSync';
 
 const App = () => {
   const { setJwt, setUser } = useAuthContext();
@@ -53,20 +53,23 @@ const App = () => {
   } = useDevCredentials();
   const { uiState, setUiState, entryState } = useUIManager();
   const [email, setEmail] = useState('');
+  const t = useT();
+  const language = useLanguage();
+
+  useLanguageSync(clientId, params.language);
 
   // Bind document.title to the OEM brand when one is loaded. Restores the
   // default DIMO title if the popup unmounts (covers in-flight branding
   // changes without leaking previous OEM names across mounts).
   useEffect(() => {
-    if (oemBrand?.name) {
-      document.title = `Sign in with ${oemBrand.name}`;
-    } else {
-      document.title = DEFAULT_DOCUMENT_TITLE;
-    }
+    const defaultTitle = t('app.document_title');
+    document.title = oemBrand?.name
+      ? t('app.document_title_brand', { name: oemBrand.name })
+      : defaultTitle;
     return () => {
-      document.title = DEFAULT_DOCUMENT_TITLE;
+      document.title = defaultTitle;
     };
-  }, [oemBrand?.name]);
+  }, [oemBrand?.name, language, t]);
 
   const { error } = useErrorHandler({
     customValidations: getValidationsForState(entryState || ''),
@@ -79,8 +82,13 @@ const App = () => {
     },
   });
 
+  // Nothing from a stored session is shown or sent until the request is known
+  // to be the app's own (validateCredentials): embedded, a returning session
+  // posts the login right away.
+  const credentialsChecked = !params.waitingForDevLicense && !params.invalidCredentials;
+
   useEffect(() => {
-    if (clientId) {
+    if (clientId && credentialsChecked) {
       initializeSession({
         clientId,
         setJwt,
@@ -88,30 +96,53 @@ const App = () => {
         uiState,
         setUiState,
         entryState: incomingEntryState as UiStates,
+        // Embedded, the done screen has no Back to send the login with, so a
+        // returning session goes on as a fresh sign-in does.
+        onReturningLogin: isEmbed()
+          ? (jwt, user) =>
+              handlePostAuthUIState({
+                entryState: UiStates.EMAIL_INPUT,
+                clientId,
+                jwt,
+                user,
+                redirectUri: params.redirectUri,
+                utm: params.utm,
+                setUiState,
+              })
+          : undefined,
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId, incomingEntryState]);
+  }, [clientId, incomingEntryState, credentialsChecked]);
 
   if (isLoading) {
-    return <LoadingScreen message={loadingMessage} />;
+    return (
+      <AppShell loading>
+        <LoadingScreen message={loadingMessage} />
+      </AppShell>
+    );
   }
 
   if (error && !isLoading) {
     return (
-      <ErrorScreen
-        title={error.title}
-        message={error.message.replace(
-          '<license_alias>',
-          devLicenseAlias || 'the application developer',
-        )}
-      />
+      <AppShell>
+        <ErrorScreen
+          title={error.title}
+          message={{
+            ...error.message,
+            params: {
+              appName: devLicenseAlias || t('common.app_developer_fallback'),
+              ...error.message.params,
+            },
+          }}
+        />
+      </AppShell>
     );
   }
 
   const componentMap: Record<UiStates, React.ReactNode> = {
     [UiStates.EMAIL_INPUT]: <EmailInput onSubmit={setEmail} />,
-    [UiStates.PASSKEY_LOGIN]: <PasskeyLogin />,
+    [UiStates.PASSKEY_LOGIN]: <PasskeyLogin email={email} />,
     [UiStates.OTP_INPUT]: <OtpInput email={email} />,
     [UiStates.PASSKEY_LOGIN_FAIL]: <PasskeyLoginFail email={email} />,
     [UiStates.PASSKEY_GENERATOR]: <PasskeyGeneration email={email} />,
@@ -130,37 +161,12 @@ const App = () => {
     [UiStates.CONNECT_TESLA]: <ConnectTesla />,
     [UiStates.TRANSACTION_CANCELLED]: <CancelledTransaction />,
     [UiStates.SUCCESS]: <SuccessPage />,
+    [UiStates.EMAIL_CONSENT]: <EmailConsent />,
     [UiStates.LOGOUT]: <Logout />,
     [UiStates.PROVISION_DEVELOPER_LICENSE]: <ProvisionDeveloperLicense />,
   };
 
-  // Expose the OEM brand color (and a readable text color computed from it)
-  // as CSS custom properties on the popup root. PrimaryButton + focus-ring
-  // styles read from these vars and fall back to DIMO defaults when null.
-  // Setting the vars in one place avoids threading brand props through every
-  // component that needs to recolor.
-  const brandColor = oemBrand?.primaryColor ?? null;
-  const brandStyle = brandColor
-    ? ({
-        ['--popup-brand-color' as string]: brandColor,
-        ['--popup-brand-text' as string]: readableTextOn(brandColor),
-      } as React.CSSProperties)
-    : undefined;
-
-  return (
-    <div
-      className="flex h-screen pt-2 items-center justify-center bg-white md:bg-[#F7F7F7]"
-      style={brandStyle}
-    >
-      <Card
-        width="w-full max-w-[600px]"
-        height="min-h-[308px]"
-        className="flex flex-col gap-6 items-center p-6"
-      >
-        <div className="w-full md:w-[440px]">{componentMap[uiState] || null}</div>
-      </Card>
-    </div>
-  );
+  return <AppShell>{componentMap[uiState] || null}</AppShell>;
 };
 
 export default App;

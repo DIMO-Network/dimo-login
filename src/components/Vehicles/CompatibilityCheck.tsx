@@ -1,27 +1,35 @@
 import { useEffect, useState, type FC } from 'react';
 
-import { PrimaryButton, UIManagerLoader, Card, Header } from '../Shared';
+import { CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+
 import { UiStates } from '../../enums';
 import { useUIManager } from '../../context/UIManagerContext';
-import { getAppUrl } from '../../utils/urlHelpers';
+import { useDevCredentials } from '../../context/DevCredentialsContext';
+import { getRedirectHost } from '../../utils/urlHelpers';
+import { useT } from '../../i18n';
+import { ActionBar, Button, Dots, DoneHeader, Screen, ScreenHeader } from '../ui';
 import { AuthProvider } from '../../utils/authUrls';
 import {
   formatVehicleString,
   getDeviceDefinitionIdFromVin,
+  vehicleNameFromDefinitionId,
 } from '../../services/deviceDefinitionsService';
 import { useAuthContext } from '../../context/AuthContext';
 import { MakeModelYearEntry, makeModelYearMapping } from '../../utils/tablelandUtils';
+import { useAppName } from '../../hooks/useAppName';
 
 export const CompatibilityCheck: FC = () => {
-  const { componentData, goBack, setUiState, setComponentData } = useUIManager(); // Access the manage function from the context
+  const t = useT();
+  const { componentData, goBack, setUiState, setComponentData } = useUIManager();
+  const { redirectUri } = useDevCredentials();
+  const appName = useAppName();
   const { jwt } = useAuthContext();
-  const [isCompatible, setIsCompatible] = useState<boolean>(false); // `null` means loading
+  const [isCompatible, setIsCompatible] = useState<boolean>(false);
   const [isChecking, setIsChecking] = useState<boolean>(true);
   const [vehicleString, setVehicleString] = useState<string>('');
   const [connectionType, setConnectionType] = useState<AuthProvider>(
     AuthProvider.CONNECT,
   );
-  const appUrl = getAppUrl();
 
   const handleContinue = () => {
     if (connectionType === AuthProvider.TESLA) {
@@ -60,7 +68,8 @@ export const CompatibilityCheck: FC = () => {
 
         if (!mapping) {
           console.warn('Vehicle not supported in local mapping');
-          setVehicleString(key);
+          // Year first, as vehicle names are everywhere else.
+          setVehicleString(`${year} ${makeModel}`);
           return updateCompatibilityState(false);
         }
 
@@ -129,13 +138,10 @@ export const CompatibilityCheck: FC = () => {
     updateCompatibilityState(true, isTesla ? AuthProvider.TESLA : AuthProvider.CONNECT);
   };
 
-  const safeFormatVehicleString = (data: any): string => {
-    try {
-      return formatVehicleString(data.deviceDefinitionId);
-    } catch {
-      return formatVehicleString(`${data.year} ${data.make} ${data.model}`);
-    }
-  };
+  const safeFormatVehicleString = (data: any): string =>
+    typeof data.deviceDefinitionId === 'string' && data.deviceDefinitionId
+      ? vehicleNameFromDefinitionId(data.deviceDefinitionId)
+      : formatVehicleString(`${data.year} ${data.make} ${data.model}`);
 
   useEffect(() => {
     if (!componentData) {
@@ -149,61 +155,60 @@ export const CompatibilityCheck: FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [componentData]);
 
-  return (
-    <Card
-      width="w-full max-w-[600px]"
-      height="h-fit max-h-[770px]"
-      className="flex flex-col gap-6 items-center"
-    >
-      <Header
-        title={
-          isChecking
-            ? 'Checking Compatibility...'
-            : isCompatible
-              ? `Your ${vehicleString} is supported!`
-              : `Your ${vehicleString} isn't supported`
-        }
-        subtitle={appUrl.hostname}
-        link={`${appUrl.protocol}//${appUrl.host}`}
-      />
+  // Cancel leaves adding a vehicle altogether: back to the vehicle list.
+  const handleCancel = () => setUiState(UiStates.VEHICLE_MANAGER);
 
-      <div className="flex justify-center pt-5 py-5">
-        <img
-          alt={'vehicle-nft-image'}
-          style={{ height: '80px', width: '80px' }}
-          className="rounded-full object-cover"
-          src={
-            'https://assets.dimo.xyz/ipfs/QmaaxazmGtNM6srcRmLyNdjCp8EAmvaTDYSo1k2CXVRTaY'
-          }
-        />
-      </div>
+  if (isChecking) {
+    return (
+      <Screen>
+        <ScreenHeader title={t('compat.checking')} host={getRedirectHost(redirectUri)} />
+        <div className="flex justify-center py-8 text-muted" role="status">
+          <Dots />
+        </div>
+      </Screen>
+    );
+  }
 
-      {isChecking ? (
-        <div>
-          <UIManagerLoader />
-        </div>
-      ) : isCompatible ? (
-        <div className="flex flex-col space-y-2 w-full px-4">
-          <PrimaryButton onClick={handleContinue} width="w-full">
-            Add this car
-          </PrimaryButton>
-          <button
-            onClick={goBack}
-            className="w-full bg-white font-medium text-black px-4 py-2 rounded-3xl hover:text-gray-500"
-          >
-            Cancel
-          </button>
-        </div>
+  const actions = (
+    <ActionBar className="[&>div]:flex-col">
+      {isCompatible ? (
+        <Button fullWidth onClick={handleContinue}>
+          {t('compat.add')}
+        </Button>
       ) : (
-        <div className="flex flex-col space-y-2 w-full px-4">
-          <PrimaryButton onClick={goBack} width="w-full">
-            Try another car
-          </PrimaryButton>
-          <button className="w-full bg-white font-medium text-black px-4 py-2 rounded-3xl hover:text-gray-500">
-            Cancel
-          </button>
-        </div>
+        <Button fullWidth onClick={goBack}>
+          {t('compat.try_another')}
+        </Button>
       )}
-    </Card>
+      <Button variant="ghost" fullWidth onClick={handleCancel}>
+        {t('common.cancel')}
+      </Button>
+    </ActionBar>
+  );
+
+  return (
+    <Screen actions={actions}>
+      <DoneHeader
+        tone={isCompatible ? 'positive' : 'negative'}
+        icon={
+          isCompatible ? (
+            <CheckCircleIcon className="size-[26px]" />
+          ) : (
+            <ExclamationTriangleIcon className="size-[26px]" />
+          )
+        }
+        title={
+          isCompatible
+            ? t('compat.supported', { vehicle: vehicleString })
+            : vehicleString
+              ? t('compat.unsupported', { vehicle: vehicleString })
+              : t('compat.unsupported_generic')
+        }
+      >
+        {isCompatible
+          ? t('compat.supported_body', { appName })
+          : t('compat.unsupported_body')}
+      </DoneHeader>
+    </Screen>
   );
 };

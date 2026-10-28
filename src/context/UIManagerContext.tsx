@@ -1,6 +1,7 @@
 import React, { createContext, ReactNode, useContext, useState } from 'react';
 
 import { UiStates } from '../enums';
+import type { Text } from '../i18n';
 
 import useLoading from '../hooks/useLoading';
 
@@ -19,12 +20,18 @@ interface UIManagerContextProps {
   componentData: any;
   setComponentData: React.Dispatch<React.SetStateAction<any>>;
   isLoading: boolean;
-  loadingMessage: string;
-  setLoadingState: (loading: boolean, message?: string, isLongProcess?: boolean) => void;
-  error: string | null;
-  setError: React.Dispatch<React.SetStateAction<string | null>>;
+  loadingMessage: Text;
+  setLoadingState: (loading: boolean, message?: Text, isLongProcess?: boolean) => void;
+  error: Text | null;
+  setError: React.Dispatch<React.SetStateAction<Text | null>>;
   altTitle: boolean;
   setAltTitle: React.Dispatch<React.SetStateAction<boolean>>;
+  /**
+   * A screen is signing or sending something and shows its own progress.
+   * The shell hides Back meanwhile, so the step can't be left half done.
+   */
+  busy: boolean;
+  setBusy: (busy: boolean) => void;
 }
 
 const UIManagerContext = createContext<UIManagerContextProps | undefined>(undefined);
@@ -35,8 +42,9 @@ export const UIManagerProvider = ({ children }: { children: ReactNode }) => {
   const [entryState, setEntryState] = useState<UiStates>(UiStates.EMAIL_INPUT);
   const [componentData, setComponentData] = useState<any | null>(null); // Initial component data
   const [isLoading, setLoadingState, loadingMessage] = useLoading(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Text | null>(null);
   const [altTitle, setAltTitle] = useState<boolean>(false);
+  const [busy, setBusy] = useState<boolean>(false);
 
   const handleUiState = (
     value: UiStates,
@@ -84,6 +92,8 @@ export const UIManagerProvider = ({ children }: { children: ReactNode }) => {
         setError,
         altTitle,
         setAltTitle,
+        busy,
+        setBusy,
       }}
     >
       {children}

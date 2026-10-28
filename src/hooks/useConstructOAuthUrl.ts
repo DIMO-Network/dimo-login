@@ -2,32 +2,23 @@ import { useDevCredentials } from '../context/DevCredentialsContext';
 import { useOracles } from '../context/OraclesContext';
 import { useUIManager } from '../context/UIManagerContext';
 import { AuthProvider, constructAuthUrl } from '../utils/authUrls';
-import { UiStates } from '../enums';
+import { buildFlowSnapshot, saveFlowSnapshot } from '../utils/flowSnapshot';
 
+/**
+ * The Google/Apple sign-in URL, or null when the flow can't be saved for the
+ * return (storage blocked): such a return couldn't be told from a forged one.
+ */
 export const useConstructOAuthUrl = () => {
-  const { clientId, redirectUri, cloudEvent } = useDevCredentials();
+  const devCredentials = useDevCredentials();
   const { onboardingEnabled } = useOracles();
-  const { altTitle } = useUIManager();
+  const { entryState } = useUIManager();
 
-  return (provider: AuthProvider, emailPermissionGranted: boolean) => {
-    const urlParams = new URLSearchParams(window.location.search);
-    return constructAuthUrl({
-      provider,
-      clientId,
-      redirectUri,
-      entryState: UiStates.EMAIL_INPUT,
-      expirationDate: urlParams.get('expirationDate'),
-      permissionTemplateId: urlParams.get('permissionTemplateId'),
-      permissions: urlParams.get('permissions'),
-      utm: urlParams.getAll('utm'),
-      vehicleMakes: urlParams.getAll('vehicleMakes'),
-      vehicles: urlParams.getAll('vehicles'),
-      powertrainTypes: urlParams.getAll('powertrainTypes'),
-      // From state rather than the URL: popup mode receives it by postMessage.
-      cloudEvent,
-      onboarding: onboardingEnabled ? ['tesla'] : [], //TODO: Should have full onboarding array here
-      altTitle,
-      emailPermissionGranted,
-    });
+  return (provider: AuthProvider): string | null => {
+    // The flow (share vehicles, documents, a transaction…) is restored from
+    // this snapshot on return.
+    const flowRef = saveFlowSnapshot(
+      buildFlowSnapshot({ devCredentials, entryState, onboardingEnabled }),
+    );
+    return flowRef ? constructAuthUrl({ provider, flowRef }) : null;
   };
 };

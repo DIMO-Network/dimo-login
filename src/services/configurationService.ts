@@ -1,7 +1,8 @@
 export interface Configuration {
   id: string;
   client_id: string;
-  configuration: Record<string, string | number | boolean>;
+  // As the console saved it: strings, booleans, lists and cloudEvent objects.
+  configuration: Record<string, unknown>;
 }
 
 export async function getConfigurationById(
@@ -9,7 +10,7 @@ export async function getConfigurationById(
 ): Promise<Configuration> {
   try {
     const response = await fetch(
-      `${process.env.REACT_APP_DEVELOPER_CONSOLE_URL}/api/configurations/${configurationId}`,
+      `${process.env.REACT_APP_DEVELOPER_CONSOLE_URL}/api/configurations/${encodeURIComponent(configurationId)}`,
     );
 
     if (!response.ok) {

@@ -50,8 +50,26 @@ Example: `https://login.dimo.org/?clientId=0xeAa35540a94e3ebdf80448Ae7c9dE5F42Ca
 
 Once the flow is launched:
 
-- The vehicle should appear in the UI
-- Select it and proceed through the permission flow, as shown here: https://www.loom.com/share/408201d1a85f4f96a0b79534f99ebab8
+- The request card lists what the app asks for and for how long. **Details** opens every item with a description and the contract text.
+- Vehicles are grouped as **Ready to share**, **Already shared** and **Can't be shared** (outside the app's `vehicleMakes`, `powertrainTypes` or `vehicles` filter, which the note under the group names).
+- Select vehicles; the button says what it will do (`Share 2 vehicles`, `Update 1 vehicle`, `Share 2 · Update 1`).
+- **Manage** on a shared vehicle shows its access and end date, with Update, Extend 1 year (only when the share has an end date) and Stop sharing (after a confirmation).
+- The done screen lists each vehicle's outcome and new end date.
+
+To test an update, share a vehicle with `permissionTemplateId=2`, then open the flow again with `permissionTemplateId=1` (adds Lock and unlock): the vehicle shows **Needs update**, is preselected and the card says "Now also asks for Lock and unlock".
+
+To test Japanese, add `language=ja` to the URL (or the SDK's `language` option), or use a browser set to Japanese.
+
+## 📬 What the app receives
+
+| Action | Key (popup `authResponse` / SDK `onSuccess` / redirect query) |
+| --- | --- |
+| Share or update | `sharedVehicles` |
+| Extend 1 year | `extendedVehicles` |
+| Stop sharing | `revokedVehicles` |
+| Cancel / Continue with nothing selected | `sharedVehicles: []` |
+
+`email` is included only when the user shares it with the app. See `flows.md` for every screen.
 
 ## ✅ Notes
 

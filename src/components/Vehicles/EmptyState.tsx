@@ -1,40 +1,45 @@
-import { type FC } from 'react';
-import { GooglePlayButton, AppStoreButton } from 'react-mobile-app-button';
-import VehicleThumbnail from '../../assets/images/vehicle-thumbnail.png';
+import React from 'react';
+import { SignalIcon } from '@heroicons/react/24/outline';
+
+import { buttonClassName } from '../ui';
+import { useT } from '../../i18n';
 import { APK_URL, IOS_URL } from '../../utils/constants';
-import { ConnectCarButton } from '../Shared/ConnectCarButton';
 
-export const EmptyState: FC = () => {
+/** No vehicles on the account yet: where to connect one. */
+export const EmptyState = ({ children }: { children?: React.ReactNode }) => {
+  const t = useT();
   return (
-    <div className="flex flex-col items-center justify-center text-center gap-4 sm:gap-5 px-4 w-full max-w-sm sm:max-w-md mx-auto overflow-y-hidden">
-      {/* Vehicle Image */}
-      <img
-        className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover"
-        src={VehicleThumbnail}
-        alt="Vehicle Thumbnail"
-      />
-
-      {/* No Cars Connected */}
-      <h2 className="text-gray-600 text-lg sm:text-xl font-medium">
-        No cars connected yet
-      </h2>
-
-      {/* Connect Car Button */}
-      <ConnectCarButton />
-
-      {/* Download App Section */}
-      <div className="flex flex-col items-center gap-2">
-        <p className="text-base font-medium">or Download the DIMO app now</p>
-        <p className="text-sm text-gray-500">
-          Connect your car in the DIMO app to share permissions.
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-col items-center gap-1.5 rounded-card bg-card px-5 py-6 text-center">
+        <span className="mb-1.5 flex size-11 items-center justify-center rounded-[12px] bg-highest text-ink">
+          <SignalIcon className="size-[22px]" aria-hidden="true" />
+        </span>
+        <h2 className="text-card-title text-ink">{t('share.empty.title')}</h2>
+        <p className="mb-2 max-w-[320px] text-body-sm text-muted">
+          {t('share.empty.body')}
         </p>
-
-        {/* App Store & Google Play Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto justify-center items-center">
-          <AppStoreButton url={IOS_URL} theme="dark" className="!rounded-lg" />
-          <GooglePlayButton url={APK_URL} theme="dark" className="!rounded-lg" />
+        <div className="flex flex-wrap justify-center gap-2">
+          <a
+            href={IOS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={buttonClassName('secondary', 'sm')}
+          >
+            {t('store.app_store')}
+          </a>
+          <a
+            href={APK_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={buttonClassName('secondary', 'sm')}
+          >
+            {t('store.google_play')}
+          </a>
         </div>
       </div>
+      {children}
     </div>
   );
 };
+
+export default EmptyState;

@@ -54,23 +54,63 @@ export const getUserFromLocalStorage = (
   return userData ? JSON.parse(userData) : null;
 };
 
+// The email-sharing choice is per app and per account, so one person's consent
+// never shares another account's email from the same browser.
+const emailGrantKey = (clientId: string, email: string) =>
+  `email_granted_${clientId}_${email.trim().toLowerCase()}`;
+
 export const setEmailGranted = (
   clientId: `0x${string}` | null,
+  email: string | null | undefined,
   granted: boolean,
 ): void => {
-  if (!clientId) return;
-  const key = `email_granted_${clientId}`;
-  localStorage.setItem(key, JSON.stringify(granted));
+  if (!clientId || !email) return;
+  localStorage.setItem(emailGrantKey(clientId, email), JSON.stringify(granted));
 };
 
-export const isEmailGranted = (clientId: `0x${string}` | null): boolean => {
-  const key = `email_granted_${clientId}`;
-  const value = localStorage.getItem(key);
-  return value ? JSON.parse(value) : false;
+/**
+ * The account's answer for this app: true (shares), false (declined), or
+ * undefined (never asked).
+ */
+export const getEmailChoice = (
+  clientId: `0x${string}` | null,
+  email: string | null | undefined,
+): boolean | undefined => {
+  if (!clientId || !email) return undefined;
+  migrateLegacyEmailGrant(clientId);
+  const value = localStorage.getItem(emailGrantKey(clientId, email));
+  return value === null ? undefined : value === 'true';
 };
+
+/**
+ * Grants stored before they were keyed by account belong to the account last
+ * signed in to this app, so they move to that account's key. Runs before the
+ * logged account changes (and on every read), so a later sign-in can never
+ * inherit another account's grant; one that can't be attributed is dropped
+ * and the user is asked again.
+ */
+const migrateLegacyEmailGrant = (clientId: `0x${string}`): void => {
+  const legacyKey = `email_granted_${clientId}`;
+  const legacy = localStorage.getItem(legacyKey);
+  if (legacy === null) return;
+  const owner = getLoggedEmail(clientId);
+  if (owner && localStorage.getItem(emailGrantKey(clientId, owner)) === null) {
+    localStorage.setItem(
+      emailGrantKey(clientId, owner),
+      legacy === 'true' ? 'true' : 'false',
+    );
+  }
+  localStorage.removeItem(legacyKey);
+};
+
+export const isEmailGranted = (
+  clientId: `0x${string}` | null,
+  email: string | null | undefined,
+): boolean => getEmailChoice(clientId, email) === true;
 
 export const setLoggedEmail = (clientId: `0x${string}` | null, email: string): void => {
   if (!clientId) return;
+  migrateLegacyEmailGrant(clientId);
   const key = `logged_email_${clientId}`;
   localStorage.setItem(key, email);
 };
@@ -84,6 +124,7 @@ export const getLoggedEmail = (clientId: `0x${string}` | null): string | null =>
 
 export const clearLoggedEmail = (clientId: `0x${string}` | null): void => {
   if (!clientId) return;
+  migrateLegacyEmailGrant(clientId);
   localStorage.removeItem(`logged_email_${clientId}`);
 };
 

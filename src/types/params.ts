@@ -1,6 +1,8 @@
 import { UiStates } from '../enums';
 import { OemBrand } from '../services/brandService';
 import { CloudEventAgreement } from './permissions';
+import type { Language } from '../i18n/language';
+import type { EmailRequest } from '../utils/emailRequest';
 
 export interface BaseParams {
   clientId: `0x${string}` | null;
@@ -11,7 +13,9 @@ export interface BaseParams {
   utm: string;
   entryState?: UiStates;
   altTitle?: boolean;
+  /** @deprecated by emailRequest; true means 'required'. */
   forceEmail?: boolean;
+  emailRequest?: EmailRequest;
   configCID?: string;
   /**
    * Brand the relying party selected, forwarded by the SDK — a URL query param
@@ -27,15 +31,24 @@ export interface BaseParams {
   /** Custom Privacy Policy URL supplied by the relying party. When set, the
    * legal notice swaps the default DIMO Privacy Policy link for this URL. */
   privacyPolicyUrl?: string;
+  /** Language the app asked for (`en` or `ja`). The user's own pick in the
+   * language switcher still wins; see i18n/language.ts. */
+  language?: Language;
   newVehicleSectionDescription: string;
   shareVehiclesSectionDescription: string;
   existingTokenId?: number;
   existingClientId?: string;
+  /** The SDK's redirect-mode nonce, returned with every redirect back. */
+  dimoState?: string;
 }
 
 export interface FetchedParams {
   devLicenseAlias: string;
   invalidCredentials: boolean;
+  /** The popup's opener, or the embedding page, isn't the app's redirect URI origin. */
+  untrustedCaller?: boolean;
+  /** The URL has an OAuth `state` this tab didn't send (see readTrustedOAuthReturn). */
+  untrustedOAuthReturn?: boolean;
   /**
    * OEM brand record fetched from console-api keyed on `clientId`. Drives the
    * Header logo + title + document.title. `null` while still loading or if

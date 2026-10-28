@@ -9,10 +9,17 @@ import {
 import { useUIManager } from '../context/UIManagerContext';
 import { useOracles } from '../context/OraclesContext';
 import { UiStates } from '../enums';
-import { setForceEmail } from '../stores/AuthStateStore';
+import { setEmailRequest, setForceEmail } from '../stores/AuthStateStore';
+import { normalizeEmailRequest } from '../utils/emailRequest';
+import { parseBooleanParam } from '../utils/parseBooleanParam';
+import { normalizeLanguage } from '../i18n/language';
 import { parseExpirationDate, getDefaultExpirationDate } from '../utils/dateUtils';
 import { toCloudEventAgreements } from '../services/vehicleDocumentAgreements';
 import { DOCUMENT_EVENT_TYPES } from '../enums/documentEventTypes';
+import { setAppState } from '../utils/messageHandler';
+
+// The SDK makes it from 16 random bytes; anything else isn't echoed back.
+const DIMO_STATE_PATTERN = /^[A-Za-z0-9_-]{16,128}$/;
 
 // cloudEvent arrives as an object (postMessage, OAuth state), as JSON encoded
 // once more by the SDK (redirect), or as plain JSON in a hand-built link.
@@ -65,19 +72,33 @@ export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
       }));
     },
     forceEmail: (value: unknown) => {
-      setForceEmail(Boolean(value));
+      const forceEmail = parseBooleanParam(value);
+      setForceEmail(forceEmail);
       setDevCredentialsState((prev) => ({
         ...prev,
-        forceEmail: Boolean(value),
+        forceEmail,
       }));
+    },
+    // Unknown values are dropped: the app then gets the default (optional).
+    emailRequest: (value: unknown) => {
+      const emailRequest = normalizeEmailRequest(value);
+      setEmailRequest(emailRequest);
+      setDevCredentialsState((prev) => ({ ...prev, emailRequest }));
     },
     altTitle: (value: unknown) => {
-      setAltTitle(Boolean(value));
+      const altTitle = parseBooleanParam(value);
+      setAltTitle(altTitle);
       setDevCredentialsState((prev) => ({
         ...prev,
-        altTitle: Boolean(value),
+        altTitle,
       }));
     },
+    // Unsupported values are dropped, so the browser's language decides.
+    language: (value: unknown) =>
+      setDevCredentialsState((prev) => ({
+        ...prev,
+        language: normalizeLanguage(value),
+      })),
     vehicles: (value: unknown) =>
       setDevCredentialsState((prev) => ({
         ...prev,
@@ -120,6 +141,11 @@ export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
           ? JSON.parse(decodeURIComponent(value))
           : value) as SignMessageData,
       })),
+    dimoState: (value: unknown) => {
+      if (typeof value !== 'string' || !DIMO_STATE_PATTERN.test(value)) return;
+      setAppState(value);
+      setDevCredentialsState((prev) => ({ ...prev, dimoState: value }));
+    },
     cloudEvent: (value: unknown) => {
       const cloudEvent = parseCloudEvent(value);
       if (!cloudEvent) return;

@@ -1,4 +1,5 @@
 import { ValidationFunction } from '../hooks/useErrorHandler';
+import { message as translated } from '../i18n';
 
 const HEX_HASH_RE = /^0x[0-9a-fA-F]{64}$/;
 
@@ -7,8 +8,8 @@ const validateMessageData: ValidationFunction = ({ messageData }) => {
     return {
       isValid: false,
       error: {
-        title: 'Missing Message Data',
-        message: 'Missing message data, please check the configuration and reload.',
+        title: translated('error.missing_message_data.title'),
+        message: translated('error.missing_message_data.message'),
       },
     };
   }
@@ -19,8 +20,8 @@ const validateMessageData: ValidationFunction = ({ messageData }) => {
     return {
       isValid: false,
       error: {
-        title: 'Invalid Message',
-        message: 'Message must be a non-empty string.',
+        title: translated('error.invalid_message.title'),
+        message: translated('error.invalid_message.message'),
       },
     };
   }
@@ -29,8 +30,8 @@ const validateMessageData: ValidationFunction = ({ messageData }) => {
     return {
       isValid: false,
       error: {
-        title: 'Invalid Hash',
-        message: 'Hex message must be a 0x-prefixed 32-byte hash.',
+        title: translated('error.invalid_hash.title'),
+        message: translated('error.invalid_hash.message'),
       },
     };
   }

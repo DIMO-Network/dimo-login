@@ -1,4 +1,7 @@
 import { FC } from 'react';
+
+import { useT } from '../../i18n';
+import { type SelectOption } from '../ui';
 import { Input } from './Input';
 import { Select } from './Select';
 
@@ -7,7 +10,7 @@ interface VinNumberTabProps {
   setVinNumber: (value: string) => void;
   country: string;
   setCountry: (value: string) => void;
-  countryList: string[];
+  countryOptions: SelectOption[];
 }
 
 export const VinNumberTab: FC<VinNumberTabProps> = ({
@@ -15,24 +18,28 @@ export const VinNumberTab: FC<VinNumberTabProps> = ({
   setVinNumber,
   country,
   setCountry,
-  countryList,
+  countryOptions,
 }) => {
+  const t = useT();
   return (
-    <div className="mt-4">
-      <label className="block text-sm text-[#000000]">VIN Number</label>
+    <div className="flex flex-col gap-4">
       <Input
+        id="vin"
         type="text"
-        placeholder="1N6AD0EVXCC459517"
-        onChange={(value) => setVinNumber(value)}
+        label={t('add.vin')}
+        placeholder={t('add.vin_placeholder')}
+        autoComplete="off"
+        // VINs are ASCII; full-width input from a Japanese keyboard is folded.
+        onChange={(value) => setVinNumber(value.normalize('NFKC').toUpperCase().trim())}
         value={vinNumber}
       />
-
-      <label className="block mt-4 text-sm">Country of location</label>
       <Select
-        options={countryList}
+        id="vin-country"
+        name="vin-country"
+        label={t('add.country')}
+        options={countryOptions}
         value={country}
         onChange={(e) => setCountry(e.target.value)}
-        className="w-full mt-1"
       />
     </div>
   );

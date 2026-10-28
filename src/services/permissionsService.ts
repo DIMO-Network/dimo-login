@@ -1,14 +1,10 @@
 import { Permission } from '@dimo-network/transactions';
 
 import { POLICY_ATTACHMENT_CID_BY_REGION } from '../enums';
-import { formatBigIntAsReadableDate } from '../utils/dateUtils';
-import { getAgreementLabel } from './vehicleDocumentAgreements';
-import {
-  Attachment,
-  CloudEventAgreement,
-  PERMISSIONS,
-  PERMISSIONS_DESCRIPTION,
-} from '../types';
+import { formatDateTimeUTC } from '../i18n/format';
+import { fixedT, t, type Language, type TranslationKey } from '../i18n';
+import { getAgreementLabelKey } from './vehicleDocumentAgreements';
+import { Attachment, CloudEventAgreement, PERMISSIONS } from '../types';
 
 export const createPermissionsByTemplateId = (
   permissionTemplateId?: string,
@@ -80,26 +76,28 @@ export const generateAttachments = (region?: string): Attachment[] => {
     : [];
 };
 
-export const getPermissionsDescription = (permissions: Permission[]): string => {
+type Translate = typeof t;
+
+export const getPermissionsDescription = (
+  permissions: Permission[],
+  translate: Translate = t,
+): string => {
   return permissions
-    .map(
-      (permission) =>
-        `\n- ${
-          PERMISSIONS_DESCRIPTION[
-            Permission[permission] as unknown as keyof typeof PERMISSIONS_DESCRIPTION
-          ]
-        }`,
-    )
-    .filter((description) => !!description)
+    .map((permission) => Permission[permission])
+    .filter((key): key is keyof typeof PERMISSIONS => !!key)
+    .map((key) => `\n- ${translate(`contract.permission.${key}` as TranslationKey)}`)
     .join('');
 };
 
-export const getFilesRequestedString = (fileAgreements: CloudEventAgreement[] = []): string => {
+export const getFilesRequestedString = (
+  fileAgreements: CloudEventAgreement[] = [],
+  translate: Translate = t,
+): string => {
   // Named by what the agreement grants (its event type), not by app-supplied
   // tags, so the contract text matches what is signed.
-  const labels = fileAgreements.map(getAgreementLabel);
+  const labels = fileAgreements.map((agreement) => translate(getAgreementLabelKey(agreement)));
   if (!labels.length) {
-    return '\n- NONE';
+    return `\n- ${translate('contract.files_none')}`;
   }
 
   return Array.from(new Set(labels))
@@ -115,6 +113,8 @@ export const getTemplateDescription = (args: {
   fileAgreements?: CloudEventAgreement[];
   expirationDate: BigInt;
   region?: string;
+  /** Defaults to the language on screen; 'en' gives the English original. */
+  language?: Language;
 }): string => {
   const {
     email,
@@ -124,7 +124,9 @@ export const getTemplateDescription = (args: {
     fileAgreements,
     expirationDate,
     region,
+    language,
   } = args;
+  const translate = language ? fixedT(language) : t;
 
   const perms = createPermissionsFromParams(permissions, permissionTemplateId);
   const contractAttachmentLink =
@@ -133,31 +135,37 @@ export const getTemplateDescription = (args: {
       : '';
   const currentTime = new Date();
   const currentTimeBigInt = BigInt(Math.floor(currentTime.getTime() / 1000));
-  const permissionsString = getPermissionsDescription(perms);
-  const filesRequestedString = getFilesRequestedString(fileAgreements);
+  const permissionsString = getPermissionsDescription(perms, translate);
+  const filesRequestedString = getFilesRequestedString(fileAgreements, translate);
 
+  // ContractDescription parses this: paragraphs split on blank lines, "- "
+  // lines are bullets, and only the attachment <a href> becomes a link.
   const description = [
-    'This contract gives permission for specific data access and control functions on the DIMO platform.',
-    "Here's what you're agreeing to:",
+    translate('contract.intro'),
+    translate('contract.agreeing'),
     '',
-    'Contract Summary:',
-    `- Grantor: ${email} (the entity giving permission).`,
-    `- Grantee: ${devLicenseAlias} (the entity receiving permission).`,
+    translate('contract.summary'),
+    translate('contract.grantor', { email }),
+    translate('contract.grantee', { appName: devLicenseAlias }),
     '',
     contractAttachmentLink,
     '',
-    `Permissions Granted: ${permissionsString}`,
+    translate('contract.permissions', { permissions: permissionsString }),
     '',
-    `Files Requested: ${filesRequestedString}`,
+    translate('contract.files', { files: filesRequestedString }),
     '',
-    `Effective Date: ${formatBigIntAsReadableDate(currentTimeBigInt)}`,
-    `Expiration Date: ${formatBigIntAsReadableDate(expirationDate)}.`,
+    translate('contract.effective', {
+      date: formatDateTimeUTC(currentTimeBigInt, language),
+    }),
+    translate('contract.expiration', {
+      date: formatDateTimeUTC(expirationDate, language),
+    }),
     '',
-    'Details:',
-    '- This grant provides the grantee with access to specific vehicle data and control functions as specified above.',
-    '- Created by DIMO Platform, version 1.0 of this contract template.',
+    translate('contract.details'),
+    translate('contract.details_access'),
+    translate('contract.details_template'),
     '',
-    'By signing, both parties agree to these terms and the specified access scope.',
+    translate('contract.outro'),
   ].join('\n');
 
   return description;

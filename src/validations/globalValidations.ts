@@ -1,25 +1,33 @@
+import { message, type Message } from '../i18n';
+
 export type ErrorMessage = {
-  title: string;
-  message: string;
+  title: Message;
+  message: Message;
 };
 
+// Messages may name the app as {{appName}}; ErrorScreen fills it in.
 export const GLOBAL_ERROR_MESSAGES = {
+  untrustedOAuthReturn: {
+    title: message('error.untrusted_return.title'),
+    message: message('error.untrusted_return.message'),
+  },
+  untrustedCaller: {
+    title: message('error.untrusted_caller.title'),
+    message: message('error.untrusted_caller.message'),
+  },
   missingClientId: {
-    title: 'Missing Client ID',
-    message:
-      "Missing client ID from the app, please check with the application developer that you're attempting to access.",
+    title: message('error.missing_client_id.title'),
+    message: message('error.missing_client_id.message'),
   },
   missingRedirectUri: {
-    title: 'Missing Redirect URI',
-    message:
-      'Missing redirect URI from the app, please check with <license_alias> to setup a valid redirect URI.',
+    title: message('error.missing_redirect_uri.title'),
+    message: message('error.missing_redirect_uri.message'),
   },
   invalidCredentials: {
-    title: 'Invalid App Credentials',
-    message:
-      "We're sorry, but it looks like there's an issue with the app's credentials. This may be due to an invalid setup or unregistered access. Please reach out to the app's support team for assistance.",
+    title: message('error.invalid_credentials.title'),
+    message: message('error.invalid_credentials.message'),
   },
-} as const;
+} as const satisfies Record<string, ErrorMessage>;
 
 type ErrorKey = keyof typeof GLOBAL_ERROR_MESSAGES;
 

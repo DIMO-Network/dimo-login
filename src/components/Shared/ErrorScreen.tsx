@@ -1,32 +1,29 @@
 import React from 'react';
+import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
-import { Logo, Card } from './';
+import { translateText, useT, type Text } from '../../i18n';
 
 interface ErrorProps {
-  title: string;
-  message: string;
+  title: Text;
+  message: Text;
 }
 
+/** Rendered inside AppShell (App.tsx), which provides the frame. */
 export const ErrorScreen: React.FC<ErrorProps> = ({ title, message }) => (
-  <div className="flex h-screen pt-2 items-center justify-center bg-white md:bg-[#F7F7F7]">
-    <Card
-      width="w-full max-w-[600px]"
-      height="min-h-[308px]"
-      className="flex flex-col gap-6 items-center p-6"
-    >
-      <ErrorContent title={title} message={message} />
-    </Card>
-  </div>
+  <ErrorContent title={title} message={message} />
 );
 
-export const ErrorContent = ({ title, message }: ErrorProps) => (
-  <>
-    <div className="flex justify-center mb-4">
-      <Logo />
+export const ErrorContent = ({ title, message }: ErrorProps) => {
+  const t = useT();
+  return (
+    <div className="flex flex-col items-start gap-2 py-4" role="alert">
+      <span className="mb-1 flex size-12 items-center justify-center rounded-[14px] bg-card text-negative">
+        <ExclamationTriangleIcon className="size-6" aria-hidden="true" />
+      </span>
+      <h1 tabIndex={-1} data-screen-heading className="text-title text-ink outline-none">
+        {translateText(title, t)}
+      </h1>
+      <p className="text-body-sm text-muted">{translateText(message, t)}</p>
     </div>
-    <h1 className="text-xl font-bold mb-4 text-center" style={{ color: '#E80303' }}>
-      {title}
-    </h1>
-    <p className="text-center">{message}</p>
-  </>
-);
+  );
+};

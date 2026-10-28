@@ -13,6 +13,11 @@ type InitializeSessionParams = {
   uiState: UiStates;
   setUiState: (step: UiStates) => void;
   entryState?: UiStates;
+  /**
+   * A plain login on a still-valid session. Defaults to the done screen, whose
+   * Back sends the login; embedded, there's no Back, so App sends it instead.
+   */
+  onReturningLogin?: (jwt: string, user: UserObject) => void;
 };
 
 export function initializeSession({
@@ -22,6 +27,7 @@ export function initializeSession({
   uiState,
   setUiState,
   entryState,
+  onReturningLogin,
 }: InitializeSessionParams): void {
   if (!clientId) {
     console.error('Client ID is missing. Cannot initialize session.');
@@ -38,12 +44,17 @@ export function initializeSession({
     if (uiState === UiStates.EMAIL_INPUT) {
       // If a specific entry state was requested, route there directly rather
       // than the generic post-login success screen (e.g. PROVISION_DEVELOPER_LICENSE).
-      const target =
-        entryState && entryState !== UiStates.EMAIL_INPUT
-          ? entryState
-          : UiStates.SUCCESS;
-      setUiState(target);
+      if (entryState && entryState !== UiStates.EMAIL_INPUT) {
+        setUiState(entryState);
+      } else if (onReturningLogin) {
+        onReturningLogin(jwt, user);
+      } else {
+        setUiState(UiStates.SUCCESS);
+      }
     }
+  } else if (entryState === UiStates.LOGOUT) {
+    // Nothing to sign out of, but the app still expects to hear `logout`.
+    setUiState(UiStates.LOGOUT);
   } else {
     // If JWT or user is invalid, reset the state
     setUiState(UiStates.EMAIL_INPUT);

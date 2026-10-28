@@ -1,12 +1,13 @@
 import { ValidationFunction } from '../hooks/useErrorHandler';
+import { message } from '../i18n';
 
 const validateTransactionData: ValidationFunction = ({ transactionData }) => {
   if (!transactionData) {
     return {
       isValid: false,
       error: {
-        title: 'Missing Transaction Data',
-        message: 'Missing transaction data, please check the configuration and reload.',
+        title: message('error.missing_transaction_data.title'),
+        message: message('error.missing_transaction_data.message'),
       },
     };
   }

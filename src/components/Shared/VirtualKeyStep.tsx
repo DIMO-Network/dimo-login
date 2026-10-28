@@ -1,5 +1,8 @@
 import React, { FC } from 'react';
+
 import { TeslaVehicle } from '../../types';
+import { Trans, useT } from '../../i18n';
+import { VehicleTile } from '../Vehicles/VehicleRow';
 
 interface VirtualKeyStepProps {
   devLicenseAlias: string;
@@ -10,43 +13,48 @@ export const VirtualKeyStep: FC<VirtualKeyStepProps> = ({
   devLicenseAlias,
   vehicleToAdd,
 }) => {
-  const renderVehicleInfo = () => (
-    <div className="flex items-center p-4 border rounded-2xl cursor-pointer transition hover:bg-gray-50 mt-6">
-      <img
-        className="h-[48px] w-[48px] rounded-full object-cover mr-4"
-        src="https://assets.dimo.xyz/ipfs/QmaaxazmGtNM6srcRmLyNdjCp8EAmvaTDYSo1k2CXVRTaY"
-        alt={`${vehicleToAdd?.make} ${vehicleToAdd?.model}`}
-      />
-      <label htmlFor="vehicle" className="flex-grow text-left hover:cursor-pointer">
-        <div className="text-black font-medium">
-          {vehicleToAdd?.make} {vehicleToAdd?.model} ({vehicleToAdd?.year})
-        </div>
-        <div className="text-sm text-gray-500 font-medium">VIN: {vehicleToAdd?.vin}</div>
-      </label>
-    </div>
-  );
-
+  const t = useT();
   return (
     <>
-      <div className="w-full text-gray-600 text-sm">
-        {devLicenseAlias} requires access to your car's data to offer you their service.
-      </div>
-
-      <div className="w-full text-gray-600 text-sm mt-2">
-        The virtual key provides end-to-end encryption, enables more frequent data
-        updates, and allows for remote commands from your phone.
-      </div>
-
-      <div className="w-full text-gray-600 text-sm mt-2">
-        This can be removed at any time in your Tesla app.{' '}
-        <a
-          href="https://www.tesla.com/support"
-          className="text-black font-medium underline"
-        >
-          Learn more.
-        </a>
-        {vehicleToAdd && renderVehicleInfo()}
-      </div>
+      <p className="text-body-sm text-fg">
+        {t('tesla.needs_access', { appName: devLicenseAlias })}
+      </p>
+      <p className="text-body-sm text-fg">{t('tesla.key.body')}</p>
+      <p className="text-body-sm text-muted">
+        <Trans
+          k="tesla.key.remove"
+          components={{
+            learn: (
+              // eslint-disable-next-line jsx-a11y/anchor-has-content -- Trans fills the text
+              <a
+                href="https://www.tesla.com/support"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-ink underline underline-offset-2"
+              />
+            ),
+          }}
+        />
+      </p>
+      {vehicleToAdd && (
+        <div className="flex items-center gap-3 rounded-control bg-card px-3 py-2.5">
+          <VehicleTile make={vehicleToAdd.make ?? ''} />
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <span className="truncate text-body-sm font-medium text-ink">
+              {t('vehicle.name', {
+                make: vehicleToAdd.make,
+                model: vehicleToAdd.model,
+                year: vehicleToAdd.year,
+              })}
+            </span>
+            {vehicleToAdd.vin && (
+              <span className="text-label font-normal text-muted">
+                {t('tesla.key.vin', { vin: vehicleToAdd.vin })}
+              </span>
+            )}
+          </span>
+        </div>
+      )}
     </>
   );
 };
