@@ -11,8 +11,11 @@ import tailwindcss from '@tailwindcss/vite';
  *
  * Source maps are built only when SENTRY_AUTH_TOKEN is set, so the
  * `sentry:sourcemaps` step can upload them.
+ *
+ * NODE_ENV follows the command, as `react-scripts build` and `start` set it,
+ * so a build in any `--mode` still ships React's production build.
  */
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, process.cwd(), 'REACT_APP_');
   const inlined = Object.fromEntries(
     Object.entries(env).map(([key, value]) => [
@@ -29,11 +32,13 @@ export default defineConfig(({ mode }) => {
       : {
           ...inlined,
           'process.env.NODE_ENV': JSON.stringify(
-            mode === 'production' ? 'production' : 'development',
+            command === 'build' ? 'production' : 'development',
           ),
           'process.env': '{}',
         },
-    server: { port: 3000 },
+    // The README's Tesla redirect URI names port 3000, so fail rather than
+    // move to another port when it's taken.
+    server: { port: 3000, strictPort: true },
     build: {
       outDir: 'build',
       sourcemap: Boolean(process.env.SENTRY_AUTH_TOKEN),
