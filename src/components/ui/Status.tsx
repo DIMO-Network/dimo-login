@@ -32,7 +32,7 @@ export const StatusChip = ({
   >
     <span className={cn('inline-block size-1.5 shrink-0 rounded-full', DOT[tone])} />
     {/* Wraps when the row is too narrow, so the date is never cut off. */}
-    <span className="min-w-0 [overflow-wrap:anywhere]">{children}</span>
+    <span className="min-w-0 wrap-anywhere">{children}</span>
   </span>
 );
 

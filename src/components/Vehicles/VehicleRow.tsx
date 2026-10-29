@@ -78,7 +78,7 @@ export const VehicleRow = ({
           {/* Wraps on narrow phones rather than cutting off the year. */}
           <span
             className={cn(
-              'text-body-sm font-medium [overflow-wrap:anywhere]',
+              'text-body-sm font-medium wrap-anywhere',
               muted ? 'text-muted' : 'text-ink',
             )}
           >
