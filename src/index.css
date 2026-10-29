@@ -3,8 +3,12 @@
 /*
  * The design tokens below as Tailwind utilities: colors (bg-card/60 works),
  * shadows, radii, the type scale, fonts and the dot-wave animation.
+ *
+ * `inline` puts each token's expression in the utility itself, as Tailwind 3
+ * did, so it resolves on the element: the OEM brand color is set on the app
+ * shell (--popup-brand-color), not on :root.
  */
-@theme {
+@theme inline {
   --color-canvas: rgb(var(--canvas));
   --color-sheet: rgb(var(--sheet));
   --color-card: rgb(var(--card));
