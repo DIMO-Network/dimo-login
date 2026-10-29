@@ -194,7 +194,7 @@ const typescriptRules = {
 const config = [
   { ignores: ['build/', 'coverage/', 'node_modules/'] },
   {
-    files: ['**/*.{js,jsx,mjs,cjs,ts,tsx}'],
+    files: ['**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}'],
     plugins: {
       'react': react,
       'react-hooks': reactHooks,
@@ -218,7 +218,7 @@ const config = [
     rules: reactAppRules,
   },
   {
-    files: ['**/*.{ts,tsx}'],
+    files: ['**/*.{ts,tsx,mts,cts}'],
     languageOptions: { parser: tseslint.parser },
     rules: typescriptRules,
   },
