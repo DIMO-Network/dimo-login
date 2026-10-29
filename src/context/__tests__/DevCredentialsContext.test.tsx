@@ -110,7 +110,7 @@ const dispatchAuthInit = async (
 const probe = () => screen.getByTestId('probe').textContent;
 
 beforeEach(() => {
-  // The jest config resets mock implementations before each test.
+  // The Vitest config (mockReset) resets mock implementations before each test.
   (getDeveloperLicense as Mock).mockResolvedValue({});
   (getLicenseAlias as Mock).mockResolvedValue('Acme');
   (isValidDeveloperLicense as Mock).mockResolvedValue(true);

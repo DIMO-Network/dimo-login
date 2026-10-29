@@ -47,6 +47,9 @@ export default defineConfig(({ command, mode }) => {
       environment: 'jsdom',
       globals: true,
       setupFiles: ['src/setupTests.ts'],
+      // As CRA's Jest config did (resetMocks): mocks are reset before each
+      // test, so one test's mockResolvedValue can't satisfy the next.
+      mockReset: true,
       // @uniswap/sdk-core's ESM build (pulled in by the transactions SDK) uses
       // extensionless imports that Node can't resolve, so Vite resolves them.
       server: { deps: { inline: ['@dimo-network/transactions', '@uniswap/sdk-core'] } },
