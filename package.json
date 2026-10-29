@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@apollo/client": "^3.14.1",
+    "@apollo/client": "^4.3.5",
     "@dimo-network/transactions": "0.4.1",
     "@heroicons/react": "^2.2.0",
     "@sentry/cli": "^3.8.2",
@@ -21,7 +21,7 @@
     "@types/react-dom": "^19.3.0",
     "buffer": "^6.0.3",
     "clsx": "^2.1.1",
-    "graphql": "^16.14.2",
+    "graphql": "^17.0.2",
     "i18n-iso-countries": "^7.14.0",
     "i18next": "^26.5.11",
     "jsonwebtoken": "^9.0.3",
@@ -31,6 +31,7 @@
     "react-dom": "^19.3.1",
     "react-i18next": "^17.1.9",
     "react-mobile-app-button": "1.2.18",
+    "rxjs": "^7.8.2",
     "tailwind-merge": "^3.7.0",
     "typescript": "~6.0.3",
     "viem": "2.56.8"

@@ -9,7 +9,7 @@ import { sendMessageToReferrer } from './utils/messageHandler';
 import { UIManagerProvider } from './context/UIManagerContext';
 import { GlobalOraclesProvider } from './context/OraclesContext';
 import { apolloClient } from './services/apollo';
-import { ApolloProvider } from '@apollo/client';
+import { ApolloProvider } from '@apollo/client/react';
 
 // Initialize Sentry
 Sentry.init({
