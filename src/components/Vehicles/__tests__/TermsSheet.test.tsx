@@ -1,9 +1,9 @@
-/* eslint-disable import/first -- jest.mock calls must precede the imports they mock */
+/* eslint-disable import/first -- vi.mock calls must precede the imports they mock */
 import React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 
 // The package ships ESM only; the sheet needs none of it here.
-jest.mock('@dimo-network/transactions', () => ({
+vi.mock('@dimo-network/transactions', () => ({
   Permission: {},
   getPermissionsArray: () => [],
 }));
@@ -27,7 +27,7 @@ it('labels the translation and the English original for what each is', async () 
   render(
     <TermsSheet
       open
-      onClose={jest.fn()}
+      onClose={vi.fn()}
       items={[]}
       end={{ noEnd: true, date: new Date('2077-01-01T00:00:00Z') }}
       contract={contract}
@@ -46,7 +46,7 @@ it('labels the translation and the English original for what each is', async () 
 
 it('states how long access lasts, without pointing to the DIMO app', () => {
   const sheet = (end: { noEnd: boolean; date: Date }) => (
-    <TermsSheet open onClose={jest.fn()} items={[]} end={end} contract={contract} />
+    <TermsSheet open onClose={vi.fn()} items={[]} end={end} contract={contract} />
   );
   const { rerender } = render(
     sheet({ noEnd: true, date: new Date('2077-01-01T00:00:00Z') }),

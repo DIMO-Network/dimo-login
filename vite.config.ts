@@ -5,7 +5,8 @@ import react from '@vitejs/plugin-react';
  * The app reads its settings as `process.env.REACT_APP_*`, the Create React
  * App convention, and Vercel injects them (plus `REACT_APP_VERCEL_*`) under
  * that prefix. Each one set at build time is inlined; a name that isn't set
- * reads as undefined, as it did under CRA.
+ * reads as undefined, as it did under CRA. Tests run in Node, where
+ * `process.env` is real, so nothing is inlined there.
  *
  * Source maps are built only when SENTRY_AUTH_TOKEN is set, so the
  * `sentry:sourcemaps` step can upload them.
@@ -22,17 +23,27 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     envPrefix: 'REACT_APP_',
-    define: {
-      ...inlined,
-      'process.env.NODE_ENV': JSON.stringify(
-        mode === 'production' ? 'production' : 'development',
-      ),
-      'process.env': '{}',
-    },
+    define: process.env.VITEST
+      ? {}
+      : {
+          ...inlined,
+          'process.env.NODE_ENV': JSON.stringify(
+            mode === 'production' ? 'production' : 'development',
+          ),
+          'process.env': '{}',
+        },
     server: { port: 3000 },
     build: {
       outDir: 'build',
       sourcemap: Boolean(process.env.SENTRY_AUTH_TOKEN),
+    },
+    test: {
+      environment: 'jsdom',
+      globals: true,
+      setupFiles: ['src/setupTests.ts'],
+      // @uniswap/sdk-core's ESM build (pulled in by the transactions SDK) uses
+      // extensionless imports that Node can't resolve, so Vite resolves them.
+      server: { deps: { inline: ['@dimo-network/transactions', '@uniswap/sdk-core'] } },
     },
   };
 });

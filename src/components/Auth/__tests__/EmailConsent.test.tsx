@@ -1,14 +1,14 @@
-/* eslint-disable import/first -- jest.mock calls must precede the imports they mock */
+/* eslint-disable import/first -- vi.mock calls must precede the imports they mock */
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 
 const mockClientId = '0x2222222222222222222222222222222222222222';
 const mockUser = { email: 'jun@example.com', smartContractAddress: '0xabc' };
-jest.mock('../../../context/AuthContext', () => ({
+vi.mock('../../../context/AuthContext', () => ({
   useAuthContext: () => ({ user: mockUser, jwt: 'jwt' }),
 }));
 const mockCreds: Record<string, unknown> = {};
-jest.mock('../../../context/DevCredentialsContext', () => ({
+vi.mock('../../../context/DevCredentialsContext', () => ({
   useDevCredentials: () => ({
     clientId: mockClientId,
     devLicenseAlias: 'Acme',
@@ -17,14 +17,14 @@ jest.mock('../../../context/DevCredentialsContext', () => ({
     ...mockCreds,
   }),
 }));
-const mockUi = { setUiState: jest.fn() };
-jest.mock('../../../context/UIManagerContext', () => ({ useUIManager: () => mockUi }));
-const mockSendLogin = jest.fn();
-jest.mock('../../../utils/authUtils', () => ({
+const mockUi = { setUiState: vi.fn() };
+vi.mock('../../../context/UIManagerContext', () => ({ useUIManager: () => mockUi }));
+const mockSendLogin = vi.fn();
+vi.mock('../../../utils/authUtils', () => ({
   sendLoginToApp: (...args: unknown[]) => mockSendLogin(...args),
 }));
-const mockSendError = jest.fn();
-jest.mock('../../../utils/errorUtils', () => ({
+const mockSendError = vi.fn();
+vi.mock('../../../utils/errorUtils', () => ({
   sendErrorToParent: (...args: unknown[]) => mockSendError(...args),
 }));
 
@@ -32,7 +32,7 @@ import { EmailConsent } from '../EmailConsent';
 import { getEmailChoice } from '../../../services/storageService';
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   localStorage.clear();
   Object.keys(mockCreds).forEach((key) => delete mockCreds[key]);
 });

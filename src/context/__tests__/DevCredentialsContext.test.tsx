@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
 
@@ -18,45 +19,49 @@ import {
 // The seam under test is `validateCredentials` → `fetchOemBrand(clientId, brandName)`.
 // Everything the provider touches on the way there is mocked so the test asserts
 // only *which brandName reaches the brand fetch* in each transport.
-jest.mock('../../services/brandService', () => ({
-  fetchOemBrand: jest.fn().mockResolvedValue(null),
-  readCachedBrand: jest.fn().mockReturnValue(null),
+vi.mock('../../services/brandService', async () => ({
+  fetchOemBrand: vi.fn().mockResolvedValue(null),
+  readCachedBrand: vi.fn().mockReturnValue(null),
 }));
-jest.mock('../../services/identityService', () => ({
-  getDeveloperLicense: jest.fn().mockResolvedValue({}),
-  getLicenseAlias: jest.fn().mockResolvedValue('Acme'),
-  isValidDeveloperLicense: jest.fn().mockResolvedValue(true),
+vi.mock('../../services/identityService', () => ({
+  getDeveloperLicense: vi.fn().mockResolvedValue({}),
+  getLicenseAlias: vi.fn().mockResolvedValue('Acme'),
+  isValidDeveloperLicense: vi.fn().mockResolvedValue(true),
 }));
-jest.mock('../../services/turnkeyService', () => ({
-  createKernelSigner: jest.fn(),
+vi.mock('../../services/turnkeyService', () => ({
+  createKernelSigner: vi.fn(),
 }));
-jest.mock('../../services/configurationService', () => ({
-  getConfigurationById: jest.fn(),
+vi.mock('../../services/configurationService', () => ({
+  getConfigurationById: vi.fn(),
 }));
-jest.mock('../../services', () => ({ fetchConfigFromIPFS: jest.fn() }));
-jest.mock('../../utils/messageHandler', () => ({
-  sendMessageToReferrer: jest.fn(),
-  setAppState: jest.fn(),
+vi.mock('../../services', () => ({ fetchConfigFromIPFS: vi.fn() }));
+vi.mock('../../utils/messageHandler', () => ({
+  sendMessageToReferrer: vi.fn(),
+  setAppState: vi.fn(),
 }));
-jest.mock('../../utils/isStandalone', () => ({ isStandalone: () => false }));
-jest.mock('../../utils/reportRefusal', () => ({ reportRefusal: jest.fn() }));
+vi.mock('../../utils/isStandalone', () => ({ isStandalone: () => false }));
+vi.mock('../../utils/reportRefusal', () => ({ reportRefusal: vi.fn() }));
 let mockEmbedded = false;
 let mockEmbedderOrigin: string | null = null;
-jest.mock('../../utils/isEmbed', () => ({
+vi.mock('../../utils/isEmbed', () => ({
   isEmbed: () => mockEmbedded,
   getEmbedderOrigin: () => mockEmbedderOrigin,
 }));
 // The `../hooks` barrel re-exports vehicle hooks that pull in @dimo-network/transactions
 // (untransformed ESM). Keep the real useParamsHandler — it's the code that funnels
 // brandName into state — and skip loading the rest of the barrel.
-jest.mock('../../hooks', () => ({
-  useParamsHandler: jest.requireActual('../../hooks/useParamsHandler').useParamsHandler,
+vi.mock('../../hooks', async () => ({
+  useParamsHandler: (
+    await vi.importActual<typeof import('../../hooks/useParamsHandler')>(
+      '../../hooks/useParamsHandler',
+    )
+  ).useParamsHandler,
 }));
 
 const CLIENT_ID = '0xb92d74B468B4047289AEa7c9B953066E39768C16';
 const APP_ORIGIN = 'https://app.example';
 const REDIRECT_URI = `${APP_ORIGIN}/callback`;
-const fetchOemBrandMock = fetchOemBrand as jest.Mock;
+const fetchOemBrandMock = fetchOemBrand as Mock;
 
 // Surfaces a single state key so tests can assert what did (and didn't) land in
 // devCredentialsState after a postMessage.
@@ -106,9 +111,9 @@ const probe = () => screen.getByTestId('probe').textContent;
 
 beforeEach(() => {
   // The jest config resets mock implementations before each test.
-  (getDeveloperLicense as jest.Mock).mockResolvedValue({});
-  (getLicenseAlias as jest.Mock).mockResolvedValue('Acme');
-  (isValidDeveloperLicense as jest.Mock).mockResolvedValue(true);
+  (getDeveloperLicense as Mock).mockResolvedValue({});
+  (getLicenseAlias as Mock).mockResolvedValue('Acme');
+  (isValidDeveloperLicense as Mock).mockResolvedValue(true);
   fetchOemBrandMock.mockClear();
   window.history.pushState({}, '', '/');
   mockEmbedded = false;
@@ -186,7 +191,7 @@ describe('DevCredentialsContext cloudEvent (vehicle document access)', () => {
   });
 
   it('warns when some requested cloudEvents are not supported', async () => {
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const params = new URLSearchParams({
       clientId: CLIENT_ID,
       cloudEvent: JSON.stringify([...AGREEMENTS, { eventType: 'dimo.attestation' }]),
@@ -486,7 +491,7 @@ describe('DevCredentialsContext: every config source is allowlisted', () => {
   });
 
   it('a console configuration can only set known keys', async () => {
-    (getConfigurationById as jest.Mock).mockResolvedValue({
+    (getConfigurationById as Mock).mockResolvedValue({
       client_id: CLIENT_ID,
       configuration: {
         redirectUri: REDIRECT_URI,

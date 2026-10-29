@@ -1,8 +1,9 @@
-/* eslint-disable import/first -- jest.mock calls must precede the imports they mock */
+/* eslint-disable import/first -- vi.mock calls must precede the imports they mock */
+import type { Mock } from 'vitest';
 import React from 'react';
 import { render, act } from '@testing-library/react';
 
-jest.mock('@dimo-network/transactions', () => ({
+vi.mock('@dimo-network/transactions', () => ({
   ENVIRONMENT: 'mock',
   Permission: { ExecuteCommands: 2, GetRawData: 7 },
   getPermissionsArray: (value: bigint) =>
@@ -10,27 +11,27 @@ jest.mock('@dimo-network/transactions', () => ({
       (p) => ((value >> BigInt(p * 2)) & BigInt(3)) === BigInt(3),
     ),
 }));
-jest.mock('../../services', () => ({
-  createPermissionsFromParams: jest.fn(),
-  generateIpfsSources: jest.fn(),
-  setVehiclePermissions: jest.fn(),
+vi.mock('../../services', () => ({
+  createPermissionsFromParams: vi.fn(),
+  generateIpfsSources: vi.fn(),
+  setVehiclePermissions: vi.fn(),
 }));
-jest.mock('../../services/permissionsService', () => ({
+vi.mock('../../services/permissionsService', () => ({
   generateAttachments: () => [],
 }));
-jest.mock('../../context/DevCredentialsContext', () => ({
+vi.mock('../../context/DevCredentialsContext', () => ({
   useDevCredentials: () => ({
     clientId: '0xgrantee000000000000000000000000000000000',
     cloudEvent: { eventType: 'dimo.document.vehicle.*', tags: ['documents'] },
   }),
 }));
-jest.mock('../../context/AuthContext', () => ({
+vi.mock('../../context/AuthContext', () => ({
   useAuthContext: () => ({
-    validateSession: jest.fn().mockResolvedValue(true),
+    validateSession: vi.fn().mockResolvedValue(true),
     user: { smartContractAddress: '0x1111111111111111111111111111111111111111' },
   }),
 }));
-jest.mock('../../utils/authUtils', () => ({
+vi.mock('../../utils/authUtils', () => ({
   INVALID_SESSION_ERROR: 'Invalid session',
 }));
 
@@ -51,10 +52,10 @@ const EXISTING_RAW = { type: 'cloudevent', eventType: 'dimo.raw.vehicle.*', asse
 const originalFetch = global.fetch;
 beforeEach(() => {
   clearGrantReadCache();
-  (createPermissionsFromParams as jest.Mock).mockReturnValue([7]);
-  (generateIpfsSources as jest.Mock).mockResolvedValue('ipfs://bafy');
-  (setVehiclePermissions as jest.Mock).mockResolvedValue(undefined);
-  global.fetch = jest.fn(async () => ({
+  (createPermissionsFromParams as Mock).mockReturnValue([7]);
+  (generateIpfsSources as Mock).mockResolvedValue('ipfs://bafy');
+  (setVehiclePermissions as Mock).mockResolvedValue(undefined);
+  global.fetch = vi.fn(async () => ({
     ok: true,
     json: async () => ({
       data: {
@@ -86,7 +87,7 @@ const run = async (action: VehiclePermissionsAction) => {
   await act(async () => {
     await update!({ permissions: '11111111', expiration: BigInt(0), vehicle, action });
   });
-  const [perms, , , opts] = (generateIpfsSources as jest.Mock).mock.calls[0];
+  const [perms, , , opts] = (generateIpfsSources as Mock).mock.calls[0];
   return {
     perms,
     eventTypes: opts.cloudEventAgreements.map((a: any) => a.eventType),
@@ -113,7 +114,7 @@ it('stop sharing signs no files and never reads the old grant', async () => {
 });
 
 it("sends nothing when the current grant can't be read", async () => {
-  global.fetch = jest.fn().mockRejectedValue(new Error('gateway down')) as any;
+  global.fetch = vi.fn().mockRejectedValue(new Error('gateway down')) as any;
   await expect(run('extend')).rejects.toThrow("Couldn't read the current sharing terms");
   expect(setVehiclePermissions).not.toHaveBeenCalled();
 });

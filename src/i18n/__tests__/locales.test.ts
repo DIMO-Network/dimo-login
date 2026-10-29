@@ -55,14 +55,14 @@ describe('locales', () => {
 
 describe('language', () => {
   const setBrowser = (languages: string[], timeZone: string) => {
-    jest.spyOn(navigator, 'languages', 'get').mockReturnValue(languages);
-    jest
-      .spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions')
-      .mockReturnValue({ timeZone } as Intl.ResolvedDateTimeFormatOptions);
+    vi.spyOn(navigator, 'languages', 'get').mockReturnValue(languages);
+    vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({
+      timeZone,
+    } as Intl.ResolvedDateTimeFormatOptions);
   };
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
     localStorage.clear();
   });
 
@@ -113,9 +113,8 @@ describe('language', () => {
 });
 
 describe('test setup', () => {
-  it('fails on a key that has no copy instead of rendering the raw key', () => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { t } = require('..');
+  it('fails on a key that has no copy instead of rendering the raw key', async () => {
+    const { t } = await import('..');
     expect(() => t('no.such.key')).toThrow('Missing translation: no.such.key');
   });
 });

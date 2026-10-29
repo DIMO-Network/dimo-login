@@ -1,9 +1,9 @@
-/* eslint-disable import/first -- jest.mock calls must precede the imports they mock */
+/* eslint-disable import/first -- vi.mock calls must precede the imports they mock */
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 
-jest.mock('@dimo-network/transactions', () => ({ ENVIRONMENT: 'mock', Permission: {} }));
-jest.mock('../../../context/DevCredentialsContext', () => ({
+vi.mock('@dimo-network/transactions', () => ({ ENVIRONMENT: 'mock', Permission: {} }));
+vi.mock('../../../context/DevCredentialsContext', () => ({
   useDevCredentials: () => ({
     devLicenseAlias: 'Toyota',
     permissions: '11111111',
@@ -11,21 +11,21 @@ jest.mock('../../../context/DevCredentialsContext', () => ({
     utm: '',
   }),
 }));
-jest.mock('../../../context/AuthContext', () => ({
+vi.mock('../../../context/AuthContext', () => ({
   useAuthContext: () => ({ jwt: 'jwt', user: {} }),
 }));
 const mockComponentData: Record<string, unknown> = {};
-jest.mock('../../../context/UIManagerContext', () => ({
+vi.mock('../../../context/UIManagerContext', () => ({
   useUIManager: () => ({ componentData: mockComponentData }),
 }));
-jest.mock('../../../utils/authUtils', () => ({
+vi.mock('../../../utils/authUtils', () => ({
   buildAuthPayload: () => ({ token: 'jwt', walletAddress: '0xabc' }),
 }));
-const mockBack = jest.fn();
-jest.mock('../../../utils/messageHandler', () => ({
+const mockBack = vi.fn();
+vi.mock('../../../utils/messageHandler', () => ({
   backToThirdParty: (...args: unknown[]) => mockBack(...args),
 }));
-jest.mock('../../../utils/isEmbed', () => ({ isEmbed: () => false }));
+vi.mock('../../../utils/isEmbed', () => ({ isEmbed: () => false }));
 
 import { SuccessfulPermissions } from '../SuccessfulPermissions';
 
@@ -44,7 +44,7 @@ const show = (data: Record<string, unknown>) => {
   render(<SuccessfulPermissions />);
 };
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => vi.clearAllMocks());
 
 it('shows each shared vehicle with the date sharing ends', () => {
   show({

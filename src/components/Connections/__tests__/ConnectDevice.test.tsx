@@ -1,12 +1,12 @@
-/* eslint-disable import/first -- jest.mock calls must precede the imports they mock */
+/* eslint-disable import/first -- vi.mock calls must precede the imports they mock */
 import React from 'react';
 import { act, render, screen } from '@testing-library/react';
 
 let mockComponentData: unknown = null;
-jest.mock('../../../context/UIManagerContext', () => ({
-  useUIManager: () => ({ componentData: mockComponentData, goBack: jest.fn() }),
+vi.mock('../../../context/UIManagerContext', () => ({
+  useUIManager: () => ({ componentData: mockComponentData, goBack: vi.fn() }),
 }));
-jest.mock('../../../context/DevCredentialsContext', () => ({
+vi.mock('../../../context/DevCredentialsContext', () => ({
   useDevCredentials: () => ({
     devLicenseAlias: 'Hanami Insurance',
     redirectUri: 'https://hanami-insurance.example/callback',

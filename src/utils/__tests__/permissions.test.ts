@@ -8,7 +8,7 @@ import {
 import { getShareButtonLabel } from '../../components/Vehicles/shareButtonLabel';
 
 // The package ships ESM only; mirror its Permission enum and 2-bit encoding.
-jest.mock('@dimo-network/transactions', () => {
+vi.mock('@dimo-network/transactions', () => {
   const names = [
     'GetNonLocationHistory',
     'ExecuteCommands',

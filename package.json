@@ -8,15 +8,13 @@
     "@heroicons/react": "^2.2.0",
     "@sentry/cli": "^2.58.6",
     "@sentry/react": "^9.47.2",
-    "@testing-library/jest-dom": "^5.17.0",
+    "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^13.4.0",
-    "@testing-library/user-event": "^13.5.0",
     "@turnkey/api-key-stamper": "0.6.17",
     "@turnkey/crypto": "2.13.2",
     "@turnkey/encoding": "0.6.0",
     "@turnkey/http": "6.6.0",
     "@turnkey/webauthn-stamper": "0.6.0",
-    "@types/jest": "^27.5.2",
     "@types/node": "^16.18.126",
     "@types/react": "^18.3.31",
     "@types/react-dom": "^18.3.7",
@@ -32,7 +30,6 @@
     "react-dom": "^18.3.1",
     "react-i18next": "^15.7.4",
     "react-mobile-app-button": "1.2.18",
-    "react-scripts": "5.0.1",
     "tailwind-merge": "^2.6.1",
     "typescript": "^4.9.5",
     "viem": "2.56.8"
@@ -44,23 +41,27 @@
     "underscore": "^1.13.8",
     "react-mobile-app-button": {
       "vite": "^6.4.5"
+    },
+    "eslint-plugin-react": {
+      "eslint": "$eslint"
+    },
+    "eslint-plugin-jsx-a11y": {
+      "eslint": "$eslint"
+    },
+    "eslint-plugin-import": {
+      "eslint": "$eslint"
     }
   },
   "scripts": {
     "start": "vite",
     "build": "if [ -z \"$SENTRY_AUTH_TOKEN\" ]; then vite build; else vite build && npm run sentry:sourcemaps; fi",
-    "test": "craco test",
-    "lint": "eslint . --ignore node_modules --ignore build",
-    "lint:fix": "eslint . --fix --ignore node_modules --ignore build",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "lint:format": "prettier . --check --log-level warn --write \"./**/*.{js,ts,css,md,json,tsx}\"",
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org dimo-hp --project dimo-login ./build && sentry-cli sourcemaps upload --org dimo-hp --project dimo-login ./build",
-    "preview": "vite preview"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
+    "preview": "vite preview",
+    "test:watch": "vitest"
   },
   "browserslist": {
     "production": [
@@ -75,13 +76,22 @@
     ]
   },
   "devDependencies": {
-    "@craco/craco": "^7.1.0",
     "@types/lodash": "^4.17.27",
     "@vitejs/plugin-react": "^6.1.2",
     "autoprefixer": "^10.6.2",
+    "confusing-browser-globals": "^1.0.11",
+    "eslint": "^10.13.0",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.13.0",
+    "jsdom": "^29.1.1",
     "postcss": "^8.5.32",
     "prettier": "3.5.3",
     "tailwindcss": "^3.4.19",
-    "vite": "^8.3.5"
+    "typescript-eslint": "^8.72.1",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
   }
 }

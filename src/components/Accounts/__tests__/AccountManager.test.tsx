@@ -1,17 +1,17 @@
-/* eslint-disable import/first -- jest.mock calls must precede the imports they mock */
+/* eslint-disable import/first -- vi.mock calls must precede the imports they mock */
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-jest.mock('@dimo-network/transactions', () => ({ Permission: {} }));
-const mockShare = jest.fn();
-const mockFinish = jest.fn();
-jest.mock('../../../hooks/useShareAccounts', () => ({
+vi.mock('@dimo-network/transactions', () => ({ Permission: {} }));
+const mockShare = vi.fn();
+const mockFinish = vi.fn();
+vi.mock('../../../hooks/useShareAccounts', () => ({
   useShareAccounts: () => mockShare,
 }));
-jest.mock('../../../hooks/useFinishShareAccounts', () => ({
+vi.mock('../../../hooks/useFinishShareAccounts', () => ({
   useFinishShareAccounts: () => mockFinish,
 }));
-jest.mock('../../../context/DevCredentialsContext', () => ({
+vi.mock('../../../context/DevCredentialsContext', () => ({
   useDevCredentials: () => ({
     clientId: '0x2222222222222222222222222222222222222222',
     devLicenseAlias: 'Hanami Rentals',
@@ -20,23 +20,23 @@ jest.mock('../../../context/DevCredentialsContext', () => ({
     expirationDate: BigInt(Date.parse('2027-10-27T12:00:00Z') / 1000),
   }),
 }));
-jest.mock('../../../context/AuthContext', () => ({
+vi.mock('../../../context/AuthContext', () => ({
   useAuthContext: () => ({ user: { email: 'jun@example.com' } }),
 }));
-const mockUi = { setUiState: jest.fn(), setBusy: jest.fn() };
-jest.mock('../../../context/UIManagerContext', () => ({ useUIManager: () => mockUi }));
-const mockSendError = jest.fn();
-jest.mock('../../../utils/errorUtils', () => ({
+const mockUi = { setUiState: vi.fn(), setBusy: vi.fn() };
+vi.mock('../../../context/UIManagerContext', () => ({ useUIManager: () => mockUi }));
+const mockSendError = vi.fn();
+vi.mock('../../../utils/errorUtils', () => ({
   sendErrorToParent: (...args: unknown[]) => mockSendError(...args),
 }));
-jest.mock('../../../utils/authUtils', () => ({ isInvalidSessionError: () => false }));
-jest.mock('@sentry/react', () => ({ captureException: jest.fn() }));
+vi.mock('../../../utils/authUtils', () => ({ isInvalidSessionError: () => false }));
+vi.mock('@sentry/react', () => ({ captureException: vi.fn() }));
 
 import { AccountManager } from '../AccountManager';
 
 beforeEach(() => {
-  jest.clearAllMocks();
-  jest.spyOn(console, 'error').mockImplementation(() => {});
+  vi.clearAllMocks();
+  vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
 it('names the documents and how long, then signs on Allow', async () => {

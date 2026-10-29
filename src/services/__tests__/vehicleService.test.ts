@@ -1,14 +1,15 @@
+import type { Mock } from 'vitest';
 import { fetchVehiclesWithTransformation } from '../vehicleService';
 import { fetchVehicles, fetchDeviceDefinition } from '../identityService';
 
-jest.mock('@dimo-network/transactions', () => ({
+vi.mock('@dimo-network/transactions', async () => ({
+  ...(await vi.importActual<object>('@dimo-network/transactions')),
   ENVIRONMENT: 'mock',
-  // add more mocked exports if needed
 }));
-jest.mock('../identityService');
+vi.mock('../identityService');
 
 beforeEach(() => {
-  (fetchVehicles as jest.Mock).mockImplementation(() => {
+  (fetchVehicles as Mock).mockImplementation(() => {
     return Promise.resolve({
       data: {
         vehicles: {
@@ -52,7 +53,7 @@ beforeEach(() => {
       },
     });
   });
-  (fetchDeviceDefinition as jest.Mock).mockImplementation((deviceDefinitionId) => {
+  (fetchDeviceDefinition as Mock).mockImplementation((deviceDefinitionId) => {
     if (deviceDefinitionId === 'tesla_model_3_2019') {
       return Promise.resolve({
         deviceDefinition: {
@@ -80,7 +81,7 @@ beforeEach(() => {
   });
 });
 
-afterEach(() => jest.restoreAllMocks());
+afterEach(() => vi.restoreAllMocks());
 
 it('Returns all vehicles as compatible without filters', async () => {
   const data = await fetchVehiclesWithTransformation({
@@ -182,7 +183,7 @@ it('Returns vehicles with the correct shape in compatible and incompatible array
         tokenDID: expect.any(String),
         imageURI: expect.anything(),
         shared: expect.any(Boolean),
-        expiresAt: expect.any(String),
+        grantExpiresAt: expect.any(String),
         make: expect.any(String),
         model: expect.any(String),
         year: expect.any(Number),
@@ -207,7 +208,7 @@ it('Returns incompatible vehicles with the correct shape when no compatible vehi
         tokenDID: expect.any(String),
         imageURI: expect.anything(),
         shared: expect.any(Boolean),
-        expiresAt: expect.any(String),
+        grantExpiresAt: expect.any(String),
         make: expect.any(String),
         model: expect.any(String),
         year: expect.any(Number),
