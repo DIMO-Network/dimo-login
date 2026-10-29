@@ -14,10 +14,8 @@ import { ApolloProvider } from '@apollo/client';
 // Initialize Sentry
 Sentry.init({
   dsn: process.env.REACT_APP_SENTRY_DSN,
-  enableLogs: true,
-  // Setting this option to true will send default PII data to Sentry.
-  // For example, automatic IP address collection on events
-  sendDefaultPii: true,
+  // User data, including the IP address on events, is collected by default
+  // (`dataCollection.userInfo`), as `sendDefaultPii: true` did before Sentry 11.
   // Set tracesSampleRate to 1.0 to capture 100%
   // of transactions for tracing.
   // We recommend adjusting this value in production
