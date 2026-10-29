@@ -12,7 +12,7 @@ const errResponse = (status: number): Response =>
 describe('brandService cache', () => {
   beforeEach(() => {
     localStorage.clear();
-    (global as { fetch: Mock }).fetch = vi.fn();
+    (global as unknown as { fetch: Mock }).fetch = vi.fn();
   });
 
   it('readCachedBrand returns null when nothing cached', () => {

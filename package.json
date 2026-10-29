@@ -31,7 +31,7 @@
     "react-i18next": "^15.7.4",
     "react-mobile-app-button": "1.2.18",
     "tailwind-merge": "^2.6.1",
-    "typescript": "^4.9.5",
+    "typescript": "~6.0.3",
     "viem": "2.56.8"
   },
   "overrides": {
@@ -54,14 +54,15 @@
   },
   "scripts": {
     "start": "vite",
-    "build": "if [ -z \"$SENTRY_AUTH_TOKEN\" ]; then vite build; else vite build && npm run sentry:sourcemaps; fi",
+    "build": "tsc --noEmit && if [ -z \"$SENTRY_AUTH_TOKEN\" ]; then vite build; else vite build && npm run sentry:sourcemaps; fi",
     "test": "vitest run",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "lint:format": "prettier . --check --log-level warn --write \"./**/*.{js,ts,css,md,json,tsx}\"",
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org dimo-hp --project dimo-login ./build && sentry-cli sourcemaps upload --org dimo-hp --project dimo-login ./build",
     "preview": "vite preview",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
   },
   "browserslist": {
     "production": [

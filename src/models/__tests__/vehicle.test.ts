@@ -20,7 +20,7 @@ describe('LocalVehicle', () => {
     },
     sacds: {
       nodes: [
-        { expiresAt: '2025-01-01T00:00:00Z', grantee: 'client-1' },
+        { expiresAt: '2025-01-01T00:00:00Z', grantee: '0xc11e01' },
         { expiresAt: '2026-01-01T00:00:00Z', grantee: 'client-2' },
       ],
     },
@@ -41,11 +41,11 @@ describe('LocalVehicle', () => {
   });
 
   it('returns correct sacd for grantee', () => {
-    expect(localVehicle.getSacdForGrantee('client-1')).toEqual({
+    expect(localVehicle.getSacdForGrantee('0xc11e01')).toEqual({
       expiresAt: '2025-01-01T00:00:00Z',
-      grantee: 'client-1',
+      grantee: '0xc11e01',
     });
-    expect(localVehicle.getSacdForGrantee('not-a-client')).toBeUndefined();
+    expect(localVehicle.getSacdForGrantee('0x0ther')).toBeUndefined();
   });
 
   it('normalizes vehicle data', () => {

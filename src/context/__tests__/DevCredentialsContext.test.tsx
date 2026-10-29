@@ -66,7 +66,7 @@ const fetchOemBrandMock = fetchOemBrand as Mock;
 // Surfaces a single state key so tests can assert what did (and didn't) land in
 // devCredentialsState after a postMessage.
 const StateProbe = ({ probeKey }: { probeKey: string }) => {
-  const value = useDevCredentials<Record<string, unknown>>();
+  const value = useDevCredentials() as unknown as Record<string, unknown>;
   return <span data-testid="probe">{JSON.stringify(value[probeKey] ?? null)}</span>;
 };
 

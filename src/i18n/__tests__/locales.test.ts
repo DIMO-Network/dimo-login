@@ -115,6 +115,7 @@ describe('language', () => {
 describe('test setup', () => {
   it('fails on a key that has no copy instead of rendering the raw key', async () => {
     const { t } = await import('..');
+    // @ts-expect-error -- a key that doesn't exist, on purpose
     expect(() => t('no.such.key')).toThrow('Missing translation: no.such.key');
   });
 });

@@ -22,13 +22,13 @@ import {
   authenticateUser,
   createSession,
   handlePostAuthUIState,
+  TStamper,
   updateTurnkeySession,
 } from '../utils/authUtils';
 import { useDevCredentials } from './DevCredentialsContext';
 import { UserObject } from '../models/user';
 import { UiStates } from '../enums';
 import { useUIManager } from './UIManagerContext';
-import { TStamper } from '@turnkey/http/dist/base';
 import {
   getApiKeyStamper,
   getFromLocalStorage,
