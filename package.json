@@ -2,6 +2,9 @@
   "name": "dimo-login",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "24.x"
+  },
   "dependencies": {
     "@apollo/client": "^4.3.5",
     "@dimo-network/transactions": "0.4.1",
@@ -16,7 +19,7 @@
     "@turnkey/encoding": "0.6.0",
     "@turnkey/http": "6.6.0",
     "@turnkey/webauthn-stamper": "0.6.0",
-    "@types/node": "^16.18.126",
+    "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "buffer": "^6.0.3",
