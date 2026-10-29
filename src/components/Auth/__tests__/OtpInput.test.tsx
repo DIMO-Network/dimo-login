@@ -22,7 +22,9 @@ import { OtpInput, toDigits } from '../OtpInput';
 const boxes = () => screen.getAllByRole('textbox') as HTMLInputElement[];
 
 beforeEach(() => {
-  vi.useFakeTimers();
+  // Testing Library's waitFor only drives Jest's fake timers, so these also
+  // advance with real time.
+  vi.useFakeTimers({ shouldAdvanceTime: true });
   vi.clearAllMocks();
   mockSendOtp.mockResolvedValue({ success: true, data: { otpId: 'otp-1' } });
 });

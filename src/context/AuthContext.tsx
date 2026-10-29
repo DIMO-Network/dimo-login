@@ -77,7 +77,11 @@ interface OTPAuthArgs {
 }
 
 // AuthProvider component to provide the context
-export const AuthProvider = ({ children }: { children: ReactNode }): JSX.Element => {
+export const AuthProvider = ({
+  children,
+}: {
+  children: ReactNode;
+}): React.JSX.Element => {
   const [user, setUser] = useState<UserObject>(defaultUser);
   const [jwt, setJwt] = useState<string>('');
   const { clientId, redirectUri, utm } = useDevCredentials();
