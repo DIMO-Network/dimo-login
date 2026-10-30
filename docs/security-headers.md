@@ -14,8 +14,8 @@ key lives in `localStorage`.
 | `form-action` | `'self'` | The app posts no forms elsewhere; OAuth uses redirects. |
 | `connect-src` | `'self' https: wss:` | Deliberately broad. API hosts come from `REACT_APP_*` env vars per environment (auth, identity, devices, console API, Turnkey, ZeroDev bundler/paymaster, Polygon RPC, Sentry, IPFS). Listing them would break a deploy whenever one changes. |
 | `img-src` | `'self' data: blob: https:` | OEM logos and vehicle images come from various hosts. |
-| `style-src` | `'self' 'unsafe-inline' https://fonts.googleapis.com` | Libraries inject `<style>` at runtime; `react-mobile-app-button` imports the Outfit font from Google Fonts. Styles can't run script. |
-| `font-src` | `'self' data: https://fonts.gstatic.com` | Our fonts are bundled; Google Fonts serves Outfit's files. |
+| `style-src` | `'self' 'unsafe-inline'` | Libraries inject `<style>` at runtime. Styles can't run script. |
+| `font-src` | `'self' data:` | Our fonts are bundled. |
 | `frame-ancestors` | not set | Apps may embed login.dimo.org in an iframe (`isEmbed`), and which app is only known at runtime. Instead, an embedded login checks the embedding page's origin (`getEmbedderOrigin`: `location.ancestorOrigins`, else `document.referrer`) against the redirect URI's origin and shows an error otherwise, so another site can't frame it and trick clicks onto Share, Approve or Sign. When the browser doesn't say who embeds it, it refuses. |
 
 ## Changing it
