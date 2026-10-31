@@ -1,19 +1,17 @@
-/* eslint-disable import/first -- jest.mock calls must precede the imports they mock */
+/* eslint-disable import/first -- vi.mock calls must precede the imports they mock */
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 const mockClientId = '0x2222222222222222222222222222222222222222';
-jest.mock('../../../services', () =>
-  jest.requireActual('../../../services/storageService'),
-);
-const mockGo = jest.fn();
+vi.mock('../../../services', () => vi.importActual('../../../services/storageService'));
+const mockGo = vi.fn();
 let mockOAuthUrl: string | null = 'https://accounts.example/oauth';
-jest.mock('../../../hooks', () => ({
+vi.mock('../../../hooks', () => ({
   useOAuthCodeExchange: () => ({ isExchanging: false }),
   useConstructOAuthUrl: () => () => mockOAuthUrl,
   useGoToLoginOrSignUp: () => mockGo,
 }));
-jest.mock('../../../context/DevCredentialsContext', () => ({
+vi.mock('../../../context/DevCredentialsContext', () => ({
   useDevCredentials: () => ({
     clientId: mockClientId,
     devLicenseAlias: 'Acme',
@@ -22,28 +20,28 @@ jest.mock('../../../context/DevCredentialsContext', () => ({
 }));
 const mockUi = {
   error: null,
-  setError: jest.fn(),
+  setError: vi.fn(),
   altTitle: false,
-  setLoadingState: jest.fn(),
+  setLoadingState: vi.fn(),
 };
-jest.mock('../../../context/UIManagerContext', () => ({ useUIManager: () => mockUi }));
-jest.mock('../../Shared', () => ({
+vi.mock('../../../context/UIManagerContext', () => ({ useUIManager: () => mockUi }));
+vi.mock('../../Shared', () => ({
   ErrorMessage: () => null,
   Loader: () => null,
   UIManagerLoaderWrapper: ({ children }: { children: React.ReactNode }) => (
     <>{children}</>
   ),
 }));
-jest.mock('@sentry/react', () => ({ captureException: jest.fn() }));
+vi.mock('@sentry/react', () => ({ captureException: vi.fn() }));
 
 import { EmailInput } from '../EmailInput';
 import { setForceEmail } from '../../../stores/AuthStateStore';
 import { getEmailChoice } from '../../../services/storageService';
 
-const onSubmit = jest.fn();
+const onSubmit = vi.fn();
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   localStorage.clear();
   setForceEmail(false);
   mockGo.mockResolvedValue(undefined);

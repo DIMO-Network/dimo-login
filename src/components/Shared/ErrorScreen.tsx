@@ -20,7 +20,11 @@ export const ErrorContent = ({ title, message }: ErrorProps) => {
       <span className="mb-1 flex size-12 items-center justify-center rounded-[14px] bg-card text-negative">
         <ExclamationTriangleIcon className="size-6" aria-hidden="true" />
       </span>
-      <h1 tabIndex={-1} data-screen-heading className="text-title text-ink outline-none">
+      <h1
+        tabIndex={-1}
+        data-screen-heading
+        className="text-title text-ink outline-hidden"
+      >
         {translateText(title, t)}
       </h1>
       <p className="text-body-sm text-muted">{translateText(message, t)}</p>

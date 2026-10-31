@@ -82,7 +82,7 @@ export const AutoCompleteInput: React.FC<AutoCompleteInputProps> = ({
           aria-controls={listboxId}
           aria-expanded={isFocused && filteredOptions.length > 0}
           aria-autocomplete="list"
-          className="h-10 w-full rounded-control border border-control-border bg-control pl-3 pr-9 text-[14px] leading-5 text-fg outline-none transition-[border-color,box-shadow] placeholder:text-muted hover:border-control-border-hover focus:border-focus-ring focus:ring-[3px] focus:ring-accent-soft"
+          className="h-10 w-full rounded-control border border-control-border bg-control pl-3 pr-9 text-[14px] leading-5 text-fg outline-hidden transition-[border-color,box-shadow] placeholder:text-muted hover:border-control-border-hover focus:border-focus-ring focus:ring-[3px] focus:ring-accent-soft"
           placeholder={placeholder ?? t('common.search_placeholder')}
           value={value}
           onChange={(e) => onChange(e.target.value)}

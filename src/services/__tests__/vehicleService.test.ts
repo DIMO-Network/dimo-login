@@ -1,14 +1,15 @@
+import type { Mock } from 'vitest';
 import { fetchVehiclesWithTransformation } from '../vehicleService';
 import { fetchVehicles, fetchDeviceDefinition } from '../identityService';
 
-jest.mock('@dimo-network/transactions', () => ({
+vi.mock('@dimo-network/transactions', async () => ({
+  ...(await vi.importActual<object>('@dimo-network/transactions')),
   ENVIRONMENT: 'mock',
-  // add more mocked exports if needed
 }));
-jest.mock('../identityService');
+vi.mock('../identityService');
 
 beforeEach(() => {
-  (fetchVehicles as jest.Mock).mockImplementation(() => {
+  (fetchVehicles as Mock).mockImplementation(() => {
     return Promise.resolve({
       data: {
         vehicles: {
@@ -52,7 +53,7 @@ beforeEach(() => {
       },
     });
   });
-  (fetchDeviceDefinition as jest.Mock).mockImplementation((deviceDefinitionId) => {
+  (fetchDeviceDefinition as Mock).mockImplementation((deviceDefinitionId) => {
     if (deviceDefinitionId === 'tesla_model_3_2019') {
       return Promise.resolve({
         deviceDefinition: {
@@ -80,12 +81,12 @@ beforeEach(() => {
   });
 });
 
-afterEach(() => jest.restoreAllMocks());
+afterEach(() => vi.restoreAllMocks());
 
 it('Returns all vehicles as compatible without filters', async () => {
   const data = await fetchVehiclesWithTransformation({
-    ownerAddress: 'address',
-    targetGrantee: 'grantee',
+    ownerAddress: '0xaddress',
+    targetGrantee: '0xgrantee',
     cursor: '',
     direction: '',
     filters: {},
@@ -98,8 +99,8 @@ it('Only returns vehicles that match the tokenIds', async () => {
   const data = await fetchVehiclesWithTransformation({
     cursor: '',
     direction: '',
-    ownerAddress: '',
-    targetGrantee: '',
+    ownerAddress: '0x',
+    targetGrantee: '0x',
     filters: { vehicleTokenIds: ['1'] },
   });
   expect(data.compatibleVehicles.length).toEqual(1);
@@ -111,8 +112,8 @@ it('Only returns vehicles that match the make', async () => {
   const data = await fetchVehiclesWithTransformation({
     cursor: '',
     direction: '',
-    ownerAddress: '',
-    targetGrantee: '',
+    ownerAddress: '0x',
+    targetGrantee: '0x',
     filters: { vehicleMakes: ['Ford'] },
   });
   expect(data.compatibleVehicles.length).toEqual(1);
@@ -124,8 +125,8 @@ it('Returns both vehicles if powertrain types match both', async () => {
   const data = await fetchVehiclesWithTransformation({
     cursor: '',
     direction: '',
-    ownerAddress: '',
-    targetGrantee: '',
+    ownerAddress: '0x',
+    targetGrantee: '0x',
     filters: { powertrainTypes: ['BEV', 'ICE'] },
   });
   expect(data.compatibleVehicles.length).toEqual(2);
@@ -134,8 +135,8 @@ it('Only returns vehicles that match BEV powertrain types', async () => {
   const data = await fetchVehiclesWithTransformation({
     cursor: '',
     direction: '',
-    ownerAddress: '',
-    targetGrantee: '',
+    ownerAddress: '0x',
+    targetGrantee: '0x',
     filters: { powertrainTypes: ['BEV'] },
   });
   expect(data.compatibleVehicles.length).toEqual(1);
@@ -147,8 +148,8 @@ it('Only returns vehicles that match ICE powertrain types', async () => {
   const data = await fetchVehiclesWithTransformation({
     cursor: '',
     direction: '',
-    ownerAddress: '',
-    targetGrantee: '',
+    ownerAddress: '0x',
+    targetGrantee: '0x',
     filters: { powertrainTypes: ['ICE'] },
   });
   expect(data.compatibleVehicles.length).toEqual(1);
@@ -160,8 +161,8 @@ it('Returns no vehicles if there are no matching powertrain types', async () => 
   const data = await fetchVehiclesWithTransformation({
     cursor: '',
     direction: '',
-    ownerAddress: '',
-    targetGrantee: '',
+    ownerAddress: '0x',
+    targetGrantee: '0x',
     filters: { powertrainTypes: ['HEV'] },
   });
   expect(data.compatibleVehicles.length).toEqual(0);
@@ -169,8 +170,8 @@ it('Returns no vehicles if there are no matching powertrain types', async () => 
 });
 it('Returns vehicles with the correct shape in compatible and incompatible arrays', async () => {
   const data = await fetchVehiclesWithTransformation({
-    ownerAddress: 'address',
-    targetGrantee: 'grantee',
+    ownerAddress: '0xaddress',
+    targetGrantee: '0xgrantee',
     cursor: '',
     direction: '',
     filters: {},
@@ -182,7 +183,7 @@ it('Returns vehicles with the correct shape in compatible and incompatible array
         tokenDID: expect.any(String),
         imageURI: expect.anything(),
         shared: expect.any(Boolean),
-        expiresAt: expect.any(String),
+        grantExpiresAt: expect.any(String),
         make: expect.any(String),
         model: expect.any(String),
         year: expect.any(Number),
@@ -194,8 +195,8 @@ it('Returns incompatible vehicles with the correct shape when no compatible vehi
   const data = await fetchVehiclesWithTransformation({
     cursor: '',
     direction: '',
-    ownerAddress: '',
-    targetGrantee: '',
+    ownerAddress: '0x',
+    targetGrantee: '0x',
     filters: { vehicleMakes: ['Tesla'], powertrainTypes: ['ICE'] },
   });
   expect(data.compatibleVehicles.length).toEqual(0);
@@ -207,7 +208,7 @@ it('Returns incompatible vehicles with the correct shape when no compatible vehi
         tokenDID: expect.any(String),
         imageURI: expect.anything(),
         shared: expect.any(Boolean),
-        expiresAt: expect.any(String),
+        grantExpiresAt: expect.any(String),
         make: expect.any(String),
         model: expect.any(String),
         year: expect.any(Number),
@@ -219,8 +220,8 @@ it('Returns vehicles that match both make and powertrain type filters', async ()
   const data = await fetchVehiclesWithTransformation({
     cursor: '',
     direction: '',
-    ownerAddress: '',
-    targetGrantee: '',
+    ownerAddress: '0x',
+    targetGrantee: '0x',
     filters: { vehicleMakes: ['Tesla'], powertrainTypes: ['BEV'] },
   });
   expect(data.compatibleVehicles.length).toEqual(1);
@@ -235,8 +236,8 @@ it('Returns no vehicles if make and powertrain type filters do not overlap', asy
   const data = await fetchVehiclesWithTransformation({
     cursor: '',
     direction: '',
-    ownerAddress: '',
-    targetGrantee: '',
+    ownerAddress: '0x',
+    targetGrantee: '0x',
     filters: { vehicleMakes: ['Tesla'], powertrainTypes: ['ICE'] },
   });
   expect(data.compatibleVehicles.length).toEqual(0);
@@ -246,8 +247,8 @@ it('Returns vehicles that match both tokenId and powertrain type filters', async
   const data = await fetchVehiclesWithTransformation({
     cursor: '',
     direction: '',
-    ownerAddress: '',
-    targetGrantee: '',
+    ownerAddress: '0x',
+    targetGrantee: '0x',
     filters: { vehicleTokenIds: ['2'], powertrainTypes: ['ICE'] },
   });
   expect(data.compatibleVehicles.length).toEqual(1);

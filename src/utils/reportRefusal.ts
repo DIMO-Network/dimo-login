@@ -2,9 +2,7 @@ import { captureMessage, withScope } from '@sentry/react';
 
 /** Why the login stopped a sign-in before it started or finished. */
 export type RefusalReason =
-  | 'untrusted_caller'
-  | 'untrusted_oauth_return'
-  | 'storage_blocked';
+  'untrusted_caller' | 'untrusted_oauth_return' | 'storage_blocked';
 
 const refererOrigin = (referer?: string): string | undefined => {
   try {

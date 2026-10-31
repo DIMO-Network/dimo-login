@@ -56,10 +56,10 @@ export const AppShell = ({
 
   return (
     <div
-      className="flex min-h-[100dvh] w-full justify-center bg-canvas md:items-center md:p-6"
+      className="flex min-h-dvh w-full justify-center bg-canvas md:items-center md:p-6"
       style={brandStyle}
     >
-      <div className="flex h-[100dvh] w-full flex-col overflow-hidden bg-sheet md:h-auto md:max-h-[min(760px,calc(100dvh-3rem))] md:min-h-[600px] md:max-w-[520px] md:rounded-panel md:shadow-float">
+      <div className="flex h-dvh w-full flex-col overflow-hidden bg-sheet md:h-auto md:max-h-[min(760px,calc(100dvh-3rem))] md:min-h-[600px] md:max-w-[520px] md:rounded-panel md:shadow-float">
         <header className="flex h-14 shrink-0 items-center justify-between gap-2 px-3">
           <div className="flex min-w-0 items-center gap-1 pl-1">
             {!loading && !busy && prevUiStates.length > 1 && (

@@ -1,7 +1,7 @@
 import { buildFlowSnapshot, readFlowSnapshot, saveFlowSnapshot } from '../flowSnapshot';
 import { reportRefusal } from '../reportRefusal';
 
-jest.mock('../reportRefusal', () => ({ reportRefusal: jest.fn() }));
+vi.mock('../reportRefusal', () => ({ reportRefusal: vi.fn() }));
 
 beforeEach(() => sessionStorage.clear());
 
@@ -42,7 +42,7 @@ describe('flow snapshot for the OAuth round-trip', () => {
   });
 
   it('reports a save that storage refuses, and returns no reference', () => {
-    const setItem = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new DOMException('The operation is insecure.', 'SecurityError');
     });
     try {

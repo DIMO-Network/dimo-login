@@ -3,22 +3,19 @@ import ReactDOM from 'react-dom/client';
 import * as Sentry from '@sentry/react';
 import './index.css';
 import App from './App';
-import reportWebVitals from './reportWebVitals';
 import { AuthProvider } from './context/AuthContext';
 import { DevCredentialsProvider } from './context/DevCredentialsContext';
 import { sendMessageToReferrer } from './utils/messageHandler';
 import { UIManagerProvider } from './context/UIManagerContext';
 import { GlobalOraclesProvider } from './context/OraclesContext';
 import { apolloClient } from './services/apollo';
-import { ApolloProvider } from '@apollo/client';
+import { ApolloProvider } from '@apollo/client/react';
 
 // Initialize Sentry
 Sentry.init({
   dsn: process.env.REACT_APP_SENTRY_DSN,
-  enableLogs: true,
-  // Setting this option to true will send default PII data to Sentry.
-  // For example, automatic IP address collection on events
-  sendDefaultPii: true,
+  // User data, including the IP address on events, is collected by default
+  // (`dataCollection.userInfo`), as `sendDefaultPii: true` did before Sentry 11.
   // Set tracesSampleRate to 1.0 to capture 100%
   // of transactions for tracing.
   // We recommend adjusting this value in production
@@ -52,11 +49,6 @@ root.render(
     </Sentry.ErrorBoundary>
   </React.StrictMode>,
 );
-
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
 
 //Send a READY event to the developer's app, ready to receive credentials
 window.onload = () => {

@@ -2,76 +2,82 @@
   "name": "dimo-login",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "24.x"
+  },
   "dependencies": {
-    "@apollo/client": "^3.13.6",
-    "@dimo-network/transactions": "^0.3.2",
-    "@heroicons/react": "^2.1.5",
-    "@sentry/cli": "^2.46.0",
-    "@sentry/react": "^9.28.1",
-    "@testing-library/jest-dom": "^5.17.0",
-    "@testing-library/react": "^13.4.0",
-    "@testing-library/user-event": "^13.5.0",
-    "@turnkey/http": "^4.1.1",
-    "@types/jest": "^27.5.2",
-    "@types/node": "^16.18.114",
-    "@types/react": "^18.3.11",
-    "@types/react-dom": "^18.3.1",
+    "@apollo/client": "^4.3.5",
+    "@dimo-network/transactions": "0.4.1",
+    "@heroicons/react": "^2.2.0",
+    "@sentry/cli": "^3.8.2",
+    "@sentry/react": "^11.10.0",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@turnkey/api-key-stamper": "0.6.17",
+    "@turnkey/crypto": "2.13.2",
+    "@turnkey/encoding": "0.6.0",
+    "@turnkey/http": "6.6.0",
+    "@turnkey/webauthn-stamper": "0.6.0",
+    "@types/node": "^24.19.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "buffer": "^6.0.3",
     "clsx": "^2.1.1",
-    "graphql": "^16.10.0",
+    "graphql": "^17.0.2",
     "i18n-iso-countries": "^7.14.0",
-    "i18next": "^25.10.10",
-    "jsonwebtoken": "^9.0.2",
+    "i18next": "^26.5.11",
     "jwt-decode": "^4.0.0",
-    "lodash": "^4.17.21",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-i18next": "^15.7.4",
-    "react-mobile-app-button": "1.2.18",
-    "react-scripts": "5.0.1",
-    "tailwind-merge": "^2.6.1",
-    "typescript": "^4.9.5",
-    "viem": "^2.53.1",
-    "web-vitals": "^2.1.4"
+    "lodash": "^4.18.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-i18next": "^17.1.9",
+    "rxjs": "^7.8.2",
+    "tailwind-merge": "^3.7.0",
+    "typescript": "~6.0.3",
+    "viem": "2.56.8"
   },
   "overrides": {
-    "react-refresh": "0.14.2",
-    "@turnkey/http": "^4.1.1"
+    "@turnkey/http": "6.6.0",
+    "@turnkey/viem": "0.14.43",
+    "eslint-plugin-react": {
+      "eslint": "$eslint"
+    },
+    "eslint-plugin-jsx-a11y": {
+      "eslint": "$eslint"
+    },
+    "eslint-plugin-import": {
+      "eslint": "$eslint"
+    }
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "if [ -z \"$SENTRY_AUTH_TOKEN\" ]; then GENERATE_SOURCEMAP=false craco build; else craco build && npm run sentry:sourcemaps; fi",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "lint": "eslint . --ignore node_modules --ignore build",
-    "lint:fix": "eslint . --fix --ignore node_modules --ignore build",
+    "start": "vite",
+    "build": "tsc --noEmit && if [ -z \"$SENTRY_AUTH_TOKEN\" ]; then vite build; else vite build && npm run sentry:sourcemaps; fi",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "lint:format": "prettier . --check --log-level warn --write \"./**/*.{js,ts,css,md,json,tsx}\"",
-    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org dimo-hp --project dimo-login ./build && sentry-cli sourcemaps upload --org dimo-hp --project dimo-login ./build"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
+    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org dimo-hp --project dimo-login ./build && sentry-cli sourcemaps upload --org dimo-hp --project dimo-login ./build",
+    "preview": "vite preview",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@craco/craco": "^7.1.0",
-    "@types/lodash": "^4.17.16",
-    "autoprefixer": "^10.4.20",
-    "postcss": "^8.4.47",
-    "prettier": "3.5.3",
-    "tailwindcss": "^3.4.14"
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/lodash": "^4.17.27",
+    "@vitejs/plugin-react": "^6.1.2",
+    "confusing-browser-globals": "^1.0.11",
+    "eslint": "^10.13.0",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.13.0",
+    "jsdom": "^29.1.1",
+    "prettier": "3.9.10",
+    "tailwindcss": "^4.3.3",
+    "typescript-eslint": "^8.72.1",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
   }
 }

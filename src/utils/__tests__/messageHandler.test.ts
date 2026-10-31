@@ -4,13 +4,13 @@ import { saveFlowSnapshot } from '../flowSnapshot';
 import { sendSignatureResponseToParent, sendTxnResponseToParent } from '../txnUtils';
 
 // authUtils pulls in the Turnkey / kernel-signer stack (ESM-only under jest; jest hoists these above the imports); only the postMessage path is under test.
-jest.mock('../../services/authService', () => ({}));
-jest.mock('../../services/turnkeyService', () => ({}));
-jest.mock('../../services/storageService', () => ({}));
+vi.mock('../../services/authService', () => ({}));
+vi.mock('../../services/turnkeyService', () => ({}));
+vi.mock('../../services/storageService', () => ({}));
 
 // The login opened in a popup with the given referrer and `state` query param.
 function openedBy(referrer: string, state?: object) {
-  const postMessage = jest.fn();
+  const postMessage = vi.fn();
   Object.defineProperty(window, 'opener', { value: { postMessage }, configurable: true });
   Object.defineProperty(document, 'referrer', { value: referrer, configurable: true });
   window.history.replaceState(
@@ -26,7 +26,7 @@ const payload = { token: 'jwt', walletAddress: '0xabc' };
 
 afterEach(() => {
   Object.defineProperty(window, 'opener', { value: null, configurable: true });
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
 });
 
 describe('messages carrying the user token', () => {
@@ -57,14 +57,14 @@ describe('messages carrying the user token', () => {
   });
 
   it('never fall back to the referrer when the redirect URI is missing', () => {
-    jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const postMessage = openedBy('https://other.example/');
     sendAuthPayloadToParent(payload, '', () => undefined);
     expect(postMessage).not.toHaveBeenCalled();
   });
 
   it('are not sent at all when the redirectUri has no web origin', () => {
-    jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const postMessage = openedBy('https://other.example/');
     sendAuthPayloadToParent(payload, 'myapp://callback', () => undefined);
     expect(postMessage).not.toHaveBeenCalled();

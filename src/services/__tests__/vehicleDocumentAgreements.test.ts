@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import {
   checkDocumentAccess,
   clearGrantReadCache,
@@ -34,7 +35,7 @@ const sacdDocument = (agreements: object[], parties = PARTIES) => ({
 const vehicle = (source?: string) => ({ tokenId: 186612, tokenDID: DID, source });
 
 const mockGateway = (response: object | Error) => {
-  global.fetch = jest.fn(async () => {
+  global.fetch = vi.fn(async () => {
     if (response instanceof Error) throw response;
     return { ok: true, json: async () => response };
   }) as any;
@@ -202,7 +203,7 @@ describe('readGrantAgreements', () => {
     );
     const agreements = await readGrantAgreements(vehicle('ipfs://bafycid'), PARTIES);
     expect(agreements).toHaveLength(1);
-    expect((global.fetch as jest.Mock).mock.calls[0][0]).toBe(
+    expect((global.fetch as Mock).mock.calls[0][0]).toBe(
       'https://assets.dimo.org/ipfs/bafycid',
     );
   });

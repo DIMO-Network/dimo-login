@@ -1,6 +1,6 @@
-/* eslint-disable import/first -- jest.mock calls must precede the imports they mock */
+/* eslint-disable import/first -- vi.mock calls must precede the imports they mock */
 // The package ships ESM only; mirror its numeric Permission enum, reverse keys included.
-jest.mock('@dimo-network/transactions', () => {
+vi.mock('@dimo-network/transactions', () => {
   const names = [
     'GetNonLocationHistory',
     'ExecuteCommands',

@@ -191,7 +191,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({ email: emailProp }) => {
               onFocus={(e) => e.target.select()}
               onKeyDown={(e) => handleKeyDown(e, index)}
               className={cn(
-                'h-12 w-full min-w-0 max-w-12 rounded-control border bg-control text-center text-title text-ink outline-none transition-[border-color,box-shadow] focus:border-focus-ring focus:ring-[3px] focus:ring-accent-soft',
+                'h-12 w-full min-w-0 max-w-12 rounded-control border bg-control text-center text-title text-ink outline-hidden transition-[border-color,box-shadow] focus:border-focus-ring focus:ring-[3px] focus:ring-accent-soft',
                 error?.codeRejected ? 'border-negative' : 'border-control-border',
               )}
             />

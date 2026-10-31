@@ -173,10 +173,7 @@ const vehicleName = (vehicle: VehicleLabel) =>
   vehicle.make ? `${vehicle.make} ${vehicle.model}` : `vehicle ${vehicle.tokenId}`;
 
 export type GrantUnreadableReason =
-  | 'retry'
-  | 'unknown_permissions'
-  | 'unverified_storage'
-  | 'other_app';
+  'retry' | 'unknown_permissions' | 'unverified_storage' | 'other_app';
 
 // English for logs and Sentry; toMessage() is what the user reads.
 const REASON_TEXT: Record<GrantUnreadableReason, string> = {
