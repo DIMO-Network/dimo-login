@@ -13,9 +13,15 @@ import tailwindcss from '@tailwindcss/vite';
  * `sentry:sourcemaps` step can upload them.
  *
  * NODE_ENV follows the command, as `react-scripts build` and `start` set it,
- * so a build in any `--mode` still ships React's production build.
+ * so a build in any `--mode` still ships React's production build. It's set on
+ * process.env, not only defined: Vite reads it after this config to decide
+ * isProduction, and @vitejs/plugin-react picks the JSX runtime from that. A
+ * NODE_ENV=development left in the shell or in Vercel's settings would otherwise
+ * emit jsxDEV calls against React's production build, which has no jsxDEV.
  */
 export default defineConfig(({ command, mode }) => {
+  const nodeEnv = command === 'build' ? 'production' : 'development';
+  if (!process.env.VITEST) process.env.NODE_ENV = nodeEnv;
   const env = loadEnv(mode, process.cwd(), 'REACT_APP_');
   const inlined = Object.fromEntries(
     Object.entries(env).map(([key, value]) => [
@@ -31,9 +37,7 @@ export default defineConfig(({ command, mode }) => {
       ? {}
       : {
           ...inlined,
-          'process.env.NODE_ENV': JSON.stringify(
-            command === 'build' ? 'production' : 'development',
-          ),
+          'process.env.NODE_ENV': JSON.stringify(nodeEnv),
           'process.env': '{}',
         },
     // The README's Tesla redirect URI names port 3000, so fail rather than
