@@ -1,13 +1,13 @@
-/* eslint-disable import/first -- jest.mock calls must precede the imports they mock */
+/* eslint-disable import/first -- vi.mock calls must precede the imports they mock */
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 
 const mockClientId = '0x2222222222222222222222222222222222222222';
 const mockUser = { email: 'jun@example.com', smartContractAddress: '0xabc' };
-jest.mock('../../../context/AuthContext', () => ({
+vi.mock('../../../context/AuthContext', () => ({
   useAuthContext: () => ({ user: mockUser, jwt: 'jwt' }),
 }));
-jest.mock('../../../context/DevCredentialsContext', () => ({
+vi.mock('../../../context/DevCredentialsContext', () => ({
   useDevCredentials: () => ({
     clientId: mockClientId,
     devLicenseAlias: 'Acme',
@@ -15,24 +15,24 @@ jest.mock('../../../context/DevCredentialsContext', () => ({
     utm: '',
   }),
 }));
-jest.mock('../../../context/UIManagerContext', () => ({
-  useUIManager: () => ({ setUiState: jest.fn() }),
+vi.mock('../../../context/UIManagerContext', () => ({
+  useUIManager: () => ({ setUiState: vi.fn() }),
 }));
-const mockSendAuth = jest.fn();
-jest.mock('../../../utils/authUtils', () => ({
+const mockSendAuth = vi.fn();
+vi.mock('../../../utils/authUtils', () => ({
   buildAuthPayload: () => ({ token: 'jwt', walletAddress: '0xabc' }),
   sendAuthPayloadToParent: (...args: unknown[]) => mockSendAuth(...args),
-  logout: jest.fn(),
+  logout: vi.fn(),
 }));
-jest.mock('../../../utils/messageHandler', () => ({ backToThirdParty: jest.fn() }));
+vi.mock('../../../utils/messageHandler', () => ({ backToThirdParty: vi.fn() }));
 let mockEmbedded = false;
-jest.mock('../../../utils/isEmbed', () => ({ isEmbed: () => mockEmbedded }));
+vi.mock('../../../utils/isEmbed', () => ({ isEmbed: () => mockEmbedded }));
 
 import { SuccessPage } from '../SuccessPage';
 import { getEmailChoice } from '../../../services/storageService';
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   localStorage.clear();
   mockEmbedded = false;
 });

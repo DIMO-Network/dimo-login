@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { UiStates } from '../../enums';
 import { initializeSession } from '../sessionService';
 
@@ -11,12 +12,12 @@ const signIn = () => {
   localStorage.setItem(`user_data_${CLIENT_ID}`, JSON.stringify(USER));
 };
 
-const run = (entryState: UiStates, onReturningLogin?: jest.Mock) => {
-  const setUiState = jest.fn();
+const run = (entryState: UiStates, onReturningLogin?: Mock) => {
+  const setUiState = vi.fn();
   initializeSession({
     clientId: CLIENT_ID,
-    setJwt: jest.fn(),
-    setUser: jest.fn(),
+    setJwt: vi.fn(),
+    setUser: vi.fn(),
     uiState: UiStates.EMAIL_INPUT,
     setUiState,
     entryState,
@@ -38,7 +39,7 @@ describe('initializeSession', () => {
 
   it('hands a returning plain login to the caller when it asks (embedded)', () => {
     signIn();
-    const onReturningLogin = jest.fn();
+    const onReturningLogin = vi.fn();
     const setUiState = run(UiStates.EMAIL_INPUT, onReturningLogin);
     expect(onReturningLogin).toHaveBeenCalledWith(JWT, USER);
     expect(setUiState).not.toHaveBeenCalled();

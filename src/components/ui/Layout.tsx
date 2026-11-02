@@ -73,7 +73,7 @@ export const ErrorBox = ({
       className="size-[18px] shrink-0 text-negative"
       aria-hidden="true"
     />
-    <span className="flex min-w-0 flex-col [overflow-wrap:anywhere]">
+    <span className="flex min-w-0 flex-col wrap-anywhere">
       <b className="font-semibold text-ink">{title}</b>
       {children}
     </span>
@@ -105,7 +105,11 @@ export const ScreenHeader = ({
 }) => (
   <div className="flex flex-col items-start gap-2">
     <div className="flex flex-col gap-0.5">
-      <h1 tabIndex={-1} data-screen-heading className="text-title text-ink outline-none">
+      <h1
+        tabIndex={-1}
+        data-screen-heading
+        className="text-title text-ink outline-hidden"
+      >
         {title}
       </h1>
       {subtitle && <p className="text-body-sm text-muted">{subtitle}</p>}
@@ -178,7 +182,7 @@ export const DoneHeader = ({
     >
       {icon ?? <CheckCircleIcon className="size-[26px]" />}
     </span>
-    <h1 tabIndex={-1} data-screen-heading className="text-title text-ink outline-none">
+    <h1 tabIndex={-1} data-screen-heading className="text-title text-ink outline-hidden">
       {title}
     </h1>
     {children && <p className="text-body-sm text-muted">{children}</p>}

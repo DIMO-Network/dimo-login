@@ -1,42 +1,42 @@
-/* eslint-disable import/first -- jest.mock calls must precede the imports they mock */
+/* eslint-disable import/first -- vi.mock calls must precede the imports they mock */
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 const mockCredentials: Record<string, unknown> = {};
-jest.mock('../../../context/DevCredentialsContext', () => ({
+vi.mock('../../../context/DevCredentialsContext', () => ({
   useDevCredentials: () => mockCredentials,
 }));
-jest.mock('../../../context/AuthContext', () => ({
+vi.mock('../../../context/AuthContext', () => ({
   useAuthContext: () => ({
     user: { email: 'dev@example.com', smartContractAddress: '0xAAAA' },
     validateSession: async () => true,
   }),
 }));
-jest.mock('../../../context/UIManagerContext', () => ({
-  useUIManager: () => ({ setUiState: jest.fn() }),
+vi.mock('../../../context/UIManagerContext', () => ({
+  useUIManager: () => ({ setUiState: vi.fn() }),
 }));
-const mockMint = jest.fn();
-const mockBatch = jest.fn();
-jest.mock('../../../services/turnkeyService', () => ({
+const mockMint = vi.fn();
+const mockBatch = vi.fn();
+vi.mock('../../../services/turnkeyService', () => ({
   executeTransactionWithReceipt: (...args: unknown[]) => mockMint(...args),
   executeBatchTransactions: (...args: unknown[]) => mockBatch(...args),
 }));
-const mockGetLicense = jest.fn();
-const mockFirstOwned = jest.fn();
-jest.mock('../../../services/identityService', () => ({
+const mockGetLicense = vi.fn();
+const mockFirstOwned = vi.fn();
+vi.mock('../../../services/identityService', () => ({
   getDeveloperLicense: (...args: unknown[]) => mockGetLicense(...args),
   getFirstOwnedDeveloperLicense: (...args: unknown[]) => mockFirstOwned(...args),
 }));
-const mockSend = jest.fn();
-jest.mock('../../../utils/messageHandler', () => ({
+const mockSend = vi.fn();
+vi.mock('../../../utils/messageHandler', () => ({
   sendMessageToReferrer: (...args: unknown[]) => mockSend(...args),
-  backToThirdParty: jest.fn(),
+  backToThirdParty: vi.fn(),
 }));
-jest.mock('viem/accounts', () => ({
+vi.mock('viem/accounts', () => ({
   generatePrivateKey: () => `0x${'11'.repeat(32)}`,
   privateKeyToAccount: () => ({ address: '0x5150000000000000000000000000000000000000' }),
 }));
-jest.mock('@sentry/react', () => ({ captureException: jest.fn() }));
+vi.mock('@sentry/react', () => ({ captureException: vi.fn() }));
 
 import { ProvisionDeveloperLicense } from '../ProvisionDeveloperLicense';
 
@@ -51,7 +51,7 @@ const setCredentials = (values: Record<string, unknown>) => {
 };
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   mockFirstOwned.mockResolvedValue(null);
   mockMint.mockResolvedValue({ logs: [] });
   mockBatch.mockResolvedValue(undefined);

@@ -54,7 +54,7 @@ export const EmailShareRow = ({
         </span>
         <span
           id={descriptionId}
-          className="text-label font-normal text-muted [overflow-wrap:anywhere]"
+          className="text-label font-normal text-muted wrap-anywhere"
         >
           {email}
         </span>

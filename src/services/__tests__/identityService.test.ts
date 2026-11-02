@@ -1,14 +1,15 @@
+import type { Mock } from 'vitest';
 import { fetchVehicles } from '../identityService';
 import { apolloClient } from '../apollo';
 
-jest.mock('../apollo', () => ({
+vi.mock('../apollo', () => ({
   apolloClient: {
-    query: jest.fn(),
+    query: vi.fn(),
   },
 }));
 
 describe('fetchVehicles', () => {
-  const mockQuery = apolloClient.query as jest.Mock;
+  const mockQuery = apolloClient.query as Mock;
 
   beforeEach(() => {
     mockQuery.mockReset();

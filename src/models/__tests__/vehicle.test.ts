@@ -1,9 +1,10 @@
+import type { Mock } from 'vitest';
 import { LocalVehicle } from '../vehicle';
 import * as services from '../../services/identityService';
 
-jest.mock('@dimo-network/transactions', () => ({
+vi.mock('@dimo-network/transactions', async () => ({
+  ...(await vi.importActual<object>('@dimo-network/transactions')),
   ENVIRONMENT: 'mock',
-  // add more mocked exports if needed
 }));
 
 describe('LocalVehicle', () => {
@@ -19,7 +20,7 @@ describe('LocalVehicle', () => {
     },
     sacds: {
       nodes: [
-        { expiresAt: '2025-01-01T00:00:00Z', grantee: 'client-1' },
+        { expiresAt: '2025-01-01T00:00:00Z', grantee: '0xc11e01' },
         { expiresAt: '2026-01-01T00:00:00Z', grantee: 'client-2' },
       ],
     },
@@ -40,11 +41,11 @@ describe('LocalVehicle', () => {
   });
 
   it('returns correct sacd for grantee', () => {
-    expect(localVehicle.getSacdForGrantee('client-1')).toEqual({
+    expect(localVehicle.getSacdForGrantee('0xc11e01')).toEqual({
       expiresAt: '2025-01-01T00:00:00Z',
-      grantee: 'client-1',
+      grantee: '0xc11e01',
     });
-    expect(localVehicle.getSacdForGrantee('not-a-client')).toBeUndefined();
+    expect(localVehicle.getSacdForGrantee('0x0ther')).toBeUndefined();
   });
 
   it('normalizes vehicle data', () => {
@@ -60,7 +61,7 @@ describe('LocalVehicle', () => {
 
   describe('getPowertrainType', () => {
     beforeEach(() => {
-      jest.spyOn(services, 'fetchDeviceDefinition').mockResolvedValue({
+      vi.spyOn(services, 'fetchDeviceDefinition').mockResolvedValue({
         deviceDefinition: {
           attributes: [
             { name: 'powertrain_type', value: 'BEV' },
@@ -70,19 +71,19 @@ describe('LocalVehicle', () => {
       } as any);
     });
     afterEach(() => {
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
     });
     it('returns the powertrain type if present', async () => {
       await expect(localVehicle.getPowertrainType()).resolves.toBe('BEV');
     });
     it('returns null if powertrain_type attribute is missing', async () => {
-      (services.fetchDeviceDefinition as jest.Mock).mockResolvedValueOnce({
+      (services.fetchDeviceDefinition as Mock).mockResolvedValueOnce({
         deviceDefinition: { attributes: [{ name: 'other', value: 'foo' }] },
       });
       await expect(localVehicle.getPowertrainType()).resolves.toBeNull();
     });
     it('returns null if attributes is undefined', async () => {
-      (services.fetchDeviceDefinition as jest.Mock).mockResolvedValueOnce({
+      (services.fetchDeviceDefinition as Mock).mockResolvedValueOnce({
         deviceDefinition: { attributes: undefined },
       });
       await expect(localVehicle.getPowertrainType()).resolves.toBeNull();

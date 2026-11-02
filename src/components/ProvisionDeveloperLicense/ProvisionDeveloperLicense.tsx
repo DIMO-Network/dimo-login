@@ -347,7 +347,7 @@ export const ProvisionDeveloperLicense: React.FC = () => {
   );
 
   const redirectNote = needsRedirectUri(registeredUris) && (
-    <p className="text-body-sm text-fg [overflow-wrap:anywhere]">
+    <p className="text-body-sm text-fg wrap-anywhere">
       {t(step === 'confirm' ? 'license.confirm.redirect' : 'license.existing.redirect', {
         uri: redirectUri,
       })}
@@ -376,7 +376,7 @@ export const ProvisionDeveloperLicense: React.FC = () => {
           subtitle={t('license.confirm.subtitle', { host })}
         />
         <section className="flex flex-col gap-2 rounded-card bg-card px-4 py-3.5">
-          <p className="text-body-sm text-fg [overflow-wrap:anywhere]">
+          <p className="text-body-sm text-fg wrap-anywhere">
             {rotating
               ? t('license.confirm.new_key', { host, license: licenseLabel })
               : t('license.confirm.key', { host })}
@@ -407,7 +407,7 @@ export const ProvisionDeveloperLicense: React.FC = () => {
       >
         <ScreenHeader title={t('license.title')} subtitle={t('license.existing.subtitle')} />
         {errorBox}
-        <p className="text-body-sm text-fg [overflow-wrap:anywhere]">
+        <p className="text-body-sm text-fg wrap-anywhere">
           {t('license.existing.body', { host, clientId: clientId ?? '' })}
         </p>
         {redirectNote}

@@ -1,17 +1,17 @@
-/* eslint-disable import/first -- jest.mock calls must precede the imports they mock */
+/* eslint-disable import/first -- vi.mock calls must precede the imports they mock */
 import { renderHook } from '@testing-library/react';
 
-const mockSend = jest.fn();
-jest.mock('../useSendAuthPayloadToParent', () => ({
+const mockSend = vi.fn();
+vi.mock('../useSendAuthPayloadToParent', () => ({
   useSendAuthPayloadToParent: () => mockSend,
 }));
-jest.mock('../../context/DevCredentialsContext', () => ({
+vi.mock('../../context/DevCredentialsContext', () => ({
   useDevCredentials: () => ({ redirectUri: 'https://app.example/cb', utm: '' }),
 }));
-const mockUi = { setUiState: jest.fn(), setComponentData: jest.fn() };
-jest.mock('../../context/UIManagerContext', () => ({ useUIManager: () => mockUi }));
-const mockBack = jest.fn();
-jest.mock('../../utils/messageHandler', () => ({
+const mockUi = { setUiState: vi.fn(), setComponentData: vi.fn() };
+vi.mock('../../context/UIManagerContext', () => ({ useUIManager: () => mockUi }));
+const mockBack = vi.fn();
+vi.mock('../../utils/messageHandler', () => ({
   backToThirdParty: (...args: unknown[]) => mockBack(...args),
 }));
 
@@ -22,7 +22,7 @@ const AUTH = { token: 'jwt', walletAddress: '0xabc' };
 const vehicle = { tokenId: 42 } as never;
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   // Popup mode: the message is posted, then the callback runs.
   mockSend.mockImplementation((extra, onSuccess) => onSuccess({ ...AUTH, ...extra }));
 });

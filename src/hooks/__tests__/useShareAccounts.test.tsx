@@ -1,22 +1,25 @@
+import type { Mock } from 'vitest';
 import React from 'react';
 import { render, act } from '@testing-library/react';
+import { useShareAccounts } from '../useShareAccounts';
+import { generateAccountIpfsSource, setAccountPermissions } from '../../services';
+
+// vi.mock calls are hoisted above these imports.
 
 // NOTE: this repo pins @testing-library/react@13 (no renderHook export) and does
 // not have @testing-library/react-hooks, so we exercise the hook through a probe
 // component — the same pattern used by the existing context tests.
 
-// @dimo-network/transactions ships ESM that CRA's jest does not transform; the
-// repo convention (see vehicleService.test) is to mock it. We only need the
-// Permission enum value the hook reads (GetRawData = 7).
-jest.mock('@dimo-network/transactions', () => ({
+// We only need the Permission enum value the hook reads (GetRawData = 7).
+vi.mock('@dimo-network/transactions', () => ({
   ENVIRONMENT: 'mock',
   Permission: { GetRawData: 7 },
 }));
-jest.mock('../../services', () => ({
-  generateAccountIpfsSource: jest.fn(),
-  setAccountPermissions: jest.fn(),
+vi.mock('../../services', () => ({
+  generateAccountIpfsSource: vi.fn(),
+  setAccountPermissions: vi.fn(),
 }));
-jest.mock('../../context/DevCredentialsContext', () => ({
+vi.mock('../../context/DevCredentialsContext', () => ({
   useDevCredentials: () => ({
     clientId: '0xgrantee000000000000000000000000000000000',
     expirationDate: BigInt(Math.floor(Date.now() / 1000) + 3600),
@@ -24,23 +27,19 @@ jest.mock('../../context/DevCredentialsContext', () => ({
     permissionTemplateId: '1',
   }),
 }));
-jest.mock('../../context/AuthContext', () => ({
-  useAuthContext: () => ({ validateSession: jest.fn().mockResolvedValue(true) }),
+vi.mock('../../context/AuthContext', () => ({
+  useAuthContext: () => ({ validateSession: vi.fn().mockResolvedValue(true) }),
 }));
-// authUtils transitively pulls turnkeyService -> @turnkey/http (an ESM/peculiar
-// chain CRA jest can't resolve). We only need the error constant.
-jest.mock('../../utils/authUtils', () => ({
+// authUtils pulls in turnkeyService and the Turnkey SDKs; we only need the
+// error constant.
+vi.mock('../../utils/authUtils', () => ({
   INVALID_SESSION_ERROR: 'Invalid session',
 }));
 
-import { useShareAccounts } from '../useShareAccounts';
-import { generateAccountIpfsSource, setAccountPermissions } from '../../services';
-
-// CRA sets resetMocks:true, which strips implementations set in the mock factory
-// before each test, so (re)apply resolved values here.
+// (Re)apply resolved values before each test.
 beforeEach(() => {
-  (generateAccountIpfsSource as jest.Mock).mockResolvedValue('ipfs://bafyfake');
-  (setAccountPermissions as jest.Mock).mockResolvedValue(undefined);
+  (generateAccountIpfsSource as Mock).mockResolvedValue('ipfs://bafyfake');
+  (setAccountPermissions as Mock).mockResolvedValue(undefined);
 });
 
 const Probe: React.FC<{ onReady: (run: () => Promise<void>) => void }> = ({
@@ -60,7 +59,7 @@ it('calls setAccountPermissions with GetRawData + templateId 0n + ipfs source', 
   });
 
   expect(setAccountPermissions).toHaveBeenCalledTimes(1);
-  const arg = (setAccountPermissions as jest.Mock).mock.calls[0][0];
+  const arg = (setAccountPermissions as Mock).mock.calls[0][0];
   expect(arg.grantee).toBe('0xgrantee000000000000000000000000000000000');
   expect(arg.templateId).toBe(0n);
   expect(arg.source).toBe('ipfs://bafyfake');

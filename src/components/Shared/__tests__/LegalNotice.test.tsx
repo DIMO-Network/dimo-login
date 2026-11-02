@@ -1,9 +1,9 @@
-/* eslint-disable import/first -- jest.mock calls must precede the imports they mock */
+/* eslint-disable import/first -- vi.mock calls must precede the imports they mock */
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 
 const mockCreds: Record<string, unknown> = {};
-jest.mock('../../../context/DevCredentialsContext', () => ({
+vi.mock('../../../context/DevCredentialsContext', () => ({
   useDevCredentials: () => ({ devLicenseAlias: 'Hanami Insurance', ...mockCreds }),
 }));
 

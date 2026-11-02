@@ -48,16 +48,13 @@ void i18n.use(initReactI18next).init({
   returnNull: false,
   react: { useSuspense: false },
   initAsync: false,
-  // No console promo in users' browsers.
-  showSupportNotice: false,
 });
 
 setDocumentLanguage(i18n.language);
 
 type TFunction = (key: TranslationKey, params?: TranslationParams) => string;
 
-// i18next's own key typing needs TypeScript 5; this keeps the repo's typed
-// keys without it.
+// Keys are typed by TranslationKey here, not through i18next's own key typing.
 const translate = (key: string, params?: TranslationParams, lng?: string): string =>
   i18n.t(key, { ...params, ...(lng && { lng }) });
 

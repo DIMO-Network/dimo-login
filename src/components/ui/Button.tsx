@@ -46,8 +46,10 @@ export const Dots = () => (
   </span>
 );
 
-export interface ButtonProps
-  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'disabled'> {
+export interface ButtonProps extends Omit<
+  React.ButtonHTMLAttributes<HTMLButtonElement>,
+  'disabled'
+> {
   variant?: Variant;
   size?: Size;
   loading?: boolean;

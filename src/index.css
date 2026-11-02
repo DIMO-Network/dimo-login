@@ -1,32 +1,128 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+/*
+ * The design tokens below as Tailwind utilities: colors (bg-card/60 works),
+ * shadows, radii, the type scale, fonts and the dot-wave animation.
+ *
+ * `inline` puts each token's expression in the utility itself, as Tailwind 3
+ * did, so it resolves on the element: the OEM brand color is set on the app
+ * shell (--popup-brand-color), not on :root.
+ */
+@theme inline {
+  --color-canvas: rgb(var(--canvas));
+  --color-sheet: rgb(var(--sheet));
+  --color-card: rgb(var(--card));
+  --color-control: rgb(var(--control));
+  --color-highest: rgb(var(--highest));
+  --color-bright: rgb(var(--bright));
+  --color-overlay: rgb(var(--overlay));
+  --color-outline: rgb(var(--outline));
+  --color-outline-strong: rgb(var(--outline-strong));
+  --color-canvas-divider: rgb(var(--canvas-divider));
+  --color-control-border: rgb(var(--control-border));
+  --color-control-border-hover: rgb(var(--control-border-hover));
+  --color-focus-ring: rgb(var(--focus-ring));
+  --color-ink: rgb(var(--ink));
+  --color-fg: rgb(var(--fg));
+  --color-muted: rgb(var(--muted));
+  --color-accent: rgb(var(--accent));
+  --color-accent-ink: rgb(var(--accent-ink));
+  --color-on-accent: rgb(var(--on-accent));
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-soft-strong: var(--accent-soft-strong);
+  --color-selected-bg: rgb(var(--selected-bg));
+  --color-selected-fg: rgb(var(--selected-fg));
+  --color-btn-primary: rgb(var(--btn-primary));
+  --color-btn-primary-fg: rgb(var(--btn-primary-fg));
+  --color-btn-primary-hover: rgb(var(--btn-primary-hover));
+  --color-sky: rgb(var(--sky));
+  --color-positive: rgb(var(--positive));
+  --color-warning: rgb(var(--warning));
+  --color-negative: rgb(var(--negative));
+  --color-negative-soft: rgb(var(--negative-soft));
+  --color-scrim: var(--scrim);
+  --color-brand: var(--popup-brand-color, rgb(var(--btn-primary)));
+  --color-brand-fg: var(--popup-brand-text, rgb(var(--btn-primary-fg)));
+
+  --background-image-brand-gradient: var(--brand-gradient);
+  --background-image-progress-fill: var(--progress-fill);
+
+  --shadow-float: var(--elevation-float);
+  --shadow-sm: var(--elevation-sm);
+  --shadow-selected: inset 3px 0 0 rgb(var(--ink));
+
+  --radius-chip: 6px;
+  --radius-control: 10px;
+  --radius-card: 16px;
+  --radius-panel: 20px;
+
+  --text-title: 20px;
+  --text-title--line-height: 28px;
+  --text-title--font-weight: 600;
+  --text-title--letter-spacing: -0.01em;
+  --text-panel-title: 17px;
+  --text-panel-title--line-height: 24px;
+  --text-panel-title--font-weight: 600;
+  --text-card-title: 15px;
+  --text-card-title--line-height: 22px;
+  --text-card-title--font-weight: 600;
+  --text-metric: 40px;
+  --text-metric--line-height: 44px;
+  --text-metric--font-weight: 600;
+  --text-metric--letter-spacing: -0.03em;
+  --text-body: 15px;
+  --text-body--line-height: 22px;
+  --text-body-sm: 14px;
+  --text-body-sm--line-height: 20px;
+  --text-label: 12px;
+  --text-label--line-height: 16px;
+  --text-label--font-weight: 500;
+  --text-code: 13px;
+  --text-code--line-height: 20px;
+
+  --font-sans: 'Euclid Circular A', system-ui, -apple-system, Segoe UI, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --animate-dot-wave: dot-wave 1.2s ease-in-out infinite;
+
+  @keyframes dot-wave {
+    0%,
+    100% {
+      transform: scale(0.8);
+      opacity: 0.5;
+    }
+    50% {
+      transform: scale(1.3);
+      opacity: 1;
+    }
+  }
+}
 
 /* Euclid Circular A, as in the developer console and DIMO Driver. */
 @font-face {
   font-family: 'Euclid Circular A';
-  src: url('../public/fonts/EuclidCircularA-Regular.woff2') format('woff2');
+  src: url('./assets/fonts/EuclidCircularA-Regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: 'Euclid Circular A';
-  src: url('../public/fonts/EuclidCircularA-Medium.woff2') format('woff2');
+  src: url('./assets/fonts/EuclidCircularA-Medium.woff2') format('woff2');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: 'Euclid Circular A';
-  src: url('../public/fonts/EuclidCircularA-Semibold.woff2') format('woff2');
+  src: url('./assets/fonts/EuclidCircularA-Semibold.woff2') format('woff2');
   font-weight: 600;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: 'Euclid Circular A';
-  src: url('../public/fonts/EuclidCircularA-Bold.woff2') format('woff2');
+  src: url('./assets/fonts/EuclidCircularA-Bold.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -35,7 +131,9 @@
 /*
  * Design tokens from the developer console (src/app/globals.css there; usage
  * in its docs/DESIGN.md). Colors are RGB channels so Tailwind opacity
- * modifiers work (bg-card/60). The login is light only for now: the dark set
+ * modifiers work (bg-card/60). The @theme above turns them into utilities
+ * (bg-card, shadow-float, …); shadows are --elevation-* here so they don't
+ * collide with the theme's own --shadow-* variables. The login is light only for now: the dark set
  * is kept in step with the console but nothing sets data-theme="dark" yet.
  */
 :root {
@@ -92,9 +190,9 @@
   --brand-glow:
     radial-gradient(60% 50% at 35% 40%, rgba(140, 208, 255, 0.28), transparent 70%),
     radial-gradient(55% 50% at 65% 60%, rgba(70, 241, 228, 0.22), transparent 70%);
-  --shadow-float:
+  --elevation-float:
     0 16px 40px -14px rgba(19, 20, 23, 0.22), 0 0 0 1px rgba(19, 20, 23, 0.06);
-  --shadow-sm: 0 1px 2px rgba(19, 20, 23, 0.12);
+  --elevation-sm: 0 1px 2px rgba(19, 20, 23, 0.12);
   --radius: 0.625rem;
 }
 
@@ -152,15 +250,20 @@
   --brand-glow:
     radial-gradient(60% 50% at 35% 40%, rgba(140, 208, 255, 0.12), transparent 70%),
     radial-gradient(55% 50% at 65% 60%, rgba(70, 241, 228, 0.1), transparent 70%);
-  --shadow-float:
+  --elevation-float:
     0 16px 48px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.06);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --elevation-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
   --radius: 0.625rem;
 }
 
 @layer base {
   * {
     @apply border-outline;
+  }
+  /* Tailwind 4 dropped the pointer cursor on buttons; keep it. */
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
   }
   html,
   body {
@@ -191,16 +294,21 @@
   :lang(ja) :is(h1, h2, h3, button, label) {
     word-break: auto-phrase;
   }
-  /* The title's tighter Latin tracking crowds Japanese. */
-  html:lang(ja) .text-title {
-    letter-spacing: 0;
-  }
   :focus-visible {
     outline: 2px solid rgb(var(--focus-ring));
     outline-offset: 2px;
   }
   [role='dialog']:focus {
     outline: none;
+  }
+}
+
+/* Overrides of utility values. Utilities sit in a later cascade layer than
+   base styles, so these live in it to win. */
+@layer utilities {
+  /* The title's tighter Latin tracking crowds Japanese. */
+  html:lang(ja) .text-title {
+    letter-spacing: 0;
   }
 }
 

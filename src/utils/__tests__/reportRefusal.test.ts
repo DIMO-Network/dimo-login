@@ -1,19 +1,20 @@
+import type { Mock } from 'vitest';
 import { captureMessage, withScope } from '@sentry/react';
 import type { Event } from '@sentry/react';
 
 import { reportRefusal } from '../reportRefusal';
 
-jest.mock('@sentry/react', () => ({ captureMessage: jest.fn(), withScope: jest.fn() }));
+vi.mock('@sentry/react', () => ({ captureMessage: vi.fn(), withScope: vi.fn() }));
 
 const mockScope = {
-  setLevel: jest.fn(),
-  setFingerprint: jest.fn(),
-  setTag: jest.fn(),
-  addEventProcessor: jest.fn(),
+  setLevel: vi.fn(),
+  setFingerprint: vi.fn(),
+  setTag: vi.fn(),
+  addEventProcessor: vi.fn(),
 };
 
 beforeEach(() => {
-  (withScope as jest.Mock).mockImplementation((callback) => callback(mockScope));
+  (withScope as Mock).mockImplementation((callback) => callback(mockScope));
 });
 
 const processEvent = (event: Event): Event => {

@@ -1,4 +1,4 @@
-import { useEffect, useState, type FC } from 'react';
+import { useEffect, useState, type FC, type JSX } from 'react';
 
 import {
   ErrorMessage,

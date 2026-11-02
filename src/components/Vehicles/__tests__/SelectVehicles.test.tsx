@@ -1,9 +1,9 @@
-/* eslint-disable import/first -- jest.mock calls must precede the imports they mock */
+/* eslint-disable import/first -- vi.mock calls must precede the imports they mock */
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 // The package ships ESM only; mirror its Permission enum and 2-bit encoding.
-jest.mock('@dimo-network/transactions', () => {
+vi.mock('@dimo-network/transactions', () => {
   const names = [
     'GetNonLocationHistory',
     'ExecuteCommands',
@@ -55,10 +55,10 @@ const mockRav4 = {
   permissions: '0',
 };
 
-const mockShare = jest.fn();
-const mockFinish = jest.fn();
+const mockShare = vi.fn();
+const mockFinish = vi.fn();
 const mockIncompatible: unknown[] = [];
-jest.mock('../../../hooks', () => ({
+vi.mock('../../../hooks', () => ({
   useFetchVehicles: () => ({
     fetchVehicles: () => Promise.resolve(),
     vehicles: [mockRav4, mockTesla],
@@ -70,7 +70,7 @@ jest.mock('../../../hooks', () => ({
   useFinishShareVehicles: () => mockFinish,
 }));
 const mockCreds: Record<string, unknown> = {};
-jest.mock('../../../context/DevCredentialsContext', () => ({
+vi.mock('../../../context/DevCredentialsContext', () => ({
   useDevCredentials: () => ({
     clientId: mockClientId,
     devLicenseAlias: 'Acme',
@@ -80,27 +80,27 @@ jest.mock('../../../context/DevCredentialsContext', () => ({
     ...mockCreds,
   }),
 }));
-jest.mock('../../../context/AuthContext', () => ({
+vi.mock('../../../context/AuthContext', () => ({
   useAuthContext: () => ({ user: { email: 'jun@example.com' } }),
 }));
-jest.mock('../../../context/OraclesContext', () => ({
+vi.mock('../../../context/OraclesContext', () => ({
   useOracles: () => ({ onboardingEnabled: false }),
 }));
 const mockUi = {
   componentData: {},
-  setComponentData: jest.fn(),
-  setUiState: jest.fn(),
-  setBusy: jest.fn(),
+  setComponentData: vi.fn(),
+  setUiState: vi.fn(),
+  setBusy: vi.fn(),
 };
-jest.mock('../../../context/UIManagerContext', () => ({
+vi.mock('../../../context/UIManagerContext', () => ({
   useUIManager: () => mockUi,
 }));
-jest.mock('../../../utils/authUtils', () => ({ isInvalidSessionError: () => false }));
-const mockSendError = jest.fn();
-jest.mock('../../../utils/errorUtils', () => ({
+vi.mock('../../../utils/authUtils', () => ({ isInvalidSessionError: () => false }));
+const mockSendError = vi.fn();
+vi.mock('../../../utils/errorUtils', () => ({
   sendErrorToParent: (...args: unknown[]) => mockSendError(...args),
 }));
-jest.mock('@sentry/react', () => ({ captureException: jest.fn() }));
+vi.mock('@sentry/react', () => ({ captureException: vi.fn() }));
 
 import { SelectVehicles } from '../SelectVehicles';
 import { getEmailChoice } from '../../../services/storageService';
@@ -108,7 +108,7 @@ import { getEmailChoice } from '../../../services/storageService';
 const cta = () => screen.getAllByRole('button').at(-1) as HTMLElement;
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   localStorage.clear();
   Object.keys(mockCreds).forEach((key) => delete mockCreds[key]);
   mockIncompatible.length = 0;

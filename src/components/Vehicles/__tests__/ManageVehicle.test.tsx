@@ -1,9 +1,9 @@
-/* eslint-disable import/first -- jest.mock calls must precede the imports they mock */
+/* eslint-disable import/first -- vi.mock calls must precede the imports they mock */
 import React from 'react';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 // The package ships ESM only; mirror its Permission enum and 2-bit encoding.
-jest.mock('@dimo-network/transactions', () => {
+vi.mock('@dimo-network/transactions', async () => {
   const names = [
     'GetNonLocationHistory',
     'ExecuteCommands',
@@ -27,26 +27,26 @@ jest.mock('@dimo-network/transactions', () => {
         .filter((p) => ((value >> BigInt(p * 2)) & BigInt(3)) === BigInt(3)),
   };
 });
-const mockUpdate = jest.fn();
-const mockFinishShare = jest.fn();
-const mockFinish = jest.fn();
-jest.mock('../../../hooks', () => ({
+const mockUpdate = vi.fn();
+const mockFinishShare = vi.fn();
+const mockFinish = vi.fn();
+vi.mock('../../../hooks', () => ({
   useUpdateVehiclePermissions: () => mockUpdate,
   useFinishShareVehicles: () => mockFinishShare,
   useFinishVehicles: () => mockFinish,
 }));
 const mockUi = {
   componentData: {} as Record<string, unknown>,
-  setUiState: jest.fn(),
-  setComponentData: jest.fn(),
-  setBusy: jest.fn(),
+  setUiState: vi.fn(),
+  setComponentData: vi.fn(),
+  setBusy: vi.fn(),
 };
-jest.mock('../../../context/UIManagerContext', () => ({
+vi.mock('../../../context/UIManagerContext', () => ({
   useUIManager: () => mockUi,
 }));
 const mockClientId = '0x2222222222222222222222222222222222222222';
 const mockCreds: Record<string, unknown> = {};
-jest.mock('../../../context/DevCredentialsContext', () => ({
+vi.mock('../../../context/DevCredentialsContext', () => ({
   useDevCredentials: () => ({
     clientId: mockClientId,
     devLicenseAlias: 'Acme',
@@ -57,18 +57,18 @@ jest.mock('../../../context/DevCredentialsContext', () => ({
 const mockUser: { smartContractAddress: string; email?: string } = {
   smartContractAddress: '0x1111111111111111111111111111111111111111',
 };
-jest.mock('../../../context/AuthContext', () => ({
+vi.mock('../../../context/AuthContext', () => ({
   useAuthContext: () => ({ user: mockUser }),
 }));
-const mockReadGrant = jest.fn();
-jest.mock('../../../services/vehicleDocumentAgreements', () => ({
-  ...jest.requireActual('../../../services/vehicleDocumentAgreements'),
+const mockReadGrant = vi.fn();
+vi.mock('../../../services/vehicleDocumentAgreements', async () => ({
+  ...(await vi.importActual<object>('../../../services/vehicleDocumentAgreements')),
   readGrantAgreements: (...args: unknown[]) => mockReadGrant(...args),
 }));
 // Keep the turnkey-backed services out of the module graph.
-jest.mock('../../../services', () => ({}));
-jest.mock('../../../utils/authUtils', () => ({ isInvalidSessionError: () => false }));
-jest.mock('@sentry/react', () => ({ captureException: jest.fn() }));
+vi.mock('../../../services', () => ({}));
+vi.mock('../../../utils/authUtils', () => ({ isInvalidSessionError: () => false }));
+vi.mock('@sentry/react', () => ({ captureException: vi.fn() }));
 
 import { ManageVehicle } from '../ManageVehicle';
 import { getEmailChoice } from '../../../services/storageService';
@@ -93,7 +93,7 @@ const renderManage = (requestedPermissions: string) => {
 };
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   localStorage.clear();
   Object.keys(mockCreds).forEach((key) => delete mockCreds[key]);
   delete mockUser.email;

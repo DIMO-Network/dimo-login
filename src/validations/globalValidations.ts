@@ -35,8 +35,7 @@ export const getGlobalError = (
   errorTypes: Record<ErrorKey, boolean>,
 ): ErrorMessage | undefined => {
   const errorKey = Object.entries(errorTypes).find(([_, hasError]) => hasError)?.[0] as
-    | ErrorKey
-    | undefined;
+    ErrorKey | undefined;
 
   return errorKey ? GLOBAL_ERROR_MESSAGES[errorKey] : undefined;
 };

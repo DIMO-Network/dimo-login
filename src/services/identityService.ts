@@ -117,6 +117,9 @@ export const fetchVehicles = async (
   if (result.error) {
     throw new Error(result.error.message);
   }
+  if (!result.data) {
+    throw new Error('The identity API returned no vehicles.');
+  }
   return { data: result.data };
 };
 
@@ -141,12 +144,15 @@ type DeviceDefinition = {
 export const fetchDeviceDefinition = async (
   deviceDefinitionId: string,
 ): Promise<GetDeviceDefinitionByIdQueryResult> => {
-  const result = await apolloClient.query({
+  const result = await apolloClient.query<GetDeviceDefinitionByIdQueryResult>({
     query: GET_DEVICE_DEFINITION_BY_ID,
     variables: { id: deviceDefinitionId },
   });
   if (result.error) {
     throw new Error(result.error.message);
+  }
+  if (!result.data) {
+    throw new Error('The identity API returned no device definition.');
   }
   return result.data;
 };

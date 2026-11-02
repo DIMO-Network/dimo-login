@@ -1,10 +1,11 @@
-/* eslint-disable import/first -- jest.mock calls must precede the imports they mock */
+/* eslint-disable import/first -- vi.mock calls must precede the imports they mock */
+import type { Mock } from 'vitest';
 import React from 'react';
 import { render, act } from '@testing-library/react';
 
 // Same conventions as useShareAccounts.test: mock the ESM transactions package
 // and the turnkey-backed services, and drive the hook through a probe component.
-jest.mock('@dimo-network/transactions', () => ({
+vi.mock('@dimo-network/transactions', () => ({
   ENVIRONMENT: 'mock',
   Permission: { ExecuteCommands: 2, GetRawData: 7 },
   // Same 2-bit encoding as the SDK: permission p sits at bits 2p..2p+1.
@@ -13,30 +14,30 @@ jest.mock('@dimo-network/transactions', () => ({
       (p) => ((value >> BigInt(p * 2)) & BigInt(3)) === BigInt(3),
     ),
 }));
-jest.mock('../../services', () => ({
-  createPermissionsFromParams: jest.fn(),
-  generateIpfsSources: jest.fn(),
-  setVehiclePermissions: jest.fn(),
-  setVehiclePermissionsBulk: jest.fn(),
+vi.mock('../../services', () => ({
+  createPermissionsFromParams: vi.fn(),
+  generateIpfsSources: vi.fn(),
+  setVehiclePermissions: vi.fn(),
+  setVehiclePermissionsBulk: vi.fn(),
 }));
-jest.mock('../../services/turnkeyService', () => ({
-  setVehiclePermissionsBatch: jest.fn(),
+vi.mock('../../services/turnkeyService', () => ({
+  setVehiclePermissionsBatch: vi.fn(),
   VEHICLE_PERMISSIONS_BATCH_LIMIT: 24,
 }));
-jest.mock('../../services/permissionsService', () => ({
+vi.mock('../../services/permissionsService', () => ({
   generateAttachments: () => [],
 }));
 const mockCredentials: Record<string, unknown> = {};
-jest.mock('../../context/DevCredentialsContext', () => ({
+vi.mock('../../context/DevCredentialsContext', () => ({
   useDevCredentials: () => mockCredentials,
 }));
-jest.mock('../../context/AuthContext', () => ({
+vi.mock('../../context/AuthContext', () => ({
   useAuthContext: () => ({
-    validateSession: jest.fn().mockResolvedValue(true),
+    validateSession: vi.fn().mockResolvedValue(true),
     user: { smartContractAddress: '0x1111111111111111111111111111111111111111' },
   }),
 }));
-jest.mock('../../utils/authUtils', () => ({
+vi.mock('../../utils/authUtils', () => ({
   INVALID_SESSION_ERROR: 'Invalid session',
 }));
 
@@ -86,13 +87,13 @@ beforeEach(() => {
     region: undefined,
     cloudEvent: undefined,
   });
-  (createPermissionsFromParams as jest.Mock).mockReturnValue([7]);
-  (generateIpfsSources as jest.Mock).mockImplementation(
+  (createPermissionsFromParams as Mock).mockReturnValue([7]);
+  (generateIpfsSources as Mock).mockImplementation(
     async (_p, _c, _e, opts) => `ipfs://${opts.asset ?? 'bulk'}`,
   );
-  (setVehiclePermissions as jest.Mock).mockResolvedValue(undefined);
-  (setVehiclePermissionsBulk as jest.Mock).mockResolvedValue(undefined);
-  (setVehiclePermissionsBatch as jest.Mock).mockResolvedValue(undefined);
+  (setVehiclePermissions as Mock).mockResolvedValue(undefined);
+  (setVehiclePermissionsBulk as Mock).mockResolvedValue(undefined);
+  (setVehiclePermissionsBatch as Mock).mockResolvedValue(undefined);
 });
 
 const share = async (vehicles: Vehicle[]) => {
@@ -114,7 +115,7 @@ it('shares several vehicles in one bulk grant when no files are requested', asyn
 
   expect(setVehiclePermissions).not.toHaveBeenCalled();
   expect(setVehiclePermissionsBulk).toHaveBeenCalledTimes(1);
-  expect((generateIpfsSources as jest.Mock).mock.calls[0][3].asset).toBeUndefined();
+  expect((generateIpfsSources as Mock).mock.calls[0][3].asset).toBeUndefined();
 });
 
 it('signs a document per vehicle and sends them in one batch when files are requested', async () => {
@@ -125,14 +126,14 @@ it('signs a document per vehicle and sends them in one batch when files are requ
   expect(setVehiclePermissions).not.toHaveBeenCalled();
   expect(setVehiclePermissionsBatch).toHaveBeenCalledTimes(1);
 
-  const [first, second] = (generateIpfsSources as jest.Mock).mock.calls.map((c) => c[3]);
+  const [first, second] = (generateIpfsSources as Mock).mock.calls.map((c) => c[3]);
   expect(first.asset).toBe(vehicle(1).tokenDID);
   expect(second.asset).toBe(vehicle(2).tokenDID);
   expect(first.cloudEventAgreements).toEqual([
     { ...CLOUD_EVENT, ids: [], source: GRANTOR },
   ]);
 
-  const grants = (setVehiclePermissionsBatch as jest.Mock).mock.calls[0][0];
+  const grants = (setVehiclePermissionsBatch as Mock).mock.calls[0][0];
   expect(grants.map((g: any) => g.tokenId)).toEqual([BigInt(1), BigInt(2)]);
   expect(grants[1].source).toBe(`ipfs://${vehicle(2).tokenDID}`);
 });
@@ -141,15 +142,13 @@ it('splits more than 24 vehicles into batches', async () => {
   mockCredentials.cloudEvent = CLOUD_EVENT;
   await share(Array.from({ length: 30 }, (_, i) => vehicle(i + 1)));
 
-  const batches = (setVehiclePermissionsBatch as jest.Mock).mock.calls.map(
-    (c) => c[0].length,
-  );
+  const batches = (setVehiclePermissionsBatch as Mock).mock.calls.map((c) => c[0].length);
   expect(batches).toEqual([24, 6]);
 });
 
 it('sends nothing if any document fails to sign', async () => {
   mockCredentials.cloudEvent = CLOUD_EVENT;
-  (generateIpfsSources as jest.Mock).mockImplementation(async (_p, _c, _e, opts) => {
+  (generateIpfsSources as Mock).mockImplementation(async (_p, _c, _e, opts) => {
     if (opts.asset === vehicle(2).tokenDID) throw new Error('upload failed');
     return 'ipfs://ok';
   });
@@ -171,15 +170,13 @@ it('names the vehicle DID for a single-vehicle share', async () => {
   await share([vehicle(1)]);
 
   expect(setVehiclePermissions).toHaveBeenCalledTimes(1);
-  expect((generateIpfsSources as jest.Mock).mock.calls[0][3].asset).toBe(
-    vehicle(1).tokenDID,
-  );
+  expect((generateIpfsSources as Mock).mock.calls[0][3].asset).toBe(vehicle(1).tokenDID);
 });
 
 it('updates a shared vehicle without dropping what its grant already has', async () => {
   mockCredentials.cloudEvent = CLOUD_EVENT;
   const oldDid = vehicle(5).tokenDID;
-  global.fetch = jest.fn(async () => ({
+  global.fetch = vi.fn(async () => ({
     ok: true,
     json: async () => ({
       data: {
@@ -199,9 +196,9 @@ it('updates a shared vehicle without dropping what its grant already has', async
 
   await share([sharedVehicle(5)]);
 
-  const grant = (setVehiclePermissions as jest.Mock).mock.calls[0][0];
+  const grant = (setVehiclePermissions as Mock).mock.calls[0][0];
   expect(grant.permissions).toEqual([2, 7]); // kept commands, added raw data
-  const signed = (generateIpfsSources as jest.Mock).mock.calls[0];
+  const signed = (generateIpfsSources as Mock).mock.calls[0];
   expect(signed[0]).toEqual([2, 7]);
   expect(signed[3].cloudEventAgreements.map((a: any) => a.eventType)).toEqual([
     'dimo.raw.vehicle.*',
@@ -210,7 +207,7 @@ it('updates a shared vehicle without dropping what its grant already has', async
 });
 
 it("shares the other vehicles when a shared vehicle's current grant can't be read", async () => {
-  global.fetch = jest.fn().mockRejectedValue(new Error('gateway down')) as any;
+  global.fetch = vi.fn().mockRejectedValue(new Error('gateway down')) as any;
 
   const result = await share([vehicle(1), sharedVehicle(5), vehicle(2)]);
 
@@ -221,17 +218,17 @@ it("shares the other vehicles when a shared vehicle's current grant can't be rea
   expect(translateText(result.skipped[0].reason)).toContain(
     'Couldn’t read the current sharing terms',
   );
-  const grants = (setVehiclePermissionsBatch as jest.Mock).mock.calls[0][0];
+  const grants = (setVehiclePermissionsBatch as Mock).mock.calls[0][0];
   expect(grants.map((g: any) => g.tokenId)).toEqual([BigInt(1), BigInt(2)]);
   // Nothing was signed for the skipped vehicle.
-  expect((generateIpfsSources as jest.Mock).mock.calls.map((c) => c[3].asset)).toEqual([
+  expect((generateIpfsSources as Mock).mock.calls.map((c) => c[3].asset)).toEqual([
     vehicle(1).tokenDID,
     vehicle(2).tokenDID,
   ]);
 });
 
 it('fails with the reason when every selected vehicle is skipped', async () => {
-  global.fetch = jest.fn().mockRejectedValue(new Error('gateway down')) as any;
+  global.fetch = vi.fn().mockRejectedValue(new Error('gateway down')) as any;
 
   await expect(share([sharedVehicle(5)])).rejects.toThrow(
     "Couldn't read the current sharing terms",
@@ -249,7 +246,7 @@ it('still fails the whole share for problems with a new vehicle', async () => {
 });
 
 it("keeps a shared vehicle's later expiry when the app asks for less", async () => {
-  global.fetch = jest.fn(async () => ({
+  global.fetch = vi.fn(async () => ({
     ok: true,
     json: async () => ({
       data: {
@@ -266,6 +263,6 @@ it("keeps a shared vehicle's later expiry when the app asks for less", async () 
 
   await share([vehicleWithLongGrant]);
 
-  const grant = (setVehiclePermissions as jest.Mock).mock.calls[0][0];
+  const grant = (setVehiclePermissions as Mock).mock.calls[0][0];
   expect(grant.expiration).toBe(BigInt(Date.parse('2099-01-01T00:00:00Z') / 1000));
 });

@@ -1,20 +1,20 @@
-/* eslint-disable import/first -- jest.mock calls must precede the imports they mock */
+/* eslint-disable import/first -- vi.mock calls must precede the imports they mock */
 import React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-const mockSendOtp = jest.fn();
-jest.mock('../../../services', () => ({
+const mockSendOtp = vi.fn();
+vi.mock('../../../services', () => ({
   sendOtp: (...args: unknown[]) => mockSendOtp(...args),
 }));
-const mockComplete = jest.fn();
-jest.mock('../../../context/AuthContext', () => ({
+const mockComplete = vi.fn();
+vi.mock('../../../context/AuthContext', () => ({
   useAuthContext: () => ({
     user: { email: 'jun@example.com' },
     completeOTPLogin: mockComplete,
   }),
 }));
-jest.mock('../../../context/UIManagerContext', () => ({
-  useUIManager: () => ({ setError: jest.fn() }),
+vi.mock('../../../context/UIManagerContext', () => ({
+  useUIManager: () => ({ setError: vi.fn() }),
 }));
 
 import { OtpInput, toDigits } from '../OtpInput';
@@ -22,17 +22,19 @@ import { OtpInput, toDigits } from '../OtpInput';
 const boxes = () => screen.getAllByRole('textbox') as HTMLInputElement[];
 
 beforeEach(() => {
-  jest.useFakeTimers();
-  jest.clearAllMocks();
+  // Testing Library's waitFor only drives Jest's fake timers, so these also
+  // advance with real time.
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  vi.clearAllMocks();
   mockSendOtp.mockResolvedValue({ success: true, data: { otpId: 'otp-1' } });
 });
-afterEach(() => jest.useRealTimers());
+afterEach(() => vi.useRealTimers());
 
 const renderSent = async (email = '') => {
   render(<OtpInput email={email} />);
   // The first code is sent after a short debounce.
   await act(async () => {
-    jest.advanceTimersByTime(1000);
+    vi.advanceTimersByTime(1000);
   });
   expect(mockSendOtp).toHaveBeenCalledWith('jun@example.com');
 };

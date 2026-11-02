@@ -24,8 +24,11 @@ import { GenerateChallengeParams, SubmitChallengeParams } from '../models/web3';
 import { UiStates } from '../enums';
 import { getEmailRequest } from '../stores/AuthStateStore';
 import { needsEmailConsent } from './emailRequest';
-import { TStamper } from '@turnkey/http/dist/base';
+import type { TurnkeyClient } from '@turnkey/http';
 import { ApiKeyStamper } from '@turnkey/api-key-stamper';
+
+/** What signs Turnkey requests: the passkey or the session's API key. */
+export type TStamper = ConstructorParameters<typeof TurnkeyClient>[1];
 
 export function buildAuthPayload(
   clientId: `0x${string}` | null,

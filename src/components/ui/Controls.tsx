@@ -19,7 +19,7 @@ export const Checkbox = React.forwardRef<
     <input
       ref={ref}
       type="checkbox"
-      className="peer absolute inset-0 m-0 cursor-pointer appearance-none rounded-[4px] border border-control-border bg-sheet transition-colors checked:border-accent checked:bg-accent focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-accent-soft disabled:cursor-not-allowed disabled:opacity-50"
+      className="peer absolute inset-0 m-0 cursor-pointer appearance-none rounded-[4px] border border-control-border bg-sheet transition-colors checked:border-accent checked:bg-accent focus-visible:outline-hidden focus-visible:ring-[3px] focus-visible:ring-accent-soft disabled:cursor-not-allowed disabled:opacity-50"
       {...props}
     />
     <CheckIcon
@@ -58,14 +58,14 @@ export const Switch = ({
     aria-label={labelledBy ? undefined : label}
     disabled={disabled}
     onClick={() => onChange(!checked)}
-    className="group inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent bg-control-border transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-accent-soft disabled:cursor-not-allowed disabled:opacity-50 aria-checked:bg-accent"
+    className="group inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent bg-control-border transition-colors focus-visible:outline-hidden focus-visible:ring-[3px] focus-visible:ring-accent-soft disabled:cursor-not-allowed disabled:opacity-50 aria-checked:bg-accent"
   >
     <span className="pointer-events-none block size-5 translate-x-0 rounded-full bg-ink shadow-sm transition-transform group-aria-checked:translate-x-5 group-aria-checked:bg-on-accent" />
   </button>
 );
 
 const fieldShell =
-  'flex min-h-10 flex-row items-center rounded-control border border-control-border bg-control px-3 text-fg transition-[border-color,box-shadow] focus-within:border-focus-ring focus-within:ring-[3px] focus-within:ring-accent-soft [&:not(:focus-within)]:hover:border-control-border-hover';
+  'flex min-h-10 flex-row items-center rounded-control border border-control-border bg-control px-3 text-fg transition-[border-color,box-shadow] focus-within:border-focus-ring focus-within:ring-[3px] focus-within:ring-accent-soft not-focus-within:hover:border-control-border-hover';
 
 export const FieldLabel = ({
   htmlFor,
@@ -108,7 +108,7 @@ export const TextField = React.forwardRef<
             id={inputId}
             aria-invalid={error ? true : undefined}
             aria-describedby={[hintId, errorId].filter(Boolean).join(' ') || undefined}
-            className="w-full bg-transparent text-[14px] leading-5 text-fg outline-none placeholder:text-muted"
+            className="w-full bg-transparent text-[14px] leading-5 text-fg outline-hidden placeholder:text-muted"
             onChange={(event) => {
               onChange?.(event);
               onValueChange?.(event.target.value);
@@ -164,7 +164,7 @@ export const NativeSelect = React.forwardRef<
         <select
           ref={ref}
           id={selectId}
-          className="h-10 w-full cursor-pointer appearance-none rounded-control border border-control-border bg-control pl-3 pr-9 text-[14px] leading-5 text-fg outline-none transition-[border-color,box-shadow] hover:border-control-border-hover focus:border-focus-ring focus:ring-[3px] focus:ring-accent-soft disabled:cursor-not-allowed disabled:opacity-50"
+          className="h-10 w-full cursor-pointer appearance-none rounded-control border border-control-border bg-control pl-3 pr-9 text-[14px] leading-5 text-fg outline-hidden transition-[border-color,box-shadow] hover:border-control-border-hover focus:border-focus-ring focus:ring-[3px] focus:ring-accent-soft disabled:cursor-not-allowed disabled:opacity-50"
           {...select}
         >
           {placeholder !== undefined && (
