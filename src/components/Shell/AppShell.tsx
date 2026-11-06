@@ -18,9 +18,12 @@ import { LanguageSwitcher } from './LanguageSwitcher';
 export const AppShell = ({
   children,
   loading = false,
+  languageLoading = false,
 }: {
   children: React.ReactNode;
   loading?: boolean;
+  /** The language to show is still loading: hide the switcher's current name. */
+  languageLoading?: boolean;
 }) => {
   const t = useT();
   const { oemBrand } = useDevCredentials();
@@ -66,7 +69,7 @@ export const AppShell = ({
             )}
             {showLogo && <Logo />}
           </div>
-          <LanguageSwitcher />
+          {!languageLoading && <LanguageSwitcher />}
         </header>
         <main ref={mainRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5">
           {children}

@@ -1,6 +1,11 @@
-import { renderHook } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { changeLanguage, t } from '../index';
+import {
+  changeLanguage,
+  startInitialLanguage,
+  t,
+  useInitialLanguagePending,
+} from '../index';
 import { i18n } from '../instance';
 import ja from '../locales/ja';
 
@@ -82,6 +87,37 @@ describe('loading languages on demand', () => {
     await initial;
 
     expect(freshInstance.language).toBe('en');
+  });
+
+  it('loads the detected language without holding the page', async () => {
+    const { fresh, freshInstance, finishJa } = await withSlowJapanese();
+
+    fresh.startInitialLanguage('ja');
+    const { result } = renderHook(() => fresh.useInitialLanguagePending());
+    expect(result.current).toBe(true);
+
+    await act(async () => finishJa());
+    await vi.waitFor(() => expect(result.current).toBe(false));
+    expect(freshInstance.language).toBe('ja');
+  });
+
+  it('stops waiting for the detected language once a later choice is made', async () => {
+    const { fresh, freshInstance, finishJa } = await withSlowJapanese();
+
+    fresh.startInitialLanguage('ja');
+    const { result } = renderHook(() => fresh.useInitialLanguagePending());
+    await act(async () => fresh.changeLanguage('en'));
+
+    expect(result.current).toBe(false);
+    finishJa();
+    await vi.waitFor(() => expect(freshInstance.language).toBe('en'));
+  });
+
+  it('doesn’t wait for a language that is already loaded', () => {
+    startInitialLanguage('en');
+    const { result } = renderHook(() => useInitialLanguagePending());
+
+    expect(result.current).toBe(false);
   });
 
   it('counts down the wait for a download that is already running', async () => {

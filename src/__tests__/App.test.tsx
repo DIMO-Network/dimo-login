@@ -201,6 +201,14 @@ const openWithLanguage = (language: string) => {
   rerender(<App />);
 };
 
+it('shows no text in the old language while the app’s language loads', () => {
+  // Before the next test opens the Japanese gate.
+  openWithLanguage('ja');
+
+  expect(screen.getByRole('status')).toHaveTextContent(/^$/);
+  expect(screen.queryByRole('button', { name: /English/ })).not.toBeInTheDocument();
+});
+
 it('keeps the loading screen until the language the app asked for has loaded', async () => {
   openWithLanguage('ja');
 

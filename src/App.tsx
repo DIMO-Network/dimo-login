@@ -44,7 +44,7 @@ import {
   VehicleManager,
 } from './screens';
 import { useErrorHandler } from './hooks/useErrorHandler';
-import { useLanguage, useT } from './i18n';
+import { useInitialLanguagePending, useLanguage, useT } from './i18n';
 import { useLanguageSync } from './i18n/useLanguageSync';
 
 const App = () => {
@@ -63,11 +63,13 @@ const App = () => {
   const t = useT();
   const language = useLanguage();
 
-  const languageLoading = useLanguageSync(
+  const languageSyncLoading = useLanguageSync(
     clientId,
     params.language,
     params.waitingForParams,
   );
+  // A language is still loading: the detected one, or the one the app chose.
+  const languageLoading = useInitialLanguagePending() || languageSyncLoading;
 
   // Bind document.title to the OEM brand when one is loaded. Restores the
   // default DIMO title if the popup unmounts (covers in-flight branding
@@ -144,12 +146,13 @@ const App = () => {
     [credentialsChecked, entryState],
   );
 
-  // The first screen waits, up to LANGUAGE_WAIT_MS, for the copy of a
-  // language that came with the params, so it isn't shown in the old one first.
+  // The first screen waits, up to LANGUAGE_WAIT_MS, for the copy of the
+  // language it will show, so it isn't shown in another one first. Until that
+  // copy is in, the loading screen shows no text (and no language switcher).
   if (isLoading || languageLoading) {
     return (
-      <AppShell loading>
-        <LoadingScreen message={loadingMessage} />
+      <AppShell loading languageLoading={languageLoading}>
+        <LoadingScreen message={languageLoading ? undefined : loadingMessage} />
       </AppShell>
     );
   }

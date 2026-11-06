@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useSyncExternalStore } from 'react';
 import { i18n } from './instance';
 import { initReactI18next, Trans as I18nTrans, useTranslation } from 'react-i18next';
 
@@ -132,6 +132,15 @@ export const loadLanguage = async (language: Language): Promise<void> => {
 
 let latestChange = 0;
 
+// The detected language's switch (its change number) while it's still pending.
+let initialChange: number | undefined;
+const initialListeners = new Set<() => void>();
+const settleInitial = () => {
+  if (initialChange === undefined) return;
+  initialChange = undefined;
+  initialListeners.forEach((listener) => listener());
+};
+
 /**
  * Loads the language, then switches to it. If it can't load, the current
  * language stays. Only the latest call switches: a slow load that finishes
@@ -139,6 +148,8 @@ let latestChange = 0;
  */
 export const changeLanguage = async (language: Language): Promise<void> => {
   const change = ++latestChange;
+  // A later choice (the app's settings, the switcher) replaces the detected one.
+  if (initialChange !== undefined && change > initialChange) settleInitial();
   try {
     await loadLanguage(language);
   } catch (error) {
@@ -180,5 +191,33 @@ export const whenLanguageReady = (language: Language, timeoutMs: number): Promis
       resolve();
     });
   });
+
+/**
+ * Starts switching to the language detected at boot without holding the first
+ * render, so READY goes out at once. Until that language is showing, can't
+ * load, has been waited for LANGUAGE_WAIT_MS, or a later choice replaces it,
+ * useInitialLanguagePending() is true and App shows a loading screen with no
+ * text, so nothing appears in the wrong language first.
+ */
+export const startInitialLanguage = (language: Language): void => {
+  const pending = !i18n.hasResourceBundle(language, 'translation');
+  const settled = whenLanguageReady(language, LANGUAGE_WAIT_MS);
+  if (!pending) return;
+  // whenLanguageReady's changeLanguage call just took this number.
+  initialChange = latestChange;
+  void settled.finally(settleInitial);
+};
+
+const subscribeInitial = (listener: () => void) => {
+  initialListeners.add(listener);
+  return () => {
+    initialListeners.delete(listener);
+  };
+};
+const initialPendingSnapshot = () => initialChange !== undefined;
+
+/** True while the language detected at boot is still loading (startInitialLanguage). */
+export const useInitialLanguagePending = (): boolean =>
+  useSyncExternalStore(subscribeInitial, initialPendingSnapshot);
 
 export default i18n;
