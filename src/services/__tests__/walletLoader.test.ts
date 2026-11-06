@@ -15,6 +15,13 @@ const deferred = <T>() => {
 const stepsWith = (createKernelSigner: () => void) =>
   ({ createKernelSigner }) as unknown as SignInSteps;
 
+// A failed signer is logged; keep the test output clean and let tests check it.
+const silenceConsoleError = () => vi.spyOn(console, 'error').mockImplementation(() => {});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe('createWalletLoader', () => {
   it('creates the kernel signer once the steps load', async () => {
     const createKernelSigner = vi.fn();
@@ -44,19 +51,54 @@ describe('createWalletLoader', () => {
   });
 
   it('hands a failed signer to the caller that waits for the steps', async () => {
+    const consoleError = silenceConsoleError();
+    const failure = new Error('no signer');
     const { initKernelSigner, signInStepsWithSigner } = createWalletLoader(async () =>
       stepsWith(() => {
-        throw new Error('no signer');
+        throw failure;
       }),
     );
 
     // Not awaited, as DevCredentialsContext calls it, and nobody asks for the
     // steps until a later task: the failure must not be an unhandled rejection
-    // in between.
+    // in between, and it's logged.
     void initKernelSigner(CLIENT_ID, CLIENT_ID, REDIRECT_URI);
     await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(consoleError).toHaveBeenCalledWith(expect.any(String), failure);
 
+    // Started once more, it fails again, and the caller gets the error.
     await expect(signInStepsWithSigner()).rejects.toThrow('no signer');
+  });
+
+  it('starts the signer again after a failed load', async () => {
+    silenceConsoleError();
+    const createKernelSigner = vi.fn();
+    const steps = stepsWith(createKernelSigner);
+    const importSteps = vi
+      .fn<() => Promise<SignInSteps>>()
+      .mockRejectedValueOnce(new Error('chunk failed'))
+      .mockResolvedValueOnce(steps);
+    const { initKernelSigner, signInStepsWithSigner } = createWalletLoader(importSteps);
+
+    void initKernelSigner(CLIENT_ID, CLIENT_ID, REDIRECT_URI);
+
+    await expect(signInStepsWithSigner()).resolves.toBe(steps);
+    expect(createKernelSigner).toHaveBeenCalledWith(CLIENT_ID, CLIENT_ID, REDIRECT_URI);
+  });
+
+  it('starts a failed signer again once for callers that wait together', async () => {
+    silenceConsoleError();
+    const createKernelSigner = vi.fn();
+    const importSteps = vi
+      .fn<() => Promise<SignInSteps>>()
+      .mockRejectedValueOnce(new Error('chunk failed'))
+      .mockResolvedValue(stepsWith(createKernelSigner));
+    const { initKernelSigner, signInStepsWithSigner } = createWalletLoader(importSteps);
+
+    void initKernelSigner(CLIENT_ID, CLIENT_ID, REDIRECT_URI);
+    await Promise.all([signInStepsWithSigner(), signInStepsWithSigner()]);
+
+    expect(createKernelSigner).toHaveBeenCalledTimes(1);
   });
 
   it('imports the steps once', async () => {

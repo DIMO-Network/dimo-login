@@ -13,7 +13,10 @@ export interface WalletLoader {
   loadSignInSteps(): Promise<SignInSteps>;
   /** Loads the steps and creates the kernel signer for this app. */
   initKernelSigner(clientId: string, domain: string, redirectUri: string): Promise<void>;
-  /** The steps, after the latest initKernelSigner call has created its signer. */
+  /**
+   * The steps, after the latest initKernelSigner call has created its signer.
+   * A signer that failed is started once more for each caller.
+   */
   signInStepsWithSigner(): Promise<SignInSteps>;
 }
 
@@ -21,7 +24,7 @@ export const createWalletLoader = (
   importSteps: () => Promise<SignInSteps>,
 ): WalletLoader => {
   let steps: Promise<SignInSteps> | undefined;
-  let signer: Promise<void> | undefined;
+  let signer: { created: Promise<void>; restart: () => Promise<void> } | undefined;
 
   const loadSignInSteps = () => {
     steps ??= importSteps().catch((error: unknown) => {
@@ -35,15 +38,26 @@ export const createWalletLoader = (
     const created = loadSignInSteps().then(({ createKernelSigner }) => {
       createKernelSigner(clientId, domain, redirectUri);
     });
-    // The caller that starts the signer doesn't wait for it; the error reaches
-    // whoever next asks for the steps, through signInStepsWithSigner.
-    created.catch(() => {});
-    signer = created;
+    // The caller that starts the signer doesn't wait for it, so the failure is
+    // logged here; signInStepsWithSigner starts it again.
+    created.catch((error: unknown) => {
+      console.error('Could not create the kernel signer', error);
+    });
+    signer = {
+      created,
+      restart: () => initKernelSigner(clientId, domain, redirectUri),
+    };
     return created;
   };
 
   const signInStepsWithSigner = async () => {
-    await signer;
+    const started = signer;
+    // A failed signer (most often a failed import, after a network blip) is
+    // started again, so sign-in doesn't stay broken until a reload. A caller
+    // that finds it already restarted waits for that one instead.
+    await started?.created.catch(() =>
+      signer === started ? started.restart() : signer?.created,
+    );
     return loadSignInSteps();
   };
 
