@@ -296,18 +296,27 @@ export const DevCredentialsProvider = ({
       applyDevCredentialsConfig({ oemBrand: cachedBrand });
     }
 
-    // Brand fetch runs in parallel with identity-api lookups so the OEM logo
-    // can paint as soon as both the license check and brand-record fetch
-    // finish — no extra round-trip latency added to the existing flow.
+    // The brand lookup starts before the license lookups, so it is never later
+    // than the license check it runs beside.
     //
     // brandName comes from state, not the URL: popup mode opens at the bare
     // base URL (no query string), so the SDK delivers brandName via the
     // AUTH_INIT postMessage. State is the one place both transports converge —
     // applyDevCredentialsConfig deposits it there in the same batch that sets
     // clientId. Reading the URL here would silently drop the popup case.
-    const [licenseData, brand] = await Promise.all([
+    const brandRequest = fetchOemBrand(clientId, brandName);
+
+    // With a cached brand already painted, auth never waits on console-api: the
+    // live record lands whenever it answers (a null drops a brand the console no
+    // longer has). Without one, the screen waits for it as before.
+    if (cachedBrand) {
+      void brandRequest.then((brand) => {
+        if (!isStale()) applyDevCredentialsConfig({ oemBrand: brand });
+      });
+    }
+    const [licenseData, awaitedBrand] = await Promise.all([
       getDeveloperLicense(clientId),
-      fetchOemBrand(clientId, brandName),
+      cachedBrand ? null : brandRequest,
     ]);
     if (isStale()) return;
     const alias = await getLicenseAlias(licenseData, clientId);
@@ -336,7 +345,7 @@ export const DevCredentialsProvider = ({
 
     applyDevCredentialsConfig({
       devLicenseAlias: alias,
-      oemBrand: brand,
+      ...(cachedBrand ? {} : { oemBrand: awaitedBrand }),
       invalidCredentials: !isValid,
       untrustedCaller: !fromApp,
       waitingForDevLicense: false,

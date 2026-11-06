@@ -5,7 +5,7 @@ import { render, screen, waitFor, act } from '@testing-library/react';
 import { DevCredentialsProvider, useDevCredentials } from '../DevCredentialsContext';
 import { UIManagerProvider } from '../UIManagerContext';
 import { GlobalOraclesProvider } from '../OraclesContext';
-import { fetchOemBrand } from '../../services/brandService';
+import { fetchOemBrand, readCachedBrand } from '../../services/brandService';
 import { fetchConfigFromIPFS } from '../../services';
 import { getConfigurationById } from '../../services/configurationService';
 import { saveFlowSnapshot } from '../../utils/flowSnapshot';
@@ -527,5 +527,99 @@ describe('DevCredentialsContext handshake', () => {
       ([data]) => data.eventType === 'READY',
     );
     expect(readies).toEqual([[{ eventType: 'READY' }]]);
+  });
+});
+
+describe('DevCredentialsContext: cached brand', () => {
+  const cached = { name: 'Cached', logoUrl: null, iconUrl: null, primaryColor: null };
+  const live = { name: 'Live', logoUrl: null, iconUrl: null, primaryColor: null };
+
+  // Two probes, so a test can watch the loading flag and the brand together.
+  const Probes = () => {
+    const value = useDevCredentials() as unknown as Record<string, unknown>;
+    return (
+      <>
+        <span data-testid="waiting">{JSON.stringify(value.waitingForDevLicense)}</span>
+        <span data-testid="brand">{JSON.stringify(value.oemBrand ?? null)}</span>
+      </>
+    );
+  };
+  const renderProbes = () =>
+    render(
+      <UIManagerProvider>
+        <GlobalOraclesProvider>
+          <DevCredentialsProvider>
+            <Probes />
+          </DevCredentialsProvider>
+        </GlobalOraclesProvider>
+      </UIManagerProvider>,
+    );
+  const waiting = () => screen.getByTestId('waiting').textContent;
+  const brandName = () => {
+    const brand = JSON.parse(screen.getByTestId('brand').textContent ?? 'null');
+    return brand ? (brand.name as string) : null;
+  };
+
+  // A brand lookup the test settles by hand.
+  const pendingBrand = () => {
+    let settle!: (brand: typeof live | null) => void;
+    fetchOemBrandMock.mockReturnValue(
+      new Promise((resolve) => {
+        settle = resolve;
+      }),
+    );
+    return (brand: typeof live | null) => settle(brand);
+  };
+
+  it('shows the screen without waiting for the brand when one is cached', async () => {
+    (readCachedBrand as Mock).mockReturnValue(cached);
+    pendingBrand();
+    renderProbes();
+    await dispatchAuthInit({ clientId: CLIENT_ID });
+
+    await waitFor(() => expect(waiting()).toBe('false'));
+    expect(brandName()).toBe('Cached');
+  });
+
+  it('replaces the cached brand with the live one when it answers', async () => {
+    (readCachedBrand as Mock).mockReturnValue(cached);
+    const settle = pendingBrand();
+    renderProbes();
+    await dispatchAuthInit({ clientId: CLIENT_ID });
+    await waitFor(() => expect(waiting()).toBe('false'));
+
+    await act(async () => settle(live));
+
+    await waitFor(() => expect(brandName()).toBe('Live'));
+  });
+
+  it('drops a cached brand the console no longer has', async () => {
+    (readCachedBrand as Mock).mockReturnValue(cached);
+    const settle = pendingBrand();
+    renderProbes();
+    await dispatchAuthInit({ clientId: CLIENT_ID });
+    await waitFor(() => expect(brandName()).toBe('Cached'));
+
+    await act(async () => settle(null));
+
+    await waitFor(() => expect(brandName()).toBeNull());
+  });
+
+  it('waits for the brand when none is cached', async () => {
+    (readCachedBrand as Mock).mockReturnValue(null);
+    const settle = pendingBrand();
+    renderProbes();
+    await dispatchAuthInit({ clientId: CLIENT_ID });
+    // Let the license lookups finish; the brand is still out.
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(waiting()).toBe('true');
+
+    await act(async () => settle(live));
+
+    await waitFor(() => expect(waiting()).toBe('false'));
+    expect(brandName()).toBe('Live');
   });
 });
