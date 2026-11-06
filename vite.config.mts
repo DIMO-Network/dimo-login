@@ -10,7 +10,10 @@ import tailwindcss from '@tailwindcss/vite';
  * `process.env` is real, so nothing is inlined there.
  *
  * Source maps are built only when SENTRY_AUTH_TOKEN is set, so the
- * `sentry:sourcemaps` step can upload them.
+ * `sentry:sourcemaps` step can upload them. They're built hidden (no
+ * sourceMappingURL comment in the bundles) and that step deletes them after
+ * the upload, so they reach Sentry and not the public, as the console does
+ * (#313).
  *
  * NODE_ENV follows the command, as `react-scripts build` and `start` set it,
  * so a build in any `--mode` still ships React's production build. It's set on
@@ -45,7 +48,7 @@ export default defineConfig(({ command, mode }) => {
     server: { port: 3000, strictPort: true },
     build: {
       outDir: 'build',
-      sourcemap: Boolean(process.env.SENTRY_AUTH_TOKEN),
+      sourcemap: process.env.SENTRY_AUTH_TOKEN ? 'hidden' : false,
     },
     test: {
       environment: 'jsdom',

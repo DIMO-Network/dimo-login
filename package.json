@@ -57,7 +57,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "lint:format": "prettier . --check --log-level warn --write \"./**/*.{js,ts,css,md,json,tsx}\"",
-    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org dimo-hp --project dimo-login ./build && sentry-cli sourcemaps upload --org dimo-hp --project dimo-login ./build",
+    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org dimo-hp --project dimo-login ./build && sentry-cli sourcemaps upload --org dimo-hp --project dimo-login ./build && find build -name '*.map' -delete",
     "preview": "vite preview",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
