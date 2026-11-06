@@ -345,16 +345,24 @@ export const DevCredentialsProvider = ({
         ? true
         : await isValidDeveloperLicense(licenseData, redirectUri);
     } catch (error) {
-      // identity-api failed or timed out: say so rather than wait forever.
       if (isStale()) return;
       console.error('Could not check the app’s developer license', error);
       captureException(error);
-      applyDevCredentialsConfig({
-        credentialsUnavailable: true,
-        invalidCredentials: true,
-        waitingForDevLicense: false,
-      });
-      return;
+      if (isProvisionFlow) {
+        // Provisioning skips license validation and only wanted the alias.
+        alias = clientId;
+        isRegistered = true;
+        awaitedBrand = cachedBrand ? null : await brandRequest;
+        if (isStale()) return;
+      } else {
+        // identity-api failed or timed out: say so rather than wait forever.
+        applyDevCredentialsConfig({
+          credentialsUnavailable: true,
+          invalidCredentials: true,
+          waitingForDevLicense: false,
+        });
+        return;
+      }
     }
     if (isStale()) return;
 
@@ -407,6 +415,13 @@ export const DevCredentialsProvider = ({
       applyDevCredentialsConfig({
         waitingForParams: false,
       });
+    } else {
+      // The settings come from the opener: the SDK sends AUTH_INIT only in
+      // reply to READY, so announce it now, not on page load. initAuthProcess
+      // calls this only once the URL turned out to carry no settings (no
+      // network wait then), so an AUTH_INIT can't race a configuration that is
+      // still loading. The retry effect below covers a lost READY.
+      sendMessageToReferrer({ eventType: 'READY' });
     }
     // Note: the 'message' listener is attached synchronously at mount (see the
     // mount effect below), NOT here — registering it here ran only after the
@@ -448,9 +463,6 @@ export const DevCredentialsProvider = ({
     const onMessage = (event: MessageEvent) => handleAuthInitMessageRef.current(event);
     if (!isStandalone()) {
       window.addEventListener('message', onMessage);
-      // The SDK sends AUTH_INIT only in reply to READY, so announce it the
-      // moment we listen. The retry effect below covers a lost READY.
-      sendMessageToReferrer({ eventType: 'READY' });
     }
     void initAuthProcess();
     return () => window.removeEventListener('message', onMessage);

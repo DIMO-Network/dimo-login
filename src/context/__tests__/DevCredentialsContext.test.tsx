@@ -517,13 +517,30 @@ describe('DevCredentialsContext: every config source is allowlisted', () => {
 });
 
 describe('DevCredentialsContext handshake', () => {
-  it('announces READY once, as soon as it listens', () => {
-    renderProvider();
-    // No timers advanced: this is the mount, not the 2 s retry.
-    const readies = (sendMessageToReferrer as Mock).mock.calls.filter(
+  const readies = () =>
+    (sendMessageToReferrer as Mock).mock.calls.filter(
       ([data]) => data.eventType === 'READY',
     );
-    expect(readies).toEqual([[{ eventType: 'READY' }]]);
+
+  it('announces READY once, as soon as it knows the opener has the settings', async () => {
+    renderProvider();
+    // No timers advanced: this is the startup check, not the 2 s retry.
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(readies()).toEqual([[{ eventType: 'READY' }]]);
+  });
+
+  it('doesn’t ask the opener while a configuration from the URL is loading', async () => {
+    (getConfigurationById as Mock).mockReturnValue(new Promise(() => {}));
+    window.history.pushState({}, '', '/?configurationId=cfg-1');
+    renderProvider();
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // An AUTH_INIT answering READY now could race the configuration.
+    expect(readies()).toEqual([]);
   });
 });
 
@@ -655,6 +672,16 @@ describe('when the license lookup fails', () => {
   it('stops waiting for the license', async () => {
     renderProvider('waitingForDevLicense');
     await dispatchAuthInit({ clientId: CLIENT_ID });
+
+    await waitFor(() => expect(probe()).toBe('false'));
+  });
+
+  it('lets provisioning go on, since it doesn’t need the license', async () => {
+    renderProvider('invalidCredentials');
+    await dispatchAuthInit({
+      clientId: CLIENT_ID,
+      entryState: 'PROVISION_DEVELOPER_LICENSE',
+    });
 
     await waitFor(() => expect(probe()).toBe('false'));
   });
