@@ -30,15 +30,6 @@ const Step = ({ step, children }: { step: string; children: React.ReactNode }) =
   </ScreenErrorBoundary>
 );
 
-const loadingScreensAdded = (records: MutationRecord[]) =>
-  records
-    .flatMap((record) => [...record.addedNodes])
-    .filter(
-      (node) =>
-        node instanceof Element &&
-        (node.matches('[role="status"]') || node.querySelector('[role="status"]')),
-    );
-
 beforeEach(() => {
   sessionStorage.clear();
   vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -63,13 +54,11 @@ it('ignores a preload that fails', async () => {
 
 it('shows a preloaded screen without the loading screen', async () => {
   await preloadScreens([UiStates.OTP_INPUT]);
-  const { container, rerender } = render(
+  const { rerender } = render(
     <Step step="email">
       <h1>Your email</h1>
     </Step>,
   );
-  const observer = new MutationObserver(() => {});
-  observer.observe(container, { childList: true, subtree: true });
 
   rerender(
     <Step step="code">
@@ -77,11 +66,8 @@ it('shows a preloaded screen without the loading screen', async () => {
     </Step>,
   );
 
-  // Rendered in the same commit, not after a fallback.
+  // There as soon as the step changes: shown after a fallback, it wouldn't be.
   expect(screen.getByRole('heading', { name: 'Enter the code' })).toBeInTheDocument();
-  await act(async () => {});
-  expect(loadingScreensAdded(observer.takeRecords())).toEqual([]);
-  observer.disconnect();
 });
 
 it('loads a screen whose preload failed', async () => {

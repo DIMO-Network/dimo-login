@@ -112,7 +112,7 @@ describe('firstLoadBytes', () => {
 
 describe('entryGuard', () => {
   const runGuard = (
-    options: { forbidden: RegExp[]; maxGzipKb: number },
+    options: { forbidden: RegExp[]; maxGzipKiB: number },
     bundle = app(),
   ) => {
     const error = vi.fn();
@@ -129,16 +129,16 @@ describe('entryGuard', () => {
   };
 
   it('runs only in builds and reports the first-load size', () => {
-    const { plugin, error, info } = runGuard({ forbidden: [], maxGzipKb: 100 });
+    const { plugin, error, info } = runGuard({ forbidden: [], maxGzipKiB: 100 });
     expect(plugin.apply).toBe('build');
     expect(info).toHaveBeenCalledWith(
-      expect.stringMatching(/^first-load JS: [\d.]+ KB, [\d.]+ KB gzipped$/),
+      expect.stringMatching(/^first-load JS: [\d.]+ KiB, [\d.]+ KiB gzipped$/),
     );
     expect(error).not.toHaveBeenCalled();
   });
 
   it('fails the build when wallet code reaches the first screen', () => {
-    const { error } = runGuard({ forbidden, maxGzipKb: 100 });
+    const { error } = runGuard({ forbidden, maxGzipKiB: 100 });
     expect(error).toHaveBeenCalledWith(
       expect.stringContaining('/x/node_modules/viem/a.js'),
     );
@@ -155,7 +155,7 @@ describe('entryGuard', () => {
         },
       },
     });
-    const { error } = runGuard({ forbidden, maxGzipKb: 100 }, bundle);
+    const { error } = runGuard({ forbidden, maxGzipKiB: 100 }, bundle);
     expect(error.mock.calls[0][0].split('\n').slice(1, 3)).toEqual([
       '  src/services/turnkeyService.ts',
       '  node_modules/viem/a.js',
@@ -163,7 +163,7 @@ describe('entryGuard', () => {
   });
 
   it('fails the build when the first screen is over budget', () => {
-    const { error } = runGuard({ forbidden: [], maxGzipKb: 0 });
-    expect(error).toHaveBeenCalledWith(expect.stringContaining('over the 0 KB budget'));
+    const { error } = runGuard({ forbidden: [], maxGzipKiB: 0 });
+    expect(error).toHaveBeenCalledWith(expect.stringContaining('over the 0 KiB budget'));
   });
 });

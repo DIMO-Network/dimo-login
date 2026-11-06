@@ -65,7 +65,7 @@ export const firstLoadBytes = (bundle: OutputBundle): { raw: number; gzip: numbe
     { raw: 0, gzip: 0 },
   );
 
-const kb = (bytes: number) => (bytes / 1024).toFixed(1);
+const kib = (bytes: number) => (bytes / 1024).toFixed(1);
 
 /** The app's own modules first (the import to fix), then the packages they reach. */
 const listOffenders = (offenders: string[]) => {
@@ -78,18 +78,18 @@ const listOffenders = (offenders: string[]) => {
 
 /**
  * Fails the build when the first screen's JavaScript reaches a forbidden
- * module (the wallet stack belongs behind a lazy import) or grows past
- * maxGzipKb, and prints its size either way.
+ * module (the wallet stack belongs behind a lazy import) or its gzipped size
+ * grows past maxGzipKiB, and prints its size either way.
  */
 export const entryGuard = (options: {
   forbidden: RegExp[];
-  maxGzipKb: number;
+  maxGzipKiB: number;
 }): Plugin => ({
   name: 'entry-guard',
   apply: 'build',
   generateBundle(_outputOptions, bundle) {
     const { raw, gzip } = firstLoadBytes(bundle);
-    this.info(`first-load JS: ${kb(raw)} KB, ${kb(gzip)} KB gzipped`);
+    this.info(`first-load JS: ${kib(raw)} KiB, ${kib(gzip)} KiB gzipped`);
 
     const offenders = forbiddenEntryModules(bundle, options.forbidden);
     if (offenders.length > 0) {
@@ -101,9 +101,9 @@ export const entryGuard = (options: {
         ].join('\n'),
       );
     }
-    if (gzip / 1024 > options.maxGzipKb) {
+    if (gzip / 1024 > options.maxGzipKiB) {
       this.error(
-        `first-load JS is ${kb(gzip)} KB gzipped, over the ${options.maxGzipKb} KB budget.`,
+        `first-load JS is ${kib(gzip)} KiB gzipped, over the ${options.maxGzipKiB} KiB budget.`,
       );
     }
   },

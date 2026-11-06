@@ -26,8 +26,13 @@ type ScreenModule<T> = { default: T };
  * once and kept, so a screen preloaded before it's shown renders in the same
  * commit as the step change: React.lazy reads a thenable that calls back at
  * once as already loaded, where a resolved promise would still show the
- * loading screen (React then holds it for 300 ms). A failed load is forgotten,
- * so the next attempt fetches again, and fails with ChunkLoadError.
+ * loading screen (React then holds it for 300 ms). A failed load fails with
+ * ChunkLoadError. A failed preload is forgotten, so the next preload, or the
+ * screen's first showing, fetches again. Once the screen has been shown,
+ * React.lazy keeps its load's result for the life of the page: if that load
+ * failed, the screen fails the same way each time it's shown and nothing
+ * fetches it again; only reloading the page does (ScreenErrorBoundary reloads
+ * once for a missing chunk).
  *
  * T's bound is React.lazy's own.
  */

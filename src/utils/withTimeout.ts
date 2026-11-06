@@ -1,8 +1,8 @@
 /**
  * Timeout helpers. The app talks to WebAuthn, Turnkey, a ZeroDev bundler/paymaster,
- * Polygon RPC, an auth API, Apollo/identity-api, and IPFS gateways — almost none of
- * which had a client-side timeout, so a slow/unresponsive backend left the UI
- * spinning forever. These bound the wait.
+ * Polygon RPC, an auth API, the identity API (GraphQL over fetch), and IPFS
+ * gateways — almost none of which had a client-side timeout, so a slow/unresponsive
+ * backend left the UI spinning forever. These bound the wait.
  */
 
 export class TimeoutError extends Error {
