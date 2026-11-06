@@ -14,7 +14,7 @@ import {
 } from '../../services/dimoDevicesService';
 import { IntegrationNft, MintVehicleNft } from '../../models/typedData';
 import { SAMPLE_B64_IMAGE } from '../../utils/constants';
-import { UIManagerLoaderWrapper } from '../Shared';
+import { UIManagerLoaderWrapper } from '../Shared/Loader';
 import { message, useT } from '../../i18n';
 import { ActionBar, Button, DoneHeader, Screen } from '../ui';
 

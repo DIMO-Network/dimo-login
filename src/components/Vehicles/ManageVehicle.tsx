@@ -13,8 +13,8 @@ import { useUIManager } from '../../context/UIManagerContext';
 import {
   useFinishShareVehicles,
   useFinishVehicles,
-  useUpdateVehiclePermissions,
-} from '../../hooks';
+} from '../../hooks/useFinishShareVehicles';
+import { useUpdateVehiclePermissions } from '../../hooks/useUpdateVehiclePermissions';
 import { useEmailRequest } from '../../hooks/useEmailRequest';
 import { translateText, useT, type Text } from '../../i18n';
 import { formatDate, formatList } from '../../i18n/format';

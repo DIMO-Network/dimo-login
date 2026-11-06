@@ -30,8 +30,10 @@ vi.mock('@dimo-network/transactions', async () => {
 const mockUpdate = vi.fn();
 const mockFinishShare = vi.fn();
 const mockFinish = vi.fn();
-vi.mock('../../../hooks', () => ({
+vi.mock('../../../hooks/useUpdateVehiclePermissions', () => ({
   useUpdateVehiclePermissions: () => mockUpdate,
+}));
+vi.mock('../../../hooks/useFinishShareVehicles', () => ({
   useFinishShareVehicles: () => mockFinishShare,
   useFinishVehicles: () => mockFinish,
 }));
@@ -65,8 +67,6 @@ vi.mock('../../../services/vehicleDocumentAgreements', async () => ({
   ...(await vi.importActual<object>('../../../services/vehicleDocumentAgreements')),
   readGrantAgreements: (...args: unknown[]) => mockReadGrant(...args),
 }));
-// Keep the turnkey-backed services out of the module graph.
-vi.mock('../../../services', () => ({}));
 vi.mock('../../../utils/authUtils', () => ({ isInvalidSessionError: () => false }));
 vi.mock('@sentry/react', () => ({ captureException: vi.fn() }));
 

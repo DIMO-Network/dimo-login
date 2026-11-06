@@ -1,10 +1,13 @@
 import { Vehicle } from '../models/vehicle';
 import {
   createPermissionsFromParams,
+  generateAttachments,
+} from '../services/permissionsService';
+import {
   generateIpfsSources,
   setVehiclePermissions,
   setVehiclePermissionsBulk,
-} from '../services';
+} from '../services/turnkeyService';
 import {
   setVehiclePermissionsBatch,
   VEHICLE_PERMISSIONS_BATCH_LIMIT,
@@ -13,7 +16,6 @@ import { useDevCredentials } from '../context/DevCredentialsContext';
 import { VehicleManagerMandatoryParams } from '../types';
 import { useAuthContext } from '../context/AuthContext';
 import { INVALID_SESSION_ERROR } from '../utils/authUtils';
-import { generateAttachments } from '../services/permissionsService';
 import {
   getVehicleAsset,
   GrantUnreadableError,

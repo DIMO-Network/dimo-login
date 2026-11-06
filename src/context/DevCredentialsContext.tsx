@@ -20,7 +20,7 @@ import React, {
 import { AllParams } from '../types';
 import { createKernelSigner } from '../services/turnkeyService';
 import { Event, EventByUiState, UiStates } from '../enums';
-import { fetchConfigFromIPFS } from '../services';
+import { fetchConfigFromIPFS } from '../services/ipfsService';
 import {
   getDeveloperLicense,
   getLicenseAlias,
@@ -31,7 +31,7 @@ import { AuthProvider } from '../utils/authUrls';
 import { readOAuthState, readTrustedOAuthReturn } from '../utils/flowSnapshot';
 import { reportRefusal } from '../utils/reportRefusal';
 import { message, type Text } from '../i18n';
-import { useParamsHandler } from '../hooks';
+import { useParamsHandler } from '../hooks/useParamsHandler';
 import { getDefaultExpirationDate } from '../utils/dateUtils';
 import { sendMessageToReferrer } from '../utils/messageHandler';
 import { isStandalone } from '../utils/isStandalone';

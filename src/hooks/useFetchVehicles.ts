@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuthContext } from '../context/AuthContext';
 import { useDevCredentials } from '../context/DevCredentialsContext';
 import { Vehicle } from '../models/vehicle';
-import { fetchVehiclesWithTransformation } from '../services';
+import { fetchVehiclesWithTransformation } from '../services/vehicleService';
 import {
   checkDocumentAccess,
   toCloudEventAgreements,

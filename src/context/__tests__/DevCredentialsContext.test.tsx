@@ -6,7 +6,7 @@ import { DevCredentialsProvider, useDevCredentials } from '../DevCredentialsCont
 import { UIManagerProvider } from '../UIManagerContext';
 import { GlobalOraclesProvider } from '../OraclesContext';
 import { fetchOemBrand, readCachedBrand } from '../../services/brandService';
-import { fetchConfigFromIPFS } from '../../services';
+import { fetchConfigFromIPFS } from '../../services/ipfsService';
 import { getConfigurationById } from '../../services/configurationService';
 import { saveFlowSnapshot } from '../../utils/flowSnapshot';
 import { reportRefusal } from '../../utils/reportRefusal';
@@ -35,7 +35,7 @@ vi.mock('../../services/turnkeyService', () => ({
 vi.mock('../../services/configurationService', () => ({
   getConfigurationById: vi.fn(),
 }));
-vi.mock('../../services', () => ({ fetchConfigFromIPFS: vi.fn() }));
+vi.mock('../../services/ipfsService', () => ({ fetchConfigFromIPFS: vi.fn() }));
 vi.mock('../../utils/messageHandler', () => ({
   sendMessageToReferrer: vi.fn(),
   setAppState: vi.fn(),
@@ -48,17 +48,6 @@ vi.mock('../../utils/isEmbed', () => ({
   isEmbed: () => mockEmbedded,
   getEmbedderOrigin: () => mockEmbedderOrigin,
 }));
-// The `../hooks` barrel re-exports vehicle hooks that pull in @dimo-network/transactions
-// (untransformed ESM). Keep the real useParamsHandler — it's the code that funnels
-// brandName into state — and skip loading the rest of the barrel.
-vi.mock('../../hooks', async () => ({
-  useParamsHandler: (
-    await vi.importActual<typeof import('../../hooks/useParamsHandler')>(
-      '../../hooks/useParamsHandler',
-    )
-  ).useParamsHandler,
-}));
-
 const CLIENT_ID = '0xb92d74B468B4047289AEa7c9B953066E39768C16';
 const APP_ORIGIN = 'https://app.example';
 const REDIRECT_URI = `${APP_ORIGIN}/callback`;

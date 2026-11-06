@@ -3,7 +3,7 @@ import debounce from 'lodash/debounce';
 import { EnvelopeIcon } from '@heroicons/react/24/outline';
 
 import { useUIManager } from '../../context/UIManagerContext';
-import { sendOtp } from '../../services';
+import { sendOtp } from '../../services/accountsService';
 import { useAuthContext } from '../../context/AuthContext';
 import { message, translateText, useT, type Message } from '../../i18n';
 import { ActionBar, Button, DoneHeader, ErrorBox, Notice, Screen } from '../ui';

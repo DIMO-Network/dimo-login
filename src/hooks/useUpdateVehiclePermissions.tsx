@@ -2,12 +2,8 @@ import { useAuthContext } from '../context/AuthContext';
 import { useDevCredentials } from '../context/DevCredentialsContext';
 import { Vehicle } from '../models/vehicle';
 import { INVALID_SESSION_ERROR } from '../utils/authUtils';
-import {
-  createPermissionsFromParams,
-  generateIpfsSources,
-  setVehiclePermissions,
-} from '../services';
-import { generateAttachments } from '../services/permissionsService';
+import { createPermissionsFromParams, generateAttachments } from '../services/permissionsService';
+import { generateIpfsSources, setVehiclePermissions } from '../services/turnkeyService';
 import { SetVehiclePermissions } from '@dimo-network/transactions';
 import {
   getVehicleAsset,

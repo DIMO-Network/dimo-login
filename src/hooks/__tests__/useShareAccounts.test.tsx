@@ -2,7 +2,10 @@ import type { Mock } from 'vitest';
 import React from 'react';
 import { render, act } from '@testing-library/react';
 import { useShareAccounts } from '../useShareAccounts';
-import { generateAccountIpfsSource, setAccountPermissions } from '../../services';
+import {
+  generateAccountIpfsSource,
+  setAccountPermissions,
+} from '../../services/turnkeyService';
 
 // vi.mock calls are hoisted above these imports.
 
@@ -15,7 +18,7 @@ vi.mock('@dimo-network/transactions', () => ({
   ENVIRONMENT: 'mock',
   Permission: { GetRawData: 7 },
 }));
-vi.mock('../../services', () => ({
+vi.mock('../../services/turnkeyService', () => ({
   generateAccountIpfsSource: vi.fn(),
   setAccountPermissions: vi.fn(),
 }));

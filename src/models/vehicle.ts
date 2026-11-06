@@ -1,6 +1,6 @@
 import { Permission } from '@dimo-network/transactions';
 
-import { VehicleNode } from '../services';
+import { VehicleNode } from '../services/identityService';
 
 export interface Vehicle {
   tokenId: number;

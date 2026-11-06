@@ -31,17 +31,19 @@ import { UiStates } from '../enums';
 import { useUIManager } from './UIManagerContext';
 import {
   getApiKeyStamper,
-  getFromLocalStorage,
   initializePasskey,
   passkeyStamper,
-  removeFromLocalStorage,
   TurnkeySessionData,
   TurnkeySessionDataWithExpiry,
+  getKernelSigner,
+} from '../services/turnkeyService';
+import {
+  getFromLocalStorage,
+  removeFromLocalStorage,
   TurnkeySessionKey,
-  verifyOtp,
-} from '../services';
+} from '../services/storageService';
+import { verifyOtp } from '../services/accountsService';
 import { generateP256KeyPair } from '@turnkey/crypto';
-import { getKernelSigner } from '../services';
 
 interface AuthContextProps {
   completePasskeyLogin: () => Promise<void>;

@@ -3,12 +3,15 @@ import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 const mockClientId = '0x2222222222222222222222222222222222222222';
-vi.mock('../../../services', () => vi.importActual('../../../services/storageService'));
 const mockGo = vi.fn();
 let mockOAuthUrl: string | null = 'https://accounts.example/oauth';
-vi.mock('../../../hooks', () => ({
+vi.mock('../../../hooks/useOAuthCodeExchange', () => ({
   useOAuthCodeExchange: () => ({ isExchanging: false }),
+}));
+vi.mock('../../../hooks/useConstructOAuthUrl', () => ({
   useConstructOAuthUrl: () => () => mockOAuthUrl,
+}));
+vi.mock('../../../hooks/useGoToLoginOrSignUp', () => ({
   useGoToLoginOrSignUp: () => mockGo,
 }));
 vi.mock('../../../context/DevCredentialsContext', () => ({
@@ -25,8 +28,10 @@ const mockUi = {
   setLoadingState: vi.fn(),
 };
 vi.mock('../../../context/UIManagerContext', () => ({ useUIManager: () => mockUi }));
-vi.mock('../../Shared', () => ({
+vi.mock('../../Shared/ErrorMessage', () => ({
   ErrorMessage: () => null,
+}));
+vi.mock('../../Shared/Loader', () => ({
   Loader: () => null,
   UIManagerLoaderWrapper: ({ children }: { children: React.ReactNode }) => (
     <>{children}</>

@@ -9,30 +9,28 @@ import { UiStates } from './enums';
 import { useUIManager } from './context/UIManagerContext';
 import { getValidationsForState } from './validations';
 
-import {
-  AccountManager,
-  AccountPermissionsSuccess,
-  AdvancedTransaction,
-  CancelledTransaction,
-  EmailInput,
-  ErrorScreen,
-  LoadingScreen,
-  OtpInput,
-  PasskeyGeneration,
-  ProvisionDeveloperLicense,
-  SignMessage,
-  SuccessfulPermissions,
-  SuccessfulTransaction,
-  SuccessPage,
-  VehicleManager,
-  ManageVehicle,
-  MintVehicle,
-  AddVehicle,
-  CompatibilityCheck,
-  ConnectDevice,
-  ConnectTesla,
-  Logout,
-} from './components';
+import { AccountManager } from './components/Accounts/AccountManager';
+import { AccountPermissionsSuccess } from './components/Accounts/AccountPermissionsSuccess';
+import { AdvancedTransaction } from './components/AdvancedTransaction/AdvancedTransaction';
+import { CancelledTransaction } from './components/AdvancedTransaction/CancelledTransaction';
+import { EmailInput } from './components/Auth/EmailInput';
+import { ErrorScreen } from './components/Shared/ErrorScreen';
+import { LoadingScreen } from './components/Shared/LoadingScreen';
+import { OtpInput } from './components/Auth/OtpInput';
+import { PasskeyGeneration } from './components/Auth/PasskeyGeneration';
+import { ProvisionDeveloperLicense } from './components/ProvisionDeveloperLicense/ProvisionDeveloperLicense';
+import { SignMessage } from './components/SignMessage/SignMessage';
+import { SuccessfulPermissions } from './components/Vehicles/SuccessfulPermissions';
+import { SuccessfulTransaction } from './components/AdvancedTransaction/SuccessfulTransaction';
+import { SuccessPage } from './components/Auth/SuccessPage';
+import { VehicleManager } from './components/Vehicles/VehicleManager';
+import { ManageVehicle } from './components/Vehicles/ManageVehicle';
+import { MintVehicle } from './components/Vehicles/MintVehicle';
+import { AddVehicle } from './components/Vehicles/AddVehicle';
+import { CompatibilityCheck } from './components/Vehicles/CompatibilityCheck';
+import { ConnectDevice } from './components/Connections/ConnectDevice';
+import { ConnectTesla } from './components/Connections/ConnectTesla';
+import { Logout } from './components/Auth/Logout';
 import { AppShell } from './components/Shell/AppShell';
 import { useErrorHandler } from './hooks/useErrorHandler';
 import { PasskeyLogin } from './components/Auth/PasskeyLogin';
