@@ -80,6 +80,8 @@ const es: PluralLocaleResources = {
   'error.invalid_permissions_format.title': 'Formato de permisos no válido',
   'error.invalid_permissions_format.message':
     'Los permisos deben ser una cadena de 0 y 1 de {{max}} caracteres como máximo.',
+  'error.screen_load.title': 'Esta pantalla no se cargó',
+  'error.screen_load.message': 'Revisa tu conexión y vuelve a empezar desde la app.',
 
   // Why a shared vehicle's current terms couldn't be carried into an update
   'grant_unreadable.retry':

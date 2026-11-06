@@ -79,6 +79,8 @@ const en = {
   'error.invalid_permissions_format.title': 'Invalid permissions format',
   'error.invalid_permissions_format.message':
     'Permissions must be a string of 0s and 1s, at most {{max}} characters long.',
+  'error.screen_load.title': 'This screen didn’t load',
+  'error.screen_load.message': 'Check your connection and start again from the app.',
 
   // Why a shared vehicle's current terms couldn't be carried into an update
   'grant_unreadable.retry':

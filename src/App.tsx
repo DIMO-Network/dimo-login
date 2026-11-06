@@ -1,41 +1,48 @@
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 
 import { initializeSession } from './services/sessionService';
+import { loadSignInSteps } from './services/walletLoader';
 import { handlePostAuthUIState } from './utils/authUtils';
 import { isEmbed } from './utils/isEmbed';
+import { onIdle } from './utils/onIdle';
 import { useAuthContext } from './context/AuthContext';
 import { useDevCredentials } from './context/DevCredentialsContext';
 import { UiStates } from './enums';
 import { useUIManager } from './context/UIManagerContext';
 import { getValidationsForState } from './validations';
 
-import { AccountManager } from './components/Accounts/AccountManager';
-import { AccountPermissionsSuccess } from './components/Accounts/AccountPermissionsSuccess';
-import { AdvancedTransaction } from './components/AdvancedTransaction/AdvancedTransaction';
-import { CancelledTransaction } from './components/AdvancedTransaction/CancelledTransaction';
 import { EmailInput } from './components/Auth/EmailInput';
 import { ErrorScreen } from './components/Shared/ErrorScreen';
 import { LoadingScreen } from './components/Shared/LoadingScreen';
-import { OtpInput } from './components/Auth/OtpInput';
-import { PasskeyGeneration } from './components/Auth/PasskeyGeneration';
-import { ProvisionDeveloperLicense } from './components/ProvisionDeveloperLicense/ProvisionDeveloperLicense';
-import { SignMessage } from './components/SignMessage/SignMessage';
-import { SuccessfulPermissions } from './components/Vehicles/SuccessfulPermissions';
-import { SuccessfulTransaction } from './components/AdvancedTransaction/SuccessfulTransaction';
-import { SuccessPage } from './components/Auth/SuccessPage';
-import { VehicleManager } from './components/Vehicles/VehicleManager';
-import { ManageVehicle } from './components/Vehicles/ManageVehicle';
-import { MintVehicle } from './components/Vehicles/MintVehicle';
-import { AddVehicle } from './components/Vehicles/AddVehicle';
-import { CompatibilityCheck } from './components/Vehicles/CompatibilityCheck';
-import { ConnectDevice } from './components/Connections/ConnectDevice';
-import { ConnectTesla } from './components/Connections/ConnectTesla';
-import { Logout } from './components/Auth/Logout';
 import { AppShell } from './components/Shell/AppShell';
+import { ScreenErrorBoundary } from './components/Shell/ScreenErrorBoundary';
+import {
+  AccountManager,
+  AccountPermissionsSuccess,
+  AddVehicle,
+  AdvancedTransaction,
+  CancelledTransaction,
+  CompatibilityCheck,
+  ConnectDevice,
+  ConnectTesla,
+  EmailConsent,
+  Logout,
+  ManageVehicle,
+  MintVehicle,
+  OtpInput,
+  PasskeyGeneration,
+  PasskeyLogin,
+  PasskeyLoginFail,
+  preloadScreens,
+  ProvisionDeveloperLicense,
+  SIGN_IN_STATES,
+  SignMessage,
+  SuccessfulPermissions,
+  SuccessfulTransaction,
+  SuccessPage,
+  VehicleManager,
+} from './screens';
 import { useErrorHandler } from './hooks/useErrorHandler';
-import { PasskeyLogin } from './components/Auth/PasskeyLogin';
-import { PasskeyLoginFail } from './components/Auth/PasskeyLoginFail';
-import { EmailConsent } from './components/Auth/EmailConsent';
 import { useLanguage, useT } from './i18n';
 import { useLanguageSync } from './i18n/useLanguageSync';
 
@@ -113,6 +120,21 @@ const App = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId, incomingEntryState, credentialsChecked]);
 
+  // Once the app's credentials check out, load the screens a sign-in passes
+  // through (and the one the app asked for) and the wallet stack while the
+  // person types their email. A preload that fails is retried by the screen
+  // or sign-in step that needs it, so its failure is ignored here.
+  useEffect(
+    () =>
+      credentialsChecked
+        ? onIdle(() => {
+            preloadScreens([...SIGN_IN_STATES, entryState as UiStates]);
+            loadSignInSteps().catch(() => {});
+          })
+        : undefined,
+    [credentialsChecked, entryState],
+  );
+
   if (isLoading) {
     return (
       <AppShell loading>
@@ -164,7 +186,13 @@ const App = () => {
     [UiStates.PROVISION_DEVELOPER_LICENSE]: <ProvisionDeveloperLicense />,
   };
 
-  return <AppShell>{componentMap[uiState] || null}</AppShell>;
+  return (
+    <AppShell>
+      <ScreenErrorBoundary>
+        <Suspense fallback={<LoadingScreen />}>{componentMap[uiState] || null}</Suspense>
+      </ScreenErrorBoundary>
+    </AppShell>
+  );
 };
 
 export default App;

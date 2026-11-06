@@ -7,6 +7,17 @@ import { AuthProvider } from './context/AuthContext';
 import { DevCredentialsProvider } from './context/DevCredentialsContext';
 import { UIManagerProvider } from './context/UIManagerContext';
 import { GlobalOraclesProvider } from './context/OraclesContext';
+import { reloadOnceForMissingChunk } from './utils/chunkReload';
+
+// A lazy screen whose chunk is gone (a deploy replaced it) reloads the page
+// once to pick up the new build.
+window.addEventListener('vite:preloadError', (e) =>
+  reloadOnceForMissingChunk(e, {
+    storage: sessionStorage,
+    reload: () => window.location.reload(),
+    now: Date.now(),
+  }),
+);
 
 // Initialize Sentry
 Sentry.init({

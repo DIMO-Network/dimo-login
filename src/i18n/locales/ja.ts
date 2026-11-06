@@ -72,6 +72,8 @@ const ja: LocaleResources = {
   'error.invalid_permissions_format.title': '権限の形式が無効です',
   'error.invalid_permissions_format.message':
     '権限は0と1からなる最大{{max}}文字の文字列で指定してください。',
+  'error.screen_load.title': 'この画面を読み込めませんでした',
+  'error.screen_load.message': '接続を確認して、アプリからもう一度やり直してください。',
 
   'grant_unreadable.retry':
     '{{vehicle}}の現在の共有条件を読み取れませんでした。もう一度お試しください。',

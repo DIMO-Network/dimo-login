@@ -53,9 +53,25 @@ export const MyNewVehicleComponent = () => {
 
 ## 🧩 Step 3 — Render It in App.tsx
 
-Add it to the `componentMap` in `App.tsx`; `AppShell` wraps it:
+Screens load when they're shown, so the first screen doesn't download them. Give the new one a loader and a lazy component in `src/screens.tsx`:
+
+```tsx
+const screenLoaders = {
+  …
+  [UiStates.MY_NEW_VIEW]: () =>
+    import('./components/Vehicles/MyNewVehicleComponent').then((m) => ({
+      default: m.MyNewVehicleComponent,
+    })),
+};
+
+export const MyNewVehicleComponent = lazy(screenLoaders[UiStates.MY_NEW_VIEW]);
+```
+
+Then import it from `./screens` (never from its own file) and add it to the `componentMap` in `App.tsx`; `AppShell` wraps it, with a loading screen while its chunk loads and an error screen if it can't:
 
 `[UiStates.MY_NEW_VIEW]: <MyNewVehicleComponent />,`
+
+If wallet code (`viem`, `@turnkey/*`, `turnkeyService`, …) reaches the first screen through a static import, `npm run build` fails and lists the modules.
 
 Then list it in `docs/flows.md`: how it's reached, what it signs and what the app is told.
 
