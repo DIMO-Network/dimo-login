@@ -1,5 +1,9 @@
 import type { Mock } from 'vitest';
-import { fetchVehicles, fetchPowertrainTypes } from '../identityService';
+import {
+  fetchVehicles,
+  fetchPowertrainTypes,
+  getDeveloperLicense,
+} from '../identityService';
 import { queryIdentity } from '../identityGraphql';
 
 vi.mock('../identityGraphql', () => ({ queryIdentity: vi.fn() }));
@@ -82,13 +86,19 @@ describe('fetchPowertrainTypes', () => {
     expect(query).toContain('d1: deviceDefinition(by: { id: $id1 })');
   });
 
+  // identity-api's answer for an id it doesn't know (devicedefinition.go).
+  const unknown = (alias: string) => ({
+    message: 'no device definition found with that id',
+    path: [alias],
+  });
+
   it('reads powertrain_type per definition, null when unknown', async () => {
     mockQuery.mockResolvedValue({
       data: {
         d0: { attributes: [{ name: 'powertrain_type', value: 'BEV' }] },
         d1: null,
       },
-      errors: [{ message: 'not found' }],
+      errors: [unknown('d1')],
     });
     await expect(fetchPowertrainTypes(['a', 'b'])).resolves.toEqual(
       new Map([
@@ -98,14 +108,23 @@ describe('fetchPowertrainTypes', () => {
     );
   });
 
-  it('throws the first error when every lookup failed', async () => {
-    // An upstream outage: 200, with an error for each definition.
+  it('maps a definition it doesn’t know to null even when it is the only one', async () => {
+    // A user whose vehicles all share one definition identity-api lacks.
+    mockQuery.mockResolvedValue({ data: { d0: null }, errors: [unknown('d0')] });
+    await expect(fetchPowertrainTypes(['a'])).resolves.toEqual(new Map([['a', null]]));
+  });
+
+  it('throws when a lookup failed for any other reason', async () => {
+    // An upstream failure for one definition fails the list, as before.
     mockQuery.mockResolvedValue({
-      data: { d0: null, d1: null },
-      errors: [{ message: 'upstream unavailable' }, { message: 'upstream unavailable' }],
+      data: {
+        d0: { attributes: [{ name: 'powertrain_type', value: 'BEV' }] },
+        d1: null,
+      },
+      errors: [{ message: 'error from Tableland', path: ['d1'] }],
     });
     await expect(fetchPowertrainTypes(['a', 'b'])).rejects.toThrow(
-      'upstream unavailable',
+      'error from Tableland',
     );
   });
 
@@ -117,5 +136,46 @@ describe('fetchPowertrainTypes', () => {
   it('makes no request for no ids', async () => {
     await expect(fetchPowertrainTypes([])).resolves.toEqual(new Map());
     expect(mockQuery).not.toHaveBeenCalled();
+  });
+});
+
+describe('getDeveloperLicense', () => {
+  const mockQuery = queryIdentity as Mock;
+  const CLIENT_ID = '0xb92d74B468B4047289AEa7c9B953066E39768C16';
+  let consoleError: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    mockQuery.mockReset();
+    consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => consoleError.mockRestore());
+
+  it('returns the license', async () => {
+    const license = { owner: '0x1', alias: 'Acme', redirectURIs: { nodes: [] } };
+    mockQuery.mockResolvedValue({ data: { developerLicense: license }, errors: [] });
+    await expect(getDeveloperLicense(CLIENT_ID)).resolves.toEqual(license);
+  });
+
+  it('returns null for a license identity-api doesn’t know', async () => {
+    mockQuery.mockResolvedValue({
+      data: { developerLicense: null },
+      errors: [
+        {
+          message: `No developer license with client id ${CLIENT_ID}.`,
+          path: ['developerLicense'],
+          extensions: { code: 'NOT_FOUND' },
+        },
+      ],
+    });
+    await expect(getDeveloperLicense(CLIENT_ID)).resolves.toBeNull();
+  });
+
+  it('throws when identity-api couldn’t look it up', async () => {
+    // A resolver failure answers 200 with an error; it isn't a bad client ID.
+    mockQuery.mockResolvedValue({
+      data: null,
+      errors: [{ message: 'database timeout', path: ['developerLicense'] }],
+    });
+    await expect(getDeveloperLicense(CLIENT_ID)).rejects.toThrow('database timeout');
   });
 });

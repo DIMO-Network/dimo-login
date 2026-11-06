@@ -6,7 +6,7 @@
  * Specific Responsibilities include: Getting vehicles and their SACD permissions
  */
 
-import { queryIdentity } from './identityGraphql';
+import { queryIdentity, type IdentityError } from './identityGraphql';
 
 type IFetchVehicleParams = {
   ownerAddress: `0x${string}` | null;
@@ -123,10 +123,19 @@ type DeviceDefinitionAttributes = {
 } | null;
 
 /**
+ * Whether identity-api answered "there's no such record" rather than failing.
+ * Licenses, vehicles and connections carry the NOT_FOUND code; device
+ * definitions only say so in the message (identity-api's
+ * internal/repositories/devicedefinition/devicedefinition.go).
+ */
+const isNotFoundError = (error: IdentityError) =>
+  error.extensions?.code === 'NOT_FOUND' ||
+  /no device definition found/i.test(error.message);
+
+/**
  * Looks up the powertrain type of every definition in one request. An id the
- * API does not know maps to null. A response with no data throws, and so does
- * one where every lookup failed with an error, so an outage isn't read as
- * every vehicle being incompatible.
+ * API doesn't know maps to null, so its vehicle reads as incompatible. Any
+ * other failure throws, so an outage isn't read as vehicles being incompatible.
  */
 export const fetchPowertrainTypes = async (
   definitionIds: string[],
@@ -151,12 +160,15 @@ export const fetchPowertrainTypes = async (
   if (!data) {
     throw new Error('The identity API returned no device definitions.');
   }
-  const definitions = ids.map((_, i) => data[`d${i}`]);
-  if (errors.length > 0 && definitions.every((definition) => !definition)) {
-    throw new Error(errors[0].message);
-  }
   ids.forEach((id, i) => {
-    const attribute = definitions[i]?.attributes?.find(
+    const alias = `d${i}`;
+    const definition = data[alias];
+    if (!definition) {
+      // An error without a path isn't tied to one definition, so it counts too.
+      const error = errors.find((e) => e.path?.[0] === alias || !e.path);
+      if (error && !isNotFoundError(error)) throw new Error(error.message);
+    }
+    const attribute = definition?.attributes?.find(
       (att) => att.name === 'powertrain_type',
     );
     powertrainTypes.set(id, attribute?.value ?? null);
@@ -220,12 +232,15 @@ export const getDeveloperLicense = async (clientId: string) => {
     }
   }`;
 
-  const { data: developerLicenseData } = await queryIdentity<{ developerLicense?: any }>(
-    query,
-  );
+  const { data: developerLicenseData, errors } = await queryIdentity<{
+    developerLicense?: any;
+  }>(query);
   const { developerLicense } = developerLicenseData || {};
 
   if (!developerLicense) {
+    // An unknown client ID is a bad setup (null); a failed lookup is an outage.
+    const failure = errors.find((error) => !isNotFoundError(error));
+    if (failure) throw new Error(failure.message);
     console.error('No data found in the response.');
     return null;
   }

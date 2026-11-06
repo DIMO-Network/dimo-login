@@ -239,7 +239,17 @@ it('Returns vehicles that match both tokenId and powertrain type filters', async
   expect(data.incompatibleVehicles.length).toEqual(1);
   expect(data.incompatibleVehicles[0].tokenId).toEqual(1);
 });
-it('looks up each distinct definition once', async () => {
+it('looks up only the vehicles the other filters keep', async () => {
+  await fetchVehiclesWithTransformation({
+    cursor: '',
+    direction: '',
+    ownerAddress: '0x',
+    targetGrantee: '0x',
+    filters: { vehicleMakes: ['Tesla'], powertrainTypes: ['BEV'] },
+  });
+  expect(fetchPowertrainTypes).toHaveBeenCalledWith(['tesla_model_3_2019']);
+});
+it('looks up every definition in one request', async () => {
   const base = (fetchVehicles as Mock).getMockImplementation()!;
   (fetchVehicles as Mock).mockImplementation(async () => {
     const result = await base();
@@ -260,10 +270,12 @@ it('looks up each distinct definition once', async () => {
     targetGrantee: '0x',
     filters: { powertrainTypes: ['BEV'] },
   });
+  // fetchPowertrainTypes asks about each distinct id once.
   expect(fetchPowertrainTypes).toHaveBeenCalledTimes(1);
   expect(fetchPowertrainTypes).toHaveBeenCalledWith([
     'tesla_model_3_2019',
     'ford_bronco_2023',
+    'tesla_model_3_2019',
   ]);
 });
 it('does not look up definitions without a powertrain filter', async () => {

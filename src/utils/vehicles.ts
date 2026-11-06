@@ -69,10 +69,17 @@ export const sortVehiclesByFilters = async (
   const compatibleVehicles = [];
   const incompatibleVehicles = [];
 
+  // Only vehicles the cheaper filters keep need their powertrain looked up.
   const powertrains = filters.powertrainTypes?.length
-    ? await fetchPowertrainTypes([
-        ...new Set(vehicles.map((vehicle) => vehicle.definitionId)),
-      ])
+    ? await fetchPowertrainTypes(
+        vehicles
+          .filter(
+            (vehicle) =>
+              checkTokenIdsFilter(vehicle, filters.vehicleTokenIds) &&
+              checkMakesFilter(vehicle, filters.vehicleMakes),
+          )
+          .map((vehicle) => vehicle.definitionId),
+      )
     : new Map<string, string | null>();
 
   for (const vehicle of vehicles) {

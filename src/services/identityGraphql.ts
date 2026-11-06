@@ -5,9 +5,16 @@ const IDENTITY_API_URL =
 
 const IDENTITY_TIMEOUT_MS = 30_000;
 
+/** A GraphQL error. `path` names the field (or alias) it belongs to. */
+export interface IdentityError {
+  message: string;
+  path?: (string | number)[];
+  extensions?: { code?: string };
+}
+
 export interface IdentityResult<T> {
   data: T | null;
-  errors: { message: string }[];
+  errors: IdentityError[];
 }
 
 /**
