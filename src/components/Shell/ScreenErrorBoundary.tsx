@@ -2,36 +2,63 @@ import React, { Component, type ReactNode } from 'react';
 import { captureException } from '@sentry/react';
 
 import { message } from '../../i18n';
+import {
+  ChunkLoadError,
+  reloadPage,
+  shouldReloadForMissingChunk,
+} from '../../utils/chunkReload';
 import { ErrorScreen } from '../Shared/ErrorScreen';
+import { LoadingScreen } from '../Shared/LoadingScreen';
 
 interface ScreenErrorBoundaryProps {
   children: ReactNode;
 }
 
 interface ScreenErrorBoundaryState {
+  /** A chunk is missing and the page may reload: show the loading screen. */
+  reloading: boolean;
   failed: boolean;
 }
 
+// Reading sessionStorage throws where storage is blocked: then don't reload.
+const reloadAllowed = (): boolean => {
+  try {
+    return shouldReloadForMissingChunk({ storage: sessionStorage, now: Date.now() });
+  } catch {
+    return false;
+  }
+};
+
 /**
- * Catches a screen that couldn't render, most often a lazy screen whose chunk
- * didn't load even after the reload in chunkReload.ts, and says so inside the
- * shell instead of leaving the popup blank.
+ * Catches a screen that couldn't show. A lazy screen whose chunk is missing
+ * (most often a deploy replaced it) reloads the page once to pick up the new
+ * build. If it's still missing, or the screen broke some other way, the
+ * boundary says so inside the shell instead of leaving the popup blank.
  */
 export class ScreenErrorBoundary extends Component<
   ScreenErrorBoundaryProps,
   ScreenErrorBoundaryState
 > {
-  state: ScreenErrorBoundaryState = { failed: false };
+  state: ScreenErrorBoundaryState = { reloading: false, failed: false };
 
-  static getDerivedStateFromError(): ScreenErrorBoundaryState {
-    return { failed: true };
+  static getDerivedStateFromError(error: unknown): ScreenErrorBoundaryState {
+    // Whether to reload is decided once, in componentDidCatch; until then a
+    // missing chunk shows the loading screen.
+    const missingChunk = error instanceof ChunkLoadError;
+    return { reloading: missingChunk, failed: !missingChunk };
   }
 
   componentDidCatch(error: unknown) {
+    if (error instanceof ChunkLoadError && reloadAllowed()) {
+      reloadPage();
+      return;
+    }
+    this.setState({ reloading: false, failed: true });
     captureException(error);
   }
 
   render() {
+    if (this.state.reloading) return <LoadingScreen />;
     if (this.state.failed) {
       return (
         <ErrorScreen

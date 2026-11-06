@@ -2,32 +2,38 @@ const RELOADED_AT = 'dimo:chunk-reload-at';
 const RELOAD_WINDOW_MS = 10_000;
 
 /**
- * Handles Vite's `vite:preloadError`: a lazy chunk didn't load, most often
- * because a deploy replaced it while this page was open. The first time, the
- * page reloads to pick up the new build. If it already reloaded in the last
- * 10 s, the chunk is really unreachable, so the event is left alone and the
- * import fails into ScreenErrorBoundary instead of reloading again.
- *
- * preventDefault() is called only on the reload path: Vite then resolves the
- * failed import to undefined rather than rejecting it.
+ * A lazy screen's code didn't load: most often a deploy replaced its chunk
+ * while this page was open, or the network dropped. The loaders in
+ * src/screens.tsx turn a failed import into this error, so ScreenErrorBoundary
+ * can tell it from a screen that broke while rendering.
  */
-export const reloadOnceForMissingChunk = (
-  event: Event,
-  deps: {
-    storage: Pick<Storage, 'getItem' | 'setItem'>;
-    reload: () => void;
-    now: number;
-  },
-): void => {
-  const { storage, reload, now } = deps;
+export class ChunkLoadError extends Error {
+  constructor(cause: unknown) {
+    super(cause instanceof Error ? cause.message : String(cause), { cause });
+    this.name = 'ChunkLoadError';
+  }
+}
+
+/**
+ * Whether a missing chunk should reload the page to pick up the current build.
+ * It does the first time, and records when. If the page already reloaded in
+ * the last 10 s, the chunk is really unreachable and another reload won't
+ * help. Without storage there's no record, so it never reloads (no loop).
+ */
+export const shouldReloadForMissingChunk = (deps: {
+  storage: Pick<Storage, 'getItem' | 'setItem'>;
+  now: number;
+}): boolean => {
+  const { storage, now } = deps;
   try {
     const last = storage.getItem(RELOADED_AT);
-    if (last !== null && now - Number(last) <= RELOAD_WINDOW_MS) return;
+    if (last !== null && now - Number(last) <= RELOAD_WINDOW_MS) return false;
     storage.setItem(RELOADED_AT, String(now));
+    return true;
   } catch {
-    // Without a record of the last reload, reloading could loop forever.
-    return;
+    return false;
   }
-  event.preventDefault();
-  reload();
 };
+
+/** Reloads the page. Its own export, so tests can replace it. */
+export const reloadPage = (): void => window.location.reload();

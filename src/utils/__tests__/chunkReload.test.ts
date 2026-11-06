@@ -1,4 +1,4 @@
-import { reloadOnceForMissingChunk } from '../chunkReload';
+import { ChunkLoadError, shouldReloadForMissingChunk } from '../chunkReload';
 
 const RELOADED_AT = 'dimo:chunk-reload-at';
 
@@ -12,43 +12,24 @@ const memoryStorage = (initial: Record<string, string> = {}) => {
   };
 };
 
-// What Vite dispatches on window when a lazy chunk fails to load.
-const missingChunk = () => new Event('vite:preloadError', { cancelable: true });
-
 it('reloads on the first missing chunk', () => {
   const storage = memoryStorage();
-  const reload = vi.fn();
-  const event = missingChunk();
 
-  reloadOnceForMissingChunk(event, { storage, reload, now: 1000 });
-
-  expect(reload).toHaveBeenCalledTimes(1);
-  expect(event.defaultPrevented).toBe(true);
+  expect(shouldReloadForMissingChunk({ storage, now: 1000 })).toBe(true);
   expect(storage.getItem(RELOADED_AT)).toBe('1000');
 });
 
 it('does not reload again within 10 s', () => {
   const storage = memoryStorage({ [RELOADED_AT]: '1000' });
-  const reload = vi.fn();
-  const event = missingChunk();
 
-  reloadOnceForMissingChunk(event, { storage, reload, now: 5000 });
-
-  expect(reload).not.toHaveBeenCalled();
-  // The error goes on to the screen's error boundary.
-  expect(event.defaultPrevented).toBe(false);
+  expect(shouldReloadForMissingChunk({ storage, now: 5000 })).toBe(false);
   expect(storage.getItem(RELOADED_AT)).toBe('1000');
 });
 
 it('reloads again after 10 s', () => {
   const storage = memoryStorage({ [RELOADED_AT]: '1000' });
-  const reload = vi.fn();
-  const event = missingChunk();
 
-  reloadOnceForMissingChunk(event, { storage, reload, now: 12000 });
-
-  expect(reload).toHaveBeenCalledTimes(1);
-  expect(event.defaultPrevented).toBe(true);
+  expect(shouldReloadForMissingChunk({ storage, now: 12000 })).toBe(true);
   expect(storage.getItem(RELOADED_AT)).toBe('12000');
 });
 
@@ -61,11 +42,16 @@ it('does not reload when storage is blocked', () => {
     },
     setItem: vi.fn(),
   };
-  const reload = vi.fn();
-  const event = missingChunk();
 
-  reloadOnceForMissingChunk(event, { storage, reload, now: 1000 });
+  expect(shouldReloadForMissingChunk({ storage, now: 1000 })).toBe(false);
+});
 
-  expect(reload).not.toHaveBeenCalled();
-  expect(event.defaultPrevented).toBe(false);
+it('keeps the failed import as the cause', () => {
+  const failure = new TypeError('Failed to fetch dynamically imported module');
+  const error = new ChunkLoadError(failure);
+
+  expect(error).toBeInstanceOf(Error);
+  expect(error.name).toBe('ChunkLoadError');
+  expect(error.message).toBe(failure.message);
+  expect(error.cause).toBe(failure);
 });

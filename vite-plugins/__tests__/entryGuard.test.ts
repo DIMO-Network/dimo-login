@@ -1,7 +1,7 @@
 import { gzipSync } from 'zlib';
 import type { Rolldown } from 'vite';
 
-import { entryGuard, firstLoadBytes, forbiddenEntryModules } from '../entryGuard';
+import { entryGuard, firstLoadBytes, forbiddenEntryModules } from '../entryGuard.mts';
 
 // The patterns vite.config.mts passes.
 const forbidden = [

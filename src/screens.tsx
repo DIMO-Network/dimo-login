@@ -8,11 +8,24 @@
  *
  * Import a screen from here, not from its file: most of them reach the wallet
  * stack, and the build fails if that lands in the first screen's chunks
- * (vite-plugins/entryGuard.ts).
+ * (vite-plugins/entryGuard.mts).
+ *
+ * A screen whose chunk doesn't load fails with ChunkLoadError, which
+ * ScreenErrorBoundary answers with one reload. A preload that fails is
+ * ignored, so it never reloads the page.
  */
-import { lazy } from 'react';
+import { lazy, type ComponentType } from 'react';
 
 import { UiStates } from './enums';
+import { ChunkLoadError } from './utils/chunkReload';
+
+// A failed import becomes ChunkLoadError. T's bound is React.lazy's own.
+const lazyScreen = <T extends ComponentType<any>>(load: () => Promise<{ default: T }>) =>
+  lazy(() =>
+    load().catch((cause: unknown) => {
+      throw new ChunkLoadError(cause);
+    }),
+  );
 
 const screenLoaders = {
   [UiStates.PASSKEY_LOGIN]: () =>
@@ -91,32 +104,38 @@ const screenLoaders = {
     ),
 };
 
-export const PasskeyLogin = lazy(screenLoaders[UiStates.PASSKEY_LOGIN]);
-export const OtpInput = lazy(screenLoaders[UiStates.OTP_INPUT]);
-export const PasskeyLoginFail = lazy(screenLoaders[UiStates.PASSKEY_LOGIN_FAIL]);
-export const PasskeyGeneration = lazy(screenLoaders[UiStates.PASSKEY_GENERATOR]);
-export const VehicleManager = lazy(screenLoaders[UiStates.VEHICLE_MANAGER]);
-export const ManageVehicle = lazy(screenLoaders[UiStates.MANAGE_VEHICLE]);
-export const AdvancedTransaction = lazy(screenLoaders[UiStates.ADVANCED_TRANSACTION]);
-export const SignMessage = lazy(screenLoaders[UiStates.SIGN_MESSAGE]);
-export const SuccessfulTransaction = lazy(screenLoaders[UiStates.TRANSACTION_SUCCESS]);
-export const SuccessfulPermissions = lazy(
+export const PasskeyLogin = lazyScreen(screenLoaders[UiStates.PASSKEY_LOGIN]);
+export const OtpInput = lazyScreen(screenLoaders[UiStates.OTP_INPUT]);
+export const PasskeyLoginFail = lazyScreen(screenLoaders[UiStates.PASSKEY_LOGIN_FAIL]);
+export const PasskeyGeneration = lazyScreen(screenLoaders[UiStates.PASSKEY_GENERATOR]);
+export const VehicleManager = lazyScreen(screenLoaders[UiStates.VEHICLE_MANAGER]);
+export const ManageVehicle = lazyScreen(screenLoaders[UiStates.MANAGE_VEHICLE]);
+export const AdvancedTransaction = lazyScreen(
+  screenLoaders[UiStates.ADVANCED_TRANSACTION],
+);
+export const SignMessage = lazyScreen(screenLoaders[UiStates.SIGN_MESSAGE]);
+export const SuccessfulTransaction = lazyScreen(
+  screenLoaders[UiStates.TRANSACTION_SUCCESS],
+);
+export const SuccessfulPermissions = lazyScreen(
   screenLoaders[UiStates.VEHICLES_SHARED_SUCCESS],
 );
-export const AccountManager = lazy(screenLoaders[UiStates.ACCOUNT_MANAGER]);
-export const AccountPermissionsSuccess = lazy(
+export const AccountManager = lazyScreen(screenLoaders[UiStates.ACCOUNT_MANAGER]);
+export const AccountPermissionsSuccess = lazyScreen(
   screenLoaders[UiStates.ACCOUNT_PERMISSIONS_SUCCESS],
 );
-export const AddVehicle = lazy(screenLoaders[UiStates.ADD_VEHICLE]);
-export const CompatibilityCheck = lazy(screenLoaders[UiStates.COMPATIBILITY_CHECK]);
-export const MintVehicle = lazy(screenLoaders[UiStates.MINT_VEHICLE]);
-export const ConnectDevice = lazy(screenLoaders[UiStates.CONNECT_DEVICE]);
-export const ConnectTesla = lazy(screenLoaders[UiStates.CONNECT_TESLA]);
-export const CancelledTransaction = lazy(screenLoaders[UiStates.TRANSACTION_CANCELLED]);
-export const SuccessPage = lazy(screenLoaders[UiStates.SUCCESS]);
-export const EmailConsent = lazy(screenLoaders[UiStates.EMAIL_CONSENT]);
-export const Logout = lazy(screenLoaders[UiStates.LOGOUT]);
-export const ProvisionDeveloperLicense = lazy(
+export const AddVehicle = lazyScreen(screenLoaders[UiStates.ADD_VEHICLE]);
+export const CompatibilityCheck = lazyScreen(screenLoaders[UiStates.COMPATIBILITY_CHECK]);
+export const MintVehicle = lazyScreen(screenLoaders[UiStates.MINT_VEHICLE]);
+export const ConnectDevice = lazyScreen(screenLoaders[UiStates.CONNECT_DEVICE]);
+export const ConnectTesla = lazyScreen(screenLoaders[UiStates.CONNECT_TESLA]);
+export const CancelledTransaction = lazyScreen(
+  screenLoaders[UiStates.TRANSACTION_CANCELLED],
+);
+export const SuccessPage = lazyScreen(screenLoaders[UiStates.SUCCESS]);
+export const EmailConsent = lazyScreen(screenLoaders[UiStates.EMAIL_CONSENT]);
+export const Logout = lazyScreen(screenLoaders[UiStates.LOGOUT]);
+export const ProvisionDeveloperLicense = lazyScreen(
   screenLoaders[UiStates.PROVISION_DEVELOPER_LICENSE],
 );
 

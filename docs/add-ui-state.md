@@ -64,8 +64,10 @@ const screenLoaders = {
     })),
 };
 
-export const MyNewVehicleComponent = lazy(screenLoaders[UiStates.MY_NEW_VIEW]);
+export const MyNewVehicleComponent = lazyScreen(screenLoaders[UiStates.MY_NEW_VIEW]);
 ```
+
+`lazyScreen` turns a chunk that doesn't load into `ChunkLoadError`, which reloads the page once to pick up the current build.
 
 Then import it from `./screens` (never from its own file) and add it to the `componentMap` in `App.tsx`; `AppShell` wraps it, with a loading screen while its chunk loads and an error screen if it can't:
 

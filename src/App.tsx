@@ -1,4 +1,4 @@
-import React, { Suspense, useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect, useRef } from 'react';
 
 import { initializeSession } from './services/sessionService';
 import { loadSignInSteps } from './services/walletLoader';
@@ -15,6 +15,7 @@ import { EmailInput } from './components/Auth/EmailInput';
 import { ErrorScreen } from './components/Shared/ErrorScreen';
 import { LoadingScreen } from './components/Shared/LoadingScreen';
 import { AppShell } from './components/Shell/AppShell';
+import { FocusScreenHeading } from './components/Shell/FocusScreenHeading';
 import { ScreenErrorBoundary } from './components/Shell/ScreenErrorBoundary';
 import {
   AccountManager,
@@ -58,6 +59,7 @@ const App = () => {
   } = useDevCredentials();
   const { uiState, setUiState, entryState } = useUIManager();
   const [email, setEmail] = useState('');
+  const firstScreen = useRef<object | null>(null);
   const t = useT();
   const language = useLanguage();
 
@@ -188,8 +190,12 @@ const App = () => {
 
   return (
     <AppShell>
-      <ScreenErrorBoundary>
-        <Suspense fallback={<LoadingScreen />}>{componentMap[uiState] || null}</Suspense>
+      {/* Keyed by the screen, so Back recovers from one that failed. */}
+      <ScreenErrorBoundary key={uiState}>
+        <Suspense fallback={<LoadingScreen />}>
+          {componentMap[uiState] || null}
+          <FocusScreenHeading key={uiState} firstScreen={firstScreen} />
+        </Suspense>
       </ScreenErrorBoundary>
     </AppShell>
   );

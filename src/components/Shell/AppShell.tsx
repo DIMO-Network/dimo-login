@@ -26,19 +26,11 @@ export const AppShell = ({
   const { oemBrand } = useDevCredentials();
   const { uiState, prevUiStates, goBack, busy } = useUIManager();
   const mainRef = useRef<HTMLElement>(null);
-  const firstRender = useRef(true);
 
-  // A new step announces itself: focus its heading and start at the top.
+  // A new step starts at the top. Its heading takes focus once the screen has
+  // loaded (FocusScreenHeading, rendered by App).
   useEffect(() => {
-    if (firstRender.current) {
-      firstRender.current = false;
-      return;
-    }
-    const main = mainRef.current;
-    main?.scrollTo?.({ top: 0 });
-    main
-      ?.querySelector<HTMLElement>('[data-screen-heading]')
-      ?.focus({ preventScroll: true });
+    mainRef.current?.scrollTo?.({ top: 0 });
   }, [uiState]);
 
   // The OEM's color, as CSS variables the primary button and focus states read.
