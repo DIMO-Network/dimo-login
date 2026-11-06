@@ -23,6 +23,11 @@ export const GLOBAL_ERROR_MESSAGES = {
     title: message('error.missing_redirect_uri.title'),
     message: message('error.missing_redirect_uri.message'),
   },
+  // Before invalidCredentials, which stays true: an outage isn't a bad setup.
+  credentialsUnavailable: {
+    title: message('error.credentials_unavailable.title'),
+    message: message('error.credentials_unavailable.message'),
+  },
   invalidCredentials: {
     title: message('error.invalid_credentials.title'),
     message: message('error.invalid_credentials.message'),

@@ -26,7 +26,8 @@ import {
   getLicenseAlias,
   isValidDeveloperLicense,
 } from '../services/identityService';
-import { fetchOemBrand, readCachedBrand } from '../services/brandService';
+import { captureException } from '@sentry/react';
+import { fetchOemBrand, readCachedBrand, type OemBrand } from '../services/brandService';
 import { AuthProvider } from '../utils/authUrls';
 import { readOAuthState, readTrustedOAuthReturn } from '../utils/flowSnapshot';
 import { reportRefusal } from '../utils/reportRefusal';
@@ -307,28 +308,50 @@ export const DevCredentialsProvider = ({
     const brandRequest = fetchOemBrand(clientId, brandName);
 
     // With a cached brand already painted, auth never waits on console-api: the
-    // live record lands whenever it answers (a null drops a brand the console no
-    // longer has). Without one, the screen waits for it as before.
+    // live record lands whenever it answers. fetchOemBrand answers null both
+    // when the console no longer has the brand (it clears the cache) and when
+    // the lookup failed (it keeps the cache), so the cache says which: a brand
+    // that's gone is dropped, a passing failure leaves the brand on screen.
+    // Without a cached brand, the screen waits for it as before.
     if (cachedBrand) {
       void brandRequest.then((brand) => {
-        if (!isStale()) applyDevCredentialsConfig({ oemBrand: brand });
+        if (!isStale()) {
+          applyDevCredentialsConfig({ oemBrand: brand ?? readCachedBrand(clientId) });
+        }
       });
     }
-    const [licenseData, awaitedBrand] = await Promise.all([
-      getDeveloperLicense(clientId),
-      cachedBrand ? null : brandRequest,
-    ]);
-    if (isStale()) return;
-    const alias = await getLicenseAlias(licenseData, clientId);
-    if (isStale()) return;
+
     // PROVISION_DEVELOPER_LICENSE: the calling app may not be a registered
     // developer and its redirectUri won't be registered on-chain yet — that's
     // what this flow sets up. Skip all license validation so KernelSigner is
     // always initialized and the user can proceed to provisioning.
     const isProvisionFlow = entryState === UiStates.PROVISION_DEVELOPER_LICENSE;
-    const isRegistered = isProvisionFlow
-      ? true
-      : await isValidDeveloperLicense(licenseData, redirectUri);
+    let alias: string;
+    let isRegistered: boolean;
+    let awaitedBrand: OemBrand | null;
+    try {
+      const [licenseData, brand] = await Promise.all([
+        getDeveloperLicense(clientId),
+        cachedBrand ? null : brandRequest,
+      ]);
+      awaitedBrand = brand;
+      if (isStale()) return;
+      alias = await getLicenseAlias(licenseData, clientId);
+      if (isStale()) return;
+      isRegistered = isProvisionFlow
+        ? true
+        : await isValidDeveloperLicense(licenseData, redirectUri);
+    } catch (error) {
+      // identity-api failed or timed out: say so rather than wait forever.
+      if (isStale()) return;
+      console.error('Could not check the app’s developer license', error);
+      captureException(error);
+      applyDevCredentialsConfig({
+        credentialsUnavailable: true,
+        waitingForDevLicense: false,
+      });
+      return;
+    }
     if (isStale()) return;
 
     // A popup's opener and an embedding page must be the app itself: answers
@@ -348,6 +371,7 @@ export const DevCredentialsProvider = ({
       ...(cachedBrand ? {} : { oemBrand: awaitedBrand }),
       invalidCredentials: !isValid,
       untrustedCaller: !fromApp,
+      credentialsUnavailable: false,
       waitingForDevLicense: false,
     });
 

@@ -47,6 +47,8 @@ export interface FetchedParams {
   invalidCredentials: boolean;
   /** The popup's opener, or the embedding page, isn't the app's redirect URI origin. */
   untrustedCaller?: boolean;
+  /** identity-api failed or timed out, so the app's license couldn't be checked. */
+  credentialsUnavailable?: boolean;
   /** The URL has an OAuth `state` this tab didn't send (see readTrustedOAuthReturn). */
   untrustedOAuthReturn?: boolean;
   /**

@@ -591,7 +591,8 @@ describe('DevCredentialsContext: cached brand', () => {
   });
 
   it('drops a cached brand the console no longer has', async () => {
-    (readCachedBrand as Mock).mockReturnValue(cached);
+    // fetchOemBrand clears the cache when the console answers 404.
+    (readCachedBrand as Mock).mockReturnValueOnce(cached).mockReturnValue(null);
     const settle = pendingBrand();
     renderProbes();
     await dispatchAuthInit({ clientId: CLIENT_ID });
@@ -600,6 +601,19 @@ describe('DevCredentialsContext: cached brand', () => {
     await act(async () => settle(null));
 
     await waitFor(() => expect(brandName()).toBeNull());
+  });
+
+  it('keeps the cached brand when console-api fails for a moment', async () => {
+    // A 5xx or a timeout: fetchOemBrand answers null but keeps the cache.
+    (readCachedBrand as Mock).mockReturnValue(cached);
+    const settle = pendingBrand();
+    renderProbes();
+    await dispatchAuthInit({ clientId: CLIENT_ID });
+    await waitFor(() => expect(waiting()).toBe('false'));
+
+    await act(async () => settle(null));
+
+    expect(brandName()).toBe('Cached');
   });
 
   it('waits for the brand when none is cached', async () => {
@@ -618,5 +632,30 @@ describe('DevCredentialsContext: cached brand', () => {
 
     await waitFor(() => expect(waiting()).toBe('false'));
     expect(brandName()).toBe('Live');
+  });
+});
+
+describe('when the license lookup fails', () => {
+  let consoleError: ReturnType<typeof vi.spyOn>;
+  beforeEach(() => {
+    (getDeveloperLicense as Mock).mockRejectedValue(
+      new Error('Identity API answered 502'),
+    );
+    consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => consoleError.mockRestore());
+
+  it('says the app couldn’t be checked instead of waiting forever', async () => {
+    renderProvider('credentialsUnavailable');
+    await dispatchAuthInit({ clientId: CLIENT_ID });
+
+    await waitFor(() => expect(probe()).toBe('true'));
+  });
+
+  it('stops waiting for the license', async () => {
+    renderProvider('waitingForDevLicense');
+    await dispatchAuthInit({ clientId: CLIENT_ID });
+
+    await waitFor(() => expect(probe()).toBe('false'));
   });
 });

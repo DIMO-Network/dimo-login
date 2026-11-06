@@ -55,6 +55,9 @@ const ja: LocaleResources = {
   'error.invalid_credentials.title': 'このアプリは正しく設定されていません',
   'error.invalid_credentials.message':
     'このアプリのDIMO認証情報を確認できなかったため、ここからサインインや共有はできません。アプリのサポート窓口にお問い合わせください。',
+  'error.credentials_unavailable.title': 'このアプリを確認できませんでした',
+  'error.credentials_unavailable.message':
+    '確認しようとしましたが、DIMOから応答がありませんでした。接続を確認して、アプリからもう一度やり直してください。',
   'error.missing_transaction_data.title': 'トランザクションデータがありません',
   'error.missing_transaction_data.message':
     'アプリから署名するトランザクションが送信されていません。設定を確認して再読み込みしてください。',
