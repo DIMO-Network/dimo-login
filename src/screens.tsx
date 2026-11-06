@@ -14,7 +14,13 @@
  * ScreenErrorBoundary answers with one reload. A preload that fails is
  * ignored, so it never reloads the page.
  */
-import { lazy, type ComponentType } from 'react';
+import {
+  createElement,
+  lazy,
+  type ComponentProps,
+  type ComponentType,
+  type LazyExoticComponent,
+} from 'react';
 
 import { UiStates } from './enums';
 import { ChunkLoadError } from './utils/chunkReload';
@@ -27,12 +33,11 @@ type ScreenModule<T> = { default: T };
  * commit as the step change: React.lazy reads a thenable that calls back at
  * once as already loaded, where a resolved promise would still show the
  * loading screen (React then holds it for 300 ms). A failed load fails with
- * ChunkLoadError. A failed preload is forgotten, so the next preload, or the
- * screen's first showing, fetches again. Once the screen has been shown,
- * React.lazy keeps its load's result for the life of the page: if that load
- * failed, the screen fails the same way each time it's shown and nothing
- * fetches it again; only reloading the page does (ScreenErrorBoundary reloads
- * once for a missing chunk).
+ * ChunkLoadError. A failed load is forgotten, so the next preload or showing
+ * fetches again. React.lazy keeps a failed load for good, so after one the
+ * screen swaps in a fresh lazy component: when ScreenErrorBoundary declines to
+ * reload (it reloads once for a missing chunk), showing the screen again, after
+ * Back, fetches again instead of failing the same way.
  *
  * T's bound is React.lazy's own.
  */
@@ -61,10 +66,27 @@ export const lazyScreen = <T extends ComponentType<any>>(
       then: (resolve: (value: ScreenModule<T>) => void) => resolve(module),
     }) as unknown as Promise<ScreenModule<T>>;
 
-  return Object.assign(
-    lazy(() => (loaded ? alreadyLoaded(loaded) : preload())),
-    { preload },
-  );
+  const makeLazy = (): LazyExoticComponent<T> =>
+    lazy(() =>
+      loaded
+        ? alreadyLoaded(loaded)
+        : preload().catch((error: unknown) => {
+            // Swapped in only once ScreenErrorBoundary has shown the failure:
+            // swapping here would let React's retry render fetch again at
+            // once, in a loop while the network is down.
+            if (error instanceof ChunkLoadError) {
+              error.retry = () => {
+                current = makeLazy();
+              };
+            }
+            throw error;
+          }),
+    );
+  let current = makeLazy();
+
+  const Screen = (props: ComponentProps<T>) =>
+    createElement(current as ComponentType<ComponentProps<T>>, props);
+  return Object.assign(Screen, { preload });
 };
 
 const screens = {

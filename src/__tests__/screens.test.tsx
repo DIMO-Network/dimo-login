@@ -90,6 +90,35 @@ it('loads a screen whose preload failed', async () => {
   expect(reloadPage).not.toHaveBeenCalled();
 });
 
+it('loads a screen again when it is shown after its load failed', async () => {
+  // The page already reloaded for a missing chunk, so this failure isn't
+  // reloaded: the screen says it didn't load.
+  sessionStorage.setItem('dimo:chunk-reload-at', String(Date.now()));
+  const load = vi
+    .fn()
+    .mockRejectedValueOnce(new TypeError('Failed to fetch dynamically imported module'))
+    .mockResolvedValueOnce({ default: () => <h1>Back again</h1> });
+  const Flaky = lazyScreen(load);
+  const { rerender } = render(
+    <Step step="first">
+      <Flaky />
+    </Step>,
+  );
+  expect(await screen.findByRole('heading', { name: /didn’t load/ })).toBeInTheDocument();
+  // No fetch again by itself: that would loop while the network is down.
+  expect(load).toHaveBeenCalledTimes(1);
+
+  // Back, then forward again: the step remounts and the network is back.
+  rerender(
+    <Step step="again">
+      <Flaky />
+    </Step>,
+  );
+
+  expect(await screen.findByRole('heading', { name: 'Back again' })).toBeInTheDocument();
+  expect(load).toHaveBeenCalledTimes(2);
+});
+
 it('loads a screen once when it is shown while its preload is in flight', async () => {
   let finish = (_module: { default: React.ComponentType }) => {};
   const load = vi.fn(

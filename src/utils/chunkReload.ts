@@ -8,6 +8,12 @@ const RELOAD_WINDOW_MS = 10_000;
  * can tell it from a screen that broke while rendering.
  */
 export class ChunkLoadError extends Error {
+  /**
+   * Set by a lazy screen. ScreenErrorBoundary calls it once it has shown the
+   * failure, so the next showing of that screen fetches its chunk again.
+   */
+  retry?: () => void;
+
   constructor(cause: unknown) {
     super(cause instanceof Error ? cause.message : String(cause), { cause });
     this.name = 'ChunkLoadError';

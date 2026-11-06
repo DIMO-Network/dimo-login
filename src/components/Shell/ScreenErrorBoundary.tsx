@@ -62,6 +62,8 @@ export class ScreenErrorBoundary extends Component<
     }
     this.setState({ reloading: false, failed: true });
     captureException(error);
+    // Not reloading: let the screen fetch again the next time it's shown.
+    if (error instanceof ChunkLoadError) error.retry?.();
   }
 
   render() {
