@@ -1,5 +1,4 @@
 export * from './accountsService';
-export * from './apollo';
 export * from './authService';
 export * from './deviceDefinitionsService';
 export * from './dimoDevicesService';

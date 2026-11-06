@@ -6,11 +6,7 @@
  * Specific Responsibilities include: Getting vehicles and their SACD permissions
  */
 
-import { apolloClient } from './apollo';
-import { gql } from '@apollo/client';
-
-const GRAPHQL_ENDPOINT =
-  process.env.REACT_APP_DIMO_IDENTITY_URL || 'https://identity-api.dev.dimo.zone/query';
+import { queryIdentity } from './identityGraphql';
 
 type IFetchVehicleParams = {
   ownerAddress: `0x${string}` | null;
@@ -18,7 +14,7 @@ type IFetchVehicleParams = {
   direction: string;
 };
 
-const GET_VEHICLES = gql`
+const GET_VEHICLES = `
   query GetVehicles(
     $owner: Address!
     $first: Int
@@ -109,21 +105,20 @@ export const fetchVehicles = async (
     if (cursor) variables.before = cursor;
   }
 
-  const result = await apolloClient.query<{ vehicles: VehiclesQueryResult['vehicles'] }>({
-    query: GET_VEHICLES,
+  const { data, errors } = await queryIdentity<VehiclesQueryResult>(
+    GET_VEHICLES,
     variables,
-    fetchPolicy: 'network-only',
-  });
-  if (result.error) {
-    throw new Error(result.error.message);
+  );
+  if (errors.length > 0) {
+    throw new Error(errors[0].message);
   }
-  if (!result.data) {
+  if (!data) {
     throw new Error('The identity API returned no vehicles.');
   }
-  return { data: result.data };
+  return { data };
 };
 
-const GET_DEVICE_DEFINITION_BY_ID = gql(`
+const GET_DEVICE_DEFINITION_BY_ID = `
   query GetDeviceDefinitionById($id: String!) {
     deviceDefinition(by:{id: $id}) {
       attributes {
@@ -132,7 +127,7 @@ const GET_DEVICE_DEFINITION_BY_ID = gql(`
       }
     }
   }
-`);
+`;
 
 type GetDeviceDefinitionByIdQueryResult = {
   deviceDefinition: DeviceDefinition;
@@ -144,17 +139,17 @@ type DeviceDefinition = {
 export const fetchDeviceDefinition = async (
   deviceDefinitionId: string,
 ): Promise<GetDeviceDefinitionByIdQueryResult> => {
-  const result = await apolloClient.query<GetDeviceDefinitionByIdQueryResult>({
-    query: GET_DEVICE_DEFINITION_BY_ID,
-    variables: { id: deviceDefinitionId },
-  });
-  if (result.error) {
-    throw new Error(result.error.message);
+  const { data, errors } = await queryIdentity<GetDeviceDefinitionByIdQueryResult>(
+    GET_DEVICE_DEFINITION_BY_ID,
+    { id: deviceDefinitionId },
+  );
+  if (errors.length > 0) {
+    throw new Error(errors[0].message);
   }
-  if (!result.data) {
+  if (!data) {
     throw new Error('The identity API returned no device definition.');
   }
-  return result.data;
+  return data;
 };
 
 export const getFirstOwnedDeveloperLicense = async (
@@ -174,13 +169,15 @@ export const getFirstOwnedDeveloperLicense = async (
     }
   }`;
 
-  const apiResponse = await fetch(GRAPHQL_ENDPOINT!, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query }),
-  });
-
-  const { data } = await apiResponse.json();
+  const { data } = await queryIdentity<{
+    developerLicenses?: {
+      nodes?: {
+        tokenId: number;
+        clientId: string;
+        redirectURIs?: { nodes?: { uri: string }[] };
+      }[];
+    };
+  }>(query);
   const node = data?.developerLicenses?.nodes?.[0];
   if (!node) return null;
   return {
@@ -211,15 +208,9 @@ export const getDeveloperLicense = async (clientId: string) => {
     }
   }`;
 
-  const apiResponse = await fetch(GRAPHQL_ENDPOINT!, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ query }),
-  });
-
-  const { data: developerLicenseData } = await apiResponse.json();
+  const { data: developerLicenseData } = await queryIdentity<{ developerLicense?: any }>(
+    query,
+  );
   const { developerLicense } = developerLicenseData || {};
 
   if (!developerLicense) {

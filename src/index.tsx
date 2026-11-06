@@ -7,8 +7,6 @@ import { AuthProvider } from './context/AuthContext';
 import { DevCredentialsProvider } from './context/DevCredentialsContext';
 import { UIManagerProvider } from './context/UIManagerContext';
 import { GlobalOraclesProvider } from './context/OraclesContext';
-import { apolloClient } from './services/apollo';
-import { ApolloProvider } from '@apollo/client/react';
 
 // Initialize Sentry
 Sentry.init({
@@ -34,17 +32,15 @@ const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement)
 root.render(
   <React.StrictMode>
     <Sentry.ErrorBoundary>
-      <ApolloProvider client={apolloClient}>
-        <UIManagerProvider>
-          <GlobalOraclesProvider>
-            <DevCredentialsProvider>
-              <AuthProvider>
-                <App />
-              </AuthProvider>
-            </DevCredentialsProvider>
-          </GlobalOraclesProvider>
-        </UIManagerProvider>
-      </ApolloProvider>
+      <UIManagerProvider>
+        <GlobalOraclesProvider>
+          <DevCredentialsProvider>
+            <AuthProvider>
+              <App />
+            </AuthProvider>
+          </DevCredentialsProvider>
+        </GlobalOraclesProvider>
+      </UIManagerProvider>
     </Sentry.ErrorBoundary>
   </React.StrictMode>,
 );
