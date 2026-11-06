@@ -38,7 +38,7 @@ import {
   TurnkeySessionKey,
 } from '../services/storageService';
 import { verifyOtp } from '../services/accountsService';
-import { signInStepsWithSigner } from '../services/walletLoader';
+import { signInStepsWithSigner, type SignInSteps } from '../services/walletLoader';
 
 interface AuthContextProps {
   completePasskeyLogin: () => Promise<void>;
@@ -64,6 +64,8 @@ const defaultUser: UserObject = {
 };
 
 type FinalizeAuthenticationArgs = {
+  /** The sign-in steps the caller already waited for, signer included. */
+  steps: SignInSteps;
   stamper: TStamper;
   turnkeySessionData: TurnkeySessionData;
 };
@@ -89,10 +91,10 @@ export const AuthProvider = ({
   };
 
   const loginToDIMO = async ({
+    steps,
     stamper,
     turnkeySessionData,
   }: FinalizeAuthenticationArgs) => {
-    const steps = await signInStepsWithSigner();
     if (!user.subOrganizationId) {
       throw new Error('User has not been initialized yet');
     }
@@ -135,6 +137,7 @@ export const AuthProvider = ({
   const completePasskeyLogin = async () => {
     const steps = await signInStepsWithSigner();
     await loginToDIMO({
+      steps,
       stamper: steps.passkeyStamper,
       turnkeySessionData: { sessionType: 'passkey' },
     });
@@ -157,6 +160,7 @@ export const AuthProvider = ({
       embeddedKey: keyPair.privateKey,
     });
     await loginToDIMO({
+      steps,
       stamper: apiKeyStamper,
       turnkeySessionData: {
         embeddedKey: keyPair.privateKey,

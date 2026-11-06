@@ -206,7 +206,7 @@ const App = () => {
       <ScreenErrorBoundary key={uiState} firstScreen={firstScreen}>
         <Suspense fallback={<LoadingScreen />}>
           {componentMap[uiState] || null}
-          <FocusScreenHeading key={uiState} firstScreen={firstScreen} />
+          <FocusScreenHeading firstScreen={firstScreen} />
         </Suspense>
       </ScreenErrorBoundary>
     </AppShell>
