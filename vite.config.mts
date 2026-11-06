@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
 import { entryGuard, FIRST_SCREEN_FORBIDDEN } from './vite-plugins/entryGuard.mts';
+import { fontPreload } from './vite-plugins/fontPreload.mts';
 
 /**
  * The app reads its settings as `process.env.REACT_APP_*`, the Create React
@@ -41,6 +42,8 @@ export default defineConfig(({ command, mode }) => {
       tailwindcss(),
       // The first screen's JavaScript: no wallet code, and a size budget.
       entryGuard({ forbidden: FIRST_SCREEN_FORBIDDEN, maxGzipKb: 170 }),
+      // The first screen uses Regular, Medium and Semibold; Bold isn't preloaded.
+      fontPreload(/assets\/EuclidCircularA-(Regular|Medium|Semibold)-[\w-]+\.woff2$/),
     ],
     envPrefix: 'REACT_APP_',
     define: process.env.VITEST
