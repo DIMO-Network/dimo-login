@@ -19,7 +19,6 @@
 import React, { createContext, ReactNode, useContext, useState } from 'react';
 
 import {
-  authenticateUser,
   createSession,
   handlePostAuthUIState,
   TStamper,
@@ -29,13 +28,9 @@ import { useDevCredentials } from './DevCredentialsContext';
 import { UserObject } from '../models/user';
 import { UiStates } from '../enums';
 import { useUIManager } from './UIManagerContext';
-import {
-  getApiKeyStamper,
-  initializePasskey,
-  passkeyStamper,
+import type {
   TurnkeySessionData,
   TurnkeySessionDataWithExpiry,
-  getKernelSigner,
 } from '../services/turnkeyService';
 import {
   getFromLocalStorage,
@@ -43,7 +38,7 @@ import {
   TurnkeySessionKey,
 } from '../services/storageService';
 import { verifyOtp } from '../services/accountsService';
-import { generateP256KeyPair } from '@turnkey/crypto';
+import { signInStepsWithSigner } from '../services/walletLoader';
 
 interface AuthContextProps {
   completePasskeyLogin: () => Promise<void>;
@@ -97,12 +92,18 @@ export const AuthProvider = ({
     stamper,
     turnkeySessionData,
   }: FinalizeAuthenticationArgs) => {
+    const steps = await signInStepsWithSigner();
     if (!user.subOrganizationId) {
       throw new Error('User has not been initialized yet');
     }
 
     const { accessToken, walletAddress, smartContractAddress, turnkeySessionExpiration } =
-      await authenticateUser(clientId, redirectUri, user.subOrganizationId, stamper);
+      await steps.authenticateUser(
+        clientId,
+        redirectUri,
+        user.subOrganizationId,
+        stamper,
+      );
 
     const updatedUserObject: UserObject = {
       ...user,
@@ -132,24 +133,26 @@ export const AuthProvider = ({
   };
 
   const completePasskeyLogin = async () => {
+    const steps = await signInStepsWithSigner();
     await loginToDIMO({
-      stamper: passkeyStamper,
+      stamper: steps.passkeyStamper,
       turnkeySessionData: { sessionType: 'passkey' },
     });
   };
 
   const completeOTPLogin = async (args: OTPAuthArgs) => {
+    const steps = await signInStepsWithSigner();
     if (!user.email || !user.subOrganizationId) {
       throw new Error('User has not been initialized yet');
     }
-    const keyPair = generateP256KeyPair();
+    const keyPair = steps.generateP256KeyPair();
     const { credentialBundle } = await verifyOtp({
       email: user.email,
       otpCode: args.otpCode,
       otpId: args.otpId,
       key: keyPair.publicKeyUncompressed,
     });
-    const apiKeyStamper = getApiKeyStamper({
+    const apiKeyStamper = steps.getApiKeyStamper({
       credentialBundle,
       embeddedKey: keyPair.privateKey,
     });
@@ -170,14 +173,17 @@ export const AuthProvider = ({
       setUiState(UiStates.EMAIL_INPUT);
       return null;
     }
-    if (getKernelSigner().hasActiveSession()) {
+    // A returning session can open straight onto a signing screen, before the
+    // kernel signer DevCredentialsContext started is ready.
+    const steps = await signInStepsWithSigner();
+    if (steps.getKernelSigner().hasActiveSession()) {
       return true;
     }
     if (turnkeySessionData.sessionType === 'passkey') {
-      await initializePasskey(user.subOrganizationId);
+      await steps.initializePasskey(user.subOrganizationId);
       updateTurnkeySession({
         sessionType: 'passkey',
-        expiresAt: getKernelSigner().passkeySessionClient.expires,
+        expiresAt: steps.getKernelSigner().passkeySessionClient.expires,
       });
       return true;
     }
@@ -186,14 +192,13 @@ export const AuthProvider = ({
       setUiState(UiStates.OTP_INPUT);
       return null;
     }
-    const apiKeyStamper = getApiKeyStamper({
+    const apiKeyStamper = steps.getApiKeyStamper({
       credentialBundle: turnkeySessionData.credentialBundle,
       embeddedKey: turnkeySessionData.embeddedKey,
     });
-    await getKernelSigner().openSessionWithApiStamper(
-      user.subOrganizationId,
-      apiKeyStamper,
-    );
+    await steps
+      .getKernelSigner()
+      .openSessionWithApiStamper(user.subOrganizationId, apiKeyStamper);
     return true;
   };
 

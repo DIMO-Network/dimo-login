@@ -11,6 +11,7 @@ import { getConfigurationById } from '../../services/configurationService';
 import { saveFlowSnapshot } from '../../utils/flowSnapshot';
 import { reportRefusal } from '../../utils/reportRefusal';
 import { sendMessageToReferrer } from '../../utils/messageHandler';
+import { initKernelSigner } from '../../services/walletLoader';
 import {
   getDeveloperLicense,
   getLicenseAlias,
@@ -29,9 +30,7 @@ vi.mock('../../services/identityService', () => ({
   getLicenseAlias: vi.fn().mockResolvedValue('Acme'),
   isValidDeveloperLicense: vi.fn().mockResolvedValue(true),
 }));
-vi.mock('../../services/turnkeyService', () => ({
-  createKernelSigner: vi.fn(),
-}));
+vi.mock('../../services/walletLoader', () => ({ initKernelSigner: vi.fn() }));
 vi.mock('../../services/configurationService', () => ({
   getConfigurationById: vi.fn(),
 }));
@@ -412,6 +411,15 @@ describe('DevCredentialsContext: who may configure the login', () => {
 
     await waitFor(() => expect(probe()).toBe('false'));
     expect(reportRefusal).not.toHaveBeenCalled();
+  });
+
+  it('creates the kernel signer once credentials check out', async () => {
+    renderProvider('invalidCredentials');
+    await dispatchAuthInit({ clientId: CLIENT_ID });
+
+    await waitFor(() => expect(probe()).toBe('false'));
+    expect(initKernelSigner).toHaveBeenCalledTimes(1);
+    expect(initKernelSigner).toHaveBeenCalledWith(CLIENT_ID, CLIENT_ID, REDIRECT_URI);
   });
 
   it('refuses an embed under another site, even with a valid link', async () => {

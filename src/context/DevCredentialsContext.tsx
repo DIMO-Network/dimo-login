@@ -18,7 +18,7 @@ import React, {
 } from 'react';
 
 import { AllParams } from '../types';
-import { createKernelSigner } from '../services/turnkeyService';
+import { initKernelSigner } from '../services/walletLoader';
 import { Event, EventByUiState, UiStates } from '../enums';
 import { fetchConfigFromIPFS } from '../services/ipfsService';
 import {
@@ -370,7 +370,7 @@ export const DevCredentialsProvider = ({
 
     if (!kernelSignerInitializedRef.current) {
       kernelSignerInitializedRef.current = true;
-      createKernelSigner(clientId, clientId, redirectUri);
+      void initKernelSigner(clientId, clientId, redirectUri);
     }
   };
 
