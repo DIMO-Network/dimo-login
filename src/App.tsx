@@ -96,7 +96,10 @@ const App = () => {
   // Nothing from a stored session is shown or sent until the request is known
   // to be the app's own (validateCredentials): embedded, a returning session
   // posts the login right away.
-  const credentialsChecked = !params.waitingForDevLicense && !params.invalidCredentials;
+  const credentialsChecked =
+    !params.waitingForDevLicense &&
+    !params.invalidCredentials &&
+    !params.credentialsUnavailable;
 
   useEffect(() => {
     if (clientId && credentialsChecked) {

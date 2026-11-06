@@ -658,4 +658,25 @@ describe('when the license lookup fails', () => {
 
     await waitFor(() => expect(probe()).toBe('false'));
   });
+
+  it('never counts a check that failed as passed', async () => {
+    // A check that passed earlier must not leave invalidCredentials false.
+    // VEHICLE_MANAGER keeps waiting for its action data, so a second
+    // AUTH_INIT is still taken and re-runs the check.
+    (getDeveloperLicense as Mock).mockResolvedValueOnce({});
+    renderProvider('invalidCredentials');
+    await dispatchAuthInit({ clientId: CLIENT_ID, entryState: 'VEHICLE_MANAGER' });
+    await waitFor(() => expect(probe()).toBe('false'));
+
+    // The re-check, for a new redirect URI, fails at identity-api.
+    await dispatchMessage({
+      eventType: 'AUTH_INIT',
+      clientId: CLIENT_ID,
+      entryState: 'VEHICLE_MANAGER',
+      redirectUri: `${APP_ORIGIN}/other`,
+    });
+
+    await waitFor(() => expect(getDeveloperLicense).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(probe()).toBe('true'));
+  });
 });

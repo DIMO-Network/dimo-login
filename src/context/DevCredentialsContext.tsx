@@ -282,8 +282,11 @@ export const DevCredentialsProvider = ({
     const seq = ++validateSeqRef.current;
     const isStale = () => seq !== validateSeqRef.current;
 
+    // Every run starts unverified, so a check that fails or is still running
+    // can never count as one that passed before it.
     applyDevCredentialsConfig({
       waitingForDevLicense: Boolean(clientId),
+      invalidCredentials: true,
     });
 
     if (!clientId) return;
@@ -348,6 +351,7 @@ export const DevCredentialsProvider = ({
       captureException(error);
       applyDevCredentialsConfig({
         credentialsUnavailable: true,
+        invalidCredentials: true,
         waitingForDevLicense: false,
       });
       return;
