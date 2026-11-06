@@ -19,6 +19,19 @@ const COLLATION: Record<Language, string> = {
 
 export const DEFAULT_COUNTRY = 'USA';
 
+// Chinese names come from Intl.DisplayNames, not the library's zh.json: that is
+// Simplified only, and Traditional needs Taiwan usage (美國, 南韓).
+const countryNames = (lng: Language, locale: string): Record<string, string> => {
+  if (!lng.startsWith('zh')) return countries.getNames(lng);
+  const display = new Intl.DisplayNames([locale], { type: 'region' });
+  return Object.fromEntries(
+    Object.keys(countries.getNames('en')).map((alpha2) => [
+      alpha2,
+      display.of(alpha2) ?? alpha2,
+    ]),
+  );
+};
+
 /**
  * Countries for a select, valued by ISO alpha-3 (what the device-definition
  * API takes) and named in the language on screen, sorted for that language.
@@ -26,10 +39,7 @@ export const DEFAULT_COUNTRY = 'USA';
 export const getCountryOptions = (language: string) => {
   const lng = normalizeLanguage(language) ?? 'en';
   const collator = new Intl.Collator(COLLATION[lng]);
-  // A language without country names yet shows English ones, still sorted for it.
-  const names = countries.getNames(lng);
-  const labels = Object.keys(names).length ? names : countries.getNames('en');
-  return Object.entries(labels)
+  return Object.entries(countryNames(lng, COLLATION[lng]))
     .flatMap(([alpha2, label]) => {
       const value = countries.alpha2ToAlpha3(alpha2);
       return value ? [{ value, label }] : [];
