@@ -1,4 +1,4 @@
-import React, { Component, type ReactNode } from 'react';
+import React, { Component, type ReactNode, type RefObject } from 'react';
 import { captureException } from '@sentry/react';
 
 import { message } from '../../i18n';
@@ -9,9 +9,12 @@ import {
 } from '../../utils/chunkReload';
 import { ErrorScreen } from '../Shared/ErrorScreen';
 import { LoadingScreen } from '../Shared/LoadingScreen';
+import { FocusScreenHeading } from './FocusScreenHeading';
 
 interface ScreenErrorBoundaryProps {
   children: ReactNode;
+  /** Shared with FocusScreenHeading: the error copy takes focus as a screen does. */
+  firstScreen: RefObject<object | null>;
 }
 
 interface ScreenErrorBoundaryState {
@@ -23,7 +26,11 @@ interface ScreenErrorBoundaryState {
 // Reading sessionStorage throws where storage is blocked: then don't reload.
 const reloadAllowed = (): boolean => {
   try {
-    return shouldReloadForMissingChunk({ storage: sessionStorage, now: Date.now() });
+    return shouldReloadForMissingChunk({
+      storage: sessionStorage,
+      now: Date.now(),
+      timeOrigin: performance.timeOrigin,
+    });
   } catch {
     return false;
   }
@@ -61,10 +68,13 @@ export class ScreenErrorBoundary extends Component<
     if (this.state.reloading) return <LoadingScreen />;
     if (this.state.failed) {
       return (
-        <ErrorScreen
-          title={message('error.screen_load.title')}
-          message={message('error.screen_load.message')}
-        />
+        <>
+          <ErrorScreen
+            title={message('error.screen_load.title')}
+            message={message('error.screen_load.message')}
+          />
+          <FocusScreenHeading firstScreen={this.props.firstScreen} />
+        </>
       );
     }
     return this.props.children;

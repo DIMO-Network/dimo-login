@@ -191,7 +191,7 @@ const App = () => {
   return (
     <AppShell>
       {/* Keyed by the screen, so Back recovers from one that failed. */}
-      <ScreenErrorBoundary key={uiState}>
+      <ScreenErrorBoundary key={uiState} firstScreen={firstScreen}>
         <Suspense fallback={<LoadingScreen />}>
           {componentMap[uiState] || null}
           <FocusScreenHeading key={uiState} firstScreen={firstScreen} />

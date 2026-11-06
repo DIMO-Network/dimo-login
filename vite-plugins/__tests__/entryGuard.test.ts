@@ -1,14 +1,12 @@
 import { gzipSync } from 'zlib';
 import type { Rolldown } from 'vite';
 
-import { entryGuard, firstLoadBytes, forbiddenEntryModules } from '../entryGuard.mts';
-
-// The patterns vite.config.mts passes.
-const forbidden = [
-  /node_modules\/(viem|@turnkey|@zerodev|@peculiar|@uniswap|i18n-iso-countries)\//,
-  /node_modules\/@dimo-network\/transactions\/dist\/(?!core\/types\/)/,
-  /\/src\/services\/(turnkeyService|signInSteps)\.ts$/,
-];
+import {
+  entryGuard,
+  FIRST_SCREEN_FORBIDDEN as forbidden,
+  firstLoadBytes,
+  forbiddenEntryModules,
+} from '../entryGuard.mts';
 
 type ChunkSpec = {
   isEntry?: boolean;

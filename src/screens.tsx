@@ -19,125 +19,170 @@ import { lazy, type ComponentType } from 'react';
 import { UiStates } from './enums';
 import { ChunkLoadError } from './utils/chunkReload';
 
-// A failed import becomes ChunkLoadError. T's bound is React.lazy's own.
-const lazyScreen = <T extends ComponentType<any>>(load: () => Promise<{ default: T }>) =>
-  lazy(() =>
-    load().catch((cause: unknown) => {
-      throw new ChunkLoadError(cause);
-    }),
-  );
+type ScreenModule<T> = { default: T };
 
-const screenLoaders = {
-  [UiStates.PASSKEY_LOGIN]: () =>
+/**
+ * A lazy screen with a preload() that shares its load. The module is loaded
+ * once and kept, so a screen preloaded before it's shown renders in the same
+ * commit as the step change: React.lazy reads a thenable that calls back at
+ * once as already loaded, where a resolved promise would still show the
+ * loading screen (React then holds it for 300 ms). A failed load is forgotten,
+ * so the next attempt fetches again, and fails with ChunkLoadError.
+ *
+ * T's bound is React.lazy's own.
+ */
+export const lazyScreen = <T extends ComponentType<any>>(
+  load: () => Promise<ScreenModule<T>>,
+) => {
+  let loaded: ScreenModule<T> | undefined;
+  let loading: Promise<ScreenModule<T>> | undefined;
+
+  const preload = () => {
+    loading ??= load().then(
+      (module) => {
+        loaded = module;
+        return module;
+      },
+      (cause: unknown) => {
+        loading = undefined;
+        throw new ChunkLoadError(cause);
+      },
+    );
+    return loading;
+  };
+
+  const alreadyLoaded = (module: ScreenModule<T>) =>
+    ({
+      then: (resolve: (value: ScreenModule<T>) => void) => resolve(module),
+    }) as unknown as Promise<ScreenModule<T>>;
+
+  return Object.assign(
+    lazy(() => (loaded ? alreadyLoaded(loaded) : preload())),
+    { preload },
+  );
+};
+
+const screens = {
+  [UiStates.PASSKEY_LOGIN]: lazyScreen(() =>
     import('./components/Auth/PasskeyLogin').then((m) => ({ default: m.PasskeyLogin })),
-  [UiStates.OTP_INPUT]: () =>
+  ),
+  [UiStates.OTP_INPUT]: lazyScreen(() =>
     import('./components/Auth/OtpInput').then((m) => ({ default: m.OtpInput })),
-  [UiStates.PASSKEY_LOGIN_FAIL]: () =>
+  ),
+  [UiStates.PASSKEY_LOGIN_FAIL]: lazyScreen(() =>
     import('./components/Auth/PasskeyLoginFail').then((m) => ({
       default: m.PasskeyLoginFail,
     })),
-  [UiStates.PASSKEY_GENERATOR]: () =>
+  ),
+  [UiStates.PASSKEY_GENERATOR]: lazyScreen(() =>
     import('./components/Auth/PasskeyGeneration').then((m) => ({
       default: m.PasskeyGeneration,
     })),
-  [UiStates.VEHICLE_MANAGER]: () =>
+  ),
+  [UiStates.VEHICLE_MANAGER]: lazyScreen(() =>
     import('./components/Vehicles/VehicleManager').then((m) => ({
       default: m.VehicleManager,
     })),
-  [UiStates.MANAGE_VEHICLE]: () =>
+  ),
+  [UiStates.MANAGE_VEHICLE]: lazyScreen(() =>
     import('./components/Vehicles/ManageVehicle').then((m) => ({
       default: m.ManageVehicle,
     })),
-  [UiStates.ADVANCED_TRANSACTION]: () =>
+  ),
+  [UiStates.ADVANCED_TRANSACTION]: lazyScreen(() =>
     import('./components/AdvancedTransaction/AdvancedTransaction').then((m) => ({
       default: m.AdvancedTransaction,
     })),
-  [UiStates.SIGN_MESSAGE]: () =>
+  ),
+  [UiStates.SIGN_MESSAGE]: lazyScreen(() =>
     import('./components/SignMessage/SignMessage').then((m) => ({
       default: m.SignMessage,
     })),
-  [UiStates.TRANSACTION_SUCCESS]: () =>
+  ),
+  [UiStates.TRANSACTION_SUCCESS]: lazyScreen(() =>
     import('./components/AdvancedTransaction/SuccessfulTransaction').then((m) => ({
       default: m.SuccessfulTransaction,
     })),
-  [UiStates.VEHICLES_SHARED_SUCCESS]: () =>
+  ),
+  [UiStates.VEHICLES_SHARED_SUCCESS]: lazyScreen(() =>
     import('./components/Vehicles/SuccessfulPermissions').then((m) => ({
       default: m.SuccessfulPermissions,
     })),
-  [UiStates.ACCOUNT_MANAGER]: () =>
+  ),
+  [UiStates.ACCOUNT_MANAGER]: lazyScreen(() =>
     import('./components/Accounts/AccountManager').then((m) => ({
       default: m.AccountManager,
     })),
-  [UiStates.ACCOUNT_PERMISSIONS_SUCCESS]: () =>
+  ),
+  [UiStates.ACCOUNT_PERMISSIONS_SUCCESS]: lazyScreen(() =>
     import('./components/Accounts/AccountPermissionsSuccess').then((m) => ({
       default: m.AccountPermissionsSuccess,
     })),
-  [UiStates.ADD_VEHICLE]: () =>
+  ),
+  [UiStates.ADD_VEHICLE]: lazyScreen(() =>
     import('./components/Vehicles/AddVehicle').then((m) => ({ default: m.AddVehicle })),
-  [UiStates.COMPATIBILITY_CHECK]: () =>
+  ),
+  [UiStates.COMPATIBILITY_CHECK]: lazyScreen(() =>
     import('./components/Vehicles/CompatibilityCheck').then((m) => ({
       default: m.CompatibilityCheck,
     })),
-  [UiStates.MINT_VEHICLE]: () =>
+  ),
+  [UiStates.MINT_VEHICLE]: lazyScreen(() =>
     import('./components/Vehicles/MintVehicle').then((m) => ({ default: m.MintVehicle })),
-  [UiStates.CONNECT_DEVICE]: () =>
+  ),
+  [UiStates.CONNECT_DEVICE]: lazyScreen(() =>
     import('./components/Connections/ConnectDevice').then((m) => ({
       default: m.ConnectDevice,
     })),
-  [UiStates.CONNECT_TESLA]: () =>
+  ),
+  [UiStates.CONNECT_TESLA]: lazyScreen(() =>
     import('./components/Connections/ConnectTesla').then((m) => ({
       default: m.ConnectTesla,
     })),
-  [UiStates.TRANSACTION_CANCELLED]: () =>
+  ),
+  [UiStates.TRANSACTION_CANCELLED]: lazyScreen(() =>
     import('./components/AdvancedTransaction/CancelledTransaction').then((m) => ({
       default: m.CancelledTransaction,
     })),
-  [UiStates.SUCCESS]: () =>
+  ),
+  [UiStates.SUCCESS]: lazyScreen(() =>
     import('./components/Auth/SuccessPage').then((m) => ({ default: m.SuccessPage })),
-  [UiStates.EMAIL_CONSENT]: () =>
+  ),
+  [UiStates.EMAIL_CONSENT]: lazyScreen(() =>
     import('./components/Auth/EmailConsent').then((m) => ({ default: m.EmailConsent })),
-  [UiStates.LOGOUT]: () =>
+  ),
+  [UiStates.LOGOUT]: lazyScreen(() =>
     import('./components/Auth/Logout').then((m) => ({ default: m.Logout })),
-  [UiStates.PROVISION_DEVELOPER_LICENSE]: () =>
+  ),
+  [UiStates.PROVISION_DEVELOPER_LICENSE]: lazyScreen(() =>
     import('./components/ProvisionDeveloperLicense/ProvisionDeveloperLicense').then(
       (m) => ({ default: m.ProvisionDeveloperLicense }),
     ),
+  ),
 };
 
-export const PasskeyLogin = lazyScreen(screenLoaders[UiStates.PASSKEY_LOGIN]);
-export const OtpInput = lazyScreen(screenLoaders[UiStates.OTP_INPUT]);
-export const PasskeyLoginFail = lazyScreen(screenLoaders[UiStates.PASSKEY_LOGIN_FAIL]);
-export const PasskeyGeneration = lazyScreen(screenLoaders[UiStates.PASSKEY_GENERATOR]);
-export const VehicleManager = lazyScreen(screenLoaders[UiStates.VEHICLE_MANAGER]);
-export const ManageVehicle = lazyScreen(screenLoaders[UiStates.MANAGE_VEHICLE]);
-export const AdvancedTransaction = lazyScreen(
-  screenLoaders[UiStates.ADVANCED_TRANSACTION],
-);
-export const SignMessage = lazyScreen(screenLoaders[UiStates.SIGN_MESSAGE]);
-export const SuccessfulTransaction = lazyScreen(
-  screenLoaders[UiStates.TRANSACTION_SUCCESS],
-);
-export const SuccessfulPermissions = lazyScreen(
-  screenLoaders[UiStates.VEHICLES_SHARED_SUCCESS],
-);
-export const AccountManager = lazyScreen(screenLoaders[UiStates.ACCOUNT_MANAGER]);
-export const AccountPermissionsSuccess = lazyScreen(
-  screenLoaders[UiStates.ACCOUNT_PERMISSIONS_SUCCESS],
-);
-export const AddVehicle = lazyScreen(screenLoaders[UiStates.ADD_VEHICLE]);
-export const CompatibilityCheck = lazyScreen(screenLoaders[UiStates.COMPATIBILITY_CHECK]);
-export const MintVehicle = lazyScreen(screenLoaders[UiStates.MINT_VEHICLE]);
-export const ConnectDevice = lazyScreen(screenLoaders[UiStates.CONNECT_DEVICE]);
-export const ConnectTesla = lazyScreen(screenLoaders[UiStates.CONNECT_TESLA]);
-export const CancelledTransaction = lazyScreen(
-  screenLoaders[UiStates.TRANSACTION_CANCELLED],
-);
-export const SuccessPage = lazyScreen(screenLoaders[UiStates.SUCCESS]);
-export const EmailConsent = lazyScreen(screenLoaders[UiStates.EMAIL_CONSENT]);
-export const Logout = lazyScreen(screenLoaders[UiStates.LOGOUT]);
-export const ProvisionDeveloperLicense = lazyScreen(
-  screenLoaders[UiStates.PROVISION_DEVELOPER_LICENSE],
-);
+export const PasskeyLogin = screens[UiStates.PASSKEY_LOGIN];
+export const OtpInput = screens[UiStates.OTP_INPUT];
+export const PasskeyLoginFail = screens[UiStates.PASSKEY_LOGIN_FAIL];
+export const PasskeyGeneration = screens[UiStates.PASSKEY_GENERATOR];
+export const VehicleManager = screens[UiStates.VEHICLE_MANAGER];
+export const ManageVehicle = screens[UiStates.MANAGE_VEHICLE];
+export const AdvancedTransaction = screens[UiStates.ADVANCED_TRANSACTION];
+export const SignMessage = screens[UiStates.SIGN_MESSAGE];
+export const SuccessfulTransaction = screens[UiStates.TRANSACTION_SUCCESS];
+export const SuccessfulPermissions = screens[UiStates.VEHICLES_SHARED_SUCCESS];
+export const AccountManager = screens[UiStates.ACCOUNT_MANAGER];
+export const AccountPermissionsSuccess = screens[UiStates.ACCOUNT_PERMISSIONS_SUCCESS];
+export const AddVehicle = screens[UiStates.ADD_VEHICLE];
+export const CompatibilityCheck = screens[UiStates.COMPATIBILITY_CHECK];
+export const MintVehicle = screens[UiStates.MINT_VEHICLE];
+export const ConnectDevice = screens[UiStates.CONNECT_DEVICE];
+export const ConnectTesla = screens[UiStates.CONNECT_TESLA];
+export const CancelledTransaction = screens[UiStates.TRANSACTION_CANCELLED];
+export const SuccessPage = screens[UiStates.SUCCESS];
+export const EmailConsent = screens[UiStates.EMAIL_CONSENT];
+export const Logout = screens[UiStates.LOGOUT];
+export const ProvisionDeveloperLicense = screens[UiStates.PROVISION_DEVELOPER_LICENSE];
 
 /** The screens a sign-in can pass through after the email screen. */
 export const SIGN_IN_STATES: UiStates[] = [
@@ -150,13 +195,17 @@ export const SIGN_IN_STATES: UiStates[] = [
 ];
 
 /**
- * Starts loading these screens' chunks, so they show without a wait. A chunk
- * that fails here is loaded again when its screen is shown, so the failure is
- * ignored. States with no lazy screen (the email screen) are skipped.
+ * Starts loading these screens' chunks, so they show without a wait, and
+ * settles once they're loaded or have failed. A failure is ignored: the screen
+ * loads again when it's shown. States with no lazy screen (the email screen)
+ * are skipped.
  */
-export const preloadScreens = (states: UiStates[]): void => {
-  for (const state of states) {
-    if (!Object.hasOwn(screenLoaders, state)) continue;
-    screenLoaders[state as keyof typeof screenLoaders]().catch(() => {});
-  }
+export const preloadScreens = async (states: UiStates[]): Promise<void> => {
+  await Promise.all(
+    states
+      .filter((state) => Object.hasOwn(screens, state))
+      .map((state) =>
+        screens[state as keyof typeof screens].preload().catch(() => undefined),
+      ),
+  );
 };

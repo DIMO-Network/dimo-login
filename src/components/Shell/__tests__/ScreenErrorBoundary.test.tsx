@@ -16,7 +16,7 @@ const missingChunk = () =>
   new ChunkLoadError(new TypeError('Failed to fetch dynamically imported module'));
 
 const LazyScreenThatFails = ({ error }: { error: Error }) => (
-  <ScreenErrorBoundary>
+  <ScreenErrorBoundary firstScreen={{ current: null }}>
     <Suspense fallback={null}>
       {React.createElement(React.lazy(() => Promise.reject(error)))}
     </Suspense>
@@ -72,7 +72,7 @@ it('says the screen didn’t load when its chunk is still missing after the relo
 
 it('says the screen didn’t load, without reloading, when a screen breaks', () => {
   render(
-    <ScreenErrorBoundary>
+    <ScreenErrorBoundary firstScreen={{ current: null }}>
       <Broken />
     </ScreenErrorBoundary>,
   );

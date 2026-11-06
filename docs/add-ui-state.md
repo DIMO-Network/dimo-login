@@ -46,28 +46,29 @@ export const MyNewVehicleComponent = () => {
 };
 ```
 
-- `ScreenHeader` (or `DoneHeader` for a result) renders the `h1` that `AppShell` focuses when the screen opens. Use one per screen.
+- `ScreenHeader` (or `DoneHeader` for a result) renders the `h1` (marked `data-screen-heading`) that `FocusScreenHeading` focuses once the screen has loaded. Use one per screen.
 - `ActionBar` stays pinned at the bottom of the popup. A disabled button says why with `disabledReasonId` pointing at the bar's `hint`.
 - While the screen signs or sends something, show it on the button (`loading`, `loadingLabel`) and call `setBusy(true)` from `useUIManager` so Back hides until it's done.
 - Every string goes in `src/i18n/locales/en.ts` and `ja.ts` (see `i18n.md`). The locales test fails if Japanese is missing a key.
 
 ## 🧩 Step 3 — Render It in App.tsx
 
-Screens load when they're shown, so the first screen doesn't download them. Give the new one a loader and a lazy component in `src/screens.tsx`:
+Screens load when they're shown, so the first screen doesn't download them. Give the new one a lazy screen in `src/screens.tsx`, and export it:
 
 ```tsx
-const screenLoaders = {
+const screens = {
   …
-  [UiStates.MY_NEW_VIEW]: () =>
+  [UiStates.MY_NEW_VIEW]: lazyScreen(() =>
     import('./components/Vehicles/MyNewVehicleComponent').then((m) => ({
       default: m.MyNewVehicleComponent,
     })),
+  ),
 };
 
-export const MyNewVehicleComponent = lazyScreen(screenLoaders[UiStates.MY_NEW_VIEW]);
+export const MyNewVehicleComponent = screens[UiStates.MY_NEW_VIEW];
 ```
 
-`lazyScreen` turns a chunk that doesn't load into `ChunkLoadError`, which reloads the page once to pick up the current build.
+`lazyScreen` keeps the loaded module, so a screen in `preloadScreens` shows without a loading screen, and it turns a chunk that doesn't load into `ChunkLoadError`, which reloads the page once to pick up the current build.
 
 Then import it from `./screens` (never from its own file) and add it to the `componentMap` in `App.tsx`; `AppShell` wraps it, with a loading screen while its chunk loads and an error screen if it can't:
 

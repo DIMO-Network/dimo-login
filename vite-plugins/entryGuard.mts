@@ -6,6 +6,18 @@ type OutputBundle = Rolldown.OutputBundle;
 type OutputChunk = Rolldown.OutputChunk;
 
 /**
+ * What the first screen's JavaScript must not reach: the wallet stack (viem,
+ * Turnkey, ZeroDev and what they pull in), country names, the transactions
+ * SDK outside its Permission enum (dist/core/types/), and the app modules that
+ * wrap the wallet. They load lazily, after the first screen.
+ */
+export const FIRST_SCREEN_FORBIDDEN: RegExp[] = [
+  /node_modules\/(viem|@turnkey|@zerodev|@peculiar|@uniswap|i18n-iso-countries)\//,
+  /node_modules\/@dimo-network\/transactions\/dist\/(?!core\/types\/)/,
+  /\/src\/services\/(turnkeyService|signInSteps)\.ts$/,
+];
+
+/**
  * The chunks a browser runs before the first screen shows: each entry and
  * every chunk reachable from it through static imports. Chunks reached only
  * through a dynamic import() load later and aren't counted.
