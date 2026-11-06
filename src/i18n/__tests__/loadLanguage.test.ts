@@ -1,3 +1,4 @@
+import { renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { changeLanguage, t } from '../index';
 import { i18n } from '../instance';
@@ -67,6 +68,40 @@ describe('loading languages on demand', () => {
     await slowJapanese;
 
     expect(freshInstance.language).toBe('en');
+  });
+
+  it('keeps the app’s English when the initial language’s download lands late', async () => {
+    const { fresh, freshInstance, finishJa } = await withSlowJapanese();
+    const { useLanguageSync } = await import('../useLanguageSync');
+
+    // The detected language (say, a Japanese browser) is still downloading
+    // when the app's settings arrive and say English.
+    const initial = fresh.changeLanguage('ja');
+    renderHook(() => useLanguageSync('0xabc', 'en'));
+    finishJa();
+    await initial;
+
+    expect(freshInstance.language).toBe('en');
+  });
+
+  it('counts down the wait for a download that is already running', async () => {
+    const { fresh, finishJa } = await withSlowJapanese();
+    vi.useFakeTimers();
+    try {
+      expect(fresh.languageWaitLeft('ja')).toBe(3000);
+      const switching = fresh.changeLanguage('ja');
+
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(fresh.languageWaitLeft('ja')).toBe(1000);
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(fresh.languageWaitLeft('ja')).toBe(0);
+
+      finishJa();
+      await switching;
+      expect(fresh.languageWaitLeft('ja')).toBe(3000);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('stops waiting for a language after the time limit, and switches when it loads', async () => {

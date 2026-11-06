@@ -114,12 +114,20 @@ const LOADERS: Partial<Record<Language, () => Promise<{ default: object }>>> = {
   ja: () => import('./locales/ja'),
 };
 
+// When each language's download started, while it's running.
+const loadStartedAt = new Map<Language, number>();
+
 /** Makes a language's copy available. English and loaded languages resolve at once. */
 export const loadLanguage = async (language: Language): Promise<void> => {
   const load = LOADERS[language];
   if (!load || i18n.hasResourceBundle(language, 'translation')) return;
-  const { default: table } = await load();
-  i18n.addResourceBundle(language, 'translation', table);
+  if (!loadStartedAt.has(language)) loadStartedAt.set(language, Date.now());
+  try {
+    const { default: table } = await load();
+    i18n.addResourceBundle(language, 'translation', table);
+  } finally {
+    loadStartedAt.delete(language);
+  }
 };
 
 let latestChange = 0;
@@ -138,7 +146,7 @@ export const changeLanguage = async (language: Language): Promise<void> => {
     return;
   }
   if (change !== latestChange) return;
-  await i18n.changeLanguage(language);
+  if (i18n.resolvedLanguage !== language) await i18n.changeLanguage(language);
 };
 
 /**
@@ -146,6 +154,18 @@ export const changeLanguage = async (language: Language): Promise<void> => {
  * current language instead. The switch still lands when the copy arrives.
  */
 export const LANGUAGE_WAIT_MS = 3000;
+
+/**
+ * How much longer to wait for a language's copy: all of LANGUAGE_WAIT_MS if
+ * its download hasn't started, what's left of it while the download runs, and
+ * 0 once that's used up. So a download that started at boot isn't waited for
+ * twice.
+ */
+export const languageWaitLeft = (language: Language): number => {
+  const started = loadStartedAt.get(language);
+  if (started === undefined) return LANGUAGE_WAIT_MS;
+  return Math.max(0, LANGUAGE_WAIT_MS - (Date.now() - started));
+};
 
 /**
  * Switches to the language, and settles once it's shown or couldn't load, or

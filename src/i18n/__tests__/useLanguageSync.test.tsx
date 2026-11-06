@@ -4,9 +4,11 @@ import { i18n } from '../instance';
 import { useLanguageSync } from '../useLanguageSync';
 
 const changeLanguage = vi.hoisted(() => vi.fn());
+const languageWaitLeft = vi.hoisted(() => vi.fn());
 vi.mock('../index', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../index')>()),
   changeLanguage,
+  languageWaitLeft,
 }));
 
 describe('useLanguageSync', () => {
@@ -14,6 +16,42 @@ describe('useLanguageSync', () => {
     await i18n.changeLanguage('en');
     changeLanguage.mockClear();
     changeLanguage.mockResolvedValue(undefined);
+    languageWaitLeft.mockReturnValue(3000);
+  });
+
+  it('switches even to the language already showing, so a slower switch can’t land after it', () => {
+    renderHook(() => useLanguageSync('0xabc', 'en'));
+
+    expect(changeLanguage).toHaveBeenCalledWith('en');
+  });
+
+  it('waits only the time left on a download that is already running', () => {
+    vi.useFakeTimers();
+    languageWaitLeft.mockReturnValue(1000);
+    changeLanguage.mockReturnValue(new Promise(() => {}));
+
+    const { result } = renderHook(() => useLanguageSync('0xabc', 'ja'));
+    expect(result.current).toBe(true);
+
+    act(() => vi.advanceTimersByTime(999));
+    expect(result.current).toBe(true);
+    act(() => vi.advanceTimersByTime(1));
+    expect(result.current).toBe(false);
+  });
+
+  it('doesn’t hold the screen once the wait is used up', () => {
+    languageWaitLeft.mockReturnValue(0);
+    changeLanguage.mockReturnValue(new Promise(() => {}));
+    const reported: boolean[] = [];
+
+    renderHook(() => {
+      const loading = useLanguageSync('0xabc', 'ja');
+      reported.push(loading);
+      return loading;
+    });
+
+    expect(changeLanguage).toHaveBeenCalledWith('ja');
+    expect(reported).not.toContain(true);
   });
 
   afterEach(() => {

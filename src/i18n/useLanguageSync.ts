@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { i18n } from './instance';
 
-import { changeLanguage, LANGUAGE_WAIT_MS } from './index';
+import { changeLanguage, languageWaitLeft } from './index';
 import { resolveLanguage } from './language';
 
 /**
@@ -12,9 +12,10 @@ import { resolveLanguage } from './language';
  * the default and back.
  *
  * Returns true while a language it switched to is still loading, for at most
- * LANGUAGE_WAIT_MS, so App can hold the first screen until its copy is there
- * instead of showing the old language and then switching. A switch to a
- * language that's already loaded is never reported.
+ * what's left of LANGUAGE_WAIT_MS (a download that started at boot counts),
+ * so App can hold the first screen until its copy is there instead of showing
+ * the old language and then switching. A switch to a language that's already
+ * loaded is never reported.
  */
 export const useLanguageSync = (
   clientId: string | null | undefined,
@@ -26,10 +27,14 @@ export const useLanguageSync = (
   useEffect(() => {
     if (paramsPending) return undefined;
     const next = resolveLanguage({ clientId, configured });
-    if (i18n.resolvedLanguage === next) return undefined;
-    const alreadyLoaded = i18n.hasResourceBundle(next, 'translation');
+    // Read before switching: the switch is what starts a download.
+    const waitMs = i18n.hasResourceBundle(next, 'translation')
+      ? 0
+      : languageWaitLeft(next);
+    // Switch even to the language already showing: the call supersedes a
+    // slower switch still in flight, such as the initial language's download.
     const switching = changeLanguage(next);
-    if (alreadyLoaded) return undefined;
+    if (waitMs === 0) return undefined;
 
     let waiting = true;
     const stopWaiting = () => {
@@ -37,7 +42,7 @@ export const useLanguageSync = (
       waiting = false;
     };
     setLoading(true);
-    const timer = setTimeout(stopWaiting, LANGUAGE_WAIT_MS);
+    const timer = setTimeout(stopWaiting, waitMs);
     void switching.finally(() => {
       clearTimeout(timer);
       stopWaiting();
