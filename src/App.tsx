@@ -63,7 +63,7 @@ const App = () => {
   const t = useT();
   const language = useLanguage();
 
-  useLanguageSync(clientId, params.language);
+  useLanguageSync(clientId, params.language, params.waitingForParams);
 
   // Bind document.title to the OEM brand when one is loaded. Restores the
   // default DIMO title if the popup unmounts (covers in-flight branding
