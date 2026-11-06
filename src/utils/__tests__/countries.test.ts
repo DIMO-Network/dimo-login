@@ -13,3 +13,9 @@ it('values countries by alpha-3 and names them in the language on screen', () =>
   expect(ja.map((c) => c.value).sort()).toEqual(en.map((c) => c.value).sort());
   expect(es.map((c) => c.value).sort()).toEqual(en.map((c) => c.value).sort());
 });
+
+it('sorts Traditional Chinese with the Taiwan collator', () => {
+  const labels = getCountryOptions('zh-Hant').map((c) => c.label);
+  expect(labels.length).toBeGreaterThan(0);
+  expect(labels).toEqual([...labels].sort(new Intl.Collator('zh-Hant-TW').compare));
+});

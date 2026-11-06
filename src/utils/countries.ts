@@ -9,7 +9,13 @@ countries.registerLocale(enLocale);
 countries.registerLocale(jaLocale);
 countries.registerLocale(esLocale);
 
-const COLLATION: Record<Language, string> = { en: 'en-US', ja: 'ja-JP', es: 'es' };
+const COLLATION: Record<Language, string> = {
+  'en': 'en-US',
+  'ja': 'ja-JP',
+  'es': 'es',
+  'zh-Hans': 'zh-Hans-CN',
+  'zh-Hant': 'zh-Hant-TW',
+};
 
 export const DEFAULT_COUNTRY = 'USA';
 
@@ -20,7 +26,10 @@ export const DEFAULT_COUNTRY = 'USA';
 export const getCountryOptions = (language: string) => {
   const lng = normalizeLanguage(language) ?? 'en';
   const collator = new Intl.Collator(COLLATION[lng]);
-  return Object.entries(countries.getNames(lng))
+  // A language without country names yet shows English ones, still sorted for it.
+  const names = countries.getNames(lng);
+  const labels = Object.keys(names).length ? names : countries.getNames('en');
+  return Object.entries(labels)
     .flatMap(([alpha2, label]) => {
       const value = countries.alpha2ToAlpha3(alpha2);
       return value ? [{ value, label }] : [];
