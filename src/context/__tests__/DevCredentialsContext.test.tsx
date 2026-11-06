@@ -10,6 +10,7 @@ import { fetchConfigFromIPFS } from '../../services';
 import { getConfigurationById } from '../../services/configurationService';
 import { saveFlowSnapshot } from '../../utils/flowSnapshot';
 import { reportRefusal } from '../../utils/reportRefusal';
+import { sendMessageToReferrer } from '../../utils/messageHandler';
 import {
   getDeveloperLicense,
   getLicenseAlias,
@@ -515,5 +516,16 @@ describe('DevCredentialsContext: every config source is allowlisted', () => {
     renderProvider('dimoState');
 
     await waitFor(() => expect(probe()).toBe('"abcdefABCDEF0123456789_-"'));
+  });
+});
+
+describe('DevCredentialsContext handshake', () => {
+  it('announces READY once, as soon as it listens', () => {
+    renderProvider();
+    // No timers advanced: this is the mount, not the 2 s retry.
+    const readies = (sendMessageToReferrer as Mock).mock.calls.filter(
+      ([data]) => data.eventType === 'READY',
+    );
+    expect(readies).toEqual([[{ eventType: 'READY' }]]);
   });
 });

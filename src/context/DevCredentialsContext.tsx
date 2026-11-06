@@ -411,6 +411,9 @@ export const DevCredentialsProvider = ({
     const onMessage = (event: MessageEvent) => handleAuthInitMessageRef.current(event);
     if (!isStandalone()) {
       window.addEventListener('message', onMessage);
+      // The SDK sends AUTH_INIT only in reply to READY, so announce it the
+      // moment we listen. The retry effect below covers a lost READY.
+      sendMessageToReferrer({ eventType: 'READY' });
     }
     void initAuthProcess();
     return () => window.removeEventListener('message', onMessage);

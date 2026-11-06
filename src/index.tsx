@@ -5,7 +5,6 @@ import './index.css';
 import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import { DevCredentialsProvider } from './context/DevCredentialsContext';
-import { sendMessageToReferrer } from './utils/messageHandler';
 import { UIManagerProvider } from './context/UIManagerContext';
 import { GlobalOraclesProvider } from './context/OraclesContext';
 import { apolloClient } from './services/apollo';
@@ -49,10 +48,3 @@ root.render(
     </Sentry.ErrorBoundary>
   </React.StrictMode>,
 );
-
-//Send a READY event to the developer's app, ready to receive credentials
-window.onload = () => {
-  setTimeout(() => {
-    sendMessageToReferrer({ eventType: 'READY' });
-  }, 500);
-};
