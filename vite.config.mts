@@ -40,7 +40,7 @@ export default defineConfig(({ command, mode }) => {
       react(),
       tailwindcss(),
       // The first screen's JavaScript: no wallet code, and a size budget.
-      entryGuard({ forbidden: FIRST_SCREEN_FORBIDDEN, maxGzipKb: 180 }),
+      entryGuard({ forbidden: FIRST_SCREEN_FORBIDDEN, maxGzipKb: 170 }),
     ],
     envPrefix: 'REACT_APP_',
     define: process.env.VITEST

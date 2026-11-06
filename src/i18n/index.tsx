@@ -3,8 +3,6 @@ import { i18n } from './instance';
 import { initReactI18next, Trans as I18nTrans, useTranslation } from 'react-i18next';
 
 import en from './locales/en';
-import es from './locales/es';
-import ja from './locales/ja';
 import {
   DEFAULT_LANGUAGE,
   Language,
@@ -19,7 +17,7 @@ export * from './language';
 // The URL can name the language in redirect mode; reading it here avoids
 // painting English first. The SDK's popup message and stored configurations
 // arrive later and switch it through useLanguageSync.
-const initialLanguage = (): Language => {
+export const initialLanguage = (): Language => {
   if (typeof window === 'undefined') return DEFAULT_LANGUAGE;
   const configured = new URLSearchParams(window.location.search).get('language');
   return resolveLanguage({ configured });
@@ -32,12 +30,8 @@ const setDocumentLanguage = (language: string) => {
 i18n.on('languageChanged', setDocumentLanguage);
 
 void i18n.use(initReactI18next).init({
-  resources: {
-    en: { translation: en },
-    ja: { translation: ja },
-    es: { translation: es },
-  },
-  lng: initialLanguage(),
+  resources: { en: { translation: en } },
+  lng: DEFAULT_LANGUAGE,
   fallbackLng: DEFAULT_LANGUAGE,
   supportedLngs: [...SUPPORTED_LANGUAGES],
   // Keys are flat strings with dots in them, as in DIMO Driver.
@@ -110,6 +104,29 @@ export const Trans = ({
   return <AnyTrans i18nKey={k} values={values} components={components} />;
 };
 
-export const changeLanguage = (language: Language) => i18n.changeLanguage(language);
+// English is bundled; the others are separate chunks fetched when chosen.
+const LOADERS: Partial<Record<Language, () => Promise<{ default: object }>>> = {
+  es: () => import('./locales/es'),
+  ja: () => import('./locales/ja'),
+};
+
+/** Makes a language's copy available. English and loaded languages resolve at once. */
+export const loadLanguage = async (language: Language): Promise<void> => {
+  const load = LOADERS[language];
+  if (!load || i18n.hasResourceBundle(language, 'translation')) return;
+  const { default: table } = await load();
+  i18n.addResourceBundle(language, 'translation', table);
+};
+
+/** Loads the language, then switches to it. If it can't load, the current language stays. */
+export const changeLanguage = async (language: Language): Promise<void> => {
+  try {
+    await loadLanguage(language);
+  } catch (error) {
+    console.error(`Could not load the "${language}" translations`, error);
+    return;
+  }
+  await i18n.changeLanguage(language);
+};
 
 export default i18n;

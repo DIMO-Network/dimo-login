@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import * as Sentry from '@sentry/react';
 import './index.css';
 import App from './App';
+import { changeLanguage, initialLanguage } from './i18n';
 import { AuthProvider } from './context/AuthContext';
 import { DevCredentialsProvider } from './context/DevCredentialsContext';
 import { UIManagerProvider } from './context/UIManagerContext';
@@ -29,18 +30,20 @@ Sentry.init({
 });
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
-root.render(
-  <React.StrictMode>
-    <Sentry.ErrorBoundary>
-      <UIManagerProvider>
-        <GlobalOraclesProvider>
-          <DevCredentialsProvider>
-            <AuthProvider>
-              <App />
-            </AuthProvider>
-          </DevCredentialsProvider>
-        </GlobalOraclesProvider>
-      </UIManagerProvider>
-    </Sentry.ErrorBoundary>
-  </React.StrictMode>,
+void changeLanguage(initialLanguage()).finally(() =>
+  root.render(
+    <React.StrictMode>
+      <Sentry.ErrorBoundary>
+        <UIManagerProvider>
+          <GlobalOraclesProvider>
+            <DevCredentialsProvider>
+              <AuthProvider>
+                <App />
+              </AuthProvider>
+            </DevCredentialsProvider>
+          </GlobalOraclesProvider>
+        </UIManagerProvider>
+      </Sentry.ErrorBoundary>
+    </React.StrictMode>,
+  ),
 );
