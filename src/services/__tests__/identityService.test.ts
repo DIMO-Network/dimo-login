@@ -77,6 +77,9 @@ describe('fetchPowertrainTypes', () => {
     await fetchPowertrainTypes(['a', 'b', 'a']);
     expect(mockQuery).toHaveBeenCalledTimes(1);
     expect(mockQuery).toHaveBeenCalledWith(expect.any(String), { id0: 'a', id1: 'b' });
+    const [query] = mockQuery.mock.calls[0];
+    expect(query).toContain('d0: deviceDefinition(by: { id: $id0 })');
+    expect(query).toContain('d1: deviceDefinition(by: { id: $id1 })');
   });
 
   it('reads powertrain_type per definition, null when unknown', async () => {
@@ -92,6 +95,17 @@ describe('fetchPowertrainTypes', () => {
         ['a', 'BEV'],
         ['b', null],
       ]),
+    );
+  });
+
+  it('throws the first error when every lookup failed', async () => {
+    // An upstream outage: 200, with an error for each definition.
+    mockQuery.mockResolvedValue({
+      data: { d0: null, d1: null },
+      errors: [{ message: 'upstream unavailable' }, { message: 'upstream unavailable' }],
+    });
+    await expect(fetchPowertrainTypes(['a', 'b'])).rejects.toThrow(
+      'upstream unavailable',
     );
   });
 

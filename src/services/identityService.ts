@@ -124,7 +124,9 @@ type DeviceDefinitionAttributes = {
 
 /**
  * Looks up the powertrain type of every definition in one request. An id the
- * API does not know maps to null; only a response with no data at all throws.
+ * API does not know maps to null. A response with no data throws, and so does
+ * one where every lookup failed with an error, so an outage isn't read as
+ * every vehicle being incompatible.
  */
 export const fetchPowertrainTypes = async (
   definitionIds: string[],
@@ -143,15 +145,18 @@ export const fetchPowertrainTypes = async (
   const query = `query PowertrainTypes(${params}) {\n  ${fields}\n}`;
   const variables = Object.fromEntries(ids.map((id, i) => [`id${i}`, id]));
 
-  const { data } = await queryIdentity<Record<string, DeviceDefinitionAttributes>>(
-    query,
-    variables,
-  );
+  const { data, errors } = await queryIdentity<
+    Record<string, DeviceDefinitionAttributes>
+  >(query, variables);
   if (!data) {
     throw new Error('The identity API returned no device definitions.');
   }
+  const definitions = ids.map((_, i) => data[`d${i}`]);
+  if (errors.length > 0 && definitions.every((definition) => !definition)) {
+    throw new Error(errors[0].message);
+  }
   ids.forEach((id, i) => {
-    const attribute = data[`d${i}`]?.attributes?.find(
+    const attribute = definitions[i]?.attributes?.find(
       (att) => att.name === 'powertrain_type',
     );
     powertrainTypes.set(id, attribute?.value ?? null);
