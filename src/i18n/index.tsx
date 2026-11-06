@@ -14,13 +14,17 @@ import type { Message, Text, TranslationKey, TranslationParams } from './types';
 export type { Message, Text, TranslationKey, TranslationParams } from './types';
 export * from './language';
 
-// The URL can name the language in redirect mode; reading it here avoids
-// painting English first. The SDK's popup message and stored configurations
-// arrive later and switch it through useLanguageSync.
+// In redirect mode the URL names the app (whose remembered pick wins) and can
+// name the language; reading them here avoids painting English first. The
+// SDK's popup message and stored configurations arrive later and switch it
+// through useLanguageSync.
 export const initialLanguage = (): Language => {
   if (typeof window === 'undefined') return DEFAULT_LANGUAGE;
-  const configured = new URLSearchParams(window.location.search).get('language');
-  return resolveLanguage({ configured });
+  const params = new URLSearchParams(window.location.search);
+  return resolveLanguage({
+    clientId: params.get('clientId'),
+    configured: params.get('language'),
+  });
 };
 
 const setDocumentLanguage = (language: string) => {
@@ -118,15 +122,43 @@ export const loadLanguage = async (language: Language): Promise<void> => {
   i18n.addResourceBundle(language, 'translation', table);
 };
 
-/** Loads the language, then switches to it. If it can't load, the current language stays. */
+let latestChange = 0;
+
+/**
+ * Loads the language, then switches to it. If it can't load, the current
+ * language stays. Only the latest call switches: a slow load that finishes
+ * after a later choice doesn't undo it.
+ */
 export const changeLanguage = async (language: Language): Promise<void> => {
+  const change = ++latestChange;
   try {
     await loadLanguage(language);
   } catch (error) {
     console.error(`Could not load the "${language}" translations`, error);
     return;
   }
+  if (change !== latestChange) return;
   await i18n.changeLanguage(language);
 };
+
+/**
+ * How long the login waits for Spanish or Japanese copy before it shows the
+ * current language instead. The switch still lands when the copy arrives.
+ */
+export const LANGUAGE_WAIT_MS = 3000;
+
+/**
+ * Switches to the language, and settles once it's shown or couldn't load, or
+ * after timeoutMs, whichever comes first. A slower load still switches when
+ * it finishes.
+ */
+export const whenLanguageReady = (language: Language, timeoutMs: number): Promise<void> =>
+  new Promise((resolve) => {
+    const timer = setTimeout(resolve, timeoutMs);
+    void changeLanguage(language).finally(() => {
+      clearTimeout(timer);
+      resolve();
+    });
+  });
 
 export default i18n;

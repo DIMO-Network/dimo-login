@@ -63,7 +63,11 @@ const App = () => {
   const t = useT();
   const language = useLanguage();
 
-  useLanguageSync(clientId, params.language, params.waitingForParams);
+  const languageLoading = useLanguageSync(
+    clientId,
+    params.language,
+    params.waitingForParams,
+  );
 
   // Bind document.title to the OEM brand when one is loaded. Restores the
   // default DIMO title if the popup unmounts (covers in-flight branding
@@ -137,7 +141,9 @@ const App = () => {
     [credentialsChecked, entryState],
   );
 
-  if (isLoading) {
+  // The first screen waits, up to LANGUAGE_WAIT_MS, for the copy of a
+  // language that came with the params, so it isn't shown in the old one first.
+  if (isLoading || languageLoading) {
     return (
       <AppShell loading>
         <LoadingScreen message={loadingMessage} />

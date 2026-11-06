@@ -110,6 +110,18 @@ describe('language', () => {
     expect(resolveLanguage({ clientId: '0xapp', configured: 'ja' })).toBe('en');
     expect(resolveLanguage({ clientId: '0xOther', configured: 'ja' })).toBe('ja');
   });
+
+  it('uses the pick for the app in the URL before the first paint', async () => {
+    const { initialLanguage } = await import('..');
+    setBrowser(['en-US'], 'Europe/London');
+    storeLanguage('0xApp', 'ja');
+    window.history.replaceState(null, '', '/?clientId=0xAPP');
+    try {
+      expect(initialLanguage()).toBe('ja');
+    } finally {
+      window.history.replaceState(null, '', '/');
+    }
+  });
 });
 
 describe('test setup', () => {
