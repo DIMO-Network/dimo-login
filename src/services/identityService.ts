@@ -118,38 +118,45 @@ export const fetchVehicles = async (
   return { data };
 };
 
-const GET_DEVICE_DEFINITION_BY_ID = `
-  query GetDeviceDefinitionById($id: String!) {
-    deviceDefinition(by:{id: $id}) {
-      attributes {
-        name
-        value
-      }
-    }
-  }
-`;
-
-type GetDeviceDefinitionByIdQueryResult = {
-  deviceDefinition: DeviceDefinition;
-};
-type DeviceDefinition = {
+type DeviceDefinitionAttributes = {
   attributes?: { name: string; value: string }[] | null;
-};
+} | null;
 
-export const fetchDeviceDefinition = async (
-  deviceDefinitionId: string,
-): Promise<GetDeviceDefinitionByIdQueryResult> => {
-  const { data, errors } = await queryIdentity<GetDeviceDefinitionByIdQueryResult>(
-    GET_DEVICE_DEFINITION_BY_ID,
-    { id: deviceDefinitionId },
+/**
+ * Looks up the powertrain type of every definition in one request. An id the
+ * API does not know maps to null; only a response with no data at all throws.
+ */
+export const fetchPowertrainTypes = async (
+  definitionIds: string[],
+): Promise<Map<string, string | null>> => {
+  const ids = [...new Set(definitionIds)];
+  const powertrainTypes = new Map<string, string | null>();
+  if (ids.length === 0) return powertrainTypes;
+
+  const params = ids.map((_, i) => `$id${i}: String!`).join(', ');
+  const fields = ids
+    .map(
+      (_, i) =>
+        `d${i}: deviceDefinition(by: { id: $id${i} }) { attributes { name value } }`,
+    )
+    .join('\n  ');
+  const query = `query PowertrainTypes(${params}) {\n  ${fields}\n}`;
+  const variables = Object.fromEntries(ids.map((id, i) => [`id${i}`, id]));
+
+  const { data } = await queryIdentity<Record<string, DeviceDefinitionAttributes>>(
+    query,
+    variables,
   );
-  if (errors.length > 0) {
-    throw new Error(errors[0].message);
-  }
   if (!data) {
-    throw new Error('The identity API returned no device definition.');
+    throw new Error('The identity API returned no device definitions.');
   }
-  return data;
+  ids.forEach((id, i) => {
+    const attribute = data[`d${i}`]?.attributes?.find(
+      (att) => att.name === 'powertrain_type',
+    );
+    powertrainTypes.set(id, attribute?.value ?? null);
+  });
+  return powertrainTypes;
 };
 
 export const getFirstOwnedDeveloperLicense = async (

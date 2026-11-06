@@ -1,6 +1,4 @@
-import type { Mock } from 'vitest';
 import { LocalVehicle } from '../vehicle';
-import * as services from '../../services/identityService';
 
 vi.mock('@dimo-network/transactions', async () => ({
   ...(await vi.importActual<object>('@dimo-network/transactions')),
@@ -56,37 +54,6 @@ describe('LocalVehicle', () => {
       make: 'Tesla',
       model: 'Model S',
       year: 2022,
-    });
-  });
-
-  describe('getPowertrainType', () => {
-    beforeEach(() => {
-      vi.spyOn(services, 'fetchDeviceDefinition').mockResolvedValue({
-        deviceDefinition: {
-          attributes: [
-            { name: 'powertrain_type', value: 'BEV' },
-            { name: 'other', value: 'foo' },
-          ],
-        },
-      } as any);
-    });
-    afterEach(() => {
-      vi.restoreAllMocks();
-    });
-    it('returns the powertrain type if present', async () => {
-      await expect(localVehicle.getPowertrainType()).resolves.toBe('BEV');
-    });
-    it('returns null if powertrain_type attribute is missing', async () => {
-      (services.fetchDeviceDefinition as Mock).mockResolvedValueOnce({
-        deviceDefinition: { attributes: [{ name: 'other', value: 'foo' }] },
-      });
-      await expect(localVehicle.getPowertrainType()).resolves.toBeNull();
-    });
-    it('returns null if attributes is undefined', async () => {
-      (services.fetchDeviceDefinition as Mock).mockResolvedValueOnce({
-        deviceDefinition: { attributes: undefined },
-      });
-      await expect(localVehicle.getPowertrainType()).resolves.toBeNull();
     });
   });
 });

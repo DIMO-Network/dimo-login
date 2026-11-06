@@ -1,5 +1,5 @@
 import type { Mock } from 'vitest';
-import { fetchVehicles } from '../identityService';
+import { fetchVehicles, fetchPowertrainTypes } from '../identityService';
 import { queryIdentity } from '../identityGraphql';
 
 vi.mock('../identityGraphql', () => ({ queryIdentity: vi.fn() }));
@@ -62,5 +62,46 @@ describe('fetchVehicles', () => {
     await expect(
       fetchVehicles({ ownerAddress: '0x123', direction: 'next', cursor: '' }),
     ).rejects.toThrow('The identity API returned no vehicles.');
+  });
+});
+
+describe('fetchPowertrainTypes', () => {
+  const mockQuery = queryIdentity as Mock;
+
+  beforeEach(() => {
+    mockQuery.mockReset();
+    mockQuery.mockResolvedValue({ data: {}, errors: [] });
+  });
+
+  it('asks for every definition in one query', async () => {
+    await fetchPowertrainTypes(['a', 'b', 'a']);
+    expect(mockQuery).toHaveBeenCalledTimes(1);
+    expect(mockQuery).toHaveBeenCalledWith(expect.any(String), { id0: 'a', id1: 'b' });
+  });
+
+  it('reads powertrain_type per definition, null when unknown', async () => {
+    mockQuery.mockResolvedValue({
+      data: {
+        d0: { attributes: [{ name: 'powertrain_type', value: 'BEV' }] },
+        d1: null,
+      },
+      errors: [{ message: 'not found' }],
+    });
+    await expect(fetchPowertrainTypes(['a', 'b'])).resolves.toEqual(
+      new Map([
+        ['a', 'BEV'],
+        ['b', null],
+      ]),
+    );
+  });
+
+  it('throws when the lookup returns no data', async () => {
+    mockQuery.mockResolvedValue({ data: null, errors: [{ message: 'boom' }] });
+    await expect(fetchPowertrainTypes(['a'])).rejects.toThrow();
+  });
+
+  it('makes no request for no ids', async () => {
+    await expect(fetchPowertrainTypes([])).resolves.toEqual(new Map());
+    expect(mockQuery).not.toHaveBeenCalled();
   });
 });
