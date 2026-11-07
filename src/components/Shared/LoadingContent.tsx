@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Loader, LoaderProps } from '../';
+import { Loader, LoaderProps } from './Loader';
 
 export type LoadingContentProps = LoaderProps;
 

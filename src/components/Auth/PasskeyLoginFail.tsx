@@ -6,7 +6,7 @@ import ErrorMessage from '../Shared/ErrorMessage';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { UiStates } from '../../enums';
 import { useUIManager } from '../../context/UIManagerContext';
-import { clearLoggedEmail } from '../../services';
+import { clearLoggedEmail } from '../../services/storageService';
 import { useAuthContext } from '../../context/AuthContext';
 import { useT } from '../../i18n';
 import { ActionBar, Button, DoneHeader, Notice, Screen } from '../ui';

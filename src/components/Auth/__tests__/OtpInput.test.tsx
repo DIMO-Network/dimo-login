@@ -3,7 +3,7 @@ import React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 const mockSendOtp = vi.fn();
-vi.mock('../../../services', () => ({
+vi.mock('../../../services/accountsService', () => ({
   sendOtp: (...args: unknown[]) => mockSendOtp(...args),
 }));
 const mockComplete = vi.fn();

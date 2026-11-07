@@ -6,11 +6,7 @@
  * Specific Responsibilities include: Getting vehicles and their SACD permissions
  */
 
-import { apolloClient } from './apollo';
-import { gql } from '@apollo/client';
-
-const GRAPHQL_ENDPOINT =
-  process.env.REACT_APP_DIMO_IDENTITY_URL || 'https://identity-api.dev.dimo.zone/query';
+import { queryIdentity, type IdentityError } from './identityGraphql';
 
 type IFetchVehicleParams = {
   ownerAddress: `0x${string}` | null;
@@ -18,7 +14,7 @@ type IFetchVehicleParams = {
   direction: string;
 };
 
-const GET_VEHICLES = gql`
+const GET_VEHICLES = `
   query GetVehicles(
     $owner: Address!
     $first: Int
@@ -109,52 +105,75 @@ export const fetchVehicles = async (
     if (cursor) variables.before = cursor;
   }
 
-  const result = await apolloClient.query<{ vehicles: VehiclesQueryResult['vehicles'] }>({
-    query: GET_VEHICLES,
+  const { data, errors } = await queryIdentity<VehiclesQueryResult>(
+    GET_VEHICLES,
     variables,
-    fetchPolicy: 'network-only',
-  });
-  if (result.error) {
-    throw new Error(result.error.message);
+  );
+  if (errors.length > 0) {
+    throw new Error(errors[0].message);
   }
-  if (!result.data) {
+  if (!data) {
     throw new Error('The identity API returned no vehicles.');
   }
-  return { data: result.data };
+  return { data };
 };
 
-const GET_DEVICE_DEFINITION_BY_ID = gql(`
-  query GetDeviceDefinitionById($id: String!) {
-    deviceDefinition(by:{id: $id}) {
-      attributes {
-        name
-        value
-      }
-    }
-  }
-`);
-
-type GetDeviceDefinitionByIdQueryResult = {
-  deviceDefinition: DeviceDefinition;
-};
-type DeviceDefinition = {
+type DeviceDefinitionAttributes = {
   attributes?: { name: string; value: string }[] | null;
-};
+} | null;
 
-export const fetchDeviceDefinition = async (
-  deviceDefinitionId: string,
-): Promise<GetDeviceDefinitionByIdQueryResult> => {
-  const result = await apolloClient.query<GetDeviceDefinitionByIdQueryResult>({
-    query: GET_DEVICE_DEFINITION_BY_ID,
-    variables: { id: deviceDefinitionId },
+/**
+ * Whether identity-api answered "there's no such record" rather than failing.
+ * Licenses, vehicles and connections carry the NOT_FOUND code; device
+ * definitions only say so in the message (identity-api's
+ * internal/repositories/devicedefinition/devicedefinition.go).
+ */
+const isNotFoundError = (error: IdentityError) =>
+  error.extensions?.code === 'NOT_FOUND' ||
+  /no device definition found/i.test(error.message);
+
+/**
+ * Looks up the powertrain type of every definition in one request. An id the
+ * API doesn't know maps to null, so its vehicle reads as incompatible. Any
+ * other failure throws, so an outage isn't read as vehicles being incompatible.
+ */
+export const fetchPowertrainTypes = async (
+  definitionIds: string[],
+): Promise<Map<string, string | null>> => {
+  const ids = [...new Set(definitionIds)];
+  const powertrainTypes = new Map<string, string | null>();
+  if (ids.length === 0) return powertrainTypes;
+
+  const params = ids.map((_, i) => `$id${i}: String!`).join(', ');
+  const fields = ids
+    .map(
+      (_, i) =>
+        `d${i}: deviceDefinition(by: { id: $id${i} }) { attributes { name value } }`,
+    )
+    .join('\n  ');
+  const query = `query PowertrainTypes(${params}) {\n  ${fields}\n}`;
+  const variables = Object.fromEntries(ids.map((id, i) => [`id${i}`, id]));
+
+  const { data, errors } = await queryIdentity<
+    Record<string, DeviceDefinitionAttributes>
+  >(query, variables);
+  if (!data) {
+    throw new Error('The identity API returned no device definitions.');
+  }
+  ids.forEach((id, i) => {
+    const alias = `d${i}`;
+    const definition = data[alias];
+    if (!definition) {
+      // An error without a path isn't tied to one definition, so it counts too.
+      const error = errors.find((e) => e.path?.[0] === alias || !e.path);
+      if (error && !isNotFoundError(error)) throw new Error(error.message);
+    }
+    const attribute = definition?.attributes?.find(
+      (att) => att.name === 'powertrain_type',
+    );
+    powertrainTypes.set(id, attribute?.value ?? null);
   });
-  if (result.error) {
-    throw new Error(result.error.message);
-  }
-  if (!result.data) {
-    throw new Error('The identity API returned no device definition.');
-  }
-  return result.data;
+  return powertrainTypes;
 };
 
 export const getFirstOwnedDeveloperLicense = async (
@@ -174,13 +193,15 @@ export const getFirstOwnedDeveloperLicense = async (
     }
   }`;
 
-  const apiResponse = await fetch(GRAPHQL_ENDPOINT!, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query }),
-  });
-
-  const { data } = await apiResponse.json();
+  const { data } = await queryIdentity<{
+    developerLicenses?: {
+      nodes?: {
+        tokenId: number;
+        clientId: string;
+        redirectURIs?: { nodes?: { uri: string }[] };
+      }[];
+    };
+  }>(query);
   const node = data?.developerLicenses?.nodes?.[0];
   if (!node) return null;
   return {
@@ -211,18 +232,15 @@ export const getDeveloperLicense = async (clientId: string) => {
     }
   }`;
 
-  const apiResponse = await fetch(GRAPHQL_ENDPOINT!, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ query }),
-  });
-
-  const { data: developerLicenseData } = await apiResponse.json();
+  const { data: developerLicenseData, errors } = await queryIdentity<{
+    developerLicense?: any;
+  }>(query);
   const { developerLicense } = developerLicenseData || {};
 
   if (!developerLicense) {
+    // An unknown client ID is a bad setup (null); a failed lookup is an outage.
+    const failure = errors.find((error) => !isNotFoundError(error));
+    if (failure) throw new Error(failure.message);
     console.error('No data found in the response.');
     return null;
   }

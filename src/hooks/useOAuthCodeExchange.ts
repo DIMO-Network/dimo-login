@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import debounce from 'lodash/debounce';
-import { submitCodeExchange } from '../services';
+import { submitCodeExchange } from '../services/authService';
 import { captureException } from '@sentry/react';
 import { readTrustedOAuthReturn } from '../utils/flowSnapshot';
 

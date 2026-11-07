@@ -1,6 +1,6 @@
 import { useAuthContext } from '../context/AuthContext';
 import { useUIManager } from '../context/UIManagerContext';
-import { fetchUserDetails } from '../services';
+import { fetchUserDetails } from '../services/accountsService';
 import { UiStates } from '../enums';
 
 export const useGoToLoginOrSignUp = () => {

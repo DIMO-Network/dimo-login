@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { captureException } from '@sentry/react';
 
-import { ErrorMessage, Loader, UIManagerLoaderWrapper } from '../Shared';
+import { ErrorMessage } from '../Shared/ErrorMessage';
+import { Loader, UIManagerLoaderWrapper } from '../Shared/Loader';
 import { LegalNotice } from '../Shared/LegalNotice';
 import SSOButton from '../Shared/SSOButton';
 import { AppleIcon, GoogleIcon } from '../Icons';
 import { Button, Screen, ScreenHeader, TextField } from '../ui';
-import { clearLoggedEmail, getLoggedEmail } from '../../services';
+import { clearLoggedEmail, getLoggedEmail } from '../../services/storageService';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { useUIManager } from '../../context/UIManagerContext';
 import { decodeJwt } from '../../utils/jwtUtils';
@@ -14,11 +15,9 @@ import { normalizeEmail, validateEmail } from '../../utils/emailUtils';
 import { getRedirectHost } from '../../utils/urlHelpers';
 import { AuthProvider, getOAuthRedirectUri } from '../../utils/authUrls';
 import { getKeyboardEventListener, getSignInTitle } from '../../utils/uiUtils';
-import {
-  useOAuthCodeExchange,
-  useConstructOAuthUrl,
-  useGoToLoginOrSignUp,
-} from '../../hooks';
+import { useOAuthCodeExchange } from '../../hooks/useOAuthCodeExchange';
+import { useConstructOAuthUrl } from '../../hooks/useConstructOAuthUrl';
+import { useGoToLoginOrSignUp } from '../../hooks/useGoToLoginOrSignUp';
 import { message, translateText, useT, type Message } from '../../i18n';
 
 interface EmailInputProps {

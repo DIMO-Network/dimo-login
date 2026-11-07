@@ -1,5 +1,6 @@
 import { VehicleFilters, VehiclePermissionsAction } from '../types';
 import { LocalVehicle, Vehicle } from '../models/vehicle';
+import { fetchPowertrainTypes } from '../services/identityService';
 import { extendByYear, grantEndOf, parseExpirationDate } from './dateUtils';
 
 const transformVehicle = (
@@ -35,29 +36,30 @@ const checkMakesFilter = (vehicle: LocalVehicle, makes?: string[]) => {
   return makes.map((make) => make.toLowerCase()).includes(vehicle.make.toLowerCase());
 };
 
-const checkPowertrainTypesFilter = async (
+const checkPowertrainTypesFilter = (
   vehicle: LocalVehicle,
-  powertrainTypes?: string[],
+  powertrainTypes: string[] | undefined,
+  powertrains: Map<string, string | null>,
 ) => {
   if (!powertrainTypes?.length) return true;
-  const powertrainType = await vehicle.getPowertrainType();
-  if (powertrainType) {
-    return powertrainTypes
-      .map((val) => val.toLowerCase())
-      .includes(powertrainType.toLowerCase());
-  }
-  return false;
+  const powertrainType = powertrains.get(vehicle.definitionId);
+  if (!powertrainType) return false;
+  return powertrainTypes
+    .map((val) => val.toLowerCase())
+    .includes(powertrainType.toLowerCase());
 };
 
-export const checkIfFiltersMatch = async (
+const checkIfFiltersMatch = (
   vehicle: LocalVehicle,
   filters: VehicleFilters,
+  powertrains: Map<string, string | null>,
 ) => {
   const { vehicleTokenIds, vehicleMakes, powertrainTypes } = filters;
-  const tokenIdMatch = checkTokenIdsFilter(vehicle, vehicleTokenIds);
-  const makeMatch = checkMakesFilter(vehicle, vehicleMakes);
-  const powertrainTypeMatch = await checkPowertrainTypesFilter(vehicle, powertrainTypes);
-  return tokenIdMatch && makeMatch && powertrainTypeMatch;
+  return (
+    checkTokenIdsFilter(vehicle, vehicleTokenIds) &&
+    checkMakesFilter(vehicle, vehicleMakes) &&
+    checkPowertrainTypesFilter(vehicle, powertrainTypes, powertrains)
+  );
 };
 
 export const sortVehiclesByFilters = async (
@@ -67,9 +69,21 @@ export const sortVehiclesByFilters = async (
   const compatibleVehicles = [];
   const incompatibleVehicles = [];
 
+  // Only vehicles the cheaper filters keep need their powertrain looked up.
+  const powertrains = filters.powertrainTypes?.length
+    ? await fetchPowertrainTypes(
+        vehicles
+          .filter(
+            (vehicle) =>
+              checkTokenIdsFilter(vehicle, filters.vehicleTokenIds) &&
+              checkMakesFilter(vehicle, filters.vehicleMakes),
+          )
+          .map((vehicle) => vehicle.definitionId),
+      )
+    : new Map<string, string | null>();
+
   for (const vehicle of vehicles) {
-    const isCompatible = await checkIfFiltersMatch(vehicle, filters);
-    if (isCompatible) {
+    if (checkIfFiltersMatch(vehicle, filters, powertrains)) {
       compatibleVehicles.push(vehicle);
     } else {
       incompatibleVehicles.push(vehicle);

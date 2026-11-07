@@ -11,12 +11,12 @@ vi.mock('@dimo-network/transactions', () => ({
       (p) => ((value >> BigInt(p * 2)) & BigInt(3)) === BigInt(3),
     ),
 }));
-vi.mock('../../services', () => ({
-  createPermissionsFromParams: vi.fn(),
+vi.mock('../../services/turnkeyService', () => ({
   generateIpfsSources: vi.fn(),
   setVehiclePermissions: vi.fn(),
 }));
 vi.mock('../../services/permissionsService', () => ({
+  createPermissionsFromParams: vi.fn(),
   generateAttachments: () => [],
 }));
 vi.mock('../../context/DevCredentialsContext', () => ({
@@ -36,11 +36,11 @@ vi.mock('../../utils/authUtils', () => ({
 }));
 
 import { useUpdateVehiclePermissions } from '../useUpdateVehiclePermissions';
+import { createPermissionsFromParams } from '../../services/permissionsService';
 import {
-  createPermissionsFromParams,
   generateIpfsSources,
   setVehiclePermissions,
-} from '../../services';
+} from '../../services/turnkeyService';
 import { Vehicle } from '../../models/vehicle';
 import { clearGrantReadCache } from '../../services/vehicleDocumentAgreements';
 import { VehiclePermissionsAction } from '../../types';

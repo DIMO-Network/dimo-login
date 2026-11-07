@@ -34,6 +34,7 @@ export const useErrorHandler = ({
     untrustedCaller: Boolean(params.untrustedCaller),
     missingClientId: !Boolean(params.clientId),
     missingRedirectUri: !Boolean(params.redirectUri),
+    credentialsUnavailable: Boolean(params.credentialsUnavailable),
     invalidCredentials: Boolean(params.invalidCredentials),
   } as const);
 

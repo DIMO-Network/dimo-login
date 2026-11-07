@@ -1,10 +1,8 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useSyncExternalStore } from 'react';
 import { i18n } from './instance';
 import { initReactI18next, Trans as I18nTrans, useTranslation } from 'react-i18next';
 
 import en from './locales/en';
-import es from './locales/es';
-import ja from './locales/ja';
 import {
   DEFAULT_LANGUAGE,
   Language,
@@ -16,13 +14,17 @@ import type { Message, Text, TranslationKey, TranslationParams } from './types';
 export type { Message, Text, TranslationKey, TranslationParams } from './types';
 export * from './language';
 
-// The URL can name the language in redirect mode; reading it here avoids
-// painting English first. The SDK's popup message and stored configurations
-// arrive later and switch it through useLanguageSync.
-const initialLanguage = (): Language => {
+// In redirect mode the URL names the app (whose remembered pick wins) and can
+// name the language; reading them here avoids painting English first. The
+// SDK's popup message and stored configurations arrive later and switch it
+// through useLanguageSync.
+export const initialLanguage = (): Language => {
   if (typeof window === 'undefined') return DEFAULT_LANGUAGE;
-  const configured = new URLSearchParams(window.location.search).get('language');
-  return resolveLanguage({ configured });
+  const params = new URLSearchParams(window.location.search);
+  return resolveLanguage({
+    clientId: params.get('clientId'),
+    configured: params.get('language'),
+  });
 };
 
 const setDocumentLanguage = (language: string) => {
@@ -32,12 +34,8 @@ const setDocumentLanguage = (language: string) => {
 i18n.on('languageChanged', setDocumentLanguage);
 
 void i18n.use(initReactI18next).init({
-  resources: {
-    en: { translation: en },
-    ja: { translation: ja },
-    es: { translation: es },
-  },
-  lng: initialLanguage(),
+  resources: { en: { translation: en } },
+  lng: DEFAULT_LANGUAGE,
   fallbackLng: DEFAULT_LANGUAGE,
   supportedLngs: [...SUPPORTED_LANGUAGES],
   // Keys are flat strings with dots in them, as in DIMO Driver.
@@ -110,6 +108,116 @@ export const Trans = ({
   return <AnyTrans i18nKey={k} values={values} components={components} />;
 };
 
-export const changeLanguage = (language: Language) => i18n.changeLanguage(language);
+// English is bundled; the others are separate chunks fetched when chosen.
+const LOADERS: Partial<Record<Language, () => Promise<{ default: object }>>> = {
+  es: () => import('./locales/es'),
+  ja: () => import('./locales/ja'),
+};
+
+// When each language's download started, while it's running.
+const loadStartedAt = new Map<Language, number>();
+
+/** Makes a language's copy available. English and loaded languages resolve at once. */
+export const loadLanguage = async (language: Language): Promise<void> => {
+  const load = LOADERS[language];
+  if (!load || i18n.hasResourceBundle(language, 'translation')) return;
+  if (!loadStartedAt.has(language)) loadStartedAt.set(language, Date.now());
+  try {
+    const { default: table } = await load();
+    i18n.addResourceBundle(language, 'translation', table);
+  } finally {
+    loadStartedAt.delete(language);
+  }
+};
+
+let latestChange = 0;
+
+// The detected language's switch (its change number) while it's still pending.
+let initialChange: number | undefined;
+const initialListeners = new Set<() => void>();
+const settleInitial = () => {
+  if (initialChange === undefined) return;
+  initialChange = undefined;
+  initialListeners.forEach((listener) => listener());
+};
+
+/**
+ * Loads the language, then switches to it. If it can't load, the current
+ * language stays. Only the latest call switches: a slow load that finishes
+ * after a later choice doesn't undo it.
+ */
+export const changeLanguage = async (language: Language): Promise<void> => {
+  const change = ++latestChange;
+  // A later choice (the app's settings, the switcher) replaces the detected one.
+  if (initialChange !== undefined && change > initialChange) settleInitial();
+  try {
+    await loadLanguage(language);
+  } catch (error) {
+    console.error(`Could not load the "${language}" translations`, error);
+    return;
+  }
+  if (change !== latestChange) return;
+  if (i18n.resolvedLanguage !== language) await i18n.changeLanguage(language);
+};
+
+/**
+ * How long the login waits for Spanish or Japanese copy before it shows the
+ * current language instead. The switch still lands when the copy arrives.
+ */
+export const LANGUAGE_WAIT_MS = 3000;
+
+/**
+ * How much longer to wait for a language's copy: all of LANGUAGE_WAIT_MS if
+ * its download hasn't started, what's left of it while the download runs, and
+ * 0 once that's used up. So a download that started at boot isn't waited for
+ * twice.
+ */
+export const languageWaitLeft = (language: Language): number => {
+  const started = loadStartedAt.get(language);
+  if (started === undefined) return LANGUAGE_WAIT_MS;
+  return Math.max(0, LANGUAGE_WAIT_MS - (Date.now() - started));
+};
+
+/**
+ * Switches to the language, and settles once it's shown or couldn't load, or
+ * after timeoutMs, whichever comes first. A slower load still switches when
+ * it finishes.
+ */
+export const whenLanguageReady = (language: Language, timeoutMs: number): Promise<void> =>
+  new Promise((resolve) => {
+    const timer = setTimeout(resolve, timeoutMs);
+    void changeLanguage(language).finally(() => {
+      clearTimeout(timer);
+      resolve();
+    });
+  });
+
+/**
+ * Starts switching to the language detected at boot without holding the first
+ * render, so READY goes out at once. Until that language is showing, can't
+ * load, has been waited for LANGUAGE_WAIT_MS, or a later choice replaces it,
+ * useInitialLanguagePending() is true and App shows a loading screen with no
+ * text, so nothing appears in the wrong language first.
+ */
+export const startInitialLanguage = (language: Language): void => {
+  const pending = !i18n.hasResourceBundle(language, 'translation');
+  const settled = whenLanguageReady(language, LANGUAGE_WAIT_MS);
+  if (!pending) return;
+  // whenLanguageReady's changeLanguage call just took this number.
+  initialChange = latestChange;
+  void settled.finally(settleInitial);
+};
+
+const subscribeInitial = (listener: () => void) => {
+  initialListeners.add(listener);
+  return () => {
+    initialListeners.delete(listener);
+  };
+};
+const initialPendingSnapshot = () => initialChange !== undefined;
+
+/** True while the language detected at boot is still loading (startInitialLanguage). */
+export const useInitialLanguagePending = (): boolean =>
+  useSyncExternalStore(subscribeInitial, initialPendingSnapshot);
 
 export default i18n;

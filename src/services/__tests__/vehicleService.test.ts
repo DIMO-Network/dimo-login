@@ -1,6 +1,6 @@
 import type { Mock } from 'vitest';
 import { fetchVehiclesWithTransformation } from '../vehicleService';
-import { fetchVehicles, fetchDeviceDefinition } from '../identityService';
+import { fetchVehicles, fetchPowertrainTypes } from '../identityService';
 
 vi.mock('@dimo-network/transactions', async () => ({
   ...(await vi.importActual<object>('@dimo-network/transactions')),
@@ -53,32 +53,12 @@ beforeEach(() => {
       },
     });
   });
-  (fetchDeviceDefinition as Mock).mockImplementation((deviceDefinitionId) => {
-    if (deviceDefinitionId === 'tesla_model_3_2019') {
-      return Promise.resolve({
-        deviceDefinition: {
-          attributes: [
-            {
-              name: 'powertrain_type',
-              value: 'BEV',
-            },
-          ],
-        },
-      });
-    }
-    if (deviceDefinitionId === 'ford_bronco_2023') {
-      return Promise.resolve({
-        deviceDefinition: {
-          attributes: [
-            {
-              name: 'powertrain_type',
-              value: 'ICE',
-            },
-          ],
-        },
-      });
-    }
-  });
+  (fetchPowertrainTypes as Mock).mockResolvedValue(
+    new Map([
+      ['tesla_model_3_2019', 'BEV'],
+      ['ford_bronco_2023', 'ICE'],
+    ]),
+  );
 });
 
 afterEach(() => vi.restoreAllMocks());
@@ -258,4 +238,67 @@ it('Returns vehicles that match both tokenId and powertrain type filters', async
   expect(data.compatibleVehicles[0].year).toEqual(2023);
   expect(data.incompatibleVehicles.length).toEqual(1);
   expect(data.incompatibleVehicles[0].tokenId).toEqual(1);
+});
+it('looks up only the vehicles the other filters keep', async () => {
+  await fetchVehiclesWithTransformation({
+    cursor: '',
+    direction: '',
+    ownerAddress: '0x',
+    targetGrantee: '0x',
+    filters: { vehicleMakes: ['Tesla'], powertrainTypes: ['BEV'] },
+  });
+  expect(fetchPowertrainTypes).toHaveBeenCalledWith(['tesla_model_3_2019']);
+});
+it('looks up every definition in one request', async () => {
+  const base = (fetchVehicles as Mock).getMockImplementation()!;
+  (fetchVehicles as Mock).mockImplementation(async () => {
+    const result = await base();
+    const nodes = result.data.vehicles.nodes;
+    return {
+      data: {
+        vehicles: {
+          ...result.data.vehicles,
+          nodes: [...nodes, { ...nodes[0], tokenId: 3 }],
+        },
+      },
+    };
+  });
+  await fetchVehiclesWithTransformation({
+    cursor: '',
+    direction: '',
+    ownerAddress: '0x',
+    targetGrantee: '0x',
+    filters: { powertrainTypes: ['BEV'] },
+  });
+  // fetchPowertrainTypes asks about each distinct id once.
+  expect(fetchPowertrainTypes).toHaveBeenCalledTimes(1);
+  expect(fetchPowertrainTypes).toHaveBeenCalledWith([
+    'tesla_model_3_2019',
+    'ford_bronco_2023',
+    'tesla_model_3_2019',
+  ]);
+});
+it('does not look up definitions without a powertrain filter', async () => {
+  await fetchVehiclesWithTransformation({
+    cursor: '',
+    direction: '',
+    ownerAddress: '0x',
+    targetGrantee: '0x',
+    filters: { vehicleMakes: ['Ford'] },
+  });
+  expect(fetchPowertrainTypes).not.toHaveBeenCalled();
+});
+it('counts a vehicle whose definition is unknown as incompatible', async () => {
+  (fetchPowertrainTypes as Mock).mockResolvedValue(
+    new Map([['ford_bronco_2023', 'ICE']]),
+  );
+  const data = await fetchVehiclesWithTransformation({
+    cursor: '',
+    direction: '',
+    ownerAddress: '0x',
+    targetGrantee: '0x',
+    filters: { powertrainTypes: ['BEV', 'ICE'] },
+  });
+  expect(data.compatibleVehicles.map((v) => v.tokenId)).toEqual([2]);
+  expect(data.incompatibleVehicles.map((v) => v.tokenId)).toEqual([1]);
 });

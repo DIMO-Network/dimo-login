@@ -18,20 +18,21 @@ import React, {
 } from 'react';
 
 import { AllParams } from '../types';
-import { createKernelSigner } from '../services/turnkeyService';
+import { initKernelSigner } from '../services/walletLoader';
 import { Event, EventByUiState, UiStates } from '../enums';
-import { fetchConfigFromIPFS } from '../services';
+import { fetchConfigFromIPFS } from '../services/ipfsService';
 import {
   getDeveloperLicense,
   getLicenseAlias,
   isValidDeveloperLicense,
 } from '../services/identityService';
-import { fetchOemBrand, readCachedBrand } from '../services/brandService';
+import { captureException } from '@sentry/react';
+import { fetchOemBrand, readCachedBrand, type OemBrand } from '../services/brandService';
 import { AuthProvider } from '../utils/authUrls';
 import { readOAuthState, readTrustedOAuthReturn } from '../utils/flowSnapshot';
 import { reportRefusal } from '../utils/reportRefusal';
 import { message, type Text } from '../i18n';
-import { useParamsHandler } from '../hooks';
+import { useParamsHandler } from '../hooks/useParamsHandler';
 import { getDefaultExpirationDate } from '../utils/dateUtils';
 import { sendMessageToReferrer } from '../utils/messageHandler';
 import { isStandalone } from '../utils/isStandalone';
@@ -281,8 +282,11 @@ export const DevCredentialsProvider = ({
     const seq = ++validateSeqRef.current;
     const isStale = () => seq !== validateSeqRef.current;
 
+    // Every run starts unverified, so a check that fails or is still running
+    // can never count as one that passed before it.
     applyDevCredentialsConfig({
       waitingForDevLicense: Boolean(clientId),
+      invalidCredentials: true,
     });
 
     if (!clientId) return;
@@ -296,30 +300,70 @@ export const DevCredentialsProvider = ({
       applyDevCredentialsConfig({ oemBrand: cachedBrand });
     }
 
-    // Brand fetch runs in parallel with identity-api lookups so the OEM logo
-    // can paint as soon as both the license check and brand-record fetch
-    // finish — no extra round-trip latency added to the existing flow.
+    // The brand lookup starts before the license lookups, so it is never later
+    // than the license check it runs beside.
     //
     // brandName comes from state, not the URL: popup mode opens at the bare
     // base URL (no query string), so the SDK delivers brandName via the
     // AUTH_INIT postMessage. State is the one place both transports converge —
     // applyDevCredentialsConfig deposits it there in the same batch that sets
     // clientId. Reading the URL here would silently drop the popup case.
-    const [licenseData, brand] = await Promise.all([
-      getDeveloperLicense(clientId),
-      fetchOemBrand(clientId, brandName),
-    ]);
-    if (isStale()) return;
-    const alias = await getLicenseAlias(licenseData, clientId);
-    if (isStale()) return;
+    const brandRequest = fetchOemBrand(clientId, brandName);
+
+    // With a cached brand already painted, auth never waits on console-api: the
+    // live record lands whenever it answers. fetchOemBrand answers null both
+    // when the console no longer has the brand (it clears the cache) and when
+    // the lookup failed (it keeps the cache), so the cache says which: a brand
+    // that's gone is dropped, a passing failure leaves the brand on screen.
+    // Without a cached brand, the screen waits for it as before.
+    if (cachedBrand) {
+      void brandRequest.then((brand) => {
+        if (!isStale()) {
+          applyDevCredentialsConfig({ oemBrand: brand ?? readCachedBrand(clientId) });
+        }
+      });
+    }
+
     // PROVISION_DEVELOPER_LICENSE: the calling app may not be a registered
     // developer and its redirectUri won't be registered on-chain yet — that's
     // what this flow sets up. Skip all license validation so KernelSigner is
     // always initialized and the user can proceed to provisioning.
     const isProvisionFlow = entryState === UiStates.PROVISION_DEVELOPER_LICENSE;
-    const isRegistered = isProvisionFlow
-      ? true
-      : await isValidDeveloperLicense(licenseData, redirectUri);
+    let alias: string;
+    let isRegistered: boolean;
+    let awaitedBrand: OemBrand | null;
+    try {
+      const [licenseData, brand] = await Promise.all([
+        getDeveloperLicense(clientId),
+        cachedBrand ? null : brandRequest,
+      ]);
+      awaitedBrand = brand;
+      if (isStale()) return;
+      alias = await getLicenseAlias(licenseData, clientId);
+      if (isStale()) return;
+      isRegistered = isProvisionFlow
+        ? true
+        : await isValidDeveloperLicense(licenseData, redirectUri);
+    } catch (error) {
+      if (isStale()) return;
+      console.error('Could not check the app’s developer license', error);
+      captureException(error);
+      if (isProvisionFlow) {
+        // Provisioning skips license validation and only wanted the alias.
+        alias = clientId;
+        isRegistered = true;
+        awaitedBrand = cachedBrand ? null : await brandRequest;
+        if (isStale()) return;
+      } else {
+        // identity-api failed or timed out: say so rather than wait forever.
+        applyDevCredentialsConfig({
+          credentialsUnavailable: true,
+          invalidCredentials: true,
+          waitingForDevLicense: false,
+        });
+        return;
+      }
+    }
     if (isStale()) return;
 
     // A popup's opener and an embedding page must be the app itself: answers
@@ -336,9 +380,10 @@ export const DevCredentialsProvider = ({
 
     applyDevCredentialsConfig({
       devLicenseAlias: alias,
-      oemBrand: brand,
+      ...(cachedBrand ? {} : { oemBrand: awaitedBrand }),
       invalidCredentials: !isValid,
       untrustedCaller: !fromApp,
+      credentialsUnavailable: false,
       waitingForDevLicense: false,
     });
 
@@ -361,7 +406,7 @@ export const DevCredentialsProvider = ({
 
     if (!kernelSignerInitializedRef.current) {
       kernelSignerInitializedRef.current = true;
-      createKernelSigner(clientId, clientId, redirectUri);
+      void initKernelSigner(clientId, clientId, redirectUri);
     }
   };
 
@@ -370,6 +415,13 @@ export const DevCredentialsProvider = ({
       applyDevCredentialsConfig({
         waitingForParams: false,
       });
+    } else {
+      // The settings come from the opener: the SDK sends AUTH_INIT only in
+      // reply to READY, so announce it now, not on page load. initAuthProcess
+      // calls this only once the URL turned out to carry no settings (no
+      // network wait then), so an AUTH_INIT can't race a configuration that is
+      // still loading. The retry effect below covers a lost READY.
+      sendMessageToReferrer({ eventType: 'READY' });
     }
     // Note: the 'message' listener is attached synchronously at mount (see the
     // mount effect below), NOT here — registering it here ran only after the

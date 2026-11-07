@@ -15,7 +15,8 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "jsx": "react-jsx"
   },
-  "include": ["src", "vite.config.mts"]
+  "include": ["src", "vite-plugins", "vite.config.mts"]
 }

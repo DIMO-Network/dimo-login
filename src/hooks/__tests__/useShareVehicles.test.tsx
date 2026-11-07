@@ -14,17 +14,15 @@ vi.mock('@dimo-network/transactions', () => ({
       (p) => ((value >> BigInt(p * 2)) & BigInt(3)) === BigInt(3),
     ),
 }));
-vi.mock('../../services', () => ({
-  createPermissionsFromParams: vi.fn(),
+vi.mock('../../services/turnkeyService', () => ({
   generateIpfsSources: vi.fn(),
   setVehiclePermissions: vi.fn(),
   setVehiclePermissionsBulk: vi.fn(),
-}));
-vi.mock('../../services/turnkeyService', () => ({
   setVehiclePermissionsBatch: vi.fn(),
   VEHICLE_PERMISSIONS_BATCH_LIMIT: 24,
 }));
 vi.mock('../../services/permissionsService', () => ({
+  createPermissionsFromParams: vi.fn(),
   generateAttachments: () => [],
 }));
 const mockCredentials: Record<string, unknown> = {};
@@ -42,13 +40,13 @@ vi.mock('../../utils/authUtils', () => ({
 }));
 
 import { useShareVehicles } from '../useShareVehicles';
+import { createPermissionsFromParams } from '../../services/permissionsService';
 import {
-  createPermissionsFromParams,
   generateIpfsSources,
   setVehiclePermissions,
   setVehiclePermissionsBulk,
-} from '../../services';
-import { setVehiclePermissionsBatch } from '../../services/turnkeyService';
+  setVehiclePermissionsBatch,
+} from '../../services/turnkeyService';
 import { Vehicle } from '../../models/vehicle';
 import { clearGrantReadCache } from '../../services/vehicleDocumentAgreements';
 import { translateText } from '../../i18n';

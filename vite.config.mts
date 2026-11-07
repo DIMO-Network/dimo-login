@@ -2,6 +2,9 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
+import { entryGuard, FIRST_SCREEN_FORBIDDEN } from './vite-plugins/entryGuard.mts';
+import { fontPreload } from './vite-plugins/fontPreload.mts';
+
 /**
  * The app reads its settings as `process.env.REACT_APP_*`, the Create React
  * App convention, and Vercel injects them (plus `REACT_APP_VERCEL_*`) under
@@ -10,7 +13,10 @@ import tailwindcss from '@tailwindcss/vite';
  * `process.env` is real, so nothing is inlined there.
  *
  * Source maps are built only when SENTRY_AUTH_TOKEN is set, so the
- * `sentry:sourcemaps` step can upload them.
+ * `sentry:sourcemaps` step can upload them. They're built hidden (no
+ * sourceMappingURL comment in the bundles) and that step deletes them after
+ * the upload, so they reach Sentry and not the public, as the console does
+ * (#313).
  *
  * NODE_ENV follows the command, as `react-scripts build` and `start` set it,
  * so a build in any `--mode` still ships React's production build. It's set on
@@ -31,7 +37,14 @@ export default defineConfig(({ command, mode }) => {
   );
 
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [
+      react(),
+      tailwindcss(),
+      // The first screen's JavaScript: no wallet code, and a size budget.
+      entryGuard({ forbidden: FIRST_SCREEN_FORBIDDEN, maxGzipKiB: 170 }),
+      // The first screen uses Regular, Medium and Semibold; Bold isn't preloaded.
+      fontPreload(/assets\/EuclidCircularA-(Regular|Medium|Semibold)-[\w-]+\.woff2$/),
+    ],
     envPrefix: 'REACT_APP_',
     define: process.env.VITEST
       ? {}
@@ -45,7 +58,7 @@ export default defineConfig(({ command, mode }) => {
     server: { port: 3000, strictPort: true },
     build: {
       outDir: 'build',
-      sourcemap: Boolean(process.env.SENTRY_AUTH_TOKEN),
+      sourcemap: process.env.SENTRY_AUTH_TOKEN ? 'hidden' : false,
     },
     test: {
       environment: 'jsdom',

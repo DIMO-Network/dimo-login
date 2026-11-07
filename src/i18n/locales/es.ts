@@ -63,6 +63,9 @@ const es: PluralLocaleResources = {
   'error.invalid_credentials.title': 'Esta app no está configurada correctamente',
   'error.invalid_credentials.message':
     'No se pudieron verificar sus credenciales de DIMO, así que no puedes iniciar sesión ni compartir desde aquí. Comunícate con el equipo de soporte de la app.',
+  'error.credentials_unavailable.title': 'No pudimos verificar esta app',
+  'error.credentials_unavailable.message':
+    'DIMO no respondió cuando intentamos verificarla. Revisa tu conexión y vuelve a empezar desde la app.',
   'error.missing_transaction_data.title': 'Faltan los datos de la transacción',
   'error.missing_transaction_data.message':
     'La app no envió una transacción para firmar. Revisa la configuración y vuelve a cargar la página.',
@@ -80,6 +83,8 @@ const es: PluralLocaleResources = {
   'error.invalid_permissions_format.title': 'Formato de permisos no válido',
   'error.invalid_permissions_format.message':
     'Los permisos deben ser una cadena de 0 y 1 de {{max}} caracteres como máximo.',
+  'error.screen_load.title': 'Esta pantalla no se cargó',
+  'error.screen_load.message': 'Revisa tu conexión y vuelve a empezar desde la app.',
 
   // Why a shared vehicle's current terms couldn't be carried into an update
   'grant_unreadable.retry':

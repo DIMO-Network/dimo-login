@@ -1,5 +1,8 @@
 import { Permission } from '@dimo-network/transactions';
-import { generateAccountIpfsSource, setAccountPermissions } from '../services';
+import {
+  generateAccountIpfsSource,
+  setAccountPermissions,
+} from '../services/turnkeyService';
 import { useDevCredentials } from '../context/DevCredentialsContext';
 import { useAuthContext } from '../context/AuthContext';
 import { INVALID_SESSION_ERROR } from '../utils/authUtils';

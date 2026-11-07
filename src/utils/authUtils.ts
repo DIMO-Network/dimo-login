@@ -1,12 +1,4 @@
-import { generateChallenge, submitWeb3Challenge } from '../services/authService';
-import {
-  getKernelSigner,
-  getSmartContractAddress,
-  getWalletAddress,
-  initializePasskey,
-  signChallenge,
-  TurnkeySessionDataWithExpiry,
-} from '../services/turnkeyService';
+import type { TurnkeySessionDataWithExpiry } from '../services/turnkeyService';
 import {
   clearSessionData,
   getJWTFromCookies,
@@ -20,12 +12,10 @@ import {
 } from '../services/storageService';
 import { UserObject } from '../models/user';
 import { backToThirdParty, sendMessageToReferrer } from './messageHandler';
-import { GenerateChallengeParams, SubmitChallengeParams } from '../models/web3';
 import { UiStates } from '../enums';
 import { getEmailRequest } from '../stores/AuthStateStore';
 import { needsEmailConsent } from './emailRequest';
 import type { TurnkeyClient } from '@turnkey/http';
-import { ApiKeyStamper } from '@turnkey/api-key-stamper';
 
 /** What signs Turnkey requests: the passkey or the session's API key. */
 export type TStamper = ConstructorParameters<typeof TurnkeyClient>[1];
@@ -189,124 +179,6 @@ export function handlePostAuthUIState({
   } else if (entryState === UiStates.PROVISION_DEVELOPER_LICENSE) {
     setUiState(UiStates.PROVISION_DEVELOPER_LICENSE);
   }
-}
-
-async function initializeKernelClient(
-  subOrganizationId: string,
-  stamper: TStamper,
-): Promise<{
-  smartContractAddress: `0x${string}`;
-  walletAddress: `0x${string}`;
-  turnkeySessionExpiration: number;
-}> {
-  let expires: number;
-  if (stamper instanceof ApiKeyStamper) {
-    await getKernelSigner().openSessionWithApiStamper(subOrganizationId, stamper);
-    expires = getKernelSigner().apiSessionClient.expires;
-  } else {
-    await initializePasskey(subOrganizationId);
-    expires = getKernelSigner().passkeySessionClient.expires;
-  }
-
-  const smartContractAddress = getSmartContractAddress();
-  const walletAddress = getWalletAddress();
-
-  if (!smartContractAddress || !walletAddress) {
-    throw new Error('Could not authenticate user, wallet address does not exist');
-  }
-
-  return { smartContractAddress, walletAddress, turnkeySessionExpiration: expires };
-}
-
-// Helper function to generate challenge and state
-export async function getChallenge({
-  clientId,
-  redirectUri,
-  smartContractAddress,
-}: {
-  clientId: `0x${string}` | null;
-  redirectUri: string;
-  smartContractAddress: string;
-}): Promise<{ challenge: string; state: string }> {
-  const generateChallengeParams: GenerateChallengeParams = {
-    clientId,
-    domain: redirectUri,
-    scope: 'openid email',
-    address: smartContractAddress,
-  };
-
-  const resp = await generateChallenge(generateChallengeParams);
-  if (!resp.success) {
-    throw new Error(resp.error);
-  }
-
-  return { challenge: resp.data.challenge, state: resp.data.state };
-}
-
-// Helper function to submit signed challenge and return access token
-async function submitSignedChallenge({
-  clientId,
-  redirectUri,
-  signature,
-  state,
-}: {
-  clientId: `0x${string}` | null;
-  redirectUri: string;
-  signature: string;
-  state: string;
-}): Promise<string> {
-  const web3ChallengeSubmission: SubmitChallengeParams = {
-    clientId,
-    state,
-    domain: redirectUri,
-    signature,
-  };
-
-  const jwtResponse = await submitWeb3Challenge(web3ChallengeSubmission);
-
-  if (!jwtResponse.success) {
-    throw new Error('Failed to submit web3 challenge');
-  }
-
-  return jwtResponse.data.access_token;
-}
-
-export async function authenticateUser(
-  clientId: `0x${string}` | null,
-  redirectUri: string,
-  subOrganizationId: string | null,
-  stamper: TStamper,
-) {
-  if (!subOrganizationId) {
-    throw new Error('Could not authenticate user, account not deployed');
-  }
-  const { smartContractAddress, walletAddress, turnkeySessionExpiration } =
-    await initializeKernelClient(subOrganizationId, stamper);
-
-  const { challenge, state } = await getChallenge({
-    clientId,
-    redirectUri,
-    smartContractAddress,
-  });
-
-  const signature = await signChallenge(challenge);
-  if (!signature) {
-    throw new Error('Failed to sign challenge');
-  }
-
-  const accessToken = await submitSignedChallenge({
-    clientId,
-    redirectUri,
-    signature,
-    state,
-  });
-
-  return {
-    accessToken,
-    smartContractAddress,
-    walletAddress,
-    turnkeySessionExpiration,
-  };
 }
 
 export const INVALID_SESSION_ERROR = 'Invalid session';

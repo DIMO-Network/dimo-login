@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 
 import { useUIManager } from '../../context/UIManagerContext';
-import { UIManagerLoader } from '../Shared';
+import { UIManagerLoader } from '../Shared/Loader';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { logout } from '../../utils/authUtils';
 import { message } from '../../i18n';

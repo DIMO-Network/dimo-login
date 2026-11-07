@@ -1,7 +1,8 @@
 import { useMemo, useState, type FC } from 'react';
 
 import { useDevCredentials } from '../../context/DevCredentialsContext';
-import { MakeModelYearTab, VinNumberTab } from '../Shared';
+import { MakeModelYearTab } from '../Shared/MakeModelYearTab';
+import { VinNumberTab } from '../Shared/VinNumberTab';
 import { getRedirectHost } from '../../utils/urlHelpers';
 import { UiStates } from '../../enums';
 import { useUIManager } from '../../context/UIManagerContext';

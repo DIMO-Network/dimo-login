@@ -6,7 +6,9 @@ import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { useOracles } from '../../context/OraclesContext';
 import { useUIManager } from '../../context/UIManagerContext';
 import { UiStates } from '../../enums';
-import { useFetchVehicles, useFinishShareVehicles, useShareVehicles } from '../../hooks';
+import { useFetchVehicles } from '../../hooks/useFetchVehicles';
+import { useFinishShareVehicles } from '../../hooks/useFinishShareVehicles';
+import { useShareVehicles } from '../../hooks/useShareVehicles';
 import { useEmailRequest } from '../../hooks/useEmailRequest';
 import useSelectVehicles from '../../hooks/useSelectVehicles';
 import {

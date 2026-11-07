@@ -3,13 +3,11 @@ import ReactDOM from 'react-dom/client';
 import * as Sentry from '@sentry/react';
 import './index.css';
 import App from './App';
+import { initialLanguage, startInitialLanguage } from './i18n';
 import { AuthProvider } from './context/AuthContext';
 import { DevCredentialsProvider } from './context/DevCredentialsContext';
-import { sendMessageToReferrer } from './utils/messageHandler';
 import { UIManagerProvider } from './context/UIManagerContext';
 import { GlobalOraclesProvider } from './context/OraclesContext';
-import { apolloClient } from './services/apollo';
-import { ApolloProvider } from '@apollo/client/react';
 
 // Initialize Sentry
 Sentry.init({
@@ -31,28 +29,24 @@ Sentry.init({
   replaysOnErrorSampleRate: 1.0,
 });
 
+// The detected language (Spanish or Japanese) loads beside the first render,
+// not before it, so READY goes out at once; App shows a loading screen with no
+// text until it's in, for at most LANGUAGE_WAIT_MS.
+startInitialLanguage(initialLanguage());
+
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(
   <React.StrictMode>
     <Sentry.ErrorBoundary>
-      <ApolloProvider client={apolloClient}>
-        <UIManagerProvider>
-          <GlobalOraclesProvider>
-            <DevCredentialsProvider>
-              <AuthProvider>
-                <App />
-              </AuthProvider>
-            </DevCredentialsProvider>
-          </GlobalOraclesProvider>
-        </UIManagerProvider>
-      </ApolloProvider>
+      <UIManagerProvider>
+        <GlobalOraclesProvider>
+          <DevCredentialsProvider>
+            <AuthProvider>
+              <App />
+            </AuthProvider>
+          </DevCredentialsProvider>
+        </GlobalOraclesProvider>
+      </UIManagerProvider>
     </Sentry.ErrorBoundary>
   </React.StrictMode>,
 );
-
-//Send a READY event to the developer's app, ready to receive credentials
-window.onload = () => {
-  setTimeout(() => {
-    sendMessageToReferrer({ eventType: 'READY' });
-  }, 500);
-};

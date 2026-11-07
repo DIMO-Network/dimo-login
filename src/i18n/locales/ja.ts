@@ -55,6 +55,9 @@ const ja: LocaleResources = {
   'error.invalid_credentials.title': 'このアプリは正しく設定されていません',
   'error.invalid_credentials.message':
     'このアプリのDIMO認証情報を確認できなかったため、ここからサインインや共有はできません。アプリのサポート窓口にお問い合わせください。',
+  'error.credentials_unavailable.title': 'このアプリを確認できませんでした',
+  'error.credentials_unavailable.message':
+    '確認しようとしましたが、DIMOから応答がありませんでした。接続を確認して、アプリからもう一度やり直してください。',
   'error.missing_transaction_data.title': 'トランザクションデータがありません',
   'error.missing_transaction_data.message':
     'アプリから署名するトランザクションが送信されていません。設定を確認して再読み込みしてください。',
@@ -72,6 +75,8 @@ const ja: LocaleResources = {
   'error.invalid_permissions_format.title': '権限の形式が無効です',
   'error.invalid_permissions_format.message':
     '権限は0と1からなる最大{{max}}文字の文字列で指定してください。',
+  'error.screen_load.title': 'この画面を読み込めませんでした',
+  'error.screen_load.message': '接続を確認して、アプリからもう一度やり直してください。',
 
   'grant_unreadable.retry':
     '{{vehicle}}の現在の共有条件を読み取れませんでした。もう一度お試しください。',

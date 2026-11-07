@@ -1,21 +1,18 @@
 import { useEffect, useState, type FC, type JSX } from 'react';
 
-import {
-  ErrorMessage,
-  PermissionsStep,
-  VirtualKeyStep,
-  PollingVirtualKeyStep,
-  MintingStep,
-  UIManagerLoaderWrapper,
-} from '../Shared';
+import { ErrorMessage } from '../Shared/ErrorMessage';
+import { PermissionsStep } from '../Shared/PermissionsStep';
+import { VirtualKeyStep } from '../Shared/VirtualKeyStep';
+import { PollingVirtualKeyStep } from '../Shared/PollingVirtualKeyStep';
+import { MintingStep } from '../Shared/MintingStep';
+import { UIManagerLoaderWrapper } from '../Shared/Loader';
 import { ActionBar, Button, Screen, ScreenHeader } from '../ui';
 import { message, useT, type TranslationKey } from '../../i18n';
-import { AuthProvider } from '../../utils/authUrls';
+import { AuthProvider, constructAuthUrl } from '../../utils/authUrls';
 import { UiStates } from '../../enums';
 import { useUIManager } from '../../context/UIManagerContext';
 import { getRedirectHost } from '../../utils/urlHelpers';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
-import { constructAuthUrl } from '../../utils/authUrls';
 import {
   buildFlowSnapshot,
   readTrustedOAuthReturn,

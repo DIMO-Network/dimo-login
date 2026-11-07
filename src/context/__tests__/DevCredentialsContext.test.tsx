@@ -5,11 +5,13 @@ import { render, screen, waitFor, act } from '@testing-library/react';
 import { DevCredentialsProvider, useDevCredentials } from '../DevCredentialsContext';
 import { UIManagerProvider } from '../UIManagerContext';
 import { GlobalOraclesProvider } from '../OraclesContext';
-import { fetchOemBrand } from '../../services/brandService';
-import { fetchConfigFromIPFS } from '../../services';
+import { fetchOemBrand, readCachedBrand } from '../../services/brandService';
+import { fetchConfigFromIPFS } from '../../services/ipfsService';
 import { getConfigurationById } from '../../services/configurationService';
 import { saveFlowSnapshot } from '../../utils/flowSnapshot';
 import { reportRefusal } from '../../utils/reportRefusal';
+import { sendMessageToReferrer } from '../../utils/messageHandler';
+import { initKernelSigner } from '../../services/walletLoader';
 import {
   getDeveloperLicense,
   getLicenseAlias,
@@ -28,13 +30,11 @@ vi.mock('../../services/identityService', () => ({
   getLicenseAlias: vi.fn().mockResolvedValue('Acme'),
   isValidDeveloperLicense: vi.fn().mockResolvedValue(true),
 }));
-vi.mock('../../services/turnkeyService', () => ({
-  createKernelSigner: vi.fn(),
-}));
+vi.mock('../../services/walletLoader', () => ({ initKernelSigner: vi.fn() }));
 vi.mock('../../services/configurationService', () => ({
   getConfigurationById: vi.fn(),
 }));
-vi.mock('../../services', () => ({ fetchConfigFromIPFS: vi.fn() }));
+vi.mock('../../services/ipfsService', () => ({ fetchConfigFromIPFS: vi.fn() }));
 vi.mock('../../utils/messageHandler', () => ({
   sendMessageToReferrer: vi.fn(),
   setAppState: vi.fn(),
@@ -47,17 +47,6 @@ vi.mock('../../utils/isEmbed', () => ({
   isEmbed: () => mockEmbedded,
   getEmbedderOrigin: () => mockEmbedderOrigin,
 }));
-// The `../hooks` barrel re-exports vehicle hooks that pull in @dimo-network/transactions
-// (untransformed ESM). Keep the real useParamsHandler — it's the code that funnels
-// brandName into state — and skip loading the rest of the barrel.
-vi.mock('../../hooks', async () => ({
-  useParamsHandler: (
-    await vi.importActual<typeof import('../../hooks/useParamsHandler')>(
-      '../../hooks/useParamsHandler',
-    )
-  ).useParamsHandler,
-}));
-
 const CLIENT_ID = '0xb92d74B468B4047289AEa7c9B953066E39768C16';
 const APP_ORIGIN = 'https://app.example';
 const REDIRECT_URI = `${APP_ORIGIN}/callback`;
@@ -424,6 +413,15 @@ describe('DevCredentialsContext: who may configure the login', () => {
     expect(reportRefusal).not.toHaveBeenCalled();
   });
 
+  it('creates the kernel signer once credentials check out', async () => {
+    renderProvider('invalidCredentials');
+    await dispatchAuthInit({ clientId: CLIENT_ID });
+
+    await waitFor(() => expect(probe()).toBe('false'));
+    expect(initKernelSigner).toHaveBeenCalledTimes(1);
+    expect(initKernelSigner).toHaveBeenCalledWith(CLIENT_ID, CLIENT_ID, REDIRECT_URI);
+  });
+
   it('refuses an embed under another site, even with a valid link', async () => {
     mockEmbedded = true;
     mockEmbedderOrigin = attacker;
@@ -515,5 +513,197 @@ describe('DevCredentialsContext: every config source is allowlisted', () => {
     renderProvider('dimoState');
 
     await waitFor(() => expect(probe()).toBe('"abcdefABCDEF0123456789_-"'));
+  });
+});
+
+describe('DevCredentialsContext handshake', () => {
+  const readies = () =>
+    (sendMessageToReferrer as Mock).mock.calls.filter(
+      ([data]) => data.eventType === 'READY',
+    );
+
+  it('announces READY once, as soon as it knows the opener has the settings', async () => {
+    renderProvider();
+    // No timers advanced: this is the startup check, not the 2 s retry.
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(readies()).toEqual([[{ eventType: 'READY' }]]);
+  });
+
+  it('doesn’t ask the opener while a configuration from the URL is loading', async () => {
+    (getConfigurationById as Mock).mockReturnValue(new Promise(() => {}));
+    window.history.pushState({}, '', '/?configurationId=cfg-1');
+    renderProvider();
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // An AUTH_INIT answering READY now could race the configuration.
+    expect(readies()).toEqual([]);
+  });
+});
+
+describe('DevCredentialsContext: cached brand', () => {
+  const cached = { name: 'Cached', logoUrl: null, iconUrl: null, primaryColor: null };
+  const live = { name: 'Live', logoUrl: null, iconUrl: null, primaryColor: null };
+
+  // Two probes, so a test can watch the loading flag and the brand together.
+  const Probes = () => {
+    const value = useDevCredentials() as unknown as Record<string, unknown>;
+    return (
+      <>
+        <span data-testid="waiting">{JSON.stringify(value.waitingForDevLicense)}</span>
+        <span data-testid="brand">{JSON.stringify(value.oemBrand ?? null)}</span>
+      </>
+    );
+  };
+  const renderProbes = () =>
+    render(
+      <UIManagerProvider>
+        <GlobalOraclesProvider>
+          <DevCredentialsProvider>
+            <Probes />
+          </DevCredentialsProvider>
+        </GlobalOraclesProvider>
+      </UIManagerProvider>,
+    );
+  const waiting = () => screen.getByTestId('waiting').textContent;
+  const brandName = () => {
+    const brand = JSON.parse(screen.getByTestId('brand').textContent ?? 'null');
+    return brand ? (brand.name as string) : null;
+  };
+
+  // A brand lookup the test settles by hand.
+  const pendingBrand = () => {
+    let settle!: (brand: typeof live | null) => void;
+    fetchOemBrandMock.mockReturnValue(
+      new Promise((resolve) => {
+        settle = resolve;
+      }),
+    );
+    return (brand: typeof live | null) => settle(brand);
+  };
+
+  it('shows the screen without waiting for the brand when one is cached', async () => {
+    (readCachedBrand as Mock).mockReturnValue(cached);
+    pendingBrand();
+    renderProbes();
+    await dispatchAuthInit({ clientId: CLIENT_ID });
+
+    await waitFor(() => expect(waiting()).toBe('false'));
+    expect(brandName()).toBe('Cached');
+  });
+
+  it('replaces the cached brand with the live one when it answers', async () => {
+    (readCachedBrand as Mock).mockReturnValue(cached);
+    const settle = pendingBrand();
+    renderProbes();
+    await dispatchAuthInit({ clientId: CLIENT_ID });
+    await waitFor(() => expect(waiting()).toBe('false'));
+
+    await act(async () => settle(live));
+
+    await waitFor(() => expect(brandName()).toBe('Live'));
+  });
+
+  it('drops a cached brand the console no longer has', async () => {
+    // fetchOemBrand clears the cache when the console answers 404.
+    (readCachedBrand as Mock).mockReturnValueOnce(cached).mockReturnValue(null);
+    const settle = pendingBrand();
+    renderProbes();
+    await dispatchAuthInit({ clientId: CLIENT_ID });
+    await waitFor(() => expect(brandName()).toBe('Cached'));
+
+    await act(async () => settle(null));
+
+    await waitFor(() => expect(brandName()).toBeNull());
+  });
+
+  it('keeps the cached brand when console-api fails for a moment', async () => {
+    // A 5xx or a timeout: fetchOemBrand answers null but keeps the cache.
+    (readCachedBrand as Mock).mockReturnValue(cached);
+    const settle = pendingBrand();
+    renderProbes();
+    await dispatchAuthInit({ clientId: CLIENT_ID });
+    await waitFor(() => expect(waiting()).toBe('false'));
+
+    await act(async () => settle(null));
+
+    expect(brandName()).toBe('Cached');
+  });
+
+  it('waits for the brand when none is cached', async () => {
+    (readCachedBrand as Mock).mockReturnValue(null);
+    const settle = pendingBrand();
+    renderProbes();
+    await dispatchAuthInit({ clientId: CLIENT_ID });
+    // Let the license lookups finish; the brand is still out.
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(waiting()).toBe('true');
+
+    await act(async () => settle(live));
+
+    await waitFor(() => expect(waiting()).toBe('false'));
+    expect(brandName()).toBe('Live');
+  });
+});
+
+describe('when the license lookup fails', () => {
+  let consoleError: ReturnType<typeof vi.spyOn>;
+  beforeEach(() => {
+    (getDeveloperLicense as Mock).mockRejectedValue(
+      new Error('Identity API answered 502'),
+    );
+    consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => consoleError.mockRestore());
+
+  it('says the app couldn’t be checked instead of waiting forever', async () => {
+    renderProvider('credentialsUnavailable');
+    await dispatchAuthInit({ clientId: CLIENT_ID });
+
+    await waitFor(() => expect(probe()).toBe('true'));
+  });
+
+  it('stops waiting for the license', async () => {
+    renderProvider('waitingForDevLicense');
+    await dispatchAuthInit({ clientId: CLIENT_ID });
+
+    await waitFor(() => expect(probe()).toBe('false'));
+  });
+
+  it('lets provisioning go on, since it doesn’t need the license', async () => {
+    renderProvider('invalidCredentials');
+    await dispatchAuthInit({
+      clientId: CLIENT_ID,
+      entryState: 'PROVISION_DEVELOPER_LICENSE',
+    });
+
+    await waitFor(() => expect(probe()).toBe('false'));
+  });
+
+  it('never counts a check that failed as passed', async () => {
+    // A check that passed earlier must not leave invalidCredentials false.
+    // VEHICLE_MANAGER keeps waiting for its action data, so a second
+    // AUTH_INIT is still taken and re-runs the check.
+    (getDeveloperLicense as Mock).mockResolvedValueOnce({});
+    renderProvider('invalidCredentials');
+    await dispatchAuthInit({ clientId: CLIENT_ID, entryState: 'VEHICLE_MANAGER' });
+    await waitFor(() => expect(probe()).toBe('false'));
+
+    // The re-check, for a new redirect URI, fails at identity-api.
+    await dispatchMessage({
+      eventType: 'AUTH_INIT',
+      clientId: CLIENT_ID,
+      entryState: 'VEHICLE_MANAGER',
+      redirectUri: `${APP_ORIGIN}/other`,
+    });
+
+    await waitFor(() => expect(getDeveloperLicense).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(probe()).toBe('true'));
   });
 });

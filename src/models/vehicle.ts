@@ -1,6 +1,6 @@
 import { Permission } from '@dimo-network/transactions';
 
-import { fetchDeviceDefinition, VehicleNode } from '../services';
+import { VehicleNode } from '../services/identityService';
 
 export interface Vehicle {
   tokenId: number;
@@ -99,13 +99,5 @@ export class LocalVehicle {
       model: this.model,
       year: this.year,
     };
-  }
-
-  async getPowertrainType() {
-    const queryResult = await fetchDeviceDefinition(this.definitionId);
-    const powertrainType = queryResult.deviceDefinition.attributes?.find(
-      (att) => att.name === 'powertrain_type',
-    );
-    return powertrainType ? powertrainType.value : null;
   }
 }

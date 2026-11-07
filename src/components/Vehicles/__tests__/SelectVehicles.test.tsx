@@ -58,7 +58,7 @@ const mockRav4 = {
 const mockShare = vi.fn();
 const mockFinish = vi.fn();
 const mockIncompatible: unknown[] = [];
-vi.mock('../../../hooks', () => ({
+vi.mock('../../../hooks/useFetchVehicles', () => ({
   useFetchVehicles: () => ({
     fetchVehicles: () => Promise.resolve(),
     vehicles: [mockRav4, mockTesla],
@@ -66,7 +66,11 @@ vi.mock('../../../hooks', () => ({
     hasNextPage: false,
     hasPreviousPage: false,
   }),
+}));
+vi.mock('../../../hooks/useShareVehicles', () => ({
   useShareVehicles: () => mockShare,
+}));
+vi.mock('../../../hooks/useFinishShareVehicles', () => ({
   useFinishShareVehicles: () => mockFinish,
 }));
 const mockCreds: Record<string, unknown> = {};

@@ -7,7 +7,7 @@ import { useAuthContext } from '../../context/AuthContext';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { useUIManager } from '../../context/UIManagerContext';
 import { message, useT } from '../../i18n';
-import { ErrorContent } from '../Shared';
+import { ErrorContent } from '../Shared/ErrorScreen';
 import { ActionBar, Button, DoneHeader, Screen } from '../ui';
 import { useAppName } from '../../hooks/useAppName';
 

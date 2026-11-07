@@ -64,6 +64,9 @@ const en = {
   'error.invalid_credentials.title': 'This app isn’t set up correctly',
   'error.invalid_credentials.message':
     'Its DIMO credentials couldn’t be verified, so you can’t sign in or share from here. Please contact the app’s support team.',
+  'error.credentials_unavailable.title': 'We couldn’t check this app',
+  'error.credentials_unavailable.message':
+    'DIMO didn’t answer when we tried to verify it. Check your connection and start again from the app.',
   'error.missing_transaction_data.title': 'Missing transaction data',
   'error.missing_transaction_data.message':
     'The app didn’t send a transaction to sign. Check the configuration and reload.',
@@ -79,6 +82,8 @@ const en = {
   'error.invalid_permissions_format.title': 'Invalid permissions format',
   'error.invalid_permissions_format.message':
     'Permissions must be a string of 0s and 1s, at most {{max}} characters long.',
+  'error.screen_load.title': 'This screen didn’t load',
+  'error.screen_load.message': 'Check your connection and start again from the app.',
 
   // Why a shared vehicle's current terms couldn't be carried into an update
   'grant_unreadable.retry':

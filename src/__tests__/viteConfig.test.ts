@@ -7,8 +7,18 @@ import { resolveConfig } from 'vite';
 // production build, which has no jsxDEV: the page threw on its first render.
 const configFile = path.join(__dirname, '../../vite.config.mts');
 
-const resolveWith = async (command: 'build' | 'serve', nodeEnv: string | undefined) => {
-  const saved = { NODE_ENV: process.env.NODE_ENV, VITEST: process.env.VITEST };
+const resolveWith = async (
+  command: 'build' | 'serve',
+  nodeEnv: string | undefined,
+  sentryToken?: string,
+) => {
+  const saved = {
+    NODE_ENV: process.env.NODE_ENV,
+    VITEST: process.env.VITEST,
+    SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
+  };
+  if (sentryToken === undefined) delete process.env.SENTRY_AUTH_TOKEN;
+  else process.env.SENTRY_AUTH_TOKEN = sentryToken;
   // The config skips its defines under Vitest; resolve it as the CLI would, with
   // the CLI's default mode and NODE_ENV for the command.
   const cliDefault = command === 'build' ? 'production' : 'development';
@@ -25,10 +35,13 @@ const resolveWith = async (command: 'build' | 'serve', nodeEnv: string | undefin
     return {
       isProduction: config.isProduction,
       nodeEnv: config.define?.['process.env.NODE_ENV'],
+      sourcemap: config.build.sourcemap,
     };
   } finally {
     process.env.NODE_ENV = saved.NODE_ENV;
     process.env.VITEST = saved.VITEST;
+    if (saved.SENTRY_AUTH_TOKEN === undefined) delete process.env.SENTRY_AUTH_TOKEN;
+    else process.env.SENTRY_AUTH_TOKEN = saved.SENTRY_AUTH_TOKEN;
   }
 };
 
@@ -39,6 +52,7 @@ describe('vite.config.mts', () => {
       expect(await resolveWith('build', nodeEnv)).toEqual({
         isProduction: true,
         nodeEnv: '"production"',
+        sourcemap: false,
       });
     },
   );
@@ -49,7 +63,13 @@ describe('vite.config.mts', () => {
       expect(await resolveWith('serve', nodeEnv)).toEqual({
         isProduction: false,
         nodeEnv: '"development"',
+        sourcemap: false,
       });
     },
   );
+
+  it('builds hidden source maps only for the Sentry upload', async () => {
+    expect((await resolveWith('build', undefined, 'x')).sourcemap).toBe('hidden');
+    expect((await resolveWith('build', undefined)).sourcemap).toBe(false);
+  });
 });

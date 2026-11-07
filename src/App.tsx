@@ -1,44 +1,50 @@
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect, useRef } from 'react';
 
 import { initializeSession } from './services/sessionService';
+import { loadSignInSteps } from './services/walletLoader';
 import { handlePostAuthUIState } from './utils/authUtils';
 import { isEmbed } from './utils/isEmbed';
+import { onIdle } from './utils/onIdle';
 import { useAuthContext } from './context/AuthContext';
 import { useDevCredentials } from './context/DevCredentialsContext';
 import { UiStates } from './enums';
 import { useUIManager } from './context/UIManagerContext';
 import { getValidationsForState } from './validations';
 
+import { EmailInput } from './components/Auth/EmailInput';
+import { ErrorScreen } from './components/Shared/ErrorScreen';
+import { LoadingScreen } from './components/Shared/LoadingScreen';
+import { AppShell } from './components/Shell/AppShell';
+import { FocusScreenHeading } from './components/Shell/FocusScreenHeading';
+import { ScreenErrorBoundary } from './components/Shell/ScreenErrorBoundary';
 import {
   AccountManager,
   AccountPermissionsSuccess,
+  AddVehicle,
   AdvancedTransaction,
   CancelledTransaction,
-  EmailInput,
-  ErrorScreen,
-  LoadingScreen,
+  CompatibilityCheck,
+  ConnectDevice,
+  ConnectTesla,
+  EmailConsent,
+  Logout,
+  ManageVehicle,
+  MintVehicle,
   OtpInput,
   PasskeyGeneration,
+  PasskeyLogin,
+  PasskeyLoginFail,
+  preloadScreens,
   ProvisionDeveloperLicense,
+  SIGN_IN_STATES,
   SignMessage,
   SuccessfulPermissions,
   SuccessfulTransaction,
   SuccessPage,
   VehicleManager,
-  ManageVehicle,
-  MintVehicle,
-  AddVehicle,
-  CompatibilityCheck,
-  ConnectDevice,
-  ConnectTesla,
-  Logout,
-} from './components';
-import { AppShell } from './components/Shell/AppShell';
+} from './screens';
 import { useErrorHandler } from './hooks/useErrorHandler';
-import { PasskeyLogin } from './components/Auth/PasskeyLogin';
-import { PasskeyLoginFail } from './components/Auth/PasskeyLoginFail';
-import { EmailConsent } from './components/Auth/EmailConsent';
-import { useLanguage, useT } from './i18n';
+import { useInitialLanguagePending, useLanguage, useT } from './i18n';
 import { useLanguageSync } from './i18n/useLanguageSync';
 
 const App = () => {
@@ -53,10 +59,17 @@ const App = () => {
   } = useDevCredentials();
   const { uiState, setUiState, entryState } = useUIManager();
   const [email, setEmail] = useState('');
+  const firstScreen = useRef<object | null>(null);
   const t = useT();
   const language = useLanguage();
 
-  useLanguageSync(clientId, params.language);
+  const languageSyncLoading = useLanguageSync(
+    clientId,
+    params.language,
+    params.waitingForParams,
+  );
+  // A language is still loading: the detected one, or the one the app chose.
+  const languageLoading = useInitialLanguagePending() || languageSyncLoading;
 
   // Bind document.title to the OEM brand when one is loaded. Restores the
   // default DIMO title if the popup unmounts (covers in-flight branding
@@ -85,7 +98,10 @@ const App = () => {
   // Nothing from a stored session is shown or sent until the request is known
   // to be the app's own (validateCredentials): embedded, a returning session
   // posts the login right away.
-  const credentialsChecked = !params.waitingForDevLicense && !params.invalidCredentials;
+  const credentialsChecked =
+    !params.waitingForDevLicense &&
+    !params.invalidCredentials &&
+    !params.credentialsUnavailable;
 
   useEffect(() => {
     if (clientId && credentialsChecked) {
@@ -115,10 +131,30 @@ const App = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId, incomingEntryState, credentialsChecked]);
 
-  if (isLoading) {
+  // Once the app's credentials check out, load the screens a sign-in passes
+  // through (and the one the app asked for) and the wallet stack while the
+  // person types their email. A preload that fails is retried by the screen
+  // or sign-in step that needs it, so its failure is ignored here.
+  useEffect(
+    () =>
+      credentialsChecked
+        ? onIdle(() => {
+            preloadScreens([...SIGN_IN_STATES, entryState as UiStates]);
+            loadSignInSteps().catch(() => {});
+          })
+        : undefined,
+    [credentialsChecked, entryState],
+  );
+
+  // The first screen waits, up to LANGUAGE_WAIT_MS, for the copy of the
+  // language it will show, so it isn't shown in another one first. Until that
+  // copy is in, and before the app's settings (which may name a language) have
+  // arrived, the loading screen shows no text and no language switcher.
+  if (isLoading || languageLoading) {
+    const languageUnknown = languageLoading || params.waitingForParams;
     return (
-      <AppShell loading>
-        <LoadingScreen message={loadingMessage} />
+      <AppShell loading languageLoading={languageUnknown}>
+        <LoadingScreen message={languageUnknown ? undefined : loadingMessage} />
       </AppShell>
     );
   }
@@ -166,7 +202,17 @@ const App = () => {
     [UiStates.PROVISION_DEVELOPER_LICENSE]: <ProvisionDeveloperLicense />,
   };
 
-  return <AppShell>{componentMap[uiState] || null}</AppShell>;
+  return (
+    <AppShell>
+      {/* Keyed by the screen, so Back recovers from one that failed. */}
+      <ScreenErrorBoundary key={uiState} firstScreen={firstScreen}>
+        <Suspense fallback={<LoadingScreen />}>
+          {componentMap[uiState] || null}
+          <FocusScreenHeading firstScreen={firstScreen} />
+        </Suspense>
+      </ScreenErrorBoundary>
+    </AppShell>
+  );
 };
 
 export default App;
