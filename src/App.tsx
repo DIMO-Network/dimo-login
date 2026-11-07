@@ -148,11 +148,13 @@ const App = () => {
 
   // The first screen waits, up to LANGUAGE_WAIT_MS, for the copy of the
   // language it will show, so it isn't shown in another one first. Until that
-  // copy is in, the loading screen shows no text (and no language switcher).
+  // copy is in, and before the app's settings (which may name a language) have
+  // arrived, the loading screen shows no text and no language switcher.
   if (isLoading || languageLoading) {
+    const languageUnknown = languageLoading || params.waitingForParams;
     return (
-      <AppShell loading languageLoading={languageLoading}>
-        <LoadingScreen message={languageLoading ? undefined : loadingMessage} />
+      <AppShell loading languageLoading={languageUnknown}>
+        <LoadingScreen message={languageUnknown ? undefined : loadingMessage} />
       </AppShell>
     );
   }

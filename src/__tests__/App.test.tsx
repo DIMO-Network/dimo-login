@@ -43,7 +43,7 @@ vi.mock('../context/DevCredentialsContext', () => ({
     clientId: '0x2222222222222222222222222222222222222222',
     devLicenseAlias: 'Acme',
     oemBrand: null,
-    loadingState: { isLoading: mockApp.isLoading, message: '' },
+    loadingState: { isLoading: mockApp.isLoading, message: 'Getting things ready…' },
     waitingForParams: mockApp.waitingForParams,
     waitingForDevLicense: mockApp.waitingForDevLicense,
     invalidCredentials: false,
@@ -200,6 +200,15 @@ const openWithLanguage = (language: string) => {
   mockApp.isLoading = false;
   rerender(<App />);
 };
+
+it('shows no text before the app’s settings say which language to use', () => {
+  mockApp.isLoading = true;
+  mockApp.waitingForParams = true;
+  render(<App />);
+
+  expect(screen.getByRole('status')).toHaveTextContent(/^$/);
+  expect(screen.queryByRole('button', { name: /English/ })).not.toBeInTheDocument();
+});
 
 it('shows no text in the old language while the app’s language loads', () => {
   // Before the next test opens the Japanese gate.
