@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import { i18n } from './instance';
 
 import { changeLanguage, languageWaitLeft } from './index';
@@ -24,7 +24,10 @@ export const useLanguageSync = (
 ): boolean => {
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
+  // A layout effect, so the hold starts before the browser paints the render
+  // in which the params arrive: with a plain effect, that render's loading
+  // screen showed its text in the old language for one frame.
+  useLayoutEffect(() => {
     if (paramsPending) return undefined;
     const next = resolveLanguage({ clientId, configured });
     // Read before switching: the switch is what starts a download.
