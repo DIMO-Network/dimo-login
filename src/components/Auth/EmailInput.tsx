@@ -11,6 +11,7 @@ import { clearLoggedEmail, getLoggedEmail } from '../../services/storageService'
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { useUIManager } from '../../context/UIManagerContext';
 import { decodeJwt } from '../../utils/jwtUtils';
+import { sendErrorToParent } from '../../utils/errorUtils';
 import { normalizeEmail, validateEmail } from '../../utils/emailUtils';
 import { getRedirectHost } from '../../utils/urlHelpers';
 import { AuthProvider, getOAuthRedirectUri } from '../../utils/authUrls';
@@ -36,14 +37,15 @@ const OrDivider = ({ label }: { label: string }) => (
  * Sign in: an email, or Google / Apple. An account used on this device before
  * gets "Continue as …". Nothing is shared with the app here: the email is
  * asked for after sign-in, with the rest of the app's request (see
- * utils/emailRequest.ts).
+ * utils/emailRequest.ts). Cancel goes back to the app signed out: it hears
+ * an error and gets no token.
  */
 export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   const t = useT();
-  const { clientId, devLicenseAlias, oemBrand, redirectUri } = useDevCredentials();
+  const { clientId, devLicenseAlias, oemBrand, redirectUri, utm } = useDevCredentials();
   const brandName = oemBrand?.name || devLicenseAlias || undefined;
   const appName = brandName || t('common.app_developer_fallback');
-  const { error, setError, altTitle, setLoadingState } = useUIManager();
+  const { error, setError, altTitle, setLoadingState, setUiState } = useUIManager();
   const [email, setEmail] = useState('');
   const [fieldError, setFieldError] = useState<Message | null>(null);
   const [cachedEmail, setCachedEmail] = useState(() => getLoggedEmail(clientId));
@@ -79,6 +81,9 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     setCachedEmail(null);
     setEmail('');
   };
+
+  const handleCancel = () =>
+    sendErrorToParent('User cancelled sign-in', redirectUri, utm, setUiState);
 
   const handleProviderAuth = (provider: AuthProvider) => {
     const url = constructOAuthUrl(provider);
@@ -197,6 +202,10 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
             </div>
           </>
         )}
+
+        <Button variant="ghost" fullWidth onClick={handleCancel}>
+          {t('common.cancel')}
+        </Button>
 
         <LegalNotice />
       </Screen>

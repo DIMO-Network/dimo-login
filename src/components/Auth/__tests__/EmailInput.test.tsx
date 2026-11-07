@@ -26,6 +26,7 @@ const mockUi = {
   setError: vi.fn(),
   altTitle: false,
   setLoadingState: vi.fn(),
+  setUiState: vi.fn(),
 };
 vi.mock('../../../context/UIManagerContext', () => ({ useUIManager: () => mockUi }));
 vi.mock('../../Shared/ErrorMessage', () => ({
@@ -38,6 +39,10 @@ vi.mock('../../Shared/Loader', () => ({
   ),
 }));
 vi.mock('@sentry/react', () => ({ captureException: vi.fn() }));
+const mockSendError = vi.fn();
+vi.mock('../../../utils/errorUtils', () => ({
+  sendErrorToParent: (...args: unknown[]) => mockSendError(...args),
+}));
 
 import { EmailInput } from '../EmailInput';
 import { setForceEmail } from '../../../stores/AuthStateStore';
@@ -114,4 +119,24 @@ it('welcomes back an account used here before, keeping its email answer', async 
 
   fireEvent.click(screen.getByRole('button', { name: 'Use another account' }));
   expect(screen.getByLabelText('Email')).toHaveValue('');
+});
+
+it.each([
+  ['a new account', () => {}],
+  [
+    'a returning account',
+    () => localStorage.setItem(`logged_email_${mockClientId}`, 'jun@example.com'),
+  ],
+])('Cancel goes back to the app signed out, for %s', (_, setup) => {
+  setup();
+  render(<EmailInput onSubmit={onSubmit} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+  expect(mockSendError).toHaveBeenCalledWith(
+    'User cancelled sign-in',
+    'https://acme.example/callback',
+    undefined,
+    mockUi.setUiState,
+  );
+  expect(mockGo).not.toHaveBeenCalled();
 });

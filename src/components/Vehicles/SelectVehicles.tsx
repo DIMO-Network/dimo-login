@@ -87,9 +87,9 @@ const unsupportedNote = (
 
 /**
  * Choose vehicles to share with the app (grant new), or bring shares made
- * with older terms up to date (update). Cancel and Continue still return the
- * token to the app with an empty sharedVehicles (except Cancel on a required
- * email that isn't shared, which reports a decline).
+ * with older terms up to date (update). Continue (nothing new to share)
+ * returns the token with an empty sharedVehicles. Cancel never returns the
+ * token: the app gets an error instead.
  */
 export const SelectVehicles: React.FC = () => {
   const t = useT();
@@ -227,21 +227,21 @@ export const SelectVehicles: React.FC = () => {
     }
   };
 
-  // Cancel leaves the email answer as it was; Continue (nothing to share)
-  // still approves the email item. A required email that was never shared
-  // ends the flow with a decline, as on the plain-login step, so the app
-  // never gets a login without it.
+  // Cancel ends the flow without a login: the app hears an error and never
+  // gets the token. It leaves the email answer as it was; a required email
+  // that was never shared is reported as a decline, as on the plain-login
+  // step. Continue (nothing to share) approves the email item and signs in.
   const handleCancel = () => {
-    if (emailRequest.asked && emailRequest.required && !emailRequest.granted) {
-      sendErrorToParent(
-        'User declined to share their email',
-        redirectUri,
-        utm,
-        setUiState,
-      );
-      return;
-    }
-    finishShareVehicles([]);
+    const declinedEmail =
+      emailRequest.asked && emailRequest.required && !emailRequest.granted;
+    sendErrorToParent(
+      declinedEmail
+        ? 'User declined to share their email'
+        : 'User cancelled vehicle sharing',
+      redirectUri,
+      utm,
+      setUiState,
+    );
   };
   const handleContinue = () => {
     emailRequest.commit();
@@ -279,23 +279,21 @@ export const SelectVehicles: React.FC = () => {
 
   const actions = (
     <ActionBar hint={hint} hintId={hintId}>
+      <Button variant="secondary" onClick={handleCancel} disabled={sharing}>
+        {t('common.cancel')}
+      </Button>
       {nothingToShare || noVehicles ? (
         <Button onClick={handleContinue}>{t('common.continue')}</Button>
       ) : (
-        <>
-          <Button variant="secondary" onClick={handleCancel} disabled={sharing}>
-            {t('common.cancel')}
-          </Button>
-          <Button
-            onClick={handleShare}
-            loading={sharing}
-            loadingLabel={t('share.sharing')}
-            disabled={!loaded || !selectedVehicles.length}
-            disabledReasonId={hintId}
-          >
-            {shareError !== undefined ? t('common.try_again') : ctaLabel}
-          </Button>
-        </>
+        <Button
+          onClick={handleShare}
+          loading={sharing}
+          loadingLabel={t('share.sharing')}
+          disabled={!loaded || !selectedVehicles.length}
+          disabledReasonId={hintId}
+        >
+          {shareError !== undefined ? t('common.try_again') : ctaLabel}
+        </Button>
       )}
     </ActionBar>
   );

@@ -17,7 +17,7 @@ export type VehiclesAction = 'shared' | 'extended' | 'revoked';
 /**
  * Tells the app what changed, then shows the done screen. Popup and embed apps
  * get an authResponse now, since the done screen's Back only closes the popup.
- * With nothing changed (Cancel), it goes straight back to the app.
+ * With nothing changed (Continue), it goes straight back to the app.
  */
 export const useFinishVehicles = () => {
   const { redirectUri, utm } = useDevCredentials<VehicleManagerMandatoryParams>();
@@ -41,7 +41,7 @@ export const useFinishVehicles = () => {
   };
 };
 
-/** Shares and updates from the vehicle list; an empty list is Cancel. */
+/** Shares and updates from the vehicle list; an empty list is Continue. */
 export const useFinishShareVehicles = () => {
   const finish = useFinishVehicles();
   return (results: SharingResult[] = [], skipped: ShareResult['skipped'] = []) =>

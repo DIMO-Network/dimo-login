@@ -58,10 +58,11 @@ const mockRav4 = {
 const mockShare = vi.fn();
 const mockFinish = vi.fn();
 const mockIncompatible: unknown[] = [];
+let mockVehicles: unknown[] = [];
 vi.mock('../../../hooks/useFetchVehicles', () => ({
   useFetchVehicles: () => ({
     fetchVehicles: () => Promise.resolve(),
-    vehicles: [mockRav4, mockTesla],
+    vehicles: mockVehicles,
     incompatibleVehicles: mockIncompatible,
     hasNextPage: false,
     hasPreviousPage: false,
@@ -116,6 +117,7 @@ beforeEach(() => {
   localStorage.clear();
   Object.keys(mockCreds).forEach((key) => delete mockCreds[key]);
   mockIncompatible.length = 0;
+  mockVehicles = [mockRav4, mockTesla];
   mockShare.mockImplementation(async (vehicles) => ({ shared: vehicles, skipped: [] }));
 });
 
@@ -171,10 +173,47 @@ it('says nothing was shared when sharing fails, and offers to try again', async 
   expect(mockFinish).not.toHaveBeenCalled();
 });
 
-it('Cancel goes back to the app with nothing shared', async () => {
+const cancelled = (reason = 'User cancelled vehicle sharing') =>
+  expect(mockSendError).toHaveBeenCalledWith(
+    reason,
+    'https://acme.example/callback',
+    undefined,
+    mockUi.setUiState,
+  );
+
+it('Cancel goes back to the app without the token', async () => {
   render(<SelectVehicles />);
   fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
-  expect(mockFinish).toHaveBeenCalledWith([]);
+  cancelled();
+  expect(mockFinish).not.toHaveBeenCalled();
+});
+
+describe('with nothing new to share', () => {
+  it('offers Cancel next to Continue when every vehicle is already shared', async () => {
+    // The Tesla's share already covers vehicle data.
+    mockCreds.permissions = '1';
+    mockVehicles = [mockTesla];
+    render(<SelectVehicles />);
+    expect(
+      await screen.findByText('All your vehicles are already shared'),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    cancelled();
+    expect(mockFinish).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(mockFinish).toHaveBeenCalledWith([]);
+  });
+
+  it('offers Cancel next to Continue when there are no vehicles', async () => {
+    mockVehicles = [];
+    render(<SelectVehicles />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
+    cancelled();
+    expect(mockFinish).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument();
+  });
 });
 
 it('lists a required email as part of the request and shares it on approve', async () => {
@@ -235,34 +274,20 @@ describe('Cancel with a required email', () => {
     await screen.findByText('Needs update');
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
-    expect(mockSendError).toHaveBeenCalledWith(
-      'User declined to share their email',
-      'https://acme.example/callback',
-      undefined,
-      mockUi.setUiState,
-    );
+    cancelled('User declined to share their email');
     expect(mockFinish).not.toHaveBeenCalled();
     expect(getEmailChoice(mockClientId, 'jun@example.com')).toBeUndefined();
   });
 
-  it('returns to the app as usual once the email is shared', async () => {
+  it('reports a plain cancel once the email is shared', async () => {
     mockCreds.emailRequest = 'required';
     localStorage.setItem(`email_granted_${mockClientId}_jun@example.com`, 'true');
     render(<SelectVehicles />);
     await screen.findByText('Needs update');
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
-    expect(mockFinish).toHaveBeenCalledWith([]);
-    expect(mockSendError).not.toHaveBeenCalled();
-  });
-
-  it('leaves an optional email’s Cancel as it was', async () => {
-    render(<SelectVehicles />);
-    await screen.findByText('Needs update');
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-
-    expect(mockFinish).toHaveBeenCalledWith([]);
-    expect(mockSendError).not.toHaveBeenCalled();
+    cancelled();
+    expect(mockFinish).not.toHaveBeenCalled();
   });
 });
 

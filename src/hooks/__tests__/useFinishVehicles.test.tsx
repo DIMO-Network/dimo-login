@@ -41,7 +41,7 @@ it.each([
   expect(mockBack).not.toHaveBeenCalled();
 });
 
-it('goes straight back to the app when nothing was shared (Cancel)', () => {
+it('goes straight back to the app when nothing was shared (Continue)', () => {
   const { result } = renderHook(() => useFinishShareVehicles());
   result.current([]);
 
