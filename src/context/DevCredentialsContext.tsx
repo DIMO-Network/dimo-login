@@ -86,18 +86,21 @@ const CID_PATTERN = /^b[a-z2-7]{20,100}$/;
 /**
  * The flow to resume after an OAuth provider sends the user back, from the
  * snapshot saved before leaving (flowSnapshot.ts). Google/Apple resume the
- * original flow; Tesla resumes on CONNECT_TESLA, which its state names.
+ * original flow, the app's prompt and loginHint included: that sign-in is
+ * still in progress. Tesla resumes on CONNECT_TESLA, which its state names,
+ * without them: Tesla is connected after sign-in, so the session made then is
+ * used, not asked for again.
  * Null for a `state` this tab didn't send: nothing from it is applied.
  */
 const readOAuthReturnConfig = () => {
   const trusted = readTrustedOAuthReturn();
   if (!trusted) return null;
   const { state, snapshot } = trusted;
-  const isTesla = state.provider === AuthProvider.TESLA;
-  return {
-    ...snapshot,
-    entryState: isTesla ? state.entryState : (snapshot.entryState ?? state.entryState),
-  };
+  if (state.provider === AuthProvider.TESLA) {
+    const { prompt, loginHint, ...flow } = snapshot;
+    return { ...flow, entryState: state.entryState };
+  }
+  return { ...snapshot, entryState: snapshot.entryState ?? state.entryState };
 };
 
 const DevCredentialsContext = createContext<AllParams & { loadingState: LoadingState }>({

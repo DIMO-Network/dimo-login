@@ -3,7 +3,7 @@ import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
 
 import { DevCredentialsProvider, useDevCredentials } from '../DevCredentialsContext';
-import { UIManagerProvider } from '../UIManagerContext';
+import { UIManagerProvider, useUIManager } from '../UIManagerContext';
 import { GlobalOraclesProvider } from '../OraclesContext';
 import { fetchOemBrand, readCachedBrand } from '../../services/brandService';
 import { fetchConfigFromIPFS } from '../../services/ipfsService';
@@ -12,6 +12,8 @@ import { saveFlowSnapshot } from '../../utils/flowSnapshot';
 import { reportRefusal } from '../../utils/reportRefusal';
 import { sendMessageToReferrer } from '../../utils/messageHandler';
 import { initKernelSigner } from '../../services/walletLoader';
+import { initializeSession } from '../../services/sessionService';
+import { UiStates } from '../../enums';
 import {
   getDeveloperLicense,
   getLicenseAlias,
@@ -325,6 +327,89 @@ describe('DevCredentialsContext OAuth return', () => {
     await waitFor(() =>
       expect(screen.getByTestId('probe').textContent).toBe('"CONNECT_TESLA"'),
     );
+  });
+
+  describe('the app’s account request (prompt, loginHint)', () => {
+    const b64 = (value: object) => btoa(JSON.stringify(value)).replace(/=+$/, '');
+    const JWT = `${b64({ alg: 'HS256' })}.${b64({ exp: 4102444800 })}.sig`;
+
+    // What App hands initializeSession, as the providers have it.
+    let seen: ReturnType<typeof useDevCredentials> & { uiState: UiStates };
+    const SessionProbe = () => {
+      seen = { ...useDevCredentials(), uiState: useUIManager().uiState };
+      return null;
+    };
+    const renderSessionProbe = () =>
+      render(
+        <UIManagerProvider>
+          <GlobalOraclesProvider>
+            <DevCredentialsProvider>
+              <SessionProbe />
+            </DevCredentialsProvider>
+          </GlobalOraclesProvider>
+        </UIManagerProvider>,
+      );
+
+    const flowWithRequest = () =>
+      saveFlowSnapshot({
+        clientId: CLIENT_ID,
+        entryState: 'VEHICLE_MANAGER',
+        prompt: 'select_account',
+        loginHint: 'other@example.com',
+      });
+
+    afterEach(() => {
+      document.cookie = `auth_token_${CLIENT_ID}=; Max-Age=0; path=/`;
+      localStorage.clear();
+    });
+
+    it('Tesla: the return leaves it behind, so the session made before leaving is used', async () => {
+      // The person signed in (as jun) before connecting Tesla.
+      document.cookie = `auth_token_${CLIENT_ID}=${JWT}; path=/`;
+      localStorage.setItem(
+        `user_data_${CLIENT_ID}`,
+        JSON.stringify({ email: 'jun@example.com', smartContractAddress: '0xabc' }),
+      );
+      returnWith({
+        clientId: CLIENT_ID,
+        provider: 'tesla',
+        entryState: 'CONNECT_TESLA',
+        flowRef: flowWithRequest(),
+      });
+      renderSessionProbe();
+      await waitFor(() => expect(seen.uiState).toBe(UiStates.CONNECT_TESLA));
+      expect(seen.prompt).toBeUndefined();
+      expect(seen.loginHint).toBeUndefined();
+
+      const setJwt = vi.fn();
+      const setUiState = vi.fn();
+      initializeSession({
+        clientId: CLIENT_ID,
+        setJwt,
+        setUser: vi.fn(),
+        uiState: seen.uiState,
+        setUiState,
+        entryState: seen.entryState,
+        prompt: seen.prompt,
+        loginHint: seen.loginHint,
+      });
+      expect(setJwt).toHaveBeenCalledWith(JWT);
+      // It stays on CONNECT_TESLA, not the sign-in screen.
+      expect(setUiState).not.toHaveBeenCalled();
+    });
+
+    it('Google: the return keeps it, the sign-in being still in progress', async () => {
+      returnWith({
+        clientId: CLIENT_ID,
+        provider: 'google',
+        entryState: 'EMAIL_INPUT',
+        flowRef: flowWithRequest(),
+      });
+      renderSessionProbe();
+      await waitFor(() => expect(seen.entryState).toBe(UiStates.VEHICLE_MANAGER));
+      expect(seen.prompt).toBe('select_account');
+      expect(seen.loginHint).toBe('other@example.com');
+    });
   });
 
   it('applies only the saved flow, not other fields of the state', async () => {
