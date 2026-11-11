@@ -72,8 +72,6 @@ const defaultUser: UserObject = {
 };
 
 type FinalizeAuthenticationArgs = {
-  /** Sign in as this account instead of the current user state. */
-  account?: UserObject;
   /** The sign-in steps the caller already waited for, signer included. */
   steps: SignInSteps;
   stamper: TStamper;
@@ -103,11 +101,15 @@ export const AuthProvider = ({
   };
 
   /** Proves the stamper's key works and mints this app's token. */
-  const authenticate = async ({
-    account = user,
-    steps,
-    stamper,
-  }: Pick<FinalizeAuthenticationArgs, 'account' | 'steps' | 'stamper'>) => {
+  const authenticate = async (
+    account: UserObject,
+    steps: SignInSteps,
+    stamper: TStamper,
+  ) => {
+    // The page has one signer, and it keeps the last account's sessions: a live
+    // passkey session even skips the next prompt and signs as that account. So
+    // every sign-in starts from a clean one, which the steps below set up again.
+    steps.getKernelSigner().resetClient();
     if (!account.subOrganizationId) {
       throw new Error('User has not been initialized yet');
     }
@@ -158,13 +160,12 @@ export const AuthProvider = ({
   };
 
   const loginToDIMO = async ({
-    account = user,
     steps,
     stamper,
     turnkeySessionData,
   }: FinalizeAuthenticationArgs) => {
-    const result = await authenticate({ account, steps, stamper });
-    completeLogin(account, result, turnkeySessionData);
+    const result = await authenticate(user, steps, stamper);
+    completeLogin(user, result, turnkeySessionData);
   };
 
   const completePasskeyLogin = async () => {
@@ -204,45 +205,52 @@ export const AuthProvider = ({
   };
 
   const validateSession = async () => {
-    const turnkeySessionData = user.subOrganizationId
-      ? getWalletSession(user.subOrganizationId, clientId)
-      : null;
-    if (!user.subOrganizationId || !turnkeySessionData) {
+    const { subOrganizationId } = user;
+    if (!subOrganizationId) {
+      setUiState(UiStates.EMAIL_INPUT);
+      return null;
+    }
+    const turnkeySessionData = getWalletSession(subOrganizationId, clientId);
+    if (!turnkeySessionData) {
       setUiState(UiStates.EMAIL_INPUT);
       return null;
     }
     // A returning session can open straight onto a signing screen, before the
     // kernel signer DevCredentialsContext started is ready.
     const steps = await signInStepsWithSigner();
-    if (steps.getKernelSigner().hasActiveSession()) {
+    const signer = steps.getKernelSigner();
+    // A signer still holding another account's session must not sign for this one.
+    if (signer.subOrganizationId !== subOrganizationId) {
+      signer.resetClient();
+    }
+    if (signer.hasActiveSession()) {
       return true;
     }
     if (turnkeySessionData.sessionType === 'passkey') {
-      await steps.initializePasskey(user.subOrganizationId);
-      setWalletSession(user.subOrganizationId, {
+      await steps.initializePasskey(subOrganizationId);
+      setWalletSession(subOrganizationId, {
         sessionType: 'passkey',
-        expiresAt: steps.getKernelSigner().passkeySessionClient.expires,
+        expiresAt: signer.passkeySessionClient.expires,
       });
       return true;
     }
     if (turnkeySessionData.expiresAt < Date.now()) {
-      clearWalletSession(user.subOrganizationId);
+      clearWalletSession(subOrganizationId);
       setUiState(UiStates.OTP_INPUT);
       return null;
     }
-    const apiKeyStamper = steps.getApiKeyStamper({
-      credentialBundle: turnkeySessionData.credentialBundle,
-      embeddedKey: turnkeySessionData.embeddedKey,
-    });
     try {
-      await steps
-        .getKernelSigner()
-        .openSessionWithApiStamper(user.subOrganizationId, apiKeyStamper);
+      const apiKeyStamper = steps.getApiKeyStamper({
+        credentialBundle: turnkeySessionData.credentialBundle,
+        embeddedKey: turnkeySessionData.embeddedKey,
+      });
+      await signer.openSessionWithApiStamper(subOrganizationId, apiKeyStamper);
     } catch (error) {
       // Any failure of the key costs one more code; report it so a pattern shows.
       captureException(error);
-      // The key was revoked or expired elsewhere: a new code is the way back in.
-      clearWalletSession(user.subOrganizationId);
+      // The key can't be read, or was revoked or expired elsewhere: a new code
+      // is the way back in.
+      clearWalletSession(subOrganizationId);
       setUiState(UiStates.OTP_INPUT);
       return null;
     }
@@ -276,7 +284,7 @@ export const AuthProvider = ({
         credentialBundle: session.credentialBundle,
         embeddedKey: session.embeddedKey,
       });
-      result = await authenticate({ account: resumed, steps, stamper });
+      result = await authenticate(resumed, steps, stamper);
     } catch (error) {
       // Only the key failing means "no silent sign-in"; never report the key itself.
       captureException(error);

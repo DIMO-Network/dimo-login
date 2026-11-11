@@ -51,6 +51,7 @@ const stepsWith = (
 ) =>
   ({
     getKernelSigner: () => ({
+      resetClient: vi.fn(),
       hasActiveSession: () => false,
       openSessionWithApiStamper: vi.fn().mockResolvedValue(undefined),
       passkeySessionClient: { expires: Date.now() + 60_000 },
@@ -99,7 +100,10 @@ describe('AuthContext validateSession', () => {
     );
     renderProvider();
     signInAs('sub');
-    const getKernelSigner = vi.fn(() => ({ hasActiveSession: () => true }));
+    const getKernelSigner = vi.fn(() => ({
+      subOrganizationId: 'sub',
+      hasActiveSession: () => true,
+    }));
 
     let settled = false;
     const validated = auth.validateSession().finally(() => {
@@ -163,6 +167,46 @@ describe('AuthContext per-account wallet sessions', () => {
     expect(setUiState).toHaveBeenCalledWith(UiStates.OTP_INPUT);
     expect(localStorage.getItem('turnkey_session_sub-a')).toBeNull();
     expect(captureException).toHaveBeenCalledWith(new Error('api key not found'));
+  });
+
+  it('asks for a code again when the stored key can’t be decrypted', async () => {
+    localStorage.setItem('turnkey_session_sub-a', apiKeySession());
+    renderProvider();
+    signInAs('sub-a');
+    const undecryptable = new Error('bad bundle');
+    signer.resolve(
+      stepsWith(
+        {},
+        {
+          getApiKeyStamper: vi.fn(() => {
+            throw undecryptable;
+          }),
+        },
+      ),
+    );
+    await expect(auth.validateSession()).resolves.toBeNull();
+    expect(setUiState).toHaveBeenCalledWith(UiStates.OTP_INPUT);
+    expect(localStorage.getItem('turnkey_session_sub-a')).toBeNull();
+    expect(captureException).toHaveBeenCalledWith(undecryptable);
+  });
+
+  it('resumeAccount falls back when the stored key can’t be decrypted', async () => {
+    localStorage.setItem('turnkey_session_sub-a', apiKeySession());
+    renderProvider();
+    signer.resolve(
+      stepsWith(
+        {},
+        {
+          getApiKeyStamper: vi.fn(() => {
+            throw new Error('bad bundle');
+          }),
+        },
+      ),
+    );
+    await expect(
+      auth.resumeAccount({ email: 'alice@x.co', subOrganizationId: 'sub-a', lastUsedAt: 1 }),
+    ).resolves.toBe(false);
+    expect(localStorage.getItem('turnkey_session_sub-a')).toBeNull();
   });
 
   it('validateSession with the wallet session gone sends the user to sign in without loading the wallet', async () => {
