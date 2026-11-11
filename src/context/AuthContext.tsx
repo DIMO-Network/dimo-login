@@ -59,6 +59,9 @@ interface AuthContextProps {
   signUp: SignUp;
 }
 
+/** What Sentry gets when a stored wallet session fails: fixed text, nothing from the caught error. */
+const storedSessionError = () => new Error('Stored wallet session could not be used');
+
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
 //This will be set on account creation partially, and completed on wallet connection
@@ -245,9 +248,11 @@ export const AuthProvider = ({
         embeddedKey: turnkeySessionData.embeddedKey,
       });
       await signer.openSessionWithApiStamper(subOrganizationId, apiKeyStamper);
-    } catch (error) {
-      // Any failure of the key costs one more code; report it so a pattern shows.
-      captureException(error);
+    } catch {
+      // Any failure of the key costs one more code; report that it happened so a
+      // pattern shows. Never the caught error: a key that isn't valid hex is
+      // quoted in its message.
+      captureException(storedSessionError());
       // The key can't be read, or was revoked or expired elsewhere: a new code
       // is the way back in.
       clearWalletSession(subOrganizationId);
@@ -285,9 +290,10 @@ export const AuthProvider = ({
         embeddedKey: session.embeddedKey,
       });
       result = await authenticate(resumed, steps, stamper);
-    } catch (error) {
-      // Only the key failing means "no silent sign-in"; never report the key itself.
-      captureException(error);
+    } catch {
+      // Only the key failing means "no silent sign-in". Report a fixed error, not
+      // the caught one: its message can quote the stored key.
+      captureException(storedSessionError());
       clearWalletSession(subOrganizationId);
       return false;
     }

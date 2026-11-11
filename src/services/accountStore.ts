@@ -71,6 +71,11 @@ const sameEmail = (value: unknown, email: string) =>
  * lowercased, one per email (the most recent), at most MAX_REMEMBERED_ACCOUNTS.
  * A hand-edited or half-written list reads as what it should be.
  */
+// Loose on purpose: an account that signed in with Google or Apple never ran
+// the sign-in email regex, and must not vanish from the chooser for it.
+const isUsableEmail = (email: string) =>
+  /^[^\s@]+@[^\s@]+$/.test(email);
+
 const readStoredAccounts = (): RememberedAccount[] => {
   const value = readJson(ACCOUNTS_KEY);
   if (!Array.isArray(value)) return [];
@@ -82,7 +87,7 @@ const readStoredAccounts = (): RememberedAccount[] => {
     .map((entry) => ({ ...entry, email: entry.email.trim().toLowerCase() }))
     .filter(
       (entry, i, all) =>
-        isValidEmail(entry.email) && all.findIndex((a) => a.email === entry.email) === i,
+        isUsableEmail(entry.email) && all.findIndex((a) => a.email === entry.email) === i,
     )
     .slice(0, MAX_REMEMBERED_ACCOUNTS);
 };
@@ -107,8 +112,9 @@ const isSession = (value: unknown): value is TurnkeySessionDataWithExpiry =>
  * writing the list at once) and an email-code key past its expiry. A passkey
  * session holds no secret and is kept.
  */
-const sweepWalletSessions = (): void => {
-  const listed = new Set(readStoredAccounts().map((a) => a.subOrganizationId));
+const sweepWalletSessions = (stored: RememberedAccount[]): void => {
+  // The subs of exactly what was just stored, not of the validated read.
+  const listed = new Set(stored.map((a) => a.subOrganizationId));
   const prefix = walletSessionKey('');
   const now = Date.now();
   for (const key of storageKeys()) {
@@ -145,8 +151,9 @@ export const rememberAccount = (user: UserObject, now: number = Date.now()): voi
     lastUsedAt: now,
   };
   const others = readStoredAccounts().filter((a) => a.email !== email);
-  writeJson(ACCOUNTS_KEY, [entry, ...others].slice(0, MAX_REMEMBERED_ACCOUNTS));
-  sweepWalletSessions();
+  const next = [entry, ...others].slice(0, MAX_REMEMBERED_ACCOUNTS);
+  writeJson(ACCOUNTS_KEY, next);
+  sweepWalletSessions(next);
 };
 
 /**
@@ -157,10 +164,8 @@ export const rememberAccount = (user: UserObject, now: number = Date.now()): voi
 export const forgetAccount = (email: string): void => {
   const target = email.trim().toLowerCase();
   const stored = readStoredAccounts();
-  writeJson(
-    ACCOUNTS_KEY,
-    stored.filter((a) => a.email !== target),
-  );
+  const remaining = stored.filter((a) => a.email !== target);
+  writeJson(ACCOUNTS_KEY, remaining);
   const subOrganizationIds = stored
     .filter((a) => a.email === target)
     .map((a) => a.subOrganizationId);
@@ -181,7 +186,7 @@ export const forgetAccount = (email: string): void => {
     }
   }
   subOrganizationIds.forEach((subOrganizationId) => endWalletSession(subOrganizationId));
-  sweepWalletSessions();
+  sweepWalletSessions(remaining);
 };
 
 /**

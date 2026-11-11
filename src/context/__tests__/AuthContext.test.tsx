@@ -25,6 +25,15 @@ const deferred = <T,>() => {
   return { promise, resolve };
 };
 
+/** Sentry got one fixed error: nothing of the rejected error's message (a stored key). */
+const expectFixedReport = () => {
+  expect(captureException).toHaveBeenCalledTimes(1);
+  const reported = (captureException as Mock).mock.calls[0][0] as Error;
+  expect(reported).toBeInstanceOf(Error);
+  expect(reported.message).toBe('Stored wallet session could not be used');
+  expect(reported.message).not.toContain('deadbeef-secret');
+};
+
 let auth: ReturnType<typeof useAuthContext>;
 const Probe = () => {
   auth = useAuthContext();
@@ -160,20 +169,20 @@ describe('AuthContext per-account wallet sessions', () => {
         hasActiveSession: () => false,
         openSessionWithApiStamper: vi
           .fn()
-          .mockRejectedValue(new Error('api key not found')),
+          .mockRejectedValue(new Error('invalid hex string: "deadbeef-secret"')),
       }),
     );
     await expect(auth.validateSession()).resolves.toBeNull();
     expect(setUiState).toHaveBeenCalledWith(UiStates.OTP_INPUT);
     expect(localStorage.getItem('turnkey_session_sub-a')).toBeNull();
-    expect(captureException).toHaveBeenCalledWith(new Error('api key not found'));
+    expectFixedReport();
   });
 
   it('asks for a code again when the stored key can’t be decrypted', async () => {
     localStorage.setItem('turnkey_session_sub-a', apiKeySession());
     renderProvider();
     signInAs('sub-a');
-    const undecryptable = new Error('bad bundle');
+    const undecryptable = new Error('invalid hex string: "deadbeef-secret"');
     signer.resolve(
       stepsWith(
         {},
@@ -187,7 +196,7 @@ describe('AuthContext per-account wallet sessions', () => {
     await expect(auth.validateSession()).resolves.toBeNull();
     expect(setUiState).toHaveBeenCalledWith(UiStates.OTP_INPUT);
     expect(localStorage.getItem('turnkey_session_sub-a')).toBeNull();
-    expect(captureException).toHaveBeenCalledWith(undecryptable);
+    expectFixedReport();
   });
 
   it('resumeAccount falls back when the stored key can’t be decrypted', async () => {
@@ -322,7 +331,7 @@ describe('AuthContext per-account wallet sessions', () => {
     signer.resolve(
       stepsWith(
         {},
-        { authenticateUser: vi.fn().mockRejectedValue(new Error('revoked')) },
+        { authenticateUser: vi.fn().mockRejectedValue(new Error('invalid hex string: "deadbeef-secret"')) },
       ),
     );
     await expect(
@@ -333,7 +342,7 @@ describe('AuthContext per-account wallet sessions', () => {
       }),
     ).resolves.toBe(false);
     expect(localStorage.getItem('turnkey_session_sub-a')).toBeNull();
-    expect(captureException).toHaveBeenCalledWith(new Error('revoked'));
+    expectFixedReport();
   });
 
   it.each([

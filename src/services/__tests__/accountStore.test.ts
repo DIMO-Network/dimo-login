@@ -299,4 +299,24 @@ describe('wallet sessions nothing can use any more', () => {
     expect(localStorage.getItem('turnkey_session_sub-gone')).toBeNull();
     expect(localStorage.getItem('turnkey_session_sub-b')).not.toBeNull();
   });
+
+  it('are kept for an account whose email the sign-in regex would reject', () => {
+    setWalletSession('sub-x', apiKey(Date.now() + 60_000));
+    rememberAccount({ ...A, email: 'u@example.xn--p1ai', subOrganizationId: 'sub-x' }, 1);
+    expect(localStorage.getItem('turnkey_session_sub-x')).not.toBeNull();
+    expect(getRememberedAccounts(null).map((a) => a.email)).toEqual([
+      'u@example.xn--p1ai',
+    ]);
+  });
+
+  it.each([[''], ['no-at-sign'], ['a b@x.co'], ['a@@b.co'], ['@x.co'], ['a@']])(
+    'a stored entry with email %j is not listed',
+    (email) => {
+      localStorage.setItem(
+        'dimo_accounts',
+        JSON.stringify([{ email, subOrganizationId: 's', lastUsedAt: 1 }]),
+      );
+      expect(getRememberedAccounts(null)).toEqual([]);
+    },
+  );
 });
