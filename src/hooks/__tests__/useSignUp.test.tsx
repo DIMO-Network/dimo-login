@@ -167,3 +167,62 @@ it('resend replaces the code id and forgets the typed code', async () => {
   await run(() => signUp.resend());
   expect(draft()).toMatchObject({ otpId: 'otp-2', otpCode: undefined });
 });
+
+const deferred = <T,>() => {
+  let resolve!: (v: T) => void;
+  const promise = new Promise<T>((r) => (resolve = r));
+  return { promise, resolve };
+};
+
+it('a double finish makes one passkey and one submit', async () => {
+  mockRegister.mockResolvedValue({ otpId: 'otp-1' });
+  await run(() => signUp.start('a@b.co'));
+  act(() => signUp.submitCode('123456'));
+  mockVerify.mockResolvedValue(undefined);
+  mockFetchUser.mockResolvedValue(USER as any);
+  const results = await run(() => Promise.all([signUp.finish(), signUp.finish()]));
+  expect(results).toEqual(['done', 'done']);
+  expect(mockCreatePasskey).toHaveBeenCalledTimes(1);
+  expect(mockVerify).toHaveBeenCalledTimes(1);
+});
+
+it('a late response from an older start does not replace the newer draft', async () => {
+  const first = deferred<{ otpId: string }>();
+  mockRegister.mockReturnValueOnce(first.promise).mockResolvedValueOnce({ otpId: 'otp-c' });
+  let startA!: Promise<void>;
+  await run(async () => {
+    startA = signUp.start('a@b.co');
+  });
+  await run(() => signUp.start('c@d.co'));
+  await run(async () => {
+    first.resolve({ otpId: 'otp-a' });
+    await startA;
+  });
+  expect(draft()).toEqual({ email: 'c@d.co', otpId: 'otp-c', key: KEY });
+  expect(setUiState).toHaveBeenCalledTimes(1);
+});
+
+it('a late resend does not change a newer draft', async () => {
+  await startedWithCode('111111');
+  const late = deferred<{ otpId: string }>();
+  mockRegister.mockReturnValueOnce(late.promise).mockResolvedValueOnce({ otpId: 'otp-c' });
+  let resending!: Promise<void>;
+  await run(async () => {
+    resending = signUp.resend();
+  });
+  await run(() => signUp.start('c@d.co'));
+  await run(async () => {
+    late.resolve({ otpId: 'otp-late' });
+    await resending;
+  });
+  expect(draft()).toEqual({ email: 'c@d.co', otpId: 'otp-c', key: KEY });
+});
+
+it('a verify error on the provider path propagates', async () => {
+  await run(() => signUp.start('a@b.co', 'tok'));
+  mockCreateAccount.mockRejectedValueOnce(new AccountVerifyError('nope'));
+  await run(async () => {
+    await expect(signUp.finish()).rejects.toThrow('nope');
+  });
+  expect(setUiState).not.toHaveBeenCalledWith(UiStates.SIGNUP_VERIFY_EMAIL);
+});

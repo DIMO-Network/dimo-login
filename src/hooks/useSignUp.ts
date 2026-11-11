@@ -13,6 +13,11 @@ import {
 } from '../services/accountsService';
 import { loadSignInSteps } from '../services/walletLoader';
 
+// Shared across every useSignUp() instance (routing hook, code screen,
+// passkey screen), which a per-instance ref would not be.
+let startSeq = 0; // bumped by each start(); late responses from older ones are dropped
+let finishing: Promise<'done' | 'code_rejected'> | null = null; // in-flight finish()
+
 /**
  * Owns the whole sign-up sequence: send a code (or take a provider token as
  * proof of the email), make the passkey, then create/verify the account.
@@ -47,6 +52,7 @@ export const useSignUp = () => {
   };
 
   const start = async (email: string, proofToken?: string): Promise<void> => {
+    const token = ++startSeq;
     if (proofToken) {
       commit({ email, proofToken });
       setUiState(UiStates.PASSKEY_GENERATOR, { setBack: true });
@@ -55,13 +61,16 @@ export const useSignUp = () => {
     const { generateP256KeyPair } = await loadSignInSteps();
     const key = generateP256KeyPair();
     const { otpId } = await registerAccount(email, key.publicKeyUncompressed);
+    if (token !== startSeq) return;
     commit({ email, otpId, key });
     setUiState(UiStates.SIGNUP_VERIFY_EMAIL, { setBack: true });
   };
 
   const resend = async (): Promise<void> => {
     const draft = requireCodeDraft();
+    const token = startSeq;
     const { otpId } = await registerAccount(draft.email, draft.key.publicKeyUncompressed);
+    if (token !== startSeq) return;
     commit({ ...draft, otpId, otpCode: undefined });
   };
 
@@ -70,7 +79,19 @@ export const useSignUp = () => {
     setUiState(UiStates.PASSKEY_GENERATOR, { setBack: true });
   };
 
-  const finish = async (): Promise<'done' | 'code_rejected'> => {
+  // A second call while one is running gets the same result, so a double tap
+  // cannot make two passkeys or submit twice.
+  const finish = (): Promise<'done' | 'code_rejected'> => {
+    if (!finishing) {
+      finishing = runFinish().finally(() => {
+        finishing = null;
+      });
+    }
+    return finishing;
+  };
+
+  const runFinish = async (): Promise<'done' | 'code_rejected'> => {
+    const token = startSeq;
     let draft = requireDraft();
     if (!draft.passkey) {
       const { createPasskey } = await loadSignInSteps();
@@ -80,19 +101,19 @@ export const useSignUp = () => {
     }
     const [attestation, challenge] = draft.passkey!;
 
-    try {
-      if (draft.proofToken) {
-        await createAccount({
-          email: draft.email,
-          apiKey,
-          attestation,
-          challenge,
-          deployAccount: true,
-          proofToken: draft.proofToken,
-        });
-      } else {
-        const { otpId, otpCode, key } = draft;
-        if (!otpId || !otpCode || !key) throw new Error('Sign-up is missing its email code');
+    if (draft.proofToken) {
+      await createAccount({
+        email: draft.email,
+        apiKey,
+        attestation,
+        challenge,
+        deployAccount: true,
+        proofToken: draft.proofToken,
+      });
+    } else {
+      const { otpId, otpCode, key } = draft;
+      if (!otpId || !otpCode || !key) throw new Error('Sign-up is missing its email code');
+      try {
         await verifyAccountEmail({
           email: draft.email,
           otpId,
@@ -101,14 +122,16 @@ export const useSignUp = () => {
           attestation,
           challenge,
         });
-      }
-    } catch (error) {
-      if (error instanceof AccountVerifyError) {
-        commit({ ...(draftRef.current ?? draft), otpCode: undefined });
-        setUiState(UiStates.SIGNUP_VERIFY_EMAIL);
+      } catch (error) {
+        if (!(error instanceof AccountVerifyError)) throw error;
+        const current = draftRef.current;
+        // Only touch the draft and screen if this sign-up is still the live one.
+        if (token === startSeq && current && current.email === draft.email) {
+          commit({ ...current, otpCode: undefined });
+          setUiState(UiStates.SIGNUP_VERIFY_EMAIL);
+        }
         return 'code_rejected';
       }
-      throw error;
     }
 
     const user = await fetchUserDetails(draft.email);
