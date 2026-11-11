@@ -210,7 +210,7 @@ export const AuthProvider = ({
       setUiState(UiStates.EMAIL_INPUT);
       return null;
     }
-    const turnkeySessionData = getWalletSession(subOrganizationId, clientId);
+    const turnkeySessionData = getWalletSession(subOrganizationId);
     if (!turnkeySessionData) {
       setUiState(UiStates.EMAIL_INPUT);
       return null;
@@ -260,7 +260,7 @@ export const AuthProvider = ({
   const resumeAccount = async (account: RememberedAccount) => {
     const { subOrganizationId } = account;
     if (!subOrganizationId) return false;
-    const session = getWalletSession(subOrganizationId, clientId);
+    const session = getWalletSession(subOrganizationId);
     if (session?.sessionType !== 'api_key' || !(session.expiresAt > Date.now())) {
       return false;
     }

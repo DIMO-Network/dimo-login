@@ -45,7 +45,27 @@ describe('logout', () => {
     expect(JSON.parse(localStorage.getItem('dimo_accounts') ?? '[]')).toHaveLength(1);
   });
 
-  it('still signs the app out when storage reads throw', () => {
+  it('ends the session of the account the app last signed in as, after “Use another account” too', () => {
+    // "Use another account" removed the stored user; the logged email still names the account.
+    localStorage.setItem(`logged_email_${CLIENT}`, 'alice@x.co');
+    localStorage.setItem(
+      'dimo_accounts',
+      JSON.stringify([
+        { email: 'alice@x.co', subOrganizationId: 'sub-a', lastUsedAt: 1 },
+      ]),
+    );
+    localStorage.setItem(
+      'turnkey_session_sub-a',
+      JSON.stringify({ sessionType: 'api_key' }),
+    );
+
+    logout(CLIENT, 'https://app.example/cb', '', vi.fn());
+
+    expect(localStorage.getItem('turnkey_session_sub-a')).toBeNull();
+    expect(JSON.parse(localStorage.getItem('dimo_accounts') ?? '[]')).toHaveLength(1);
+  });
+
+  it('still signs the app out when removing the wallet session throws', () => {
     const spy = vi.spyOn(Storage.prototype, 'removeItem').mockImplementationOnce(() => {
       throw new Error('blocked');
     });

@@ -101,7 +101,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   };
 
   const handleRemoveAccount = (account: RememberedAccount) => {
-    forgetAccount(account.email, clientId);
+    forgetAccount(account.email);
     setAccounts(getRememberedAccounts(clientId));
   };
 

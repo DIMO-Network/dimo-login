@@ -1,12 +1,14 @@
 import type { UserObject } from '../../models/user';
 import {
   clearWalletSession,
+  endWalletSession,
   forgetAccount,
   getRememberedAccounts,
   getWalletSession,
   rememberAccount,
   setWalletSession,
 } from '../accountStore';
+import { getJWTFromCookies, storeJWTInCookies } from '../storageService';
 
 const CLIENT = '0xb92d74B468B4047289AEa7c9B953066E39768C16' as const;
 const A = {
@@ -18,8 +20,34 @@ const A = {
   emailVerified: true,
 } as UserObject;
 const B = { ...A, email: 'bob@x.co', subOrganizationId: 'sub-b', hasPasskey: true };
+const C = { ...A, email: 'carol@x.co', subOrganizationId: 'sub-c' };
 
-beforeEach(() => localStorage.clear());
+const PASSKEY = { sessionType: 'passkey', expiresAt: 9 } as const;
+const apiKey = (expiresAt: number) =>
+  ({ sessionType: 'api_key', embeddedKey: 'k', credentialBundle: 'b', expiresAt }) as const;
+
+// Unpadded, as in a real JWT (the cookie reader splits on '=').
+const b64 = (value: object) => btoa(JSON.stringify(value)).replace(/=+$/, '');
+const JWT = `${b64({ alg: 'none' })}.${b64({ exp: Math.floor(Date.now() / 1000) + 7200 })}.sig`;
+
+/** An app signed in as the user on this browser, as createSession leaves it. */
+const signInApp = (clientId: `0x${string}`, user: UserObject) => {
+  storeJWTInCookies(clientId, JWT);
+  localStorage.setItem(`user_data_${clientId}`, JSON.stringify(user));
+};
+
+const clearCookies = () =>
+  document.cookie
+    .split('; ')
+    .filter(Boolean)
+    .forEach((cookie) => {
+      document.cookie = `${cookie.split('=')[0]}=; Max-Age=0; path=/`;
+    });
+
+beforeEach(() => {
+  localStorage.clear();
+  clearCookies();
+});
 
 describe('accountStore', () => {
   it('remembers accounts most recent first, by lowercased email', () => {
@@ -51,40 +79,100 @@ describe('accountStore', () => {
   });
 
   it('keeps each account’s wallet session apart', () => {
-    setWalletSession('sub-a', {
-      sessionType: 'api_key',
-      embeddedKey: 'k',
-      credentialBundle: 'b',
-      expiresAt: 9,
-    });
-    setWalletSession('sub-b', { sessionType: 'passkey', expiresAt: 9 });
-    expect(getWalletSession('sub-a', CLIENT)).toMatchObject({ sessionType: 'api_key' });
+    setWalletSession('sub-a', apiKey(9));
+    setWalletSession('sub-b', PASSKEY);
+    expect(getWalletSession('sub-a')).toMatchObject({ sessionType: 'api_key' });
     clearWalletSession('sub-b');
-    expect(getWalletSession('sub-a', CLIENT)).not.toBeNull();
-    expect(getWalletSession('sub-b', CLIENT)).toBeNull();
+    expect(getWalletSession('sub-a')).not.toBeNull();
+    expect(getWalletSession('sub-b')).toBeNull();
   });
 
-  it('adopts the legacy wallet session for the account this app is signed in as', () => {
-    localStorage.setItem(
-      'turnkey_session',
-      JSON.stringify({ sessionType: 'passkey', expiresAt: 9 }),
-    );
+  it('never reads or touches the single session an older build stored', () => {
+    localStorage.setItem('turnkey_session', JSON.stringify(PASSKEY));
     localStorage.setItem(`user_data_${CLIENT}`, JSON.stringify(A));
-    expect(getWalletSession('sub-b', CLIENT)).toBeNull();
-    expect(getWalletSession('sub-a', CLIENT)).toEqual({
-      sessionType: 'passkey',
-      expiresAt: 9,
-    });
+    expect(getWalletSession('sub-a')).toBeNull();
+    expect(localStorage.getItem('turnkey_session')).not.toBeNull();
+    expect(localStorage.getItem('turnkey_session_sub-a')).toBeNull();
+  });
+
+  it('storing a wallet session removes the one an older build stored', () => {
+    localStorage.setItem('turnkey_session', JSON.stringify(PASSKEY));
+    setWalletSession('sub-a', PASSKEY);
     expect(localStorage.getItem('turnkey_session')).toBeNull();
-    expect(localStorage.getItem('turnkey_session_sub-a')).not.toBeNull();
+    expect(getWalletSession('sub-a')).toEqual(PASSKEY);
+  });
+
+  it('ending a wallet session removes that account’s and an older build’s, nothing else', () => {
+    setWalletSession('sub-a', PASSKEY);
+    setWalletSession('sub-b', PASSKEY);
+    localStorage.setItem('turnkey_session', JSON.stringify(PASSKEY));
+    endWalletSession('sub-a');
+    expect(localStorage.getItem('turnkey_session_sub-a')).toBeNull();
+    expect(localStorage.getItem('turnkey_session')).toBeNull();
+    expect(localStorage.getItem('turnkey_session_sub-b')).not.toBeNull();
+
+    localStorage.setItem('turnkey_session', JSON.stringify(PASSKEY));
+    endWalletSession(undefined);
+    expect(localStorage.getItem('turnkey_session')).toBeNull();
+    expect(localStorage.getItem('turnkey_session_sub-b')).not.toBeNull();
   });
 
   it('forgets an account, its wallet session and the app’s old memory of it', () => {
     rememberAccount(A, 1);
-    setWalletSession('sub-a', { sessionType: 'passkey', expiresAt: 9 });
+    setWalletSession('sub-a', PASSKEY);
     localStorage.setItem(`logged_email_${CLIENT}`, 'alice@x.co');
-    forgetAccount('ALICE@x.co', CLIENT);
+    forgetAccount('ALICE@x.co');
     expect(getRememberedAccounts(CLIENT)).toEqual([]);
+    expect(localStorage.getItem('turnkey_session_sub-a')).toBeNull();
+  });
+
+  it('forgets an account everywhere on this device, leaving other accounts alone', () => {
+    rememberAccount(A, 1);
+    rememberAccount(B, 2);
+    setWalletSession('sub-a', PASSKEY);
+    setWalletSession('sub-b', PASSKEY);
+    signInApp('0xA', A);
+    signInApp('0xB', A);
+    localStorage.setItem('logged_email_0xB', 'alice@x.co');
+    // An email answer stored before answers were per account belongs to alice.
+    localStorage.setItem('email_granted_0xB', 'true');
+    signInApp('0xC', B);
+    localStorage.setItem('logged_email_0xC', 'bob@x.co');
+
+    forgetAccount('ALICE@x.co');
+
+    expect(localStorage.getItem('user_data_0xA')).toBeNull();
+    expect(localStorage.getItem('user_data_0xB')).toBeNull();
+    expect(localStorage.getItem('logged_email_0xB')).toBeNull();
+    expect(getJWTFromCookies('0xA')).toBeNull();
+    expect(getJWTFromCookies('0xB')).toBeNull();
+    expect(localStorage.getItem('turnkey_session_sub-a')).toBeNull();
+    // The old answer moved to alice's own key before her logged email went.
+    expect(localStorage.getItem('email_granted_0xB_alice@x.co')).toBe('true');
+
+    expect(localStorage.getItem('user_data_0xC')).not.toBeNull();
+    expect(localStorage.getItem('logged_email_0xC')).toBe('bob@x.co');
+    expect(getJWTFromCookies('0xC')).toBe(JWT);
+    expect(localStorage.getItem('turnkey_session_sub-b')).not.toBeNull();
+    expect(getRememberedAccounts(null).map((a) => a.email)).toEqual(['bob@x.co']);
+  });
+
+  it('forgets the session of an account known only from an app’s stored user', () => {
+    localStorage.setItem(`logged_email_${CLIENT}`, 'alice@x.co');
+    localStorage.setItem(`user_data_${CLIENT}`, JSON.stringify(A));
+    setWalletSession('sub-a', PASSKEY);
+    localStorage.setItem('turnkey_session', JSON.stringify(PASSKEY));
+    forgetAccount('alice@x.co');
+    expect(localStorage.getItem('turnkey_session_sub-a')).toBeNull();
+    expect(localStorage.getItem('turnkey_session')).toBeNull();
+    expect(localStorage.getItem(`user_data_${CLIENT}`)).toBeNull();
+  });
+
+  it('forgets the signed-in account’s session even when the list is corrupt', () => {
+    localStorage.setItem('dimo_accounts', '{not json');
+    localStorage.setItem(`user_data_${CLIENT}`, JSON.stringify(A));
+    setWalletSession('sub-a', PASSKEY);
+    forgetAccount('alice@x.co');
     expect(localStorage.getItem('turnkey_session_sub-a')).toBeNull();
   });
 
@@ -96,48 +184,6 @@ describe('accountStore', () => {
     },
   );
 
-  it('forgets the session of an account known only from the app’s logged email', () => {
-    localStorage.setItem(`logged_email_${CLIENT}`, 'alice@x.co');
-    localStorage.setItem(`user_data_${CLIENT}`, JSON.stringify(A));
-    setWalletSession('sub-a', { sessionType: 'passkey', expiresAt: 9 });
-    localStorage.setItem('turnkey_session', JSON.stringify({ sessionType: 'passkey' }));
-    forgetAccount('alice@x.co', CLIENT);
-    expect(localStorage.getItem('turnkey_session_sub-a')).toBeNull();
-    expect(localStorage.getItem('turnkey_session')).toBeNull();
-    expect(localStorage.getItem(`user_data_${CLIENT}`)).not.toBeNull();
-  });
-
-  it('forgets the signed-in account’s session even when the list is corrupt', () => {
-    localStorage.setItem('dimo_accounts', '{not json');
-    localStorage.setItem(`user_data_${CLIENT}`, JSON.stringify(A));
-    setWalletSession('sub-a', { sessionType: 'passkey', expiresAt: 9 });
-    forgetAccount('alice@x.co', CLIENT);
-    expect(localStorage.getItem('turnkey_session_sub-a')).toBeNull();
-  });
-
-  it('never adopts a legacy api_key session, and removes it', () => {
-    localStorage.setItem(
-      'turnkey_session',
-      JSON.stringify({
-        sessionType: 'api_key',
-        embeddedKey: 'k',
-        credentialBundle: 'b',
-        expiresAt: 9,
-      }),
-    );
-    localStorage.setItem(`user_data_${CLIENT}`, JSON.stringify(A));
-    expect(getWalletSession('sub-a', CLIENT)).toBeNull();
-    expect(localStorage.getItem('turnkey_session')).toBeNull();
-    expect(localStorage.getItem('turnkey_session_sub-a')).toBeNull();
-  });
-
-  it('removes a malformed legacy session and returns null', () => {
-    localStorage.setItem('turnkey_session', '[1]');
-    localStorage.setItem(`user_data_${CLIENT}`, JSON.stringify(A));
-    expect(getWalletSession('sub-a', CLIENT)).toBeNull();
-    expect(localStorage.getItem('turnkey_session')).toBeNull();
-  });
-
   it('lowercases emails read from storage', () => {
     localStorage.setItem(
       'dimo_accounts',
@@ -146,6 +192,46 @@ describe('accountStore', () => {
     expect(getRememberedAccounts(null).map((a) => a.email)).toEqual(['bob@x.co']);
   });
 
+  it('reads at most five accounts from an oversized list', () => {
+    localStorage.setItem(
+      'dimo_accounts',
+      JSON.stringify(
+        Array.from({ length: 8 }, (_, i) => ({ email: `u${i}@x.co`, lastUsedAt: 9 - i })),
+      ),
+    );
+    expect(getRememberedAccounts(null).map((a) => a.email)).toEqual([
+      'u0@x.co',
+      'u1@x.co',
+      'u2@x.co',
+      'u3@x.co',
+      'u4@x.co',
+    ]);
+  });
+
+  it('reads an email stored twice in different cases as one account, the most recent', () => {
+    localStorage.setItem(
+      'dimo_accounts',
+      JSON.stringify([
+        { email: 'Bob@x.co', subOrganizationId: 'sub-new', lastUsedAt: 2 },
+        { email: 'bob@x.co', subOrganizationId: 'sub-old', lastUsedAt: 1 },
+      ]),
+    );
+    expect(getRememberedAccounts(null)).toEqual([
+      { email: 'bob@x.co', subOrganizationId: 'sub-new', lastUsedAt: 2 },
+    ]);
+  });
+
+  it.each([{ email: '' }, { email: 'not-an-email' }])(
+    'skips a stored account with no usable email (%o)',
+    (entry) => {
+      localStorage.setItem(
+        'dimo_accounts',
+        JSON.stringify([{ ...entry, lastUsedAt: 2 }, { email: 'bob@x.co', lastUsedAt: 1 }]),
+      );
+      expect(getRememberedAccounts(null).map((a) => a.email)).toEqual(['bob@x.co']);
+    },
+  );
+
   it('never throws when storage is blocked', () => {
     const boom = () => {
       throw new Error('blocked');
@@ -153,17 +239,56 @@ describe('accountStore', () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(boom);
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(boom);
     vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(boom);
+    vi.spyOn(Storage.prototype, 'key').mockImplementation(boom);
     try {
       expect(getRememberedAccounts(CLIENT)).toEqual([]);
       expect(() => rememberAccount(A, 1)).not.toThrow();
-      expect(() => forgetAccount('alice@x.co', CLIENT)).not.toThrow();
-      expect(getWalletSession('sub-a', CLIENT)).toBeNull();
-      expect(() =>
-        setWalletSession('sub-a', { sessionType: 'passkey', expiresAt: 9 }),
-      ).not.toThrow();
+      expect(() => forgetAccount('alice@x.co')).not.toThrow();
+      expect(getWalletSession('sub-a')).toBeNull();
+      expect(() => setWalletSession('sub-a', PASSKEY)).not.toThrow();
       expect(() => clearWalletSession('sub-a')).not.toThrow();
+      expect(() => endWalletSession('sub-a')).not.toThrow();
     } finally {
       vi.restoreAllMocks();
     }
+  });
+});
+
+describe('wallet sessions nothing can use any more', () => {
+  it('are dropped for an account no longer listed when another is remembered', () => {
+    setWalletSession('sub-gone', PASSKEY);
+    rememberAccount(A, 1);
+    expect(localStorage.getItem('turnkey_session_sub-gone')).toBeNull();
+  });
+
+  it('are dropped for an account trimmed off the list', () => {
+    for (let i = 0; i < 6; i++) {
+      setWalletSession(`s${i}`, PASSKEY);
+      rememberAccount({ ...A, email: `u${i}@x.co`, subOrganizationId: `s${i}` }, i);
+    }
+    expect(localStorage.getItem('turnkey_session_s0')).toBeNull();
+    expect(localStorage.getItem('turnkey_session_s1')).not.toBeNull();
+    expect(localStorage.getItem('turnkey_session_s5')).not.toBeNull();
+  });
+
+  it('drop an expired email-code key, keeping a live one and passkey markers', () => {
+    rememberAccount(A, 1);
+    rememberAccount(B, 2);
+    setWalletSession('sub-a', apiKey(Date.now() - 1));
+    setWalletSession('sub-b', { sessionType: 'passkey', expiresAt: Date.now() - 1 });
+    setWalletSession('sub-c', apiKey(Date.now() + 60_000));
+    rememberAccount(C, 3);
+    expect(localStorage.getItem('turnkey_session_sub-a')).toBeNull();
+    expect(localStorage.getItem('turnkey_session_sub-b')).not.toBeNull();
+    expect(localStorage.getItem('turnkey_session_sub-c')).not.toBeNull();
+  });
+
+  it('are dropped when an account is forgotten', () => {
+    rememberAccount(B, 1);
+    setWalletSession('sub-b', PASSKEY);
+    setWalletSession('sub-gone', PASSKEY);
+    forgetAccount('alice@x.co');
+    expect(localStorage.getItem('turnkey_session_sub-gone')).toBeNull();
+    expect(localStorage.getItem('turnkey_session_sub-b')).not.toBeNull();
   });
 });

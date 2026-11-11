@@ -7,11 +7,11 @@ import {
   setLoggedEmail,
   storeJWTInCookies,
   storeUserInLocalStorage,
-  TurnkeySessionKey,
 } from '../services/storageService';
 import { UserObject } from '../models/user';
 import {
-  clearWalletSession,
+  endWalletSession,
+  getLastSignedInSubOrganizationId,
   rememberAccount,
   setWalletSession,
 } from '../services/accountStore';
@@ -93,13 +93,7 @@ export function logout(
 ) {
   // An explicit logout also ends the wallet session, so on a shared device the
   // next person cannot resume this account silently. The account stays remembered.
-  try {
-    const subOrganizationId = getUserFromLocalStorage(clientId)?.subOrganizationId;
-    if (subOrganizationId) clearWalletSession(subOrganizationId);
-    localStorage.removeItem(TurnkeySessionKey);
-  } catch {
-    // Storage blocked: still sign the app out below.
-  }
+  endWalletSession(getLastSignedInSubOrganizationId(clientId));
   clearSessionData(clientId);
   sendMessageToReferrer({ eventType: 'logout' });
 
