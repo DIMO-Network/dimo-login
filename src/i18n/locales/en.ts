@@ -158,6 +158,8 @@ const en = {
     'This browser is blocking site storage, which this step needs. Allow it and try again.',
   'signin.error.no_email':
     'That account didn’t share an email address with DIMO. Try another way to sign in.',
+  'signin.error.email_unverified':
+    'That account’s email isn’t verified. Verify it with the provider, or sign in another way.',
 
   // Passkeys and email codes
   'passkey.title': 'Confirm it’s you',

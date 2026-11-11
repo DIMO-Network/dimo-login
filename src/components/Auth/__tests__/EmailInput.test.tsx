@@ -97,7 +97,7 @@ it('signs in with the email as typed on a Japanese keyboard', async () => {
   });
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
-  await waitFor(() => expect(mockGo).toHaveBeenCalledWith('jun@example.com'));
+  await waitFor(() => expect(mockGo).toHaveBeenCalledWith('jun@example.com', undefined));
 });
 
 it('explains an invalid email next to the field', () => {
@@ -129,7 +129,7 @@ it('welcomes back an account used here before, keeping its email answer', async 
 
   expect(screen.getByRole('heading', { name: 'Welcome back' })).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Continue as jun@example.com' }));
-  await waitFor(() => expect(mockGo).toHaveBeenCalledWith('jun@example.com'));
+  await waitFor(() => expect(mockGo).toHaveBeenCalledWith('jun@example.com', undefined));
   // Signing in doesn't touch the answer given before.
   expect(getEmailChoice(mockClientId, 'jun@example.com')).toBe(true);
 
@@ -163,8 +163,19 @@ it('passes the Google token on as proof of the email', async () => {
   expect(mockGo).toHaveBeenCalledWith('a@b.co', token);
 });
 
-it('refuses a provider token whose email is not verified', async () => {
-  await exchangeSucceedsWith(jwtWith({ email: 'a@b.co', email_verified: false }));
+it.each([
+  ['says it is not', { email: 'a@b.co', email_verified: false }],
+  ['doesn’t say it is', { email: 'a@b.co' }],
+])('refuses a provider token whose email %s verified', async (_, payload) => {
+  await exchangeSucceedsWith(jwtWith(payload));
+  expect(mockGo).not.toHaveBeenCalled();
+  expect(mockUi.setError).toHaveBeenCalledWith(
+    expect.objectContaining({ key: 'signin.error.email_unverified' }),
+  );
+});
+
+it('asks for another way to sign in when the provider shared no email', async () => {
+  await exchangeSucceedsWith(jwtWith({ email_verified: true }));
   expect(mockGo).not.toHaveBeenCalled();
   expect(mockUi.setError).toHaveBeenCalledWith(
     expect.objectContaining({ key: 'signin.error.no_email' }),

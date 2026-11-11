@@ -162,6 +162,8 @@ const es: PluralLocaleResources = {
     'Este navegador está bloqueando el almacenamiento del sitio, que este paso necesita. Permítelo e inténtalo de nuevo.',
   'signin.error.no_email':
     'Esa cuenta no compartió una dirección de correo electrónico con DIMO. Prueba otra forma de iniciar sesión.',
+  'signin.error.email_unverified':
+    'El correo de esa cuenta no está verificado. Verifícalo con el proveedor o inicia sesión de otra forma.',
 
   // Passkeys and email codes
   'passkey.title': 'Confirma que eres tú',

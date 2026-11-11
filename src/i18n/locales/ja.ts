@@ -143,6 +143,8 @@ const ja: LocaleResources = {
     'このブラウザはサイトデータの保存をブロックしています。この手順には保存が必要です。許可してから、もう一度お試しください。',
   'signin.error.no_email':
     'このアカウントはDIMOにメールアドレスを共有していません。別の方法でサインインしてください。',
+  'signin.error.email_unverified':
+    'このアカウントのメールアドレスは確認されていません。GoogleまたはAppleで確認するか、別の方法でサインインしてください。',
 
   'passkey.title': '本人確認',
   'passkey.body':

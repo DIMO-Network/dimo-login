@@ -58,9 +58,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       setError(null);
       setLoadingState(true, message('signin.signing_in'), false);
       onSubmit(email);
-      await (proofToken
-        ? goToLoginOrSignUp(email, proofToken)
-        : goToLoginOrSignUp(email));
+      await goToLoginOrSignUp(email, proofToken);
     } catch (err) {
       captureException(err);
       setError(message('signin.error.details'));
@@ -95,9 +93,13 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
 
   const handleToken = async (token: string) => {
     const decodedJwt = decodeJwt(token);
-    // The token is the proof of the email, so an unverified one is no proof.
-    if (!decodedJwt?.email || decodedJwt.email_verified === false) {
+    if (!decodedJwt?.email) {
       return setError(message('signin.error.no_email'));
+    }
+    // The token is the proof of the email, so only a verified one will do
+    // (the server asks for email_verified: true too).
+    if (decodedJwt.email_verified !== true) {
+      return setError(message('signin.error.email_unverified'));
     }
     setEmail(decodedJwt.email);
     await handleSuccessfulEmailSubmission(decodedJwt.email, token);
