@@ -204,7 +204,11 @@ describe('AuthContext per-account wallet sessions', () => {
       ),
     );
     await expect(
-      auth.resumeAccount({ email: 'alice@x.co', subOrganizationId: 'sub-a', lastUsedAt: 1 }),
+      auth.resumeAccount({
+        email: 'alice@x.co',
+        subOrganizationId: 'sub-a',
+        lastUsedAt: 1,
+      }),
     ).resolves.toBe(false);
     expect(localStorage.getItem('turnkey_session_sub-a')).toBeNull();
   });

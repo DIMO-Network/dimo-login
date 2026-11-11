@@ -73,11 +73,7 @@ export const AppShell = ({
           {!languageLoading && <LanguageSwitcher />}
         </header>
         {/* Outside the scroller, so a short screen doesn't start to scroll. */}
-        {!loading && (
-          <div className="flex shrink-0 flex-col px-5">
-            <AccountBar />
-          </div>
-        )}
+        {!loading && <AccountBar />}
         <main ref={mainRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5">
           {children}
         </main>

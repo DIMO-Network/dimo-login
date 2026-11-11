@@ -55,9 +55,9 @@ const removeKey = (key: string): void => quietly(() => localStorage.removeItem(k
 /** Every key in localStorage, or none when it can't be read. */
 const storageKeys = (): string[] => {
   try {
-    return Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i)).filter(
-      (key): key is string => key !== null,
-    );
+    return Array.from({ length: localStorage.length }, (_, i) =>
+      localStorage.key(i),
+    ).filter((key): key is string => key !== null);
   } catch {
     return [];
   }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { captureException } from '@sentry/react';
 
@@ -28,6 +28,12 @@ interface EmailInputProps {
   onSubmit: (email: string) => void;
 }
 
+/**
+ * The chooser ignores clicks on its accounts this long after it appears, so a
+ * popup opened under a rapid click can't take that click as a choice.
+ */
+export const CHOOSER_ARM_MS = 500;
+
 const OrDivider = ({ label }: { label: string }) => (
   <div className="flex items-center gap-3 text-label font-normal text-muted">
     <span className="h-px flex-1 bg-outline" aria-hidden="true" />
@@ -38,10 +44,10 @@ const OrDivider = ({ label }: { label: string }) => (
 
 /**
  * Sign in: an email, or Google / Apple. Accounts used on this device before
- * are offered first, to choose from (or forget, or step past). Nothing is shared with the app here: the email is
- * asked for after sign-in, with the rest of the app's request (see
- * utils/emailRequest.ts). Cancel goes back to the app signed out: it hears
- * an error and gets no token.
+ * are offered first, to choose from (or forget, or step past). Nothing is
+ * shared with the app here: the email is asked for after sign-in, with the
+ * rest of the app's request (see utils/emailRequest.ts). Cancel goes back to
+ * the app signed out: it hears an error and gets no token.
  */
 export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   const t = useT();
@@ -56,8 +62,16 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     getRememberedAccounts(clientId),
   );
   const [otherAccount, setOtherAccount] = useState(false);
+  const armed = useRef(false);
   const constructOAuthUrl = useConstructOAuthUrl();
   const goToLoginOrSignUp = useGoToLoginOrSignUp();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      armed.current = true;
+    }, CHOOSER_ARM_MS);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleSuccessfulEmailSubmission = async (email: string, proofToken?: string) => {
     try {
@@ -86,6 +100,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   // Only a click on the account signs it in silently. When its session can't
   // be resumed the usual passkey / code step takes over.
   const handleChooseAccount = async (account: RememberedAccount) => {
+    if (!armed.current) return;
     // The screens after this one name this account, even if it resumes now and
     // its key runs out later.
     onSubmit(account.email);
@@ -102,6 +117,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   };
 
   const handleRemoveAccount = (account: RememberedAccount) => {
+    if (!armed.current) return;
     forgetAccount(account.email);
     setAccounts(getRememberedAccounts(clientId));
   };
@@ -177,13 +193,17 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
                     {t('signin.continue_as', { email: account.email })}
                   </span>
                 </Button>
+                {/* Named by hidden text, not aria-label: Sentry's click
+                    breadcrumbs record aria-label, and this one holds the email. */}
                 <Button
                   variant="ghost"
                   size="icon"
-                  aria-label={t('signin.remove_account', { email: account.email })}
                   onClick={() => handleRemoveAccount(account)}
                 >
                   <XMarkIcon className="size-5" aria-hidden="true" />
+                  <span className="sr-only">
+                    {t('signin.remove_account', { email: account.email })}
+                  </span>
                 </Button>
               </div>
             ))}

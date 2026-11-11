@@ -114,7 +114,13 @@ vi.mock('../../services/authService', () => ({
     success: true,
     data: { challenge: `challenge-for:${address}`, state: address },
   }),
-  submitWeb3Challenge: async ({ state, signature }: { state: string; signature: string }) =>
+  submitWeb3Challenge: async ({
+    state,
+    signature,
+  }: {
+    state: string;
+    signature: string;
+  }) =>
     signature === `challenge-for:${state}|signed-by:${state}`
       ? { success: true, data: { access_token: wallet.tokenFor(state) } }
       : { success: false, error: 'signed by another wallet' },

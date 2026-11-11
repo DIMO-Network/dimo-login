@@ -24,7 +24,12 @@ const C = { ...A, email: 'carol@x.co', subOrganizationId: 'sub-c' };
 
 const PASSKEY = { sessionType: 'passkey', expiresAt: 9 } as const;
 const apiKey = (expiresAt: number) =>
-  ({ sessionType: 'api_key', embeddedKey: 'k', credentialBundle: 'b', expiresAt }) as const;
+  ({
+    sessionType: 'api_key',
+    embeddedKey: 'k',
+    credentialBundle: 'b',
+    expiresAt,
+  }) as const;
 
 // Unpadded, as in a real JWT (the cookie reader splits on '=').
 const b64 = (value: object) => btoa(JSON.stringify(value)).replace(/=+$/, '');
@@ -226,7 +231,10 @@ describe('accountStore', () => {
     (entry) => {
       localStorage.setItem(
         'dimo_accounts',
-        JSON.stringify([{ ...entry, lastUsedAt: 2 }, { email: 'bob@x.co', lastUsedAt: 1 }]),
+        JSON.stringify([
+          { ...entry, lastUsedAt: 2 },
+          { email: 'bob@x.co', lastUsedAt: 1 },
+        ]),
       );
       expect(getRememberedAccounts(null).map((a) => a.email)).toEqual(['bob@x.co']);
     },

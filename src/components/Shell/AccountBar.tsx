@@ -31,7 +31,7 @@ export const AccountBar: React.FC = () => {
   if (!jwt || !user?.email || !ACCOUNT_BAR_STATES.has(uiState)) return null;
 
   return (
-    <div className="flex shrink-0 items-center justify-between gap-2 pb-2">
+    <div className="flex shrink-0 items-center justify-between gap-2 px-5 pb-2">
       <span className="min-w-0 truncate text-label text-muted">
         {t('account.signed_in_as', { email: user.email })}
       </span>

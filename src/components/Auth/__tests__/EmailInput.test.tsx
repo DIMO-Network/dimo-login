@@ -52,7 +52,7 @@ vi.mock('../../../utils/errorUtils', () => ({
   sendErrorToParent: (...args: unknown[]) => mockSendError(...args),
 }));
 
-import { EmailInput } from '../EmailInput';
+import { CHOOSER_ARM_MS, EmailInput } from '../EmailInput';
 import { setForceEmail } from '../../../stores/AuthStateStore';
 import { getEmailChoice } from '../../../services/storageService';
 
@@ -71,12 +71,16 @@ const exchangeSucceedsWith = async (token: string) => {
 };
 
 beforeEach(() => {
+  // Testing Library's waitFor only drives Jest's fake timers, so these also
+  // advance with real time.
+  vi.useFakeTimers({ shouldAdvanceTime: true });
   vi.clearAllMocks();
   localStorage.clear();
   setForceEmail(false);
   mockGo.mockResolvedValue(undefined);
   mockOAuthUrl = 'https://accounts.example/oauth';
 });
+afterEach(() => vi.useRealTimers());
 
 it("doesn't leave for Google when the return couldn't be checked", () => {
   // Storage blocked: no flow reference, so the return would look forged.
@@ -138,6 +142,14 @@ const seed = (...emails: string[]) =>
     ),
   );
 
+/** The chooser, once it takes clicks (it ignores them for CHOOSER_ARM_MS). */
+const renderChooser = () => {
+  render(<EmailInput onSubmit={onSubmit} />);
+  act(() => {
+    vi.advanceTimersByTime(CHOOSER_ARM_MS);
+  });
+};
+
 it('offers every account used on this device', () => {
   seed('alice@x.co', 'bob@x.co');
   render(<EmailInput onSubmit={onSubmit} />);
@@ -156,7 +168,7 @@ it('offers the account known only from the legacy record, keeping its email answ
   localStorage.setItem(`logged_email_${mockClientId}`, 'jun@example.com');
   localStorage.setItem(`email_granted_${mockClientId}_jun@example.com`, 'true');
   mockResume.mockResolvedValue(false);
-  render(<EmailInput onSubmit={onSubmit} />);
+  renderChooser();
 
   fireEvent.click(screen.getByRole('button', { name: 'Continue as jun@example.com' }));
   await waitFor(() => expect(mockGo).toHaveBeenCalledWith('jun@example.com', undefined));
@@ -167,7 +179,7 @@ it('offers the account known only from the legacy record, keeping its email answ
 it('signs a chosen account in silently when its session is live', async () => {
   seed('alice@x.co');
   mockResume.mockResolvedValue(true);
-  render(<EmailInput onSubmit={onSubmit} />);
+  renderChooser();
   fireEvent.click(screen.getByRole('button', { name: 'Continue as alice@x.co' }));
   await waitFor(() =>
     expect(mockResume).toHaveBeenCalledWith(
@@ -182,7 +194,7 @@ it('remembers the chosen account’s email for the screens after, even when it r
   // must not name an email typed before.
   seed('alice@x.co');
   mockResume.mockResolvedValue(true);
-  render(<EmailInput onSubmit={onSubmit} />);
+  renderChooser();
   fireEvent.click(screen.getByRole('button', { name: 'Continue as alice@x.co' }));
   await waitFor(() => expect(mockResume).toHaveBeenCalled());
   expect(onSubmit).toHaveBeenCalledWith('alice@x.co');
@@ -191,7 +203,7 @@ it('remembers the chosen account’s email for the screens after, even when it r
 it('goes to the passkey or sign-up step when it can’t resume', async () => {
   seed('alice@x.co');
   mockResume.mockResolvedValue(false);
-  render(<EmailInput onSubmit={onSubmit} />);
+  renderChooser();
   fireEvent.click(screen.getByRole('button', { name: 'Continue as alice@x.co' }));
   await waitFor(() => expect(mockGo).toHaveBeenCalledWith('alice@x.co', undefined));
   expect(onSubmit).toHaveBeenCalledWith('alice@x.co');
@@ -207,7 +219,7 @@ it('doesn’t sign anyone in until an account is clicked', () => {
 it('shows an error when resuming throws', async () => {
   seed('alice@x.co');
   mockResume.mockRejectedValue(new Error('boom'));
-  render(<EmailInput onSubmit={onSubmit} />);
+  renderChooser();
   fireEvent.click(screen.getByRole('button', { name: 'Continue as alice@x.co' }));
   await waitFor(() =>
     expect(mockUi.setError).toHaveBeenCalledWith(
@@ -234,12 +246,48 @@ it('“Use another account” shows the email field and forgets nothing', () => 
 
 it('removes an account from this device', () => {
   seed('alice@x.co');
-  render(<EmailInput onSubmit={onSubmit} />);
+  renderChooser();
   fireEvent.click(
     screen.getByRole('button', { name: 'Remove alice@x.co from this device' }),
   );
   expect(screen.getByLabelText('Email')).toBeInTheDocument();
   expect(localStorage.getItem('dimo_accounts')).toBe('[]');
+});
+
+it('names the remove button with hidden text, keeping the email out of click breadcrumbs', () => {
+  // Sentry's click breadcrumbs record aria-label, not the text inside.
+  seed('alice@x.co');
+  render(<EmailInput onSubmit={onSubmit} />);
+  const remove = screen.getByRole('button', {
+    name: 'Remove alice@x.co from this device',
+  });
+  expect(remove).not.toHaveAttribute('aria-label');
+});
+
+it('ignores clicks on the accounts for a moment after the chooser appears', async () => {
+  // A popup opened under a rapid click must not take that click as a choice.
+  seed('alice@x.co', 'bob@x.co');
+  mockResume.mockResolvedValue(true);
+  render(<EmailInput onSubmit={onSubmit} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Continue as alice@x.co' }));
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Remove bob@x.co from this device' }),
+  );
+  expect(mockResume).not.toHaveBeenCalled();
+  expect(onSubmit).not.toHaveBeenCalled();
+  expect(
+    screen.getByRole('button', { name: 'Continue as bob@x.co' }),
+  ).toBeInTheDocument();
+
+  act(() => {
+    vi.advanceTimersByTime(CHOOSER_ARM_MS);
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Continue as alice@x.co' }));
+  await waitFor(() =>
+    expect(mockResume).toHaveBeenCalledWith(
+      expect.objectContaining({ email: 'alice@x.co' }),
+    ),
+  );
 });
 
 it('falls back to the email field when the stored accounts are unreadable', () => {
