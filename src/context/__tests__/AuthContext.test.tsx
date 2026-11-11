@@ -1,6 +1,7 @@
 import type { Mock } from 'vitest';
 import React from 'react';
 import { act, render } from '@testing-library/react';
+import { captureException } from '@sentry/react';
 
 import { AuthProvider, useAuthContext } from '../AuthContext';
 import { useDevCredentials } from '../DevCredentialsContext';
@@ -8,6 +9,7 @@ import { useUIManager } from '../UIManagerContext';
 import { signInStepsWithSigner, type SignInSteps } from '../../services/walletLoader';
 import { UiStates } from '../../enums';
 
+vi.mock('@sentry/react', () => ({ captureException: vi.fn() }));
 vi.mock('../DevCredentialsContext', () => ({ useDevCredentials: vi.fn() }));
 vi.mock('../UIManagerContext', () => ({ useUIManager: vi.fn() }));
 vi.mock('../../services/walletLoader', () => ({
@@ -160,6 +162,57 @@ describe('AuthContext per-account wallet sessions', () => {
     await expect(auth.validateSession()).resolves.toBeNull();
     expect(setUiState).toHaveBeenCalledWith(UiStates.OTP_INPUT);
     expect(localStorage.getItem('turnkey_session_sub-a')).toBeNull();
+    expect(captureException).toHaveBeenCalledWith(new Error('api key not found'));
+  });
+
+  it('validateSession with the wallet session gone sends the user to sign in without loading the wallet', async () => {
+    renderProvider();
+    signInAs('sub-a');
+    await expect(auth.validateSession()).resolves.toBeNull();
+    expect(setUiState).toHaveBeenCalledWith(UiStates.EMAIL_INPUT);
+    expect(signInStepsWithSigner).not.toHaveBeenCalled();
+  });
+
+  it('resumeAccount signs in as the clicked account, not the one signed in before', async () => {
+    localStorage.setItem('turnkey_session_sub-a', apiKeySession());
+    renderProvider();
+    signInAs('sub-b');
+    signer.resolve(stepsWith());
+    await act(async () => {
+      await auth.resumeAccount({
+        email: 'alice@x.co',
+        subOrganizationId: 'sub-a',
+        lastUsedAt: 1,
+      });
+    });
+    expect(auth.user.subOrganizationId).toBe('sub-a');
+    expect(JSON.parse(localStorage.getItem('user_data_0xc') ?? '{}').email).toBe(
+      'alice@x.co',
+    );
+    expect(JSON.parse(localStorage.getItem('dimo_accounts') ?? '[]')[0].email).toBe(
+      'alice@x.co',
+    );
+  });
+
+  it('resumeAccount keeps the wallet session when a step after sign-in throws', async () => {
+    localStorage.setItem('turnkey_session_sub-a', apiKeySession());
+    renderProvider();
+    signer.resolve(stepsWith());
+    setUiState.mockImplementation(() => {
+      throw new Error('ui broke');
+    });
+    // The entry state is EMAIL_INPUT with no consent screen needed, so sending to the app
+    // ends in setUiState(SUCCESS).
+    await expect(
+      act(() =>
+        auth.resumeAccount({
+          email: 'alice@x.co',
+          subOrganizationId: 'sub-a',
+          lastUsedAt: 1,
+        }),
+      ),
+    ).rejects.toThrow();
+    expect(localStorage.getItem('turnkey_session_sub-a')).not.toBeNull();
   });
 
   it('a cancelled passkey prompt still propagates', async () => {
@@ -232,6 +285,7 @@ describe('AuthContext per-account wallet sessions', () => {
       }),
     ).resolves.toBe(false);
     expect(localStorage.getItem('turnkey_session_sub-a')).toBeNull();
+    expect(captureException).toHaveBeenCalledWith(new Error('revoked'));
   });
 
   it.each([

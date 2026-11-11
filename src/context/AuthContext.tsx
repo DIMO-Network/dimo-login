@@ -16,6 +16,7 @@
 
  */
 
+import { captureException } from '@sentry/react';
 import React, { createContext, ReactNode, useContext, useState } from 'react';
 
 import { createSession, handlePostAuthUIState, TStamper } from '../utils/authUtils';
@@ -101,24 +102,34 @@ export const AuthProvider = ({
     clearDraft();
   };
 
-  const loginToDIMO = async ({
+  /** Proves the stamper's key works and mints this app's token. */
+  const authenticate = async ({
     account = user,
     steps,
     stamper,
-    turnkeySessionData,
-  }: FinalizeAuthenticationArgs) => {
+  }: Pick<FinalizeAuthenticationArgs, 'account' | 'steps' | 'stamper'>) => {
     if (!account.subOrganizationId) {
       throw new Error('User has not been initialized yet');
     }
+    return steps.authenticateUser(
+      clientId,
+      redirectUri,
+      account.subOrganizationId,
+      stamper,
+    );
+  };
 
-    const { accessToken, walletAddress, smartContractAddress, turnkeySessionExpiration } =
-      await steps.authenticateUser(
-        clientId,
-        redirectUri,
-        account.subOrganizationId,
-        stamper,
-      );
-
+  /** Signs this app in as the account once authenticate has succeeded. */
+  const completeLogin = (
+    account: UserObject,
+    {
+      accessToken,
+      walletAddress,
+      smartContractAddress,
+      turnkeySessionExpiration,
+    }: Awaited<ReturnType<typeof authenticate>>,
+    turnkeySessionData: TurnkeySessionData,
+  ) => {
     const updatedUserObject: UserObject = {
       ...account,
       walletAddress,
@@ -144,6 +155,16 @@ export const AuthProvider = ({
       user: updatedUserObject,
       jwt: accessToken,
     });
+  };
+
+  const loginToDIMO = async ({
+    account = user,
+    steps,
+    stamper,
+    turnkeySessionData,
+  }: FinalizeAuthenticationArgs) => {
+    const result = await authenticate({ account, steps, stamper });
+    completeLogin(account, result, turnkeySessionData);
   };
 
   const completePasskeyLogin = async () => {
@@ -217,7 +238,9 @@ export const AuthProvider = ({
       await steps
         .getKernelSigner()
         .openSessionWithApiStamper(user.subOrganizationId, apiKeyStamper);
-    } catch {
+    } catch (error) {
+      // Any failure of the key costs one more code; report it so a pattern shows.
+      captureException(error);
       // The key was revoked or expired elsewhere: a new code is the way back in.
       clearWalletSession(user.subOrganizationId);
       setUiState(UiStates.OTP_INPUT);
@@ -241,27 +264,28 @@ export const AuthProvider = ({
       smartContractAddress: account.smartContractAddress ?? null,
       emailVerified: true,
     };
+    const steps = await signInStepsWithSigner();
+    const turnkeySessionData: TurnkeySessionData = {
+      sessionType: 'api_key',
+      credentialBundle: session.credentialBundle,
+      embeddedKey: session.embeddedKey,
+    };
+    let result: Awaited<ReturnType<typeof authenticate>>;
     try {
-      const steps = await signInStepsWithSigner();
       const stamper = steps.getApiKeyStamper({
         credentialBundle: session.credentialBundle,
         embeddedKey: session.embeddedKey,
       });
-      await loginToDIMO({
-        account: resumed,
-        steps,
-        stamper,
-        turnkeySessionData: {
-          sessionType: 'api_key',
-          credentialBundle: session.credentialBundle,
-          embeddedKey: session.embeddedKey,
-        },
-      });
-      return true;
-    } catch {
+      result = await authenticate({ account: resumed, steps, stamper });
+    } catch (error) {
+      // Only the key failing means "no silent sign-in"; never report the key itself.
+      captureException(error);
       clearWalletSession(subOrganizationId);
       return false;
     }
+    // Past this point the person is signed in: a failure here is not a failed resume.
+    completeLogin(resumed, result, turnkeySessionData);
+    return true;
   };
 
   const switchAccount = () => {

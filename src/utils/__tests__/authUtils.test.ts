@@ -1,5 +1,6 @@
 import { logout } from '../authUtils';
 import { UiStates } from '../../enums';
+import * as messageHandler from '../messageHandler';
 
 vi.mock('../messageHandler', () => ({
   backToThirdParty: vi.fn(),
@@ -42,6 +43,16 @@ describe('logout', () => {
     // Another account's session is not this logout's business.
     expect(localStorage.getItem('turnkey_session_sub-b')).not.toBeNull();
     expect(JSON.parse(localStorage.getItem('dimo_accounts') ?? '[]')).toHaveLength(1);
+  });
+
+  it('still signs the app out when storage reads throw', () => {
+    const spy = vi.spyOn(Storage.prototype, 'removeItem').mockImplementationOnce(() => {
+      throw new Error('blocked');
+    });
+    const { sendMessageToReferrer } = vi.mocked(messageHandler);
+    expect(() => logout(CLIENT, 'https://app.example/cb', '', vi.fn())).not.toThrow();
+    expect(sendMessageToReferrer).toHaveBeenCalledWith({ eventType: 'logout' });
+    spy.mockRestore();
   });
 
   it('still signs out when nobody is signed in', () => {

@@ -93,9 +93,13 @@ export function logout(
 ) {
   // An explicit logout also ends the wallet session, so on a shared device the
   // next person cannot resume this account silently. The account stays remembered.
-  const subOrganizationId = getUserFromLocalStorage(clientId)?.subOrganizationId;
-  if (subOrganizationId) clearWalletSession(subOrganizationId);
-  localStorage.removeItem(TurnkeySessionKey);
+  try {
+    const subOrganizationId = getUserFromLocalStorage(clientId)?.subOrganizationId;
+    if (subOrganizationId) clearWalletSession(subOrganizationId);
+    localStorage.removeItem(TurnkeySessionKey);
+  } catch {
+    // Storage blocked: still sign the app out below.
+  }
   clearSessionData(clientId);
   sendMessageToReferrer({ eventType: 'logout' });
 
