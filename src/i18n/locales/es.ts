@@ -143,8 +143,9 @@ const es: PluralLocaleResources = {
 
   // Signing in
   'signin.subtitle': 'para continuar en {{appName}}',
-  'signin.returning_title': 'Hola de nuevo',
-  'signin.returning_desc': 'Ya iniciaste sesión en este dispositivo',
+  'signin.choose_title': 'Elige una cuenta',
+  'signin.remove_account': 'Quitar {{email}} de este dispositivo',
+  'signin.back_to_accounts': 'Volver a las cuentas',
   'signin.email_label': 'Correo electrónico',
   'signin.email_placeholder': 'tu@example.com',
   'signin.continue': 'Continuar',

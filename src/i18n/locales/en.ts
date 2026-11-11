@@ -141,8 +141,9 @@ const en = {
 
   // Signing in
   'signin.subtitle': 'to continue to {{appName}}',
-  'signin.returning_title': 'Welcome back',
-  'signin.returning_desc': 'Signed in on this device before',
+  'signin.choose_title': 'Choose an account',
+  'signin.remove_account': 'Remove {{email}} from this device',
+  'signin.back_to_accounts': 'Back to accounts',
   'signin.email_label': 'Email',
   'signin.email_placeholder': 'you@example.com',
   'signin.continue': 'Continue',

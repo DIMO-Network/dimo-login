@@ -3,10 +3,8 @@ import { FingerPrintIcon } from '@heroicons/react/24/outline';
 
 import { LegalNotice } from '../Shared/LegalNotice';
 import ErrorMessage from '../Shared/ErrorMessage';
-import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { UiStates } from '../../enums';
 import { useUIManager } from '../../context/UIManagerContext';
-import { clearLoggedEmail } from '../../services/storageService';
 import { useAuthContext } from '../../context/AuthContext';
 import { useT } from '../../i18n';
 import { ActionBar, Button, DoneHeader, Notice, Screen } from '../ui';
@@ -17,7 +15,6 @@ import { ActionBar, Button, DoneHeader, Notice, Screen } from '../ui';
  */
 export const PasskeyLoginFail = ({ email }: { email: string }) => {
   const t = useT();
-  const { clientId } = useDevCredentials();
   const { setUiState, setError, error } = useUIManager();
   const { resetUser, user } = useAuthContext();
 
@@ -39,7 +36,6 @@ export const PasskeyLoginFail = ({ email }: { email: string }) => {
         fullWidth
         onClick={() => {
           resetUser();
-          clearLoggedEmail(clientId);
           go(UiStates.EMAIL_INPUT);
         }}
       >

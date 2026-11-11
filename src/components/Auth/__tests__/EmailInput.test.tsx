@@ -25,6 +25,10 @@ vi.mock('../../../context/DevCredentialsContext', () => ({
     redirectUri: 'https://acme.example/callback',
   }),
 }));
+const mockResume = vi.fn();
+vi.mock('../../../context/AuthContext', () => ({
+  useAuthContext: () => ({ resumeAccount: mockResume }),
+}));
 const mockUi = {
   error: null,
   setError: vi.fn(),
@@ -122,19 +126,116 @@ it('never asks to share the email at sign-in, even when the app requires it', ()
   }
 });
 
-it('welcomes back an account used here before, keeping its email answer', async () => {
+const seed = (...emails: string[]) =>
+  localStorage.setItem(
+    'dimo_accounts',
+    JSON.stringify(
+      emails.map((email, i) => ({
+        email,
+        subOrganizationId: `sub-${i}`,
+        lastUsedAt: 9 - i,
+      })),
+    ),
+  );
+
+it('offers every account used on this device', () => {
+  seed('alice@x.co', 'bob@x.co');
+  render(<EmailInput onSubmit={onSubmit} />);
+  expect(screen.getByRole('heading', { name: 'Choose an account' })).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'Continue as alice@x.co' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'Continue as bob@x.co' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByLabelText('Email')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Continue with Google' })).toBeNull();
+});
+
+it('offers the account known only from the legacy record, keeping its email answer', async () => {
   localStorage.setItem(`logged_email_${mockClientId}`, 'jun@example.com');
   localStorage.setItem(`email_granted_${mockClientId}_jun@example.com`, 'true');
+  mockResume.mockResolvedValue(false);
   render(<EmailInput onSubmit={onSubmit} />);
 
-  expect(screen.getByRole('heading', { name: 'Welcome back' })).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Continue as jun@example.com' }));
   await waitFor(() => expect(mockGo).toHaveBeenCalledWith('jun@example.com', undefined));
   // Signing in doesn't touch the answer given before.
   expect(getEmailChoice(mockClientId, 'jun@example.com')).toBe(true);
+});
 
+it('signs a chosen account in silently when its session is live', async () => {
+  seed('alice@x.co');
+  mockResume.mockResolvedValue(true);
+  render(<EmailInput onSubmit={onSubmit} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Continue as alice@x.co' }));
+  await waitFor(() =>
+    expect(mockResume).toHaveBeenCalledWith(
+      expect.objectContaining({ email: 'alice@x.co' }),
+    ),
+  );
+  expect(mockGo).not.toHaveBeenCalled();
+  expect(onSubmit).not.toHaveBeenCalled();
+});
+
+it('goes to the passkey or sign-up step when it can’t resume', async () => {
+  seed('alice@x.co');
+  mockResume.mockResolvedValue(false);
+  render(<EmailInput onSubmit={onSubmit} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Continue as alice@x.co' }));
+  await waitFor(() => expect(mockGo).toHaveBeenCalledWith('alice@x.co', undefined));
+  expect(onSubmit).toHaveBeenCalledWith('alice@x.co');
+});
+
+it('doesn’t sign anyone in until an account is clicked', () => {
+  seed('alice@x.co');
+  render(<EmailInput onSubmit={onSubmit} />);
+  expect(mockResume).not.toHaveBeenCalled();
+  expect(mockGo).not.toHaveBeenCalled();
+});
+
+it('shows an error when resuming throws', async () => {
+  seed('alice@x.co');
+  mockResume.mockRejectedValue(new Error('boom'));
+  render(<EmailInput onSubmit={onSubmit} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Continue as alice@x.co' }));
+  await waitFor(() =>
+    expect(mockUi.setError).toHaveBeenCalledWith(
+      expect.objectContaining({ key: 'signin.error.details' }),
+    ),
+  );
+  expect(mockGo).not.toHaveBeenCalled();
+});
+
+it('“Use another account” shows the email field and forgets nothing', () => {
+  seed('alice@x.co');
+  render(<EmailInput onSubmit={onSubmit} />);
   fireEvent.click(screen.getByRole('button', { name: 'Use another account' }));
-  expect(screen.getByLabelText('Email')).toHaveValue('');
+  expect(screen.getByLabelText('Email')).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'Continue with Google' }),
+  ).toBeInTheDocument();
+  expect(JSON.parse(localStorage.getItem('dimo_accounts')!)).toHaveLength(1);
+  fireEvent.click(screen.getByRole('button', { name: 'Back to accounts' }));
+  expect(
+    screen.getByRole('button', { name: 'Continue as alice@x.co' }),
+  ).toBeInTheDocument();
+});
+
+it('removes an account from this device', () => {
+  seed('alice@x.co');
+  render(<EmailInput onSubmit={onSubmit} />);
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Remove alice@x.co from this device' }),
+  );
+  expect(screen.getByLabelText('Email')).toBeInTheDocument();
+  expect(localStorage.getItem('dimo_accounts')).toBe('[]');
+});
+
+it('falls back to the email field when the stored accounts are unreadable', () => {
+  localStorage.setItem('dimo_accounts', '{not json');
+  render(<EmailInput onSubmit={onSubmit} />);
+  expect(screen.getByLabelText('Email')).toBeInTheDocument();
 });
 
 it.each([

@@ -124,8 +124,9 @@ const ja: LocaleResources = {
   'share_end.no_end': '無期限',
 
   'signin.subtitle': '{{appName}}に移動します',
-  'signin.returning_title': 'おかえりなさい',
-  'signin.returning_desc': 'このデバイスでサインインしたことがあります',
+  'signin.choose_title': 'アカウントを選択',
+  'signin.remove_account': '{{email}}をこのデバイスから削除',
+  'signin.back_to_accounts': 'アカウント一覧に戻る',
   'signin.email_label': 'メールアドレス',
   'signin.email_placeholder': 'you@example.com',
   'signin.continue': '続行',

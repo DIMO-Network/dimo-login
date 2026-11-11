@@ -7,17 +7,21 @@ vi.mock('../../../services/accountsService', () => ({
   sendOtp: (...args: unknown[]) => mockSendOtp(...args),
 }));
 const mockComplete = vi.fn();
+const mockResetUser = vi.fn();
+const mockSetUiState = vi.fn();
 vi.mock('../../../context/AuthContext', () => ({
   useAuthContext: () => ({
     user: { email: 'jun@example.com' },
     completeOTPLogin: mockComplete,
+    resetUser: mockResetUser,
   }),
 }));
 vi.mock('../../../context/UIManagerContext', () => ({
-  useUIManager: () => ({ setError: vi.fn() }),
+  useUIManager: () => ({ setError: vi.fn(), setUiState: mockSetUiState }),
 }));
 
 import { OtpInput } from '../OtpInput';
+import { UiStates } from '../../../enums';
 import { hasNewDigit, toDigits } from '../CodeBoxes';
 
 const boxes = () => screen.getAllByRole('textbox') as HTMLInputElement[];
@@ -104,4 +108,11 @@ it('leaves the boxes valid when the code could not be sent', async () => {
   const alert = await screen.findByRole('alert');
   expect(alert).toHaveTextContent('Details: User not found');
   boxes().forEach((box) => expect(box).not.toHaveAttribute('aria-invalid'));
+});
+
+it('lets someone who typed the wrong email leave the code screen', async () => {
+  await renderSent();
+  fireEvent.click(screen.getByRole('button', { name: 'Use another account' }));
+  expect(mockResetUser).toHaveBeenCalled();
+  expect(mockSetUiState).toHaveBeenCalledWith(UiStates.EMAIL_INPUT);
 });

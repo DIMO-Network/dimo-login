@@ -5,6 +5,7 @@ import { EnvelopeIcon } from '@heroicons/react/24/outline';
 import { useUIManager } from '../../context/UIManagerContext';
 import { sendOtp } from '../../services/accountsService';
 import { useAuthContext } from '../../context/AuthContext';
+import { UiStates } from '../../enums';
 import { message, translateText, useT, type Message } from '../../i18n';
 import { ActionBar, Button, DoneHeader, ErrorBox, Notice, Screen } from '../ui';
 import { CODE_LENGTH, CodeBoxes, hasNewDigit } from './CodeBoxes';
@@ -19,11 +20,11 @@ type OtpError = { message: Message; detail?: string; codeRejected?: boolean };
 
 export const OtpInput: React.FC<OtpInputProps> = ({ email: emailProp }) => {
   const t = useT();
-  const { user, completeOTPLogin } = useAuthContext();
+  const { user, completeOTPLogin, resetUser } = useAuthContext();
   // The email typed on the sign-in screen, or the account's when that step was
   // skipped (a returning session, the passkey retry screen).
   const email = emailProp || user?.email || '';
-  const { setError: setScreenError } = useUIManager();
+  const { setError: setScreenError, setUiState } = useUIManager();
   const [digits, setDigits] = useState<string[]>(Array(CODE_LENGTH).fill(''));
   const [otpId, setOtpId] = useState('');
   const [verifying, setVerifying] = useState(false);
@@ -138,6 +139,17 @@ export const OtpInput: React.FC<OtpInputProps> = ({ email: emailProp }) => {
         onClick={() => sendOtpCode(true)}
       >
         {t('otp.resend')}
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="self-start"
+        onClick={() => {
+          resetUser();
+          setUiState(UiStates.EMAIL_INPUT);
+        }}
+      >
+        {t('signin.other_account')}
       </Button>
     </Screen>
   );

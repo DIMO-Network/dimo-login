@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { XMarkIcon } from '@heroicons/react/24/outline';
 import { captureException } from '@sentry/react';
 
 import { ErrorMessage } from '../Shared/ErrorMessage';
@@ -7,7 +8,9 @@ import { LegalNotice } from '../Shared/LegalNotice';
 import SSOButton from '../Shared/SSOButton';
 import { AppleIcon, GoogleIcon } from '../Icons';
 import { Button, Screen, ScreenHeader, TextField } from '../ui';
-import { clearLoggedEmail, getLoggedEmail } from '../../services/storageService';
+import { forgetAccount, getRememberedAccounts } from '../../services/accountStore';
+import type { RememberedAccount } from '../../services/accountStore';
+import { useAuthContext } from '../../context/AuthContext';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { useUIManager } from '../../context/UIManagerContext';
 import { decodeJwt } from '../../utils/jwtUtils';
@@ -34,8 +37,8 @@ const OrDivider = ({ label }: { label: string }) => (
 );
 
 /**
- * Sign in: an email, or Google / Apple. An account used on this device before
- * gets "Continue as …". Nothing is shared with the app here: the email is
+ * Sign in: an email, or Google / Apple. Accounts used on this device before
+ * are offered first, to choose from (or forget, or step past). Nothing is shared with the app here: the email is
  * asked for after sign-in, with the rest of the app's request (see
  * utils/emailRequest.ts). Cancel goes back to the app signed out: it hears
  * an error and gets no token.
@@ -48,7 +51,11 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   const { error, setError, altTitle, setLoadingState, setUiState } = useUIManager();
   const [email, setEmail] = useState('');
   const [fieldError, setFieldError] = useState<Message | null>(null);
-  const [cachedEmail, setCachedEmail] = useState(() => getLoggedEmail(clientId));
+  const { resumeAccount } = useAuthContext();
+  const [accounts, setAccounts] = useState<RememberedAccount[]>(() =>
+    getRememberedAccounts(clientId),
+  );
+  const [otherAccount, setOtherAccount] = useState(false);
   const constructOAuthUrl = useConstructOAuthUrl();
   const goToLoginOrSignUp = useGoToLoginOrSignUp();
 
@@ -68,7 +75,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   };
 
   const handleEmailInputSubmit = async () => {
-    const emailToUse = normalizeEmail(email || cachedEmail || '');
+    const emailToUse = normalizeEmail(email);
     const validationError = validateEmail(emailToUse);
     if (validationError) {
       return setFieldError(validationError);
@@ -76,10 +83,26 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     await handleSuccessfulEmailSubmission(emailToUse);
   };
 
-  const handleSwitchAccount = () => {
-    clearLoggedEmail(clientId);
-    setCachedEmail(null);
-    setEmail('');
+  // Only a click on the account signs it in silently. When its session can't
+  // be resumed the usual passkey / code step takes over.
+  const handleChooseAccount = async (account: RememberedAccount) => {
+    let resumed = false;
+    try {
+      setError(null);
+      setLoadingState(true, message('signin.signing_in'), false);
+      resumed = await resumeAccount(account);
+    } catch (err) {
+      captureException(err);
+      setError(message('signin.error.details'));
+      resumed = true; // nothing further to try; fall through to hide the loader
+    }
+    if (resumed) return setLoadingState(false);
+    await handleSuccessfulEmailSubmission(account.email);
+  };
+
+  const handleRemoveAccount = (account: RememberedAccount) => {
+    forgetAccount(account.email, clientId);
+    setAccounts(getRememberedAccounts(clientId));
   };
 
   const handleCancel = () =>
@@ -120,15 +143,15 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     return <Loader message={message('signin.signing_in')} />;
   }
 
-  const returning = !!cachedEmail;
-  const title = returning
-    ? t('signin.returning_title')
+  const choosing = accounts.length > 0 && !otherAccount;
+  const title = choosing
+    ? t('signin.choose_title')
     : getSignInTitle(devLicenseAlias, {
         altTitle: Boolean(altTitle),
         brandName: oemBrand?.name ?? null,
       });
   // The default title names DIMO; this line names the app it leads to.
-  const showSubtitle = returning || (!altTitle && !oemBrand?.name);
+  const showSubtitle = choosing || (!altTitle && !oemBrand?.name);
 
   return (
     <UIManagerLoaderWrapper>
@@ -140,55 +163,51 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
         />
         {error && <ErrorMessage message={error} />}
 
-        {returning ? (
-          <div className="flex items-center gap-3 rounded-card bg-card px-3.5 py-3">
-            <span
-              aria-hidden="true"
-              className="flex size-9 shrink-0 items-center justify-center rounded-control bg-highest text-body-sm font-semibold uppercase text-ink"
-            >
-              {cachedEmail.charAt(0)}
-            </span>
-            <span className="flex min-w-0 flex-col gap-0.5">
-              <span className="truncate text-body-sm font-medium text-ink">
-                {cachedEmail}
-              </span>
-              <span className="text-label font-normal text-muted">
-                {t('signin.returning_desc')}
-              </span>
-            </span>
-          </div>
-        ) : (
-          <TextField
-            label={t('signin.email_label')}
-            type="email"
-            inputMode="email"
-            autoComplete="email"
-            autoCapitalize="none"
-            spellCheck={false}
-            placeholder={t('signin.email_placeholder')}
-            value={email}
-            onValueChange={(value) => {
-              setEmail(value);
-              setFieldError(null);
-            }}
-            onKeyDown={getKeyboardEventListener('Enter', handleEmailInputSubmit)}
-            error={fieldError ? translateText(fieldError, t) : undefined}
-          />
-        )}
-
-        {returning ? (
+        {choosing ? (
           <div className="flex flex-col gap-2">
-            <Button fullWidth onClick={handleEmailInputSubmit}>
-              <span className="min-w-0 truncate">
-                {t('signin.continue_as', { email: cachedEmail })}
-              </span>
-            </Button>
-            <Button variant="ghost" fullWidth onClick={handleSwitchAccount}>
+            {accounts.map((account) => (
+              <div key={account.email} className="flex items-center gap-1">
+                <Button
+                  variant="secondary"
+                  className="min-w-0 flex-1"
+                  onClick={() => handleChooseAccount(account)}
+                >
+                  <span className="min-w-0 truncate">
+                    {t('signin.continue_as', { email: account.email })}
+                  </span>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={t('signin.remove_account', { email: account.email })}
+                  onClick={() => handleRemoveAccount(account)}
+                >
+                  <XMarkIcon className="size-5" aria-hidden="true" />
+                </Button>
+              </div>
+            ))}
+            <Button variant="ghost" fullWidth onClick={() => setOtherAccount(true)}>
               {t('signin.other_account')}
             </Button>
           </div>
         ) : (
           <>
+            <TextField
+              label={t('signin.email_label')}
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              autoCapitalize="none"
+              spellCheck={false}
+              placeholder={t('signin.email_placeholder')}
+              value={email}
+              onValueChange={(value) => {
+                setEmail(value);
+                setFieldError(null);
+              }}
+              onKeyDown={getKeyboardEventListener('Enter', handleEmailInputSubmit)}
+              error={fieldError ? translateText(fieldError, t) : undefined}
+            />
             <Button fullWidth onClick={handleEmailInputSubmit}>
               {t('signin.continue')}
             </Button>
@@ -205,6 +224,11 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
                 text={t('signin.apple')}
               />
             </div>
+            {accounts.length > 0 && (
+              <Button variant="ghost" fullWidth onClick={() => setOtherAccount(false)}>
+                {t('signin.back_to_accounts')}
+              </Button>
+            )}
           </>
         )}
 
