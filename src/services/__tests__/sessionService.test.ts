@@ -7,8 +7,11 @@ const b64 = (o: object) => btoa(JSON.stringify(o)).replace(/=+$/, '');
 const JWT = `${b64({ alg: 'HS256' })}.${b64({ exp: 4102444800 })}.sig`;
 const USER = { email: 'jun@example.com', smartContractAddress: '0xabc' };
 
-const signIn = () => {
-  document.cookie = `auth_token_${CLIENT_ID}=${JWT}; path=/`;
+const jwtExpiringIn = (seconds: number) =>
+  `${b64({ alg: 'HS256' })}.${b64({ exp: Math.floor(Date.now() / 1000) + seconds })}.sig`;
+
+const signIn = (token: string = JWT) => {
+  document.cookie = `auth_token_${CLIENT_ID}=${token}; path=/`;
   localStorage.setItem(`user_data_${CLIENT_ID}`, JSON.stringify(USER));
 };
 
@@ -56,5 +59,20 @@ describe('initializeSession', () => {
 
   it('asks a signed-out user to sign in', () => {
     expect(run(UiStates.VEHICLE_MANAGER)).toHaveBeenCalledWith(UiStates.EMAIL_INPUT);
+  });
+
+  it('does not hand back a token with less than an hour left', () => {
+    signIn(jwtExpiringIn(600));
+    expect(run(UiStates.VEHICLE_MANAGER)).toHaveBeenCalledWith(UiStates.EMAIL_INPUT);
+  });
+
+  it('uses a token with more than an hour left', () => {
+    signIn(jwtExpiringIn(7200));
+    expect(run(UiStates.VEHICLE_MANAGER)).toHaveBeenCalledWith(UiStates.VEHICLE_MANAGER);
+  });
+
+  it('treats a token with no expiry as expired', () => {
+    signIn(`${b64({ alg: 'HS256' })}.${b64({ sub: 'x' })}.sig`);
+    expect(run(UiStates.EMAIL_INPUT)).toHaveBeenCalledWith(UiStates.EMAIL_INPUT);
   });
 });

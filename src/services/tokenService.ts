@@ -27,11 +27,12 @@ function decodeJWT(token: string): JWTPayload {
   }
 }
 
-export const isTokenExpired = (token: string): boolean => {
+export const isTokenExpired = (token: string, minRemainingSeconds = 0): boolean => {
   try {
     const decoded = decodeJWT(token);
+    if (typeof decoded.exp !== 'number') return true; // No usable expiry: treat as expired
     const currentTime = Date.now() / 1000; // current time in seconds
-    return decoded.exp < currentTime;
+    return decoded.exp < currentTime + minRemainingSeconds;
   } catch (error) {
     console.error('Failed to decode JWT:', error);
     return true; // If decoding fails, assume it's expired

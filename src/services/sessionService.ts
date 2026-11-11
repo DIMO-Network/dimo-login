@@ -5,6 +5,9 @@ import { UserObject } from '../models/user';
 import { getJWTFromCookies, getUserFromLocalStorage } from './storageService';
 import { isTokenExpired } from './tokenService';
 
+/** A cached token only counts as a session with at least this long left, so the app never gets one about to expire. */
+export const MIN_SESSION_TOKEN_LIFETIME_S = 3600;
+
 // Define types for the function parameters
 type InitializeSessionParams = {
   clientId: `0x${string}` | null;
@@ -37,7 +40,7 @@ export function initializeSession({
   const jwt = getJWTFromCookies(clientId);
   const user = getUserFromLocalStorage(clientId);
 
-  if (jwt && !isTokenExpired(jwt) && user) {
+  if (jwt && !isTokenExpired(jwt, MIN_SESSION_TOKEN_LIFETIME_S) && user) {
     setJwt(jwt);
     setUser(user);
 
