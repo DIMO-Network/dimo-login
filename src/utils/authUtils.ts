@@ -4,13 +4,17 @@ import {
   getJWTFromCookies,
   getUserFromLocalStorage,
   isEmailGranted,
-  saveToLocalStorage,
   setLoggedEmail,
   storeJWTInCookies,
   storeUserInLocalStorage,
   TurnkeySessionKey,
 } from '../services/storageService';
 import { UserObject } from '../models/user';
+import {
+  clearWalletSession,
+  rememberAccount,
+  setWalletSession,
+} from '../services/accountStore';
 import { backToThirdParty, sendMessageToReferrer } from './messageHandler';
 import { UiStates } from '../enums';
 import { getEmailRequest } from '../stores/AuthStateStore';
@@ -87,6 +91,11 @@ export function logout(
   utm: string,
   setUiState: (step: UiStates) => void,
 ) {
+  // An explicit logout also ends the wallet session, so on a shared device the
+  // next person cannot resume this account silently. The account stays remembered.
+  const subOrganizationId = getUserFromLocalStorage(clientId)?.subOrganizationId;
+  if (subOrganizationId) clearWalletSession(subOrganizationId);
+  localStorage.removeItem(TurnkeySessionKey);
   clearSessionData(clientId);
   sendMessageToReferrer({ eventType: 'logout' });
 
@@ -111,12 +120,9 @@ export function createSession({
   storeJWTInCookies(clientId, jwt);
   storeUserInLocalStorage(clientId, user);
   setLoggedEmail(clientId, user.email);
-  updateTurnkeySession(turnkeySessionData);
+  setWalletSession(user.subOrganizationId, turnkeySessionData);
+  rememberAccount(user);
 }
-
-export const updateTurnkeySession = (sessionData: TurnkeySessionDataWithExpiry) => {
-  return saveToLocalStorage(TurnkeySessionKey, sessionData);
-};
 
 /** Plain login: hand the token (and the email, if shared) to the app. */
 export function sendLoginToApp({

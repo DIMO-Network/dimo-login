@@ -18,25 +18,19 @@
 
 import React, { createContext, ReactNode, useContext, useState } from 'react';
 
-import {
-  createSession,
-  handlePostAuthUIState,
-  TStamper,
-  updateTurnkeySession,
-} from '../utils/authUtils';
+import { createSession, handlePostAuthUIState, TStamper } from '../utils/authUtils';
 import { useDevCredentials } from './DevCredentialsContext';
 import { UserObject } from '../models/user';
 import { UiStates } from '../enums';
 import { useUIManager } from './UIManagerContext';
-import type {
-  TurnkeySessionData,
-  TurnkeySessionDataWithExpiry,
-} from '../services/turnkeyService';
+import type { TurnkeySessionData } from '../services/turnkeyService';
 import {
-  getFromLocalStorage,
-  removeFromLocalStorage,
-  TurnkeySessionKey,
-} from '../services/storageService';
+  clearWalletSession,
+  getWalletSession,
+  setWalletSession,
+  type RememberedAccount,
+} from '../services/accountStore';
+import { clearSessionData } from '../services/storageService';
 import { verifyOtp } from '../services/accountsService';
 import { signInStepsWithSigner, type SignInSteps } from '../services/walletLoader';
 import { useSignUpFlow, type SignUp, type SignUpDraft } from '../hooks/useSignUpFlow';
@@ -50,6 +44,14 @@ interface AuthContextProps {
   completeOTPLogin: (args: OTPAuthArgs) => Promise<void>;
   validateSession: () => Promise<null | boolean>;
   resetUser: () => void;
+  /**
+   * Sign in as a remembered account from its live email-code session, without a
+   * prompt. False (nothing changed) when there is no such session; call it only
+   * from the person's click on that account.
+   */
+  resumeAccount: (account: RememberedAccount) => Promise<boolean>;
+  /** Sign this app out and open sign-in; the account's wallet session stays. */
+  switchAccount: () => void;
   /** The sign-up in progress, if any. */
   signUpDraft: SignUpDraft | null;
   /** The sign-up sequence; screens reach it through useSignUp(). */
@@ -69,6 +71,8 @@ const defaultUser: UserObject = {
 };
 
 type FinalizeAuthenticationArgs = {
+  /** Sign in as this account instead of the current user state. */
+  account?: UserObject;
   /** The sign-in steps the caller already waited for, signer included. */
   steps: SignInSteps;
   stamper: TStamper;
@@ -89,7 +93,7 @@ export const AuthProvider = ({
   const [user, setUser] = useState<UserObject>(defaultUser);
   const [jwt, setJwt] = useState<string>('');
   const { clientId, redirectUri, utm } = useDevCredentials();
-  const { setUiState, entryState } = useUIManager();
+  const { setUiState, setError, entryState } = useUIManager();
   const { draft: signUpDraft, clearDraft, signUp } = useSignUpFlow({ setUser });
 
   const resetUser = () => {
@@ -98,11 +102,12 @@ export const AuthProvider = ({
   };
 
   const loginToDIMO = async ({
+    account = user,
     steps,
     stamper,
     turnkeySessionData,
   }: FinalizeAuthenticationArgs) => {
-    if (!user.subOrganizationId) {
+    if (!account.subOrganizationId) {
       throw new Error('User has not been initialized yet');
     }
 
@@ -110,12 +115,12 @@ export const AuthProvider = ({
       await steps.authenticateUser(
         clientId,
         redirectUri,
-        user.subOrganizationId,
+        account.subOrganizationId,
         stamper,
       );
 
     const updatedUserObject: UserObject = {
-      ...user,
+      ...account,
       walletAddress,
       smartContractAddress,
     };
@@ -178,8 +183,9 @@ export const AuthProvider = ({
   };
 
   const validateSession = async () => {
-    const turnkeySessionData =
-      getFromLocalStorage<TurnkeySessionDataWithExpiry>(TurnkeySessionKey);
+    const turnkeySessionData = user.subOrganizationId
+      ? getWalletSession(user.subOrganizationId, clientId)
+      : null;
     if (!user.subOrganizationId || !turnkeySessionData) {
       setUiState(UiStates.EMAIL_INPUT);
       return null;
@@ -192,14 +198,14 @@ export const AuthProvider = ({
     }
     if (turnkeySessionData.sessionType === 'passkey') {
       await steps.initializePasskey(user.subOrganizationId);
-      updateTurnkeySession({
+      setWalletSession(user.subOrganizationId, {
         sessionType: 'passkey',
         expiresAt: steps.getKernelSigner().passkeySessionClient.expires,
       });
       return true;
     }
     if (turnkeySessionData.expiresAt < Date.now()) {
-      removeFromLocalStorage(TurnkeySessionKey);
+      clearWalletSession(user.subOrganizationId);
       setUiState(UiStates.OTP_INPUT);
       return null;
     }
@@ -207,10 +213,63 @@ export const AuthProvider = ({
       credentialBundle: turnkeySessionData.credentialBundle,
       embeddedKey: turnkeySessionData.embeddedKey,
     });
-    await steps
-      .getKernelSigner()
-      .openSessionWithApiStamper(user.subOrganizationId, apiKeyStamper);
+    try {
+      await steps
+        .getKernelSigner()
+        .openSessionWithApiStamper(user.subOrganizationId, apiKeyStamper);
+    } catch {
+      // The key was revoked or expired elsewhere: a new code is the way back in.
+      clearWalletSession(user.subOrganizationId);
+      setUiState(UiStates.OTP_INPUT);
+      return null;
+    }
     return true;
+  };
+
+  const resumeAccount = async (account: RememberedAccount) => {
+    const { subOrganizationId } = account;
+    if (!subOrganizationId) return false;
+    const session = getWalletSession(subOrganizationId, clientId);
+    if (session?.sessionType !== 'api_key' || !(session.expiresAt > Date.now())) {
+      return false;
+    }
+    const resumed: UserObject = {
+      email: account.email,
+      subOrganizationId,
+      hasPasskey: account.hasPasskey ?? false,
+      walletAddress: account.walletAddress ?? null,
+      smartContractAddress: account.smartContractAddress ?? null,
+      emailVerified: true,
+    };
+    try {
+      const steps = await signInStepsWithSigner();
+      const stamper = steps.getApiKeyStamper({
+        credentialBundle: session.credentialBundle,
+        embeddedKey: session.embeddedKey,
+      });
+      await loginToDIMO({
+        account: resumed,
+        steps,
+        stamper,
+        turnkeySessionData: {
+          sessionType: 'api_key',
+          credentialBundle: session.credentialBundle,
+          embeddedKey: session.embeddedKey,
+        },
+      });
+      return true;
+    } catch {
+      clearWalletSession(subOrganizationId);
+      return false;
+    }
+  };
+
+  const switchAccount = () => {
+    clearSessionData(clientId);
+    setJwt('');
+    resetUser();
+    setError(null);
+    setUiState(UiStates.EMAIL_INPUT);
   };
 
   return (
@@ -224,6 +283,8 @@ export const AuthProvider = ({
         completeOTPLogin,
         validateSession,
         resetUser,
+        resumeAccount,
+        switchAccount,
         signUpDraft,
         signUp,
       }}
