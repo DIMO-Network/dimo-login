@@ -51,10 +51,12 @@ const removeKey = (key: string): void => {
 const readStoredAccounts = (): RememberedAccount[] => {
   const value = readJson(ACCOUNTS_KEY);
   if (!Array.isArray(value)) return [];
-  return value.filter(
-    (entry): entry is RememberedAccount =>
-      typeof entry === 'object' && entry !== null && typeof entry.email === 'string',
-  );
+  return value
+    .filter(
+      (entry): entry is RememberedAccount =>
+        typeof entry === 'object' && entry !== null && typeof entry.email === 'string',
+    )
+    .map((entry) => ({ ...entry, email: entry.email.toLowerCase() }));
 };
 
 const readLoggedEmail = (clientId: `0x${string}` | null): string | null => {
@@ -93,14 +95,27 @@ export const rememberAccount = (user: UserObject, now: number = Date.now()): voi
 export const forgetAccount = (email: string, clientId: `0x${string}` | null): void => {
   const target = email.trim().toLowerCase();
   const stored = readStoredAccounts();
-  const removed = stored.filter((a) => a.email.toLowerCase() === target);
+  const removed = stored.filter((a) => a.email === target);
   writeJson(
     ACCOUNTS_KEY,
-    stored.filter((a) => a.email.toLowerCase() !== target),
+    stored.filter((a) => a.email !== target),
   );
   removed.forEach((a) => {
     if (a.subOrganizationId) removeKey(walletSessionKey(a.subOrganizationId));
   });
+  // The list may not know the account (logged_email only, corrupt, trimmed), so
+  // also resolve it from this app's signed-in user. Signing the app out is the caller's job.
+  try {
+    const signedInAs = getUserFromLocalStorage(clientId);
+    if (signedInAs?.email?.trim().toLowerCase() === target) {
+      if (signedInAs.subOrganizationId) {
+        removeKey(walletSessionKey(signedInAs.subOrganizationId));
+      }
+      removeKey(TurnkeySessionKey);
+    }
+  } catch {
+    // Unreadable user data: nothing to resolve.
+  }
   if (readLoggedEmail(clientId)?.trim().toLowerCase() === target) {
     try {
       clearLoggedEmail(clientId);
@@ -110,16 +125,28 @@ export const forgetAccount = (email: string, clientId: `0x${string}` | null): vo
   }
 };
 
+const isSession = (value: unknown): value is TurnkeySessionDataWithExpiry =>
+  typeof value === 'object' &&
+  value !== null &&
+  !Array.isArray(value) &&
+  typeof (value as { sessionType?: unknown }).sessionType === 'string';
+
 export const getWalletSession = (
   subOrganizationId: string,
   clientId: `0x${string}` | null,
 ): TurnkeySessionDataWithExpiry | null => {
   const own = readJson(walletSessionKey(subOrganizationId));
-  if (own && typeof own === 'object') return own as TurnkeySessionDataWithExpiry;
+  if (isSession(own)) return own;
 
-  // One-time migration of the single global session an older build stored.
+  // One-time migration of the single global session an older build stored. It has
+  // no recorded owner, so only a passkey one (no secret) is adopted, and only for
+  // the account this app is signed in as; anything else is discarded.
   const legacy = readJson(TurnkeySessionKey);
-  if (!legacy || typeof legacy !== 'object') return null;
+  if (legacy === null) return null;
+  if (!isSession(legacy) || legacy.sessionType !== 'passkey') {
+    removeKey(TurnkeySessionKey);
+    return null;
+  }
   let signedInAs: UserObject | null = null;
   try {
     signedInAs = getUserFromLocalStorage(clientId);
@@ -129,7 +156,7 @@ export const getWalletSession = (
   if (signedInAs?.subOrganizationId !== subOrganizationId) return null;
   writeJson(walletSessionKey(subOrganizationId), legacy);
   removeKey(TurnkeySessionKey);
-  return legacy as TurnkeySessionDataWithExpiry;
+  return legacy;
 };
 
 export const setWalletSession = (

@@ -71,7 +71,10 @@ describe('accountStore', () => {
     );
     localStorage.setItem(`user_data_${CLIENT}`, JSON.stringify(A));
     expect(getWalletSession('sub-b', CLIENT)).toBeNull();
-    expect(getWalletSession('sub-a', CLIENT)).toEqual({ sessionType: 'passkey', expiresAt: 9 });
+    expect(getWalletSession('sub-a', CLIENT)).toEqual({
+      sessionType: 'passkey',
+      expiresAt: 9,
+    });
     expect(localStorage.getItem('turnkey_session')).toBeNull();
     expect(localStorage.getItem('turnkey_session_sub-a')).not.toBeNull();
   });
@@ -92,4 +95,75 @@ describe('accountStore', () => {
       expect(getRememberedAccounts(null)).toEqual([]);
     },
   );
+
+  it('forgets the session of an account known only from the app’s logged email', () => {
+    localStorage.setItem(`logged_email_${CLIENT}`, 'alice@x.co');
+    localStorage.setItem(`user_data_${CLIENT}`, JSON.stringify(A));
+    setWalletSession('sub-a', { sessionType: 'passkey', expiresAt: 9 });
+    localStorage.setItem('turnkey_session', JSON.stringify({ sessionType: 'passkey' }));
+    forgetAccount('alice@x.co', CLIENT);
+    expect(localStorage.getItem('turnkey_session_sub-a')).toBeNull();
+    expect(localStorage.getItem('turnkey_session')).toBeNull();
+    expect(localStorage.getItem(`user_data_${CLIENT}`)).not.toBeNull();
+  });
+
+  it('forgets the signed-in account’s session even when the list is corrupt', () => {
+    localStorage.setItem('dimo_accounts', '{not json');
+    localStorage.setItem(`user_data_${CLIENT}`, JSON.stringify(A));
+    setWalletSession('sub-a', { sessionType: 'passkey', expiresAt: 9 });
+    forgetAccount('alice@x.co', CLIENT);
+    expect(localStorage.getItem('turnkey_session_sub-a')).toBeNull();
+  });
+
+  it('never adopts a legacy api_key session, and removes it', () => {
+    localStorage.setItem(
+      'turnkey_session',
+      JSON.stringify({
+        sessionType: 'api_key',
+        embeddedKey: 'k',
+        credentialBundle: 'b',
+        expiresAt: 9,
+      }),
+    );
+    localStorage.setItem(`user_data_${CLIENT}`, JSON.stringify(A));
+    expect(getWalletSession('sub-a', CLIENT)).toBeNull();
+    expect(localStorage.getItem('turnkey_session')).toBeNull();
+    expect(localStorage.getItem('turnkey_session_sub-a')).toBeNull();
+  });
+
+  it('removes a malformed legacy session and returns null', () => {
+    localStorage.setItem('turnkey_session', '[1]');
+    localStorage.setItem(`user_data_${CLIENT}`, JSON.stringify(A));
+    expect(getWalletSession('sub-a', CLIENT)).toBeNull();
+    expect(localStorage.getItem('turnkey_session')).toBeNull();
+  });
+
+  it('lowercases emails read from storage', () => {
+    localStorage.setItem(
+      'dimo_accounts',
+      JSON.stringify([{ email: 'Bob@X.co', lastUsedAt: 1 }]),
+    );
+    expect(getRememberedAccounts(null).map((a) => a.email)).toEqual(['bob@x.co']);
+  });
+
+  it('never throws when storage is blocked', () => {
+    const boom = () => {
+      throw new Error('blocked');
+    };
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(boom);
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(boom);
+    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(boom);
+    try {
+      expect(getRememberedAccounts(CLIENT)).toEqual([]);
+      expect(() => rememberAccount(A, 1)).not.toThrow();
+      expect(() => forgetAccount('alice@x.co', CLIENT)).not.toThrow();
+      expect(getWalletSession('sub-a', CLIENT)).toBeNull();
+      expect(() =>
+        setWalletSession('sub-a', { sessionType: 'passkey', expiresAt: 9 }),
+      ).not.toThrow();
+      expect(() => clearWalletSession('sub-a')).not.toThrow();
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
 });
