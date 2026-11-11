@@ -21,9 +21,9 @@ type OtpError = { message: Message; detail?: string; codeRejected?: boolean };
 export const OtpInput: React.FC<OtpInputProps> = ({ email: emailProp }) => {
   const t = useT();
   const { user, completeOTPLogin, resetUser } = useAuthContext();
-  // The email typed on the sign-in screen, or the account's when that step was
-  // skipped (a returning session, the passkey retry screen).
-  const email = emailProp || user?.email || '';
+  // The account the code goes to (sendOtp below); the email typed on the
+  // sign-in screen only until an account is set.
+  const email = user?.email || emailProp || '';
   const { setError: setScreenError, setUiState } = useUIManager();
   const [digits, setDigits] = useState<string[]>(Array(CODE_LENGTH).fill(''));
   const [otpId, setOtpId] = useState('');

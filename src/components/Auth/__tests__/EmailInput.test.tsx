@@ -175,7 +175,17 @@ it('signs a chosen account in silently when its session is live', async () => {
     ),
   );
   expect(mockGo).not.toHaveBeenCalled();
-  expect(onSubmit).not.toHaveBeenCalled();
+});
+
+it('remembers the chosen account’s email for the screens after, even when it resumes', async () => {
+  // A resumed account whose key expires later lands on the code screen, which
+  // must not name an email typed before.
+  seed('alice@x.co');
+  mockResume.mockResolvedValue(true);
+  render(<EmailInput onSubmit={onSubmit} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Continue as alice@x.co' }));
+  await waitFor(() => expect(mockResume).toHaveBeenCalled());
+  expect(onSubmit).toHaveBeenCalledWith('alice@x.co');
 });
 
 it('goes to the passkey or sign-up step when it can’t resume', async () => {

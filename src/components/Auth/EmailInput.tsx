@@ -86,17 +86,18 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   // Only a click on the account signs it in silently. When its session can't
   // be resumed the usual passkey / code step takes over.
   const handleChooseAccount = async (account: RememberedAccount) => {
-    let resumed = false;
+    // The screens after this one name this account, even if it resumes now and
+    // its key runs out later.
+    onSubmit(account.email);
     try {
       setError(null);
       setLoadingState(true, message('signin.signing_in'), false);
-      resumed = await resumeAccount(account);
+      if (await resumeAccount(account)) return setLoadingState(false);
     } catch (err) {
       captureException(err);
       setError(message('signin.error.details'));
-      resumed = true; // nothing further to try; fall through to hide the loader
+      return setLoadingState(false);
     }
-    if (resumed) return setLoadingState(false);
     await handleSuccessfulEmailSubmission(account.email);
   };
 

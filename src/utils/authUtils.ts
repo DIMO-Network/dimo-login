@@ -8,6 +8,7 @@ import {
   storeJWTInCookies,
   storeUserInLocalStorage,
 } from '../services/storageService';
+import { isTokenExpired } from '../services/tokenService';
 import { UserObject } from '../models/user';
 import {
   endWalletSession,
@@ -24,6 +25,18 @@ import type { TurnkeyClient } from '@turnkey/http';
 /** What signs Turnkey requests: the passkey or the session's API key. */
 export type TStamper = ConstructorParameters<typeof TurnkeyClient>[1];
 
+/** A token with less than this left is never handed to an app. */
+const MIN_SENT_TOKEN_LIFETIME_S = 60;
+export const TOKEN_EXPIRED_ERROR = 'Token expired';
+export const isTokenExpiredError = (err: unknown) =>
+  err instanceof Error && err.message === TOKEN_EXPIRED_ERROR;
+
+/**
+ * The login to hand the app: this tab's token and account, which another tab
+ * of the same app can't change; the stored ones only when this tab has none.
+ * Throws TOKEN_EXPIRED_ERROR for a token about to run out (the caller signs in
+ * again; see useSendOrSignInAgain).
+ */
 export function buildAuthPayload(
   clientId: `0x${string}` | null,
   jwt: string,
@@ -33,15 +46,18 @@ export function buildAuthPayload(
   email?: string;
   walletAddress: string;
 } {
-  //Won't send to SDK until these are set in cookies/storage (may not work in incognito though?)
-  const token = getJWTFromCookies(clientId) || jwt;
-  const user = getUserFromLocalStorage(clientId) || userObj;
+  const token = jwt || getJWTFromCookies(clientId);
+  const user = userObj?.subOrganizationId ? userObj : getUserFromLocalStorage(clientId);
   // An app that asked for no email never gets one, whatever was granted.
   const emailGranted =
     getEmailRequest() !== 'none' && isEmailGranted(clientId, user?.email);
 
   if (!token) {
     throw new Error('JWT is missing. Ensure the user is authenticated.');
+  }
+
+  if (isTokenExpired(token, MIN_SENT_TOKEN_LIFETIME_S)) {
+    throw new Error(TOKEN_EXPIRED_ERROR);
   }
 
   if (!user || !user.smartContractAddress) {

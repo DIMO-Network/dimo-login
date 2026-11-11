@@ -51,7 +51,7 @@ export const PasskeyLoginFail = ({ email }: { email: string }) => {
         icon={<FingerPrintIcon className="size-[26px]" />}
         title={t('passkey.title')}
       >
-        {t('passkey.body', { email: email || user?.email || '' })}
+        {t('passkey.body', { email: user?.email || email || '' })}
       </DoneHeader>
       {error ? (
         <ErrorMessage message={error} />

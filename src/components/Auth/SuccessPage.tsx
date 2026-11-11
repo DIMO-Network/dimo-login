@@ -7,6 +7,7 @@ import { useUIManager } from '../../context/UIManagerContext';
 import { isEmbed } from '../../utils/isEmbed';
 import { backToThirdParty } from '../../utils/messageHandler';
 import { useEmailRequest } from '../../hooks/useEmailRequest';
+import { useSendOrSignInAgain } from '../../hooks/useSendOrSignInAgain';
 import { useT } from '../../i18n';
 import { AboutYouEmail } from '../Shared/EmailShareRow';
 import { ActionBar, Button, DoneHeader, Screen } from '../ui';
@@ -22,12 +23,15 @@ export const SuccessPage: React.FC = () => {
   // A returning session lands here instead of the consent step, so the
   // email item (when the app asks for it) is part of going back.
   const emailRequest = useEmailRequest();
+  const sendOrSignInAgain = useSendOrSignInAgain();
 
   const sendJwtAfterPermissions = () => {
     if (jwt && redirectUri && clientId) {
-      const authPayload = buildAuthPayload(clientId, jwt, user);
-      sendAuthPayloadToParent(authPayload, redirectUri, (payload) => {
-        backToThirdParty(payload, redirectUri, utm);
+      sendOrSignInAgain(() => {
+        const authPayload = buildAuthPayload(clientId, jwt, user);
+        sendAuthPayloadToParent(authPayload, redirectUri, (payload) => {
+          backToThirdParty(payload, redirectUri, utm);
+        });
       });
     }
   };

@@ -11,15 +11,18 @@ vi.mock('../../../context/DevCredentialsContext', () => ({
     utm: '',
   }),
 }));
+const mockSwitch = vi.fn();
 vi.mock('../../../context/AuthContext', () => ({
-  useAuthContext: () => ({ jwt: 'jwt', user: {} }),
+  useAuthContext: () => ({ jwt: 'jwt', user: {}, switchAccount: mockSwitch }),
 }));
 const mockComponentData: Record<string, unknown> = {};
 vi.mock('../../../context/UIManagerContext', () => ({
   useUIManager: () => ({ componentData: mockComponentData }),
 }));
-vi.mock('../../../utils/authUtils', () => ({
-  buildAuthPayload: () => ({ token: 'jwt', walletAddress: '0xabc' }),
+const mockBuild = vi.fn();
+vi.mock('../../../utils/authUtils', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../utils/authUtils')>()),
+  buildAuthPayload: (...args: unknown[]) => mockBuild(...args),
 }));
 const mockBack = vi.fn();
 vi.mock('../../../utils/messageHandler', () => ({
@@ -28,6 +31,7 @@ vi.mock('../../../utils/messageHandler', () => ({
 vi.mock('../../../utils/isEmbed', () => ({ isEmbed: () => false }));
 
 import { SuccessfulPermissions } from '../SuccessfulPermissions';
+import { TOKEN_EXPIRED_ERROR } from '../../../utils/authUtils';
 
 const vehicle = (tokenId: number, make = 'Ford', model = 'F-150') => ({
   tokenId,
@@ -44,7 +48,10 @@ const show = (data: Record<string, unknown>) => {
   render(<SuccessfulPermissions />);
 };
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockBuild.mockReturnValue({ token: 'jwt', walletAddress: '0xabc' });
+});
 
 it('shows each shared vehicle with the date sharing ends', () => {
   show({
@@ -156,4 +163,15 @@ it('shows nothing extra when every vehicle was shared', () => {
     skipped: [],
   });
   expect(screen.queryByText(/updated/)).toBeNull();
+});
+
+it('signs in again instead of going back with a token that has run out', () => {
+  mockBuild.mockImplementation(() => {
+    throw new Error(TOKEN_EXPIRED_ERROR);
+  });
+  show({ action: 'revoked', results: [{ vehicle: vehicle(7), outcome: 'revoked' }] });
+  fireEvent.click(screen.getByRole('button', { name: 'Back to Toyota' }));
+
+  expect(mockBack).not.toHaveBeenCalled();
+  expect(mockSwitch).toHaveBeenCalledTimes(1);
 });

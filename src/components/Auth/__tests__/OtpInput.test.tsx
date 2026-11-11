@@ -63,6 +63,14 @@ it('names the account even when the sign-in step was skipped', async () => {
   ).toBeInTheDocument();
 });
 
+it('names the account the code is sent to, not an email typed earlier', async () => {
+  // Typed bob@x.co, then chose jun's account, whose resume later fell through.
+  await renderSent('bob@x.co');
+  expect(
+    screen.getByText(/We sent a 6-digit code to jun@example.com/),
+  ).toBeInTheDocument();
+});
+
 it('asks for the numeric keypad and offers one-time-code autofill', async () => {
   await renderSent();
   expect(boxes()).toHaveLength(6);

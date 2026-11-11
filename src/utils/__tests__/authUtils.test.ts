@@ -1,5 +1,7 @@
-import { logout } from '../authUtils';
+import { buildAuthPayload, isTokenExpiredError, logout } from '../authUtils';
 import { UiStates } from '../../enums';
+import type { UserObject } from '../../models/user';
+import { clearSessionData, storeJWTInCookies } from '../../services/storageService';
 import * as messageHandler from '../messageHandler';
 
 vi.mock('../messageHandler', () => ({
@@ -8,6 +10,64 @@ vi.mock('../messageHandler', () => ({
 }));
 
 const CLIENT = '0xc' as const;
+
+const b64 = (value: object) => btoa(JSON.stringify(value)).replace(/=+$/, '');
+const tokenExpiringIn = (seconds: number, who: string) =>
+  `${b64({ alg: 'none' })}.${b64({ sub: who, exp: Math.floor(Date.now() / 1000) + seconds })}.sig`;
+const account = (name: string): UserObject => ({
+  email: `${name}@x.co`,
+  subOrganizationId: `sub-${name}`,
+  hasPasskey: true,
+  walletAddress: `0x${name}-eoa`,
+  smartContractAddress: `0x${name}-sca`,
+  emailVerified: true,
+});
+
+describe('buildAuthPayload', () => {
+  beforeEach(() => localStorage.clear());
+  afterEach(() => clearSessionData(CLIENT));
+
+  it('sends this tab’s login, even after another tab signed the app in as someone else', () => {
+    const alice = tokenExpiringIn(3600, 'alice');
+    storeJWTInCookies(CLIENT, tokenExpiringIn(7200, 'bob'));
+    localStorage.setItem(`user_data_${CLIENT}`, JSON.stringify(account('bob')));
+
+    expect(buildAuthPayload(CLIENT, alice, account('alice'))).toEqual({
+      token: alice,
+      walletAddress: '0xalice-sca',
+      email: undefined,
+    });
+  });
+
+  it('falls back to the stored login when this tab has none', () => {
+    const bob = tokenExpiringIn(7200, 'bob');
+    storeJWTInCookies(CLIENT, bob);
+    localStorage.setItem(`user_data_${CLIENT}`, JSON.stringify(account('bob')));
+
+    expect(
+      buildAuthPayload(CLIENT, '', { ...account('x'), subOrganizationId: '' }),
+    ).toMatchObject({ token: bob, walletAddress: '0xbob-sca' });
+  });
+
+  it.each([
+    ['has run out', -1],
+    ['has less than a minute left', 30],
+  ])('refuses a token that %s', (_, seconds) => {
+    // An hour idle on the done screen: the cookie is gone, this tab's token too old.
+    let thrown: unknown;
+    try {
+      buildAuthPayload(CLIENT, tokenExpiringIn(seconds, 'alice'), account('alice'));
+    } catch (error) {
+      thrown = error;
+    }
+    expect(isTokenExpiredError(thrown)).toBe(true);
+  });
+
+  it('sends a token with a minute or more left', () => {
+    const token = tokenExpiringIn(90, 'alice');
+    expect(buildAuthPayload(CLIENT, token, account('alice')).token).toBe(token);
+  });
+});
 
 describe('logout', () => {
   beforeEach(() => {
