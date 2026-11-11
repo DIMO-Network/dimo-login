@@ -1,3 +1,4 @@
+// The app's two account request parameters, `prompt` and `loginHint`.
 import { isValidEmail, normalizeEmail } from './emailUtils';
 
 /**
@@ -6,6 +7,12 @@ import { isValidEmail, normalizeEmail } from './emailUtils';
  * - `login`: ask for a fresh sign-in.
  */
 export type LoginPrompt = 'select_account' | 'login';
+
+/**
+ * What the app asked of the sign-in, while it applies: until someone signs in
+ * on the page (AuthContext's accountRequest).
+ */
+export type AccountRequest = { prompt?: LoginPrompt; loginHint?: string };
 
 const LOGIN_PROMPTS: readonly string[] = ['select_account', 'login'];
 

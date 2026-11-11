@@ -35,6 +35,7 @@ import { clearSessionData } from '../services/storageService';
 import { verifyOtp } from '../services/accountsService';
 import { signInStepsWithSigner, type SignInSteps } from '../services/walletLoader';
 import { useSignUpFlow, type SignUp, type SignUpDraft } from '../hooks/useSignUpFlow';
+import type { AccountRequest } from '../utils/loginPrompt';
 
 interface AuthContextProps {
   completePasskeyLogin: () => Promise<void>;
@@ -53,6 +54,12 @@ interface AuthContextProps {
   resumeAccount: (account: RememberedAccount) => Promise<boolean>;
   /** Sign this app out and open sign-in; the account's wallet session stays. */
   switchAccount: () => void;
+  /**
+   * What the app asked of the sign-in (prompt, loginHint), until someone signs
+   * in on this page; empty from then on, switchAccount included. Read it here,
+   * not from the app's parameters.
+   */
+  accountRequest: AccountRequest;
   /** The sign-up in progress, if any. */
   signUpDraft: SignUpDraft | null;
   /** The sign-up sequence; screens reach it through useSignUp(). */
@@ -94,9 +101,17 @@ export const AuthProvider = ({
 }): React.JSX.Element => {
   const [user, setUser] = useState<UserObject>(defaultUser);
   const [jwt, setJwt] = useState<string>('');
-  const { clientId, redirectUri, utm, prompt } = useDevCredentials();
+  const { clientId, redirectUri, utm, prompt, loginHint } = useDevCredentials();
   const { setUiState, setError, entryState } = useUIManager();
   const { draft: signUpDraft, clearDraft, signUp } = useSignUpFlow({ setUser });
+
+  // The app's prompt and loginHint are about the sign-in that opens this page.
+  // Once someone has signed in here (a cached session used at the start
+  // counts), they are spent for the rest of the page: "Use another account"
+  // then offers every account and may resume one silently.
+  const [signedInHere, setSignedInHere] = useState(false);
+  if (jwt && !signedInHere) setSignedInHere(true);
+  const accountRequest: AccountRequest = signedInHere ? {} : { prompt, loginHint };
 
   const resetUser = () => {
     setUser(defaultUser);
@@ -264,7 +279,7 @@ export const AuthProvider = ({
 
   const resumeAccount = async (account: RememberedAccount) => {
     // The app wants a fresh sign-in: the person passes the passkey or code step.
-    if (prompt === 'login') return false;
+    if (accountRequest.prompt === 'login') return false;
     const { subOrganizationId } = account;
     if (!subOrganizationId) return false;
     const session = getWalletSession(subOrganizationId);
@@ -325,6 +340,7 @@ export const AuthProvider = ({
         resetUser,
         resumeAccount,
         switchAccount,
+        accountRequest,
         signUpDraft,
         signUp,
       }}

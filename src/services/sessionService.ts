@@ -29,8 +29,9 @@ type InitializeSessionParams = {
    */
   prompt?: LoginPrompt;
   /**
-   * The account the app expects (lowercase email). A cached session for
-   * another account is ignored, one for this account is used.
+   * The account the app expects, normalised (normalizeLoginHint: a lowercase
+   * email). A cached session for another account is ignored, one for this
+   * account (its email compared ignoring case) is used.
    */
   loginHint?: string;
 };
@@ -54,11 +55,11 @@ export function initializeSession({
   const jwt = getJWTFromCookies(clientId);
   const user = getUserFromLocalStorage(clientId);
 
+  const mismatch =
+    Boolean(prompt) ||
+    (loginHint !== undefined && user?.email?.toLowerCase() !== loginHint);
   // A logout is about the session there is, whatever the app asked for.
-  const askedForAnother =
-    entryState !== UiStates.LOGOUT &&
-    (Boolean(prompt) ||
-      (Boolean(loginHint) && user?.email?.toLowerCase() !== loginHint!.toLowerCase()));
+  const askedForAnother = entryState !== UiStates.LOGOUT && mismatch;
 
   if (
     jwt &&

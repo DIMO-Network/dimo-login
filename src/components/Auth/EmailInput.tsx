@@ -51,21 +51,24 @@ const OrDivider = ({ label }: { label: string }) => (
  */
 export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   const t = useT();
-  const { clientId, devLicenseAlias, oemBrand, redirectUri, utm, loginHint } =
-    useDevCredentials();
+  const { clientId, devLicenseAlias, oemBrand, redirectUri, utm } = useDevCredentials();
   const brandName = oemBrand?.name || devLicenseAlias || undefined;
   const appName = brandName || t('common.app_developer_fallback');
   const { error, setError, altTitle, setLoadingState, setUiState } = useUIManager();
   const [fieldError, setFieldError] = useState<Message | null>(null);
-  const { resumeAccount } = useAuthContext();
+  const {
+    resumeAccount,
+    accountRequest: { loginHint },
+  } = useAuthContext();
   const [accounts, setAccounts] = useState<RememberedAccount[]>(() =>
     getRememberedAccounts(clientId),
   );
   // The app's hint narrows the chooser to that account when it's remembered
   // (and "Use another account" then means a different one, so an empty field).
   // Otherwise the hint is the email to start from. It never signs anyone in.
+  // Both emails are lowercase: the hint is normalised, the stored list too.
   const hintedAccount = loginHint
-    ? accounts.find((account) => account.email.toLowerCase() === loginHint)
+    ? accounts.find((account) => account.email === loginHint)
     : undefined;
   const [email, setEmail] = useState(loginHint && !hintedAccount ? loginHint : '');
   const [otherAccount, setOtherAccount] = useState(Boolean(loginHint) && !hintedAccount);

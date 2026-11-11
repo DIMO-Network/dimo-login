@@ -103,10 +103,15 @@ describe('initializeSession', () => {
     expect(onReturningLogin).not.toHaveBeenCalled();
   });
 
-  it('a loginHint for the cached account uses the session', () => {
+  it('a loginHint for the cached account uses the session, whatever the stored case', () => {
+    // The hint arrives normalised (lowercase); the stored email may not be.
     signIn();
+    localStorage.setItem(
+      `user_data_${CLIENT_ID}`,
+      JSON.stringify({ ...USER, email: 'Jun@Example.com' }),
+    );
     expect(
-      run(UiStates.VEHICLE_MANAGER, undefined, { loginHint: 'JUN@example.com' }),
+      run(UiStates.VEHICLE_MANAGER, undefined, { loginHint: 'jun@example.com' }),
     ).toHaveBeenCalledWith(UiStates.VEHICLE_MANAGER);
   });
 

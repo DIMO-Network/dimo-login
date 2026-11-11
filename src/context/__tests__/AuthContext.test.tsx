@@ -311,6 +311,69 @@ describe('AuthContext per-account wallet sessions', () => {
     expect(localStorage.getItem('turnkey_session_sub-a')).not.toBeNull();
   });
 
+  it('holds what the app asked for until someone signs in on the page', () => {
+    (useDevCredentials as Mock).mockReturnValue({
+      clientId: '0xc',
+      redirectUri: 'https://app.example/cb',
+      utm: '',
+      prompt: 'select_account',
+      loginHint: 'bob@x.co',
+    });
+    renderProvider();
+    expect(auth.accountRequest).toEqual({
+      prompt: 'select_account',
+      loginHint: 'bob@x.co',
+    });
+
+    // A cached session used at the start is a sign-in on this page too.
+    act(() => auth.setJwt(JWT));
+    expect(auth.accountRequest).toEqual({});
+  });
+
+  it('after a sign-in on the page, prompt=login no longer stops a silent resume, even after switchAccount', async () => {
+    (useDevCredentials as Mock).mockReturnValue({
+      clientId: '0xc',
+      redirectUri: 'https://app.example/cb',
+      utm: '',
+      prompt: 'login',
+      loginHint: 'bob@x.co',
+    });
+    const alice = { email: 'alice@x.co', subOrganizationId: 'sub-a', lastUsedAt: 1 };
+    // Remembered, so Bob's sign-in keeps her wallet session.
+    localStorage.setItem('dimo_accounts', JSON.stringify([alice]));
+    localStorage.setItem('turnkey_session_sub-a', apiKeySession());
+    renderProvider();
+    const authenticateUser = vi.fn().mockResolvedValue({
+      accessToken: JWT,
+      walletAddress: '0xw',
+      smartContractAddress: '0xs',
+      turnkeySessionExpiration: Date.now() + 60_000,
+    });
+    signer.resolve(stepsWith({}, { authenticateUser }));
+    await expect(auth.resumeAccount(alice)).resolves.toBe(false);
+
+    // Bob signs in with his passkey, then picks "Use another account".
+    act(() =>
+      auth.setUser({ ...auth.user, email: 'bob@x.co', subOrganizationId: 'sub-b' }),
+    );
+    await act(() => auth.completePasskeyLogin());
+    act(() => auth.switchAccount());
+    expect(auth.jwt).toBe('');
+    expect(auth.accountRequest).toEqual({});
+
+    let resumed: boolean | undefined;
+    await act(async () => {
+      resumed = await auth.resumeAccount(alice);
+    });
+    expect(resumed).toBe(true);
+    expect(authenticateUser).toHaveBeenLastCalledWith(
+      '0xc',
+      'https://app.example/cb',
+      'sub-a',
+      expect.anything(),
+    );
+  });
+
   it('resumeAccount signs in silently with a live email-code session', async () => {
     localStorage.setItem('turnkey_session_sub-a', apiKeySession());
     renderProvider();

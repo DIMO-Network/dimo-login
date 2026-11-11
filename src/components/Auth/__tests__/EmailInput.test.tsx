@@ -19,7 +19,8 @@ vi.mock('../../../hooks/useConstructOAuthUrl', () => ({
 vi.mock('../../../hooks/useGoToLoginOrSignUp', () => ({
   useGoToLoginOrSignUp: () => mockGo,
 }));
-const mockCreds: { prompt?: string; loginHint?: string } = {};
+// The app's raw parameters; the screen goes by AuthContext's accountRequest.
+const mockCreds: { loginHint?: string } = {};
 vi.mock('../../../context/DevCredentialsContext', () => ({
   useDevCredentials: () => ({
     clientId: mockClientId,
@@ -29,8 +30,10 @@ vi.mock('../../../context/DevCredentialsContext', () => ({
   }),
 }));
 const mockResume = vi.fn();
+// What the app asked for, as AuthContext holds it until someone signs in here.
+const mockRequest: { prompt?: string; loginHint?: string } = {};
 vi.mock('../../../context/AuthContext', () => ({
-  useAuthContext: () => ({ resumeAccount: mockResume }),
+  useAuthContext: () => ({ resumeAccount: mockResume, accountRequest: mockRequest }),
 }));
 const mockUi = {
   error: null,
@@ -79,8 +82,9 @@ beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
   vi.clearAllMocks();
   localStorage.clear();
-  delete mockCreds.prompt;
   delete mockCreds.loginHint;
+  delete mockRequest.prompt;
+  delete mockRequest.loginHint;
   mockExchanging = false;
   setForceEmail(false);
   mockGo.mockResolvedValue(undefined);
@@ -348,7 +352,7 @@ it('asks for another way to sign in when the provider shared no email', async ()
 });
 
 it('pre-fills an email the app hinted at', () => {
-  mockCreds.loginHint = 'new@x.co';
+  mockRequest.loginHint = 'new@x.co';
   render(<EmailInput onSubmit={onSubmit} />);
   expect(screen.getByLabelText('Email')).toHaveValue('new@x.co');
   expect(mockGo).not.toHaveBeenCalled();
@@ -356,7 +360,7 @@ it('pre-fills an email the app hinted at', () => {
 
 it('offers a way back to the accounts from a hinted email nobody remembers', () => {
   seed('alice@x.co');
-  mockCreds.loginHint = 'new@x.co';
+  mockRequest.loginHint = 'new@x.co';
   render(<EmailInput onSubmit={onSubmit} />);
   expect(screen.getByLabelText('Email')).toHaveValue('new@x.co');
   fireEvent.click(screen.getByRole('button', { name: 'Back to accounts' }));
@@ -367,7 +371,7 @@ it('offers a way back to the accounts from a hinted email nobody remembers', () 
 
 it('narrows the chooser to a hinted account it remembers', () => {
   seed('alice@x.co', 'bob@x.co');
-  mockCreds.loginHint = 'bob@x.co';
+  mockRequest.loginHint = 'bob@x.co';
   render(<EmailInput onSubmit={onSubmit} />);
   expect(
     screen.getByRole('button', { name: 'Continue as bob@x.co' }),
@@ -378,7 +382,7 @@ it('narrows the chooser to a hinted account it remembers', () => {
 
 it('never signs in by itself on a hint', () => {
   seed('bob@x.co');
-  mockCreds.loginHint = 'bob@x.co';
+  mockRequest.loginHint = 'bob@x.co';
   render(<EmailInput onSubmit={onSubmit} />);
   expect(
     screen.getByRole('button', { name: 'Continue as bob@x.co' }),
@@ -389,7 +393,7 @@ it('never signs in by itself on a hint', () => {
 
 it('shows an empty email field for "Use another account" when the hint matched', () => {
   seed('alice@x.co', 'bob@x.co');
-  mockCreds.loginHint = 'bob@x.co';
+  mockRequest.loginHint = 'bob@x.co';
   render(<EmailInput onSubmit={onSubmit} />);
   fireEvent.click(screen.getByRole('button', { name: 'Use another account' }));
   expect(screen.getByLabelText('Email')).toHaveValue('');
@@ -397,7 +401,7 @@ it('shows an empty email field for "Use another account" when the hint matched',
 
 it('with a prompt, finishes a provider return instead of showing the sign-in screen again', async () => {
   seed('alice@x.co');
-  mockCreds.prompt = 'login';
+  mockRequest.prompt = 'login';
   mockExchanging = true;
   const { rerender } = render(<EmailInput onSubmit={onSubmit} />);
   expect(screen.queryByRole('button', { name: 'Continue as alice@x.co' })).toBeNull();
@@ -413,4 +417,20 @@ it('with a prompt, finishes a provider return instead of showing the sign-in scr
   mockExchanging = false;
   rerender(<EmailInput onSubmit={onSubmit} />);
   expect(mockResume).not.toHaveBeenCalled();
+});
+
+it('offers every account, and an empty field, once the app’s request is spent', () => {
+  // Someone signed in on this page, then chose "Use another account": the
+  // app's hint was about the first sign-in.
+  seed('alice@x.co', 'bob@x.co');
+  mockCreds.loginHint = 'bob@x.co';
+  render(<EmailInput onSubmit={onSubmit} />);
+  expect(
+    screen.getByRole('button', { name: 'Continue as alice@x.co' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'Continue as bob@x.co' }),
+  ).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Use another account' }));
+  expect(screen.getByLabelText('Email')).toHaveValue('');
 });

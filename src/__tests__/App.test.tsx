@@ -21,7 +21,7 @@ const mockApp = vi.hoisted(() => {
     language: 'en' as string | undefined,
     prompt: undefined as string | undefined,
     loginHint: undefined as string | undefined,
-    jwt: 'jwt',
+    accountRequest: {} as { prompt?: string; loginHint?: string },
     incomingEntryState: undefined as string | undefined,
     initializeSession: vi.fn(),
     idleCallbacks: [] as (() => void)[],
@@ -62,7 +62,8 @@ vi.mock('../context/AuthContext', () => ({
   useAuthContext: () => ({
     setJwt: () => {},
     setUser: () => {},
-    jwt: mockApp.jwt,
+    jwt: 'jwt',
+    accountRequest: mockApp.accountRequest,
     user: { email: 'alice@x.co' },
     switchAccount: () => {},
   }),
@@ -133,7 +134,7 @@ beforeEach(async () => {
   mockApp.language = 'en';
   mockApp.prompt = undefined;
   mockApp.loginHint = undefined;
-  mockApp.jwt = 'jwt';
+  mockApp.accountRequest = {};
   mockApp.incomingEntryState = undefined;
   mockApp.initializeSession.mockClear();
   mockApp.idleCallbacks = [];
@@ -267,18 +268,19 @@ it('shows the screen in the current language when the app’s language fails to 
   );
 });
 
-it('asks for the prompt and loginHint once; a later run after sign-in uses the new session', () => {
+it('checks the session against what the app asked for, until AuthContext says it is spent', () => {
   mockApp.prompt = 'select_account';
   mockApp.loginHint = 'jun@example.com';
-  mockApp.jwt = '';
+  mockApp.accountRequest = { prompt: 'select_account', loginHint: 'jun@example.com' };
   const { rerender } = render(<App />);
   expect(mockApp.initializeSession).toHaveBeenLastCalledWith(
     expect.objectContaining({ prompt: 'select_account', loginHint: 'jun@example.com' }),
   );
 
-  // The person signs in on this page, then the app's entry state changes
-  // (which re-runs the session check): sign-in must not be asked for again.
-  mockApp.jwt = 'fresh-token';
+  // Someone signed in on this page, then picked "Use another account" (no
+  // token in this tab again), and the app's entry state changes, which re-runs
+  // the session check: the app's parameters are still there, but spent.
+  mockApp.accountRequest = {};
   mockApp.incomingEntryState = 'VEHICLE_MANAGER';
   rerender(<App />);
   expect(mockApp.initializeSession).toHaveBeenCalledTimes(2);
