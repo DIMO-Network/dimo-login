@@ -13,7 +13,7 @@ vi.mock('../../context/OraclesContext', () => ({
   useOracles: () => ({ setOnboardingEnabled: vi.fn() }),
 }));
 
-// Probe component: this repo's @testing-library/react has no renderHook.
+// Probe component exposing the hook's current state and its apply function.
 const setup = () => {
   let hook!: ReturnType<typeof useParamsHandler>;
   const Probe = () => {
@@ -34,10 +34,11 @@ describe('prompt', () => {
     expect(state().prompt).toBe('login');
   });
 
-  it.each([[['login']], [{}]])('never stores non-string %j', (value) => {
+  it.each([[['login']], [{}]])('ignores non-string %j', (value) => {
     const { apply, state } = setup();
+    apply({ prompt: 'login' });
     apply({ prompt: value });
-    expect(state().prompt).toBeUndefined();
+    expect(state().prompt).toBe('login');
   });
 });
 
@@ -49,9 +50,10 @@ describe('loginHint', () => {
     expect(state().loginHint).toBe('a@x.co');
   });
 
-  it('never stores a non-string value', () => {
+  it('ignores a non-string value', () => {
     const { apply, state } = setup();
-    apply({ loginHint: ['a@x.co'] });
-    expect(state().loginHint).toBeUndefined();
+    apply({ loginHint: 'a@x.co' });
+    apply({ loginHint: ['b@x.co'] });
+    expect(state().loginHint).toBe('a@x.co');
   });
 });

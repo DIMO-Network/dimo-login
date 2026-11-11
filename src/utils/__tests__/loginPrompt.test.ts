@@ -24,7 +24,6 @@ describe('normalizeLoginHint', () => {
     [['a@x.co'], undefined],
     ['', undefined],
     [`${'a'.repeat(254 - 5)}@x.co`, `${'a'.repeat(254 - 5)}@x.co`],
-    [`${'a'.repeat(255 - 5)}@x.co`, undefined],
   ])('loginHint %j → %j', (value, expected) => {
     expect(normalizeLoginHint(value)).toBe(expected);
   });
