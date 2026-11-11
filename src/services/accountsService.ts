@@ -74,6 +74,73 @@ export const verifyOtp = async ({
   return data;
 };
 
+// Starts sign-up: registers the account without deploying it and emails a code.
+export const registerAccount = async (
+  email: string,
+  key: string,
+): Promise<{ otpId: string }> => {
+  const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account/email`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, key, origin: 'DIMO', deployAccount: false }),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data?.error ?? 'Failed to register account');
+  }
+
+  const { otpId } = await response.json();
+  return { otpId };
+};
+
+export class AccountVerifyError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AccountVerifyError';
+  }
+}
+
+// Proves the email with the code and attaches the passkey in one call.
+export const verifyAccountEmail = async ({
+  email,
+  otpId,
+  otpCode,
+  key,
+  attestation,
+  challenge,
+}: {
+  email: string;
+  otpId: string;
+  otpCode: string;
+  key: string;
+  attestation: object;
+  challenge: string;
+}): Promise<void> => {
+  const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account/verify-email`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      email,
+      otpId,
+      otpCode,
+      key,
+      attestation,
+      encodedChallenge: challenge,
+      deployAccount: true,
+    }),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new AccountVerifyError(data?.error ?? 'Could not verify email');
+  }
+};
+
 // Function to create an account
 export const createAccount = async ({
   email,
@@ -81,12 +148,15 @@ export const createAccount = async ({
   attestation,
   challenge,
   deployAccount,
+  proofToken,
 }: CreateAccountParams): Promise<UserObject> => {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (proofToken) {
+    headers.Authorization = `Bearer ${proofToken}`;
+  }
   const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
     body: JSON.stringify({
       email,
       key: apiKey,
@@ -113,7 +183,7 @@ export const createAccount = async ({
 };
 
 export const fetchUserDetails = async (email: string): Promise<null | UserObject> => {
-  const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account/${email}`, {
+  const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account/${encodeURIComponent(email)}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -126,13 +196,14 @@ export const fetchUserDetails = async (email: string): Promise<null | UserObject
     const data = await response.json();
     throw new Error(data.message ?? 'Failed to fetch user details');
   }
-  const { subOrganizationId, hasPasskey } = await response.json();
+  const { subOrganizationId, hasPasskey, emailVerified } = await response.json();
   return {
     email,
     subOrganizationId,
     hasPasskey,
     smartContractAddress: null,
     walletAddress: null,
-    emailVerified: true,
+    // Older API builds omit the field; treat those as verified.
+    emailVerified: emailVerified !== false,
   };
 };
