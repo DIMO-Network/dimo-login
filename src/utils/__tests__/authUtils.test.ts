@@ -39,14 +39,24 @@ describe('buildAuthPayload', () => {
     });
   });
 
-  it('falls back to the stored login when this tab has none', () => {
-    const bob = tokenExpiringIn(7200, 'bob');
-    storeJWTInCookies(CLIENT, bob);
+  it('never sends the stored login when this tab has none', () => {
+    // Under the app's prompt this tab leaves the stored session unused; another
+    // tab may also have stored someone else's.
+    storeJWTInCookies(CLIENT, tokenExpiringIn(7200, 'bob'));
+    localStorage.setItem(`user_data_${CLIENT}`, JSON.stringify(account('bob')));
+
+    expect(() =>
+      buildAuthPayload(CLIENT, '', { ...account('x'), subOrganizationId: '' }),
+    ).toThrow('JWT is missing');
+  });
+
+  it('never pairs this tab’s token with the stored account', () => {
+    const alice = tokenExpiringIn(3600, 'alice');
     localStorage.setItem(`user_data_${CLIENT}`, JSON.stringify(account('bob')));
 
     expect(
-      buildAuthPayload(CLIENT, '', { ...account('x'), subOrganizationId: '' }),
-    ).toMatchObject({ token: bob, walletAddress: '0xbob-sca' });
+      buildAuthPayload(CLIENT, alice, { ...account('alice'), subOrganizationId: '' }),
+    ).toMatchObject({ token: alice, walletAddress: '0xalice-sca' });
   });
 
   it.each([

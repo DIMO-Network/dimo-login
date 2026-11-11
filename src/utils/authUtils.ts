@@ -1,8 +1,6 @@
 import type { TurnkeySessionDataWithExpiry } from '../services/turnkeyService';
 import {
   clearSessionData,
-  getJWTFromCookies,
-  getUserFromLocalStorage,
   isEmailGranted,
   setLoggedEmail,
   storeJWTInCookies,
@@ -32,22 +30,21 @@ export const isTokenExpiredError = (err: unknown) =>
   err instanceof Error && err.message === TOKEN_EXPIRED_ERROR;
 
 /**
- * The login to hand the app: this tab's token and account, which another tab
- * of the same app can't change; the stored ones only when this tab has none.
- * Throws TOKEN_EXPIRED_ERROR for a token about to run out (the caller signs in
- * again; see useSendOrSignInAgain).
+ * The login to hand the app: this tab's token and account, as the caller
+ * passes them, never the stored ones. Another tab of the same app may have
+ * stored someone else's, and under the app's prompt this tab leaves the stored
+ * session unused. Throws TOKEN_EXPIRED_ERROR for a token about to run out (the
+ * caller signs in again; see useSendOrSignInAgain).
  */
 export function buildAuthPayload(
   clientId: `0x${string}` | null,
-  jwt: string,
-  userObj: UserObject,
+  token: string,
+  user: UserObject,
 ): {
   token: string;
   email?: string;
   walletAddress: string;
 } {
-  const token = jwt || getJWTFromCookies(clientId);
-  const user = userObj?.subOrganizationId ? userObj : getUserFromLocalStorage(clientId);
   // An app that asked for no email never gets one, whatever was granted.
   const emailGranted =
     getEmailRequest() !== 'none' && isEmailGranted(clientId, user?.email);
@@ -61,7 +58,7 @@ export function buildAuthPayload(
   }
 
   if (!user || !user.smartContractAddress) {
-    throw new Error('User object or walletAddress is missing in local storage.');
+    throw new Error('User object or walletAddress is missing.');
   }
 
   return {
