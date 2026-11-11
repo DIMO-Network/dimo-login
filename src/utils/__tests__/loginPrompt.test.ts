@@ -7,6 +7,9 @@ describe('normalizeLoginPrompt', () => {
     ['none', undefined],
     [true, undefined],
     [undefined, undefined],
+    ['Select_Account', 'select_account'],
+    ['', undefined],
+    ['log\nin', undefined],
   ])('prompt %j → %j', (value, expected) => {
     expect(normalizeLoginPrompt(value)).toBe(expected);
   });
@@ -19,6 +22,9 @@ describe('normalizeLoginHint', () => {
     ['not an email', undefined],
     [`${'a'.repeat(250)}@x.co`, undefined],
     [['a@x.co'], undefined],
+    ['', undefined],
+    [`${'a'.repeat(254 - 5)}@x.co`, `${'a'.repeat(254 - 5)}@x.co`],
+    [`${'a'.repeat(255 - 5)}@x.co`, undefined],
   ])('loginHint %j → %j', (value, expected) => {
     expect(normalizeLoginHint(value)).toBe(expected);
   });
