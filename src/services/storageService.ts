@@ -8,6 +8,7 @@ export const storeJWTInCookies = (clientId: `0x${string}` | null, jwt: string): 
   document.cookie = createCookieString(`auth_token_${clientId}`, jwt);
 };
 
+// Legacy single-session key: read once for migration by accountStore, never written.
 export const TurnkeySessionKey = 'turnkey_session';
 
 const getExpiration = (jwt: string) => {
@@ -130,9 +131,8 @@ export const clearLoggedEmail = (clientId: `0x${string}` | null): void => {
 
 export const clearSessionData = (clientId: `0x${string}` | null): void => {
   if (!clientId) return;
-  document.cookie = `auth_token_${clientId}=; Max-Age=0`;
+  document.cookie = `auth_token_${clientId}=; Max-Age=0; path=/`;
   localStorage.removeItem(`user_data_${clientId}`);
-  localStorage.removeItem(TurnkeySessionKey);
 };
 
 export const saveToLocalStorage = <T>(key: string, value: T): void => {
