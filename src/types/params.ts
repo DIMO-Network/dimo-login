@@ -17,9 +17,25 @@ export interface BaseParams {
   /** @deprecated by emailRequest; true means 'required'. */
   forceEmail?: boolean;
   emailRequest?: EmailRequest;
-  /** Asks for an account chooser or a fresh sign-in. */
+  /**
+   * SDK `prompt` — a field on the AUTH_INIT message in popup and embedded
+   * mode, a URL query param in redirect mode (or a stored configuration's
+   * field). `select_account` shows the account chooser instead of using a
+   * cached session; `login` does too, and a click on a remembered account
+   * never signs in silently: the user passes the passkey or code step. Any
+   * other value is dropped. Applies until a sign-in completes on the page
+   * (AuthContext's accountRequest).
+   */
   prompt?: LoginPrompt;
-  /** Email to pre-fill on the sign-in screen. */
+  /**
+   * SDK `loginHint`, from the same sources: the account the app expects, as a
+   * lowercased email (a value that isn't an email is dropped). A cached
+   * session for a different account is not used. On the sign-in screen it
+   * narrows the chooser to the matching remembered account, or else pre-fills
+   * the email field; it never signs anyone in. Read from the URL, it is removed
+   * from the address bar (kept in the page's history entry for a reload).
+   * Applies until a sign-in completes on the page (AuthContext's accountRequest).
+   */
   loginHint?: string;
   configCID?: string;
   /**

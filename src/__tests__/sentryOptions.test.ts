@@ -5,7 +5,9 @@ import { sentryOptions } from '../sentryOptions';
 import { removeQueryParam } from '../utils/urlHelpers';
 
 /** What Sentry hands its transport to send. */
-type Envelope = Parameters<ReturnType<NonNullable<BrowserOptions['transport']>>['send']>[0];
+type Envelope = Parameters<
+  ReturnType<NonNullable<BrowserOptions['transport']>>['send']
+>[0];
 
 // The email, however it's encoded.
 const HINTED_EMAIL = /jun(@|%40|%2540)example\.com/i;
