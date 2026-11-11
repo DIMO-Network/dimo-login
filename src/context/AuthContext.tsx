@@ -26,6 +26,7 @@ import {
 } from '../utils/authUtils';
 import { useDevCredentials } from './DevCredentialsContext';
 import { UserObject } from '../models/user';
+import type { PasskeyCreationResult } from '../models/resultTypes';
 import { UiStates } from '../enums';
 import { useUIManager } from './UIManagerContext';
 import type {
@@ -40,6 +41,18 @@ import {
 import { verifyOtp } from '../services/accountsService';
 import { signInStepsWithSigner, type SignInSteps } from '../services/walletLoader';
 
+export type SignUpDraft = {
+  email: string;
+  /** Email-code path. */
+  otpId?: string;
+  key?: { publicKeyUncompressed: string; privateKey: string };
+  otpCode?: string;
+  /** Google/Apple path: the provider's token, proof of the email. */
+  proofToken?: string;
+  /** [attestation, challenge], kept so a retry reuses the passkey. */
+  passkey?: PasskeyCreationResult;
+};
+
 interface AuthContextProps {
   completePasskeyLogin: () => Promise<void>;
   user: UserObject;
@@ -49,6 +62,8 @@ interface AuthContextProps {
   completeOTPLogin: (args: OTPAuthArgs) => Promise<void>;
   validateSession: () => Promise<null | boolean>;
   resetUser: () => void;
+  signUpDraft: SignUpDraft | null;
+  setSignUpDraft: React.Dispatch<React.SetStateAction<SignUpDraft | null>>;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -83,6 +98,7 @@ export const AuthProvider = ({
 }): React.JSX.Element => {
   const [user, setUser] = useState<UserObject>(defaultUser);
   const [jwt, setJwt] = useState<string>('');
+  const [signUpDraft, setSignUpDraft] = useState<SignUpDraft | null>(null);
   const { clientId, redirectUri, utm } = useDevCredentials();
   const { setUiState, entryState } = useUIManager();
 
@@ -217,6 +233,8 @@ export const AuthProvider = ({
         completeOTPLogin,
         validateSession,
         resetUser,
+        signUpDraft,
+        setSignUpDraft,
       }}
     >
       {children}

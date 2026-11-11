@@ -182,6 +182,8 @@ const App = () => {
     [UiStates.OTP_INPUT]: <OtpInput email={email} />,
     [UiStates.PASSKEY_LOGIN_FAIL]: <PasskeyLoginFail email={email} />,
     [UiStates.PASSKEY_GENERATOR]: <PasskeyGeneration email={email} />,
+    // Task 4 registers the verify-email screen.
+    [UiStates.SIGNUP_VERIFY_EMAIL]: null,
     [UiStates.VEHICLE_MANAGER]: <VehicleManager />,
     [UiStates.MANAGE_VEHICLE]: <ManageVehicle />,
     [UiStates.ADVANCED_TRANSACTION]: <AdvancedTransaction />,
