@@ -1,4 +1,5 @@
 import React, { type FC, useState } from 'react';
+import { captureException } from '@sentry/react';
 import { CheckIcon, KeyIcon } from '@heroicons/react/24/outline';
 
 import { useAuthContext } from '../../context/AuthContext';
@@ -41,6 +42,7 @@ export const PasskeyGeneration: FC = () => {
       // with an error when the code was rejected.
       await finish();
     } catch (err) {
+      captureException(err);
       setError(message('create.error'));
     } finally {
       setCreating(false);

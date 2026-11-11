@@ -1,16 +1,38 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { EnvelopeIcon } from '@heroicons/react/24/outline';
 
 import { useAuthContext } from '../../context/AuthContext';
 import { useUIManager } from '../../context/UIManagerContext';
 import { useSignUp } from '../../hooks/useSignUp';
-import { message, useT } from '../../i18n';
+import { message, useT, type Text } from '../../i18n';
 import ErrorMessage from '../Shared/ErrorMessage';
 import { ActionBar, Button, DoneHeader, Notice, Screen } from '../ui';
 import { CodeBoxes } from './CodeBoxes';
 
 const LENGTH = 6;
 export const RESEND_COOLDOWN_MS = 30_000;
+
+const noDigits = () => Array<string>(LENGTH).fill('');
+
+/** True until RESEND_COOLDOWN_MS after `sentAt`, the latest send. */
+const useResendCooldown = (sentAt: number): boolean => {
+  // The send whose wait is over; a newer send starts a new wait.
+  const [waited, setWaited] = useState(() =>
+    Date.now() >= sentAt + RESEND_COOLDOWN_MS ? sentAt : null,
+  );
+  useEffect(() => {
+    const timer = setTimeout(
+      () => setWaited(sentAt),
+      sentAt + RESEND_COOLDOWN_MS - Date.now(),
+    );
+    return () => clearTimeout(timer);
+  }, [sentAt]);
+  return waited !== sentAt;
+};
+
+// Only the error a rejected code comes back with marks the boxes.
+const isRejectedCode = (error: Text | null) =>
+  typeof error === 'object' && error?.key === 'signup.error.code';
 
 /**
  * The first step of creating an account: type the 6-digit code emailed to the
@@ -22,47 +44,36 @@ export const SignUpCode: React.FC = () => {
   const { signUpDraft } = useAuthContext();
   const { error: screenError, setError: setScreenError } = useUIManager();
   const { submitCode, resend } = useSignUp();
-  const [digits, setDigits] = useState<string[]>(Array(LENGTH).fill(''));
-  // The first code went out just before this screen opened.
-  const [cooling, setCooling] = useState(true);
-  const [sendFailed, setSendFailed] = useState(false);
-  const [resent, setResent] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const [digits, setDigits] = useState<string[]>(noDigits);
+  const [resending, setResending] = useState(false);
+  const [status, setStatus] = useState<'idle' | 'sent' | 'failed'>('idle');
+  const cooling = useResendCooldown(
+    signUpDraft?.kind === 'code' ? signUpDraft.sentAt : 0,
+  );
 
-  const startCooldown = () => {
-    clearTimeout(timer.current);
-    setCooling(true);
-    timer.current = setTimeout(() => setCooling(false), RESEND_COOLDOWN_MS);
-  };
-
-  useEffect(() => {
-    startCooldown();
-    return () => clearTimeout(timer.current);
-  }, []);
-
-  if (!signUpDraft) return null;
+  if (signUpDraft?.kind !== 'code') return null;
 
   const code = digits.join('');
-  const complete = code.length === LENGTH;
+  // Held while a new code is on its way: the one typed is about to stop working.
+  const canContinue = code.length === LENGTH && !resending;
 
   const handleContinue = () => {
-    if (complete) submitCode(code);
+    if (canContinue) submitCode(code);
   };
 
   const handleResend = async () => {
-    if (cooling) return;
-    startCooldown();
-    setSendFailed(false);
-    setResent(false);
+    if (cooling || resending) return;
+    setResending(true);
+    setStatus('idle');
     setScreenError(null);
     try {
       await resend();
-      setResent(true);
+      setDigits(noDigits());
+      setStatus('sent');
     } catch {
-      // No code went out, so there is nothing to wait for.
-      clearTimeout(timer.current);
-      setCooling(false);
-      setSendFailed(true);
+      setStatus('failed');
+    } finally {
+      setResending(false);
     }
   };
 
@@ -71,13 +82,13 @@ export const SignUpCode: React.FC = () => {
     setDigits(next);
   };
 
-  const shownError = sendFailed ? message('signup.error.send') : screenError;
+  const shownError = status === 'failed' ? message('signup.error.send') : screenError;
 
   return (
     <Screen
       actions={
         <ActionBar>
-          <Button fullWidth onClick={handleContinue} disabled={!complete}>
+          <Button fullWidth onClick={handleContinue} disabled={!canContinue}>
             {t('signup.code_continue')}
           </Button>
         </ActionBar>
@@ -96,16 +107,16 @@ export const SignUpCode: React.FC = () => {
       <CodeBoxes
         digits={digits}
         onDigitsChange={changeDigits}
-        invalid={!!screenError && !sendFailed}
+        invalid={isRejectedCode(screenError)}
         onSubmit={handleContinue}
       />
 
-      {resent && <Notice tone="positive">{t('otp.resent')}</Notice>}
+      {status === 'sent' && <Notice tone="positive">{t('otp.resent')}</Notice>}
       <Button
         variant="ghost"
         size="sm"
         className="self-start"
-        disabled={cooling}
+        disabled={cooling || resending}
         onClick={handleResend}
       >
         {t('otp.resend')}

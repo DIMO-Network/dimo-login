@@ -17,6 +17,9 @@ export const useGoToLoginOrSignUp = () => {
       setUser(userAccount);
       return setUiState(UiStates.PASSKEY_LOGIN);
     }
-    await signUp.start(email, proofToken);
+    // A provider token only creates a brand-new account (the server refuses
+    // one for any existing record): an unverified one is finished with an
+    // emailed code.
+    await signUp.start(email, userAccount ? undefined : proofToken);
   };
 };

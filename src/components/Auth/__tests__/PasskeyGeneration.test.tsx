@@ -19,7 +19,9 @@ const mockUi = {
 vi.mock('../../../context/UIManagerContext', () => ({
   useUIManager: () => mockUi,
 }));
+vi.mock('@sentry/react', () => ({ captureException: vi.fn() }));
 
+import { captureException } from '@sentry/react';
 import { message } from '../../../i18n';
 import { PasskeyGeneration } from '../PasskeyGeneration';
 
@@ -29,6 +31,7 @@ const CODE_DRAFT: SignUpDraft = {
   email: 'a@b.co',
   otpId: 'otp-1',
   key: KEY,
+  sentAt: 0,
   otpCode: '123456',
 };
 
@@ -63,11 +66,13 @@ it('finishes sign-up when the passkey button is pressed', async () => {
   expect(mockUi.setError).toHaveBeenCalledWith(null);
 });
 
-it('says the account could not be created when anything else fails', async () => {
-  finish.mockRejectedValue(new Error('network'));
+it('says the account could not be created when anything else fails, and reports it', async () => {
+  const failure = new Error('network');
+  finish.mockRejectedValue(failure);
   renderScreen({ kind: 'proof', email: 'a@b.co', proofToken: 'tok' });
   fireEvent.click(screen.getByRole('button', { name: 'Create passkey' }));
   await waitFor(() =>
     expect(mockUi.setError).toHaveBeenLastCalledWith(message('create.error')),
   );
+  expect(captureException).toHaveBeenCalledWith(failure);
 });

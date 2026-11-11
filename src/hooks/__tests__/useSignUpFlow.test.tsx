@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, act } from '@testing-library/react';
+import { captureException } from '@sentry/react';
 import { useSignUpFlow, type SignUp, type SignUpDraft } from '../useSignUpFlow';
 import { AccountVerifyError } from '../../services/accountsService';
 import * as accounts from '../../services/accountsService';
@@ -47,6 +48,7 @@ vi.mock('../../context/UIManagerContext', () => ({
 vi.mock('../../context/DevCredentialsContext', () => ({
   useDevCredentials: () => ({ apiKey: 'api-key' }),
 }));
+vi.mock('@sentry/react', () => ({ captureException: vi.fn() }));
 
 const mockRegister = vi.mocked(accounts.registerAccount);
 const mockVerify = vi.mocked(accounts.verifyAccountEmail);
@@ -94,8 +96,16 @@ it('start sends a code and opens the code screen', async () => {
   mockRegister.mockResolvedValue({ otpId: 'otp-1' });
   await run(() => signUp.start('a@b.co'));
   expect(mockRegister).toHaveBeenCalledWith('a@b.co', 'PUB');
-  expect(draft()).toEqual({ kind: 'code', email: 'a@b.co', otpId: 'otp-1', key: KEY });
-  expect(setUiState).toHaveBeenCalledWith(UiStates.SIGNUP_VERIFY_EMAIL, { setBack: true });
+  expect(draft()).toEqual({
+    kind: 'code',
+    email: 'a@b.co',
+    otpId: 'otp-1',
+    key: KEY,
+    sentAt: expect.any(Number),
+  });
+  expect(setUiState).toHaveBeenCalledWith(UiStates.SIGNUP_VERIFY_EMAIL, {
+    setBack: true,
+  });
 });
 
 it('start with a provider token skips the code', async () => {
@@ -106,11 +116,19 @@ it('start with a provider token skips the code', async () => {
 });
 
 it('a second start discards the first email’s draft', async () => {
-  mockRegister.mockResolvedValueOnce({ otpId: 'otp-1' }).mockResolvedValueOnce({ otpId: 'otp-2' });
+  mockRegister
+    .mockResolvedValueOnce({ otpId: 'otp-1' })
+    .mockResolvedValueOnce({ otpId: 'otp-2' });
   await run(() => signUp.start('a@b.co'));
   act(() => signUp.submitCode('111111'));
   await run(() => signUp.start('c@d.co'));
-  expect(draft()).toEqual({ kind: 'code', email: 'c@d.co', otpId: 'otp-2', key: KEY });
+  expect(draft()).toMatchObject({
+    kind: 'code',
+    email: 'c@d.co',
+    otpId: 'otp-2',
+    key: KEY,
+  });
+  expect(draft()).not.toHaveProperty('otpCode');
 });
 
 it('finish verifies the code with the new passkey, then goes to the passkey prompt', async () => {
@@ -126,6 +144,7 @@ it('finish verifies the code with the new passkey, then goes to the passkey prom
     attestation: ATTESTATION,
     challenge: 'ch',
   });
+  expect(mockCreateAccount).not.toHaveBeenCalled();
   expect(setUser).toHaveBeenCalledWith(USER);
   expect(setUiState).toHaveBeenLastCalledWith(UiStates.PASSKEY_LOGIN);
   expect(draft()).toBeNull();
@@ -136,7 +155,12 @@ it('a rejected code returns to the code screen with an error and keeps the passk
   mockVerify.mockRejectedValueOnce(new AccountVerifyError('Invalid OTP code'));
   await run(() => signUp.finish());
   expect(setError).toHaveBeenCalledWith(message('signup.error.code'));
-  expect(setUiState).toHaveBeenLastCalledWith(UiStates.SIGNUP_VERIFY_EMAIL);
+  // Back still leads out of sign-up.
+  expect(setUiState).toHaveBeenLastCalledWith(UiStates.SIGNUP_VERIFY_EMAIL, {
+    setBack: true,
+    removeCurrent: true,
+  });
+  expect(captureException).not.toHaveBeenCalled();
   expect(draft()).toMatchObject({ otpCode: undefined, passkey: [ATTESTATION, 'ch'] });
   act(() => signUp.submitCode('123456'));
   mockVerify.mockResolvedValue(undefined);
@@ -157,7 +181,6 @@ it('keeps the passkey in the draft when the network call fails', async () => {
 it('finish for a provider sign-up sends the token as proof', async () => {
   await run(() => signUp.start('a@b.co', 'tok'));
   mockCreateAccount.mockResolvedValue(USER);
-  mockFetchUser.mockResolvedValue(USER);
   await run(() => signUp.finish());
   expect(mockCreateAccount).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -168,13 +191,130 @@ it('finish for a provider sign-up sends the token as proof', async () => {
     }),
   );
   expect(mockVerify).not.toHaveBeenCalled();
+  // The account it answers with is the one signed in.
+  expect(mockFetchUser).not.toHaveBeenCalled();
+  expect(setUser).toHaveBeenCalledWith(USER);
+  expect(setUiState).toHaveBeenLastCalledWith(UiStates.PASSKEY_LOGIN);
+  expect(draft()).toBeNull();
 });
 
-it('resend replaces the code id and forgets the typed code', async () => {
+it('resend replaces the code id, forgets the typed code and restarts the wait', async () => {
   await startedWithCode('111111');
+  const started = draft();
+  const sentAt = started?.kind === 'code' ? started.sentAt : 0;
   mockRegister.mockResolvedValue({ otpId: 'otp-2' });
+  vi.spyOn(Date, 'now').mockReturnValue(sentAt + 45_000);
   await run(() => signUp.resend());
-  expect(draft()).toMatchObject({ otpId: 'otp-2', otpCode: undefined });
+  vi.mocked(Date.now).mockRestore();
+  expect(draft()).toMatchObject({
+    otpId: 'otp-2',
+    otpCode: undefined,
+    sentAt: sentAt + 45_000,
+  });
+});
+
+it('a resend keeps what happened while it was on its way', async () => {
+  await startedWithCode('111111');
+  const sent = deferred<{ otpId: string }>();
+  mockRegister.mockReturnValueOnce(sent.promise);
+  let resending!: Promise<void>;
+  await run(async () => {
+    resending = signUp.resend();
+  });
+  // Meanwhile the passkey is made and the code rejected.
+  mockVerify.mockRejectedValueOnce(new AccountVerifyError('Invalid OTP code'));
+  await run(() => signUp.finish());
+  await run(async () => {
+    sent.resolve({ otpId: 'otp-2' });
+    await resending;
+  });
+  expect(draft()).toMatchObject({
+    otpId: 'otp-2',
+    otpCode: undefined,
+    passkey: [ATTESTATION, 'ch'],
+  });
+  act(() => signUp.submitCode('222222'));
+  mockVerify.mockResolvedValue(undefined);
+  mockFetchUser.mockResolvedValue(USER);
+  await run(() => signUp.finish());
+  expect(mockCreatePasskey).toHaveBeenCalledTimes(1);
+  expect(mockVerify).toHaveBeenLastCalledWith(
+    expect.objectContaining({ otpId: 'otp-2', otpCode: '222222' }),
+  );
+});
+
+it('a code a resend replaced goes back for the new one', async () => {
+  mockRegister.mockResolvedValue({ otpId: 'otp-1' });
+  await run(() => signUp.start('a@b.co'));
+  const sent = deferred<{ otpId: string }>();
+  mockRegister.mockReturnValueOnce(sent.promise);
+  let resending!: Promise<void>;
+  await run(async () => {
+    resending = signUp.resend();
+  });
+  act(() => signUp.submitCode('111111'));
+  await run(async () => {
+    sent.resolve({ otpId: 'otp-2' });
+    await resending;
+  });
+  await run(() => signUp.finish());
+  expect(mockVerify).not.toHaveBeenCalled();
+  expect(setError).toHaveBeenCalledWith(message('signup.error.code'));
+  expect(setUiState).toHaveBeenLastCalledWith(UiStates.SIGNUP_VERIFY_EMAIL, {
+    setBack: true,
+    removeCurrent: true,
+  });
+});
+
+describe('a sign-up the server finished although the call failed', () => {
+  const UNVERIFIED: UserObject = { ...USER, hasPasskey: false, emailVerified: false };
+
+  it('is recognised when the code is retried', async () => {
+    await startedWithCode('123456');
+    const alreadyVerified = new AccountVerifyError('Email already verified');
+    mockVerify.mockRejectedValueOnce(alreadyVerified);
+    mockFetchUser.mockResolvedValue(USER);
+    await run(() => signUp.finish());
+    expect(mockFetchUser).toHaveBeenCalledWith('a@b.co');
+    expect(setUser).toHaveBeenCalledWith(USER);
+    expect(setUiState).toHaveBeenLastCalledWith(UiStates.PASSKEY_LOGIN);
+    expect(setError).not.toHaveBeenCalled();
+    expect(draft()).toBeNull();
+    expect(captureException).toHaveBeenCalledWith(alreadyVerified);
+  });
+
+  it('is recognised on the provider path', async () => {
+    await run(() => signUp.start('a@b.co', 'tok'));
+    mockCreateAccount.mockRejectedValueOnce(new Error('Failed to create account'));
+    mockFetchUser.mockResolvedValue(USER);
+    await run(() => signUp.finish());
+    expect(setUser).toHaveBeenCalledWith(USER);
+    expect(setUiState).toHaveBeenLastCalledWith(UiStates.PASSKEY_LOGIN);
+    expect(draft()).toBeNull();
+  });
+
+  it('is not assumed when the account is still unverified', async () => {
+    await startedWithCode('000000');
+    mockVerify.mockRejectedValueOnce(new AccountVerifyError('Invalid OTP code'));
+    mockFetchUser.mockResolvedValue(UNVERIFIED);
+    await run(() => signUp.finish());
+    expect(setUser).not.toHaveBeenCalled();
+    expect(setError).toHaveBeenCalledWith(message('signup.error.code'));
+    expect(setUiState).toHaveBeenLastCalledWith(UiStates.SIGNUP_VERIFY_EMAIL, {
+      setBack: true,
+      removeCurrent: true,
+    });
+  });
+
+  it('leaves the original failure when the account cannot be read', async () => {
+    await run(() => signUp.start('a@b.co', 'tok'));
+    mockCreateAccount.mockRejectedValueOnce(new Error('Failed to create account'));
+    mockFetchUser.mockRejectedValue(new Error('down'));
+    await run(async () => {
+      await expect(signUp.finish()).rejects.toThrow('Failed to create account');
+    });
+    expect(setUser).not.toHaveBeenCalled();
+  });
 });
 
 it('a double finish makes one passkey and one submit', async () => {
@@ -188,7 +328,9 @@ it('a double finish makes one passkey and one submit', async () => {
 
 it('a late response from an older start does not replace the newer draft', async () => {
   const first = deferred<{ otpId: string }>();
-  mockRegister.mockReturnValueOnce(first.promise).mockResolvedValueOnce({ otpId: 'otp-c' });
+  mockRegister
+    .mockReturnValueOnce(first.promise)
+    .mockResolvedValueOnce({ otpId: 'otp-c' });
   let startA!: Promise<void>;
   await run(async () => {
     startA = signUp.start('a@b.co');
@@ -198,14 +340,22 @@ it('a late response from an older start does not replace the newer draft', async
     first.resolve({ otpId: 'otp-a' });
     await startA;
   });
-  expect(draft()).toEqual({ kind: 'code', email: 'c@d.co', otpId: 'otp-c', key: KEY });
+  expect(draft()).toEqual({
+    kind: 'code',
+    email: 'c@d.co',
+    otpId: 'otp-c',
+    key: KEY,
+    sentAt: expect.any(Number),
+  });
   expect(setUiState).toHaveBeenCalledTimes(1);
 });
 
 it('a late resend does not change a newer draft', async () => {
   await startedWithCode('111111');
   const late = deferred<{ otpId: string }>();
-  mockRegister.mockReturnValueOnce(late.promise).mockResolvedValueOnce({ otpId: 'otp-c' });
+  mockRegister
+    .mockReturnValueOnce(late.promise)
+    .mockResolvedValueOnce({ otpId: 'otp-c' });
   let resending!: Promise<void>;
   await run(async () => {
     resending = signUp.resend();
@@ -215,7 +365,13 @@ it('a late resend does not change a newer draft', async () => {
     late.resolve({ otpId: 'otp-late' });
     await resending;
   });
-  expect(draft()).toEqual({ kind: 'code', email: 'c@d.co', otpId: 'otp-c', key: KEY });
+  expect(draft()).toEqual({
+    kind: 'code',
+    email: 'c@d.co',
+    otpId: 'otp-c',
+    key: KEY,
+    sentAt: expect.any(Number),
+  });
 });
 
 it('a finish for a newer sign-up never gets the older one’s result', async () => {

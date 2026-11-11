@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { captureException } from '@sentry/react';
 
 import { useDevCredentials } from '../context/DevCredentialsContext';
 import { useUIManager } from '../context/UIManagerContext';
@@ -23,6 +24,8 @@ export type SignUpDraft =
       email: string;
       otpId: string;
       key: { publicKeyUncompressed: string; privateKey: string };
+      /** When the latest code was sent (ms), for the resend cooldown. */
+      sentAt: number;
       otpCode?: string;
       passkey?: PasskeyCreationResult;
     }
@@ -75,7 +78,9 @@ export const useSignUpFlow = ({ setUser }: { setUser: (user: UserObject) => void
 
   const codeDraft = () => {
     const current = draftRef.current;
-    if (current?.kind !== 'code') throw new Error('No sign-up is waiting for an email code');
+    if (current?.kind !== 'code') {
+      throw new Error('No sign-up is waiting for an email code');
+    }
     return current;
   };
 
@@ -90,21 +95,33 @@ export const useSignUpFlow = ({ setUser }: { setUser: (user: UserObject) => void
     const key = generateP256KeyPair();
     const { otpId } = await registerAccount(email, key.publicKeyUncompressed);
     if (attempt !== attemptRef.current) return;
-    setDraft({ kind: 'code', email, otpId, key });
+    setDraft({ kind: 'code', email, otpId, key, sentAt: Date.now() });
     setUiState(UiStates.SIGNUP_VERIFY_EMAIL, { setBack: true });
   };
 
   const resend = async (): Promise<void> => {
     const attempt = attemptRef.current;
-    const draft = codeDraft();
-    const { otpId } = await registerAccount(draft.email, draft.key.publicKeyUncompressed);
+    const { email, key } = codeDraft();
+    const { otpId } = await registerAccount(email, key.publicKeyUncompressed);
     if (attempt !== attemptRef.current) return;
-    setDraft({ ...draft, otpId, otpCode: undefined });
+    // Into the draft as it is now (a passkey may have been made meanwhile); a
+    // code typed before the new one went out is not for it.
+    setDraft({ ...codeDraft(), otpId, otpCode: undefined, sentAt: Date.now() });
   };
 
   const submitCode = (otpCode: string): void => {
     setDraft({ ...codeDraft(), otpCode });
     setUiState(UiStates.PASSKEY_GENERATOR, { setBack: true });
+  };
+
+  /** The account, if it is verified and has its passkey; null when not, or when it can't be read. */
+  const finishedAccount = async (email: string): Promise<UserObject | null> => {
+    try {
+      const account = await fetchUserDetails(email);
+      return account?.emailVerified && account.hasPasskey ? account : null;
+    } catch {
+      return null;
+    }
   };
 
   const finish = (): Promise<void> => {
@@ -116,6 +133,20 @@ export const useSignUpFlow = ({ setUser }: { setUser: (user: UserObject) => void
       finishingRef.current = { attempt, promise };
     }
     return finishingRef.current.promise;
+  };
+
+  const signedUp = (user: UserObject) => {
+    setUser(user);
+    setDraft(null);
+    setUiState(UiStates.PASSKEY_LOGIN);
+  };
+
+  // Back to the code screen with the reason. It joins the Back history, so
+  // Back there still leads out of sign-up.
+  const askForCodeAgain = () => {
+    setDraft({ ...codeDraft(), otpCode: undefined });
+    setError(message('signup.error.code'));
+    setUiState(UiStates.SIGNUP_VERIFY_EMAIL, { setBack: true, removeCurrent: true });
   };
 
   const runFinish = async (attempt: number): Promise<void> => {
@@ -134,18 +165,18 @@ export const useSignUpFlow = ({ setUser }: { setUser: (user: UserObject) => void
     if (!draft.passkey) setDraft({ ...draft, passkey });
     const [attestation, challenge] = passkey;
 
-    if (draft.kind === 'proof') {
-      await createAccount({
-        email: draft.email,
-        apiKey,
-        attestation,
-        challenge,
-        deployAccount: true,
-        proofToken: draft.proofToken,
-      });
-    } else {
-      if (!draft.otpCode) throw new Error('Sign-up is missing its email code');
-      try {
+    let user: UserObject | null = null;
+    try {
+      if (draft.kind === 'proof') {
+        user = await createAccount({
+          email: draft.email,
+          apiKey,
+          attestation,
+          challenge,
+          deployAccount: true,
+          proofToken: draft.proofToken,
+        });
+      } else if (draft.otpCode) {
         await verifyAccountEmail({
           email: draft.email,
           otpId: draft.otpId,
@@ -154,22 +185,32 @@ export const useSignUpFlow = ({ setUser }: { setUser: (user: UserObject) => void
           attestation,
           challenge,
         });
-      } catch (error) {
-        if (!(error instanceof AccountVerifyError)) throw error;
-        if (!isCurrent()) return;
-        setDraft({ ...codeDraft(), otpCode: undefined });
-        setError(message('signup.error.code'));
-        setUiState(UiStates.SIGNUP_VERIFY_EMAIL);
-        return;
+      } else {
+        // A new code went out after this one was typed: ask for that one.
+        return askForCodeAgain();
       }
+    } catch (error) {
+      // The server may have finished the sign-up although this call failed (a
+      // timeout, another tab): then a retry is refused ('Email already
+      // verified', 'User already exists') and would loop.
+      const finished = await finishedAccount(draft.email);
+      if (!isCurrent()) return;
+      if (finished) {
+        captureException(error);
+        return signedUp(finished);
+      }
+      if (draft.kind === 'code' && error instanceof AccountVerifyError) {
+        return askForCodeAgain();
+      }
+      // Reported by the screen that shows it.
+      throw error;
     }
 
-    const user = await fetchUserDetails(draft.email);
+    // verify-email answers with nothing, so the account is read back.
+    user ??= await fetchUserDetails(draft.email);
     if (!isCurrent()) return;
     if (!user) throw new Error('Account not found after sign-up');
-    setUser(user);
-    setDraft(null);
-    setUiState(UiStates.PASSKEY_LOGIN);
+    signedUp(user);
   };
 
   // Ends the sign-up in progress: anything still running for it is dropped.

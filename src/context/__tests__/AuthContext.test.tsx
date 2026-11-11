@@ -95,8 +95,14 @@ describe('AuthContext sign-up', () => {
   it('runs the sign-up sequence and shares its draft', async () => {
     renderProvider();
     await act(() => auth.signUp.start('a@b.co', 'tok'));
-    expect(auth.signUpDraft).toEqual({ kind: 'proof', email: 'a@b.co', proofToken: 'tok' });
-    expect(setUiState).toHaveBeenCalledWith(UiStates.PASSKEY_GENERATOR, { setBack: true });
+    expect(auth.signUpDraft).toEqual({
+      kind: 'proof',
+      email: 'a@b.co',
+      proofToken: 'tok',
+    });
+    expect(setUiState).toHaveBeenCalledWith(UiStates.PASSKEY_GENERATOR, {
+      setBack: true,
+    });
   });
 
   it('resetUser also drops the sign-up in progress', async () => {
