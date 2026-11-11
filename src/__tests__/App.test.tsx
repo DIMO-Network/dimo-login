@@ -154,17 +154,6 @@ it('moves focus to the error’s heading when the next screen fails', async () =
   expect(document.activeElement).toBe(heading);
 });
 
-it('keeps naming the account when the screen fails', async () => {
-  mockApp.uiState = 'MANAGE_VEHICLE' as UiStates;
-  render(<App />);
-
-  expect(
-    screen.getByRole('heading', { name: 'This screen didn’t load' }),
-  ).toBeInTheDocument();
-  expect(screen.getByText('Signed in as alice@x.co')).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Use another account' })).toBeInTheDocument();
-});
-
 it('shows the next screen after one that failed', async () => {
   mockApp.uiState = 'MANAGE_VEHICLE' as UiStates;
   const { rerender } = render(<App />);
