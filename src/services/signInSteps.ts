@@ -23,6 +23,7 @@ import type { TStamper } from '../utils/authUtils';
 
 export {
   createKernelSigner,
+  createPasskey,
   getApiKeyStamper,
   getKernelSigner,
   initializePasskey,
