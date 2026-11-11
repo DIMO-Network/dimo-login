@@ -707,3 +707,28 @@ describe('when the license lookup fails', () => {
     await waitFor(() => expect(probe()).toBe('true'));
   });
 });
+
+describe('DevCredentialsContext loginHint', () => {
+  it('redirect: reads loginHint, then takes it out of the address bar, keeping the rest', async () => {
+    window.history.pushState(
+      {},
+      '',
+      `/?clientId=${CLIENT_ID}&loginHint=jun%40example.com&redirectUri=${encodeURIComponent(REDIRECT_URI)}&altTitle=true#top`,
+    );
+    renderProvider('loginHint');
+    await waitFor(() => expect(probe()).toBe('"jun@example.com"'));
+    expect(window.location.search).not.toContain('loginHint');
+    expect(window.location.search).toContain(`clientId=${CLIENT_ID}`);
+    expect(window.location.search).toContain('altTitle=true');
+    expect(window.location.hash).toBe('#top');
+  });
+
+  it('leaves an OAuth return URL alone', async () => {
+    window.history.pushState({}, '', '/?code=abc&state=xyz');
+    renderProvider('loginHint');
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(window.location.search).toBe('?code=abc&state=xyz');
+  });
+});

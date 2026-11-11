@@ -37,7 +37,7 @@ import { getDefaultExpirationDate } from '../utils/dateUtils';
 import { sendMessageToReferrer } from '../utils/messageHandler';
 import { isStandalone } from '../utils/isStandalone';
 import { getEmbedderOrigin, isEmbed } from '../utils/isEmbed';
-import { originOf } from '../utils/urlHelpers';
+import { originOf, removeQueryParam } from '../utils/urlHelpers';
 import { getConfigurationById } from '../services/configurationService';
 import { CALLER_PARAM_KEYS, filterMessageParams } from '../utils/messageParams';
 
@@ -165,6 +165,9 @@ export const DevCredentialsProvider = ({
       ...filterMessageParams(parsedUrlParams),
       waitingForParams: false,
     });
+    // The hint is an email: it has been read, so it doesn't stay in the URL,
+    // where page URLs get logged and attached to error reports.
+    removeQueryParam('loginHint');
 
     return true;
   };

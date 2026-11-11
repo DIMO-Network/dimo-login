@@ -49,7 +49,7 @@ import { useInitialLanguagePending, useLanguage, useT } from './i18n';
 import { useLanguageSync } from './i18n/useLanguageSync';
 
 const App = () => {
-  const { setJwt, setUser } = useAuthContext();
+  const { jwt, setJwt, setUser } = useAuthContext();
   const {
     clientId,
     devLicenseAlias,
@@ -113,6 +113,11 @@ const App = () => {
         uiState,
         setUiState,
         entryState: incomingEntryState as UiStates,
+        // What the app asked applies to the session found at the start. Once
+        // someone has signed in on this page, a re-run (a changed entry state,
+        // say) must keep that sign-in rather than ask again.
+        prompt: jwt ? undefined : params.prompt,
+        loginHint: jwt ? undefined : params.loginHint,
         // Embedded, the done screen has no Back to send the login with, so a
         // returning session goes on as a fresh sign-in does.
         onReturningLogin: isEmbed()

@@ -51,17 +51,24 @@ const OrDivider = ({ label }: { label: string }) => (
  */
 export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   const t = useT();
-  const { clientId, devLicenseAlias, oemBrand, redirectUri, utm } = useDevCredentials();
+  const { clientId, devLicenseAlias, oemBrand, redirectUri, utm, loginHint } =
+    useDevCredentials();
   const brandName = oemBrand?.name || devLicenseAlias || undefined;
   const appName = brandName || t('common.app_developer_fallback');
   const { error, setError, altTitle, setLoadingState, setUiState } = useUIManager();
-  const [email, setEmail] = useState('');
   const [fieldError, setFieldError] = useState<Message | null>(null);
   const { resumeAccount } = useAuthContext();
   const [accounts, setAccounts] = useState<RememberedAccount[]>(() =>
     getRememberedAccounts(clientId),
   );
-  const [otherAccount, setOtherAccount] = useState(false);
+  // The app's hint narrows the chooser to that account when it's remembered
+  // (and "Use another account" then means a different one, so an empty field).
+  // Otherwise the hint is the email to start from. It never signs anyone in.
+  const hintedAccount = loginHint
+    ? accounts.find((account) => account.email.toLowerCase() === loginHint)
+    : undefined;
+  const [email, setEmail] = useState(loginHint && !hintedAccount ? loginHint : '');
+  const [otherAccount, setOtherAccount] = useState(Boolean(loginHint) && !hintedAccount);
   const armed = useRef(false);
   const constructOAuthUrl = useConstructOAuthUrl();
   const goToLoginOrSignUp = useGoToLoginOrSignUp();
@@ -182,7 +189,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
 
         {choosing ? (
           <div className="flex flex-col gap-2">
-            {accounts.map((account) => (
+            {(hintedAccount ? [hintedAccount] : accounts).map((account) => (
               <div key={account.email} className="flex items-center gap-1">
                 <Button
                   variant="secondary"

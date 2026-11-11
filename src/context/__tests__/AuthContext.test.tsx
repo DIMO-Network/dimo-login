@@ -289,6 +289,28 @@ describe('AuthContext per-account wallet sessions', () => {
     expect(localStorage.getItem('turnkey_session_sub-a')).not.toBeNull();
   });
 
+  it('prompt=login never resumes silently', async () => {
+    (useDevCredentials as Mock).mockReturnValue({
+      clientId: '0xc',
+      redirectUri: 'https://app.example/cb',
+      utm: '',
+      prompt: 'login',
+    });
+    localStorage.setItem('turnkey_session_sub-a', apiKeySession());
+    renderProvider();
+    const authenticateUser = vi.fn();
+    signer.resolve(stepsWith({}, { authenticateUser }));
+    await expect(
+      auth.resumeAccount({
+        email: 'alice@x.co',
+        subOrganizationId: 'sub-a',
+        lastUsedAt: 1,
+      }),
+    ).resolves.toBe(false);
+    expect(authenticateUser).not.toHaveBeenCalled();
+    expect(localStorage.getItem('turnkey_session_sub-a')).not.toBeNull();
+  });
+
   it('resumeAccount signs in silently with a live email-code session', async () => {
     localStorage.setItem('turnkey_session_sub-a', apiKeySession());
     renderProvider();

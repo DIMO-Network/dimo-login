@@ -1,6 +1,7 @@
 // sessionService.ts
 
 import { UiStates } from '../enums';
+import type { LoginPrompt } from '../utils/loginPrompt';
 import { UserObject } from '../models/user';
 import { getJWTFromCookies, getUserFromLocalStorage } from './storageService';
 import { isTokenExpired } from './tokenService';
@@ -21,6 +22,17 @@ type InitializeSessionParams = {
    * Back sends the login; embedded, there's no Back, so App sends it instead.
    */
   onReturningLogin?: (jwt: string, user: UserObject) => void;
+  /**
+   * What the app asked of this sign-in (SDK `prompt`). Either value ignores a
+   * cached session, so the person picks an account or signs in again. The
+   * stored session stays: choosing the same account resumes it.
+   */
+  prompt?: LoginPrompt;
+  /**
+   * The account the app expects (lowercase email). A cached session for
+   * another account is ignored, one for this account is used.
+   */
+  loginHint?: string;
 };
 
 export function initializeSession({
@@ -31,6 +43,8 @@ export function initializeSession({
   setUiState,
   entryState,
   onReturningLogin,
+  prompt,
+  loginHint,
 }: InitializeSessionParams): void {
   if (!clientId) {
     console.error('Client ID is missing. Cannot initialize session.');
@@ -40,7 +54,18 @@ export function initializeSession({
   const jwt = getJWTFromCookies(clientId);
   const user = getUserFromLocalStorage(clientId);
 
-  if (jwt && !isTokenExpired(jwt, MIN_SESSION_TOKEN_LIFETIME_S) && user) {
+  // A logout is about the session there is, whatever the app asked for.
+  const askedForAnother =
+    entryState !== UiStates.LOGOUT &&
+    (Boolean(prompt) ||
+      (Boolean(loginHint) && user?.email?.toLowerCase() !== loginHint!.toLowerCase()));
+
+  if (
+    jwt &&
+    !isTokenExpired(jwt, MIN_SESSION_TOKEN_LIFETIME_S) &&
+    user &&
+    !askedForAnother
+  ) {
     setJwt(jwt);
     setUser(user);
 

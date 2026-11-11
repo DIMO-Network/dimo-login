@@ -94,7 +94,7 @@ export const AuthProvider = ({
 }): React.JSX.Element => {
   const [user, setUser] = useState<UserObject>(defaultUser);
   const [jwt, setJwt] = useState<string>('');
-  const { clientId, redirectUri, utm } = useDevCredentials();
+  const { clientId, redirectUri, utm, prompt } = useDevCredentials();
   const { setUiState, setError, entryState } = useUIManager();
   const { draft: signUpDraft, clearDraft, signUp } = useSignUpFlow({ setUser });
 
@@ -263,6 +263,8 @@ export const AuthProvider = ({
   };
 
   const resumeAccount = async (account: RememberedAccount) => {
+    // The app wants a fresh sign-in: the person passes the passkey or code step.
+    if (prompt === 'login') return false;
     const { subOrganizationId } = account;
     if (!subOrganizationId) return false;
     const session = getWalletSession(subOrganizationId);

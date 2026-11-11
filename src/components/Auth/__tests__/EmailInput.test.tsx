@@ -5,11 +5,12 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 const mockClientId = '0x2222222222222222222222222222222222222222';
 const mockGo = vi.fn();
 let mockOAuthUrl: string | null = 'https://accounts.example/oauth';
+let mockExchanging = false;
 let mockOnExchangeSuccess: ((token: string) => unknown) | undefined;
 vi.mock('../../../hooks/useOAuthCodeExchange', () => ({
   useOAuthCodeExchange: (options: { onSuccess: (token: string) => unknown }) => {
     mockOnExchangeSuccess = options.onSuccess;
-    return { isExchanging: false };
+    return { isExchanging: mockExchanging };
   },
 }));
 vi.mock('../../../hooks/useConstructOAuthUrl', () => ({
@@ -18,11 +19,13 @@ vi.mock('../../../hooks/useConstructOAuthUrl', () => ({
 vi.mock('../../../hooks/useGoToLoginOrSignUp', () => ({
   useGoToLoginOrSignUp: () => mockGo,
 }));
+const mockCreds: { prompt?: string; loginHint?: string } = {};
 vi.mock('../../../context/DevCredentialsContext', () => ({
   useDevCredentials: () => ({
     clientId: mockClientId,
     devLicenseAlias: 'Acme',
     redirectUri: 'https://acme.example/callback',
+    ...mockCreds,
   }),
 }));
 const mockResume = vi.fn();
@@ -76,6 +79,9 @@ beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
   vi.clearAllMocks();
   localStorage.clear();
+  delete mockCreds.prompt;
+  delete mockCreds.loginHint;
+  mockExchanging = false;
   setForceEmail(false);
   mockGo.mockResolvedValue(undefined);
   mockOAuthUrl = 'https://accounts.example/oauth';
@@ -339,4 +345,72 @@ it('asks for another way to sign in when the provider shared no email', async ()
   expect(mockUi.setError).toHaveBeenCalledWith(
     expect.objectContaining({ key: 'signin.error.no_email' }),
   );
+});
+
+it('pre-fills an email the app hinted at', () => {
+  mockCreds.loginHint = 'new@x.co';
+  render(<EmailInput onSubmit={onSubmit} />);
+  expect(screen.getByLabelText('Email')).toHaveValue('new@x.co');
+  expect(mockGo).not.toHaveBeenCalled();
+});
+
+it('offers a way back to the accounts from a hinted email nobody remembers', () => {
+  seed('alice@x.co');
+  mockCreds.loginHint = 'new@x.co';
+  render(<EmailInput onSubmit={onSubmit} />);
+  expect(screen.getByLabelText('Email')).toHaveValue('new@x.co');
+  fireEvent.click(screen.getByRole('button', { name: 'Back to accounts' }));
+  expect(
+    screen.getByRole('button', { name: 'Continue as alice@x.co' }),
+  ).toBeInTheDocument();
+});
+
+it('narrows the chooser to a hinted account it remembers', () => {
+  seed('alice@x.co', 'bob@x.co');
+  mockCreds.loginHint = 'bob@x.co';
+  render(<EmailInput onSubmit={onSubmit} />);
+  expect(
+    screen.getByRole('button', { name: 'Continue as bob@x.co' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Continue as alice@x.co' })).toBeNull();
+  expect(screen.getByRole('button', { name: 'Use another account' })).toBeInTheDocument();
+});
+
+it('never signs in by itself on a hint', () => {
+  seed('bob@x.co');
+  mockCreds.loginHint = 'bob@x.co';
+  render(<EmailInput onSubmit={onSubmit} />);
+  expect(
+    screen.getByRole('button', { name: 'Continue as bob@x.co' }),
+  ).toBeInTheDocument();
+  expect(mockResume).not.toHaveBeenCalled();
+  expect(mockGo).not.toHaveBeenCalled();
+});
+
+it('shows an empty email field for "Use another account" when the hint matched', () => {
+  seed('alice@x.co', 'bob@x.co');
+  mockCreds.loginHint = 'bob@x.co';
+  render(<EmailInput onSubmit={onSubmit} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Use another account' }));
+  expect(screen.getByLabelText('Email')).toHaveValue('');
+});
+
+it('with a prompt, finishes a provider return instead of showing the sign-in screen again', async () => {
+  seed('alice@x.co');
+  mockCreds.prompt = 'login';
+  mockExchanging = true;
+  const { rerender } = render(<EmailInput onSubmit={onSubmit} />);
+  expect(screen.queryByRole('button', { name: 'Continue as alice@x.co' })).toBeNull();
+  expect(screen.queryByLabelText('Email')).toBeNull();
+
+  await act(async () => {
+    await mockOnExchangeSuccess!(
+      jwtWith({ email: 'jun@example.com', email_verified: true }),
+    );
+  });
+  expect(mockGo).toHaveBeenCalledWith('jun@example.com', expect.any(String));
+
+  mockExchanging = false;
+  rerender(<EmailInput onSubmit={onSubmit} />);
+  expect(mockResume).not.toHaveBeenCalled();
 });

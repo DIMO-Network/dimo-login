@@ -15,7 +15,11 @@ const signIn = (token: string = JWT) => {
   localStorage.setItem(`user_data_${CLIENT_ID}`, JSON.stringify(USER));
 };
 
-const run = (entryState: UiStates, onReturningLogin?: Mock) => {
+const run = (
+  entryState: UiStates,
+  onReturningLogin?: Mock,
+  extra: Partial<Parameters<typeof initializeSession>[0]> = {},
+) => {
   const setUiState = vi.fn();
   initializeSession({
     clientId: CLIENT_ID,
@@ -25,6 +29,7 @@ const run = (entryState: UiStates, onReturningLogin?: Mock) => {
     setUiState,
     entryState,
     onReturningLogin,
+    ...extra,
   });
   return setUiState;
 };
@@ -74,5 +79,53 @@ describe('initializeSession', () => {
   it('treats a token with no expiry as expired', () => {
     signIn(`${b64({ alg: 'HS256' })}.${b64({ sub: 'x' })}.sig`);
     expect(run(UiStates.EMAIL_INPUT)).toHaveBeenCalledWith(UiStates.EMAIL_INPUT);
+  });
+
+  it.each(['select_account', 'login'] as const)(
+    'prompt=%s opens sign-in despite a valid session',
+    (prompt) => {
+      signIn();
+      const setJwt = vi.fn();
+      const setUser = vi.fn();
+      expect(
+        run(UiStates.VEHICLE_MANAGER, undefined, { prompt, setJwt, setUser }),
+      ).toHaveBeenCalledWith(UiStates.EMAIL_INPUT);
+      expect(setJwt).not.toHaveBeenCalled();
+      expect(setUser).not.toHaveBeenCalled();
+      expect(localStorage.getItem(`user_data_${CLIENT_ID}`)).not.toBeNull();
+    },
+  );
+
+  it('prompt keeps an embedded login from posting the cached session', () => {
+    signIn();
+    const onReturningLogin = vi.fn();
+    run(UiStates.EMAIL_INPUT, onReturningLogin, { prompt: 'select_account' });
+    expect(onReturningLogin).not.toHaveBeenCalled();
+  });
+
+  it('a loginHint for the cached account uses the session', () => {
+    signIn();
+    expect(
+      run(UiStates.VEHICLE_MANAGER, undefined, { loginHint: 'JUN@example.com' }),
+    ).toHaveBeenCalledWith(UiStates.VEHICLE_MANAGER);
+  });
+
+  it('a loginHint for another account does not', () => {
+    signIn();
+    const setJwt = vi.fn();
+    expect(
+      run(UiStates.VEHICLE_MANAGER, undefined, {
+        loginHint: 'other@example.com',
+        setJwt,
+      }),
+    ).toHaveBeenCalledWith(UiStates.EMAIL_INPUT);
+    expect(setJwt).not.toHaveBeenCalled();
+  });
+
+  it('prompt does not get in the way of a logout', () => {
+    signIn();
+    expect(run(UiStates.LOGOUT, undefined, { prompt: 'login' })).toHaveBeenCalledWith(
+      UiStates.LOGOUT,
+    );
   });
 });

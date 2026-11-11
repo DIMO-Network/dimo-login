@@ -65,3 +65,27 @@ export const getRedirectUriWithUtm = (redirectUri: string, utm: string) => {
     return new URL(redirectUri);
   }
 };
+
+/**
+ * Takes one query parameter out of the address bar (history.replaceState, so no
+ * new entry), keeping the other parameters as they are and the hash. For a
+ * value that shouldn't stay in the URL, where page URLs get logged or reported.
+ */
+export const removeQueryParam = (name: string): void => {
+  const params = window.location.search.slice(1).split('&');
+  const kept = params.filter((pair) => {
+    const key = pair.split('=')[0];
+    try {
+      return decodeURIComponent(key.replace(/\+/g, ' ')) !== name;
+    } catch {
+      return true;
+    }
+  });
+  if (kept.length === params.length) return;
+  const search = kept.length ? `?${kept.join('&')}` : '';
+  window.history.replaceState(
+    window.history.state,
+    '',
+    `${window.location.pathname}${search}${window.location.hash}`,
+  );
+};
