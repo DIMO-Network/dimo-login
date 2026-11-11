@@ -1,12 +1,16 @@
 /* eslint-disable import/first -- vi.mock calls must precede the imports they mock */
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 const mockClientId = '0x2222222222222222222222222222222222222222';
 const mockGo = vi.fn();
 let mockOAuthUrl: string | null = 'https://accounts.example/oauth';
+let mockOnExchangeSuccess: ((token: string) => unknown) | undefined;
 vi.mock('../../../hooks/useOAuthCodeExchange', () => ({
-  useOAuthCodeExchange: () => ({ isExchanging: false }),
+  useOAuthCodeExchange: (options: { onSuccess: (token: string) => unknown }) => {
+    mockOnExchangeSuccess = options.onSuccess;
+    return { isExchanging: false };
+  },
 }));
 vi.mock('../../../hooks/useConstructOAuthUrl', () => ({
   useConstructOAuthUrl: () => () => mockOAuthUrl,
@@ -49,6 +53,18 @@ import { setForceEmail } from '../../../stores/AuthStateStore';
 import { getEmailChoice } from '../../../services/storageService';
 
 const onSubmit = vi.fn();
+
+// An unsigned JWT: only the payload matters to the screen.
+const b64url = (value: object) =>
+  btoa(JSON.stringify(value)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const jwtWith = (payload: object) => `${b64url({ alg: 'none' })}.${b64url(payload)}.sig`;
+
+const exchangeSucceedsWith = async (token: string) => {
+  render(<EmailInput onSubmit={onSubmit} />);
+  await act(async () => {
+    await mockOnExchangeSuccess!(token);
+  });
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -139,4 +155,18 @@ it.each([
     mockUi.setUiState,
   );
   expect(mockGo).not.toHaveBeenCalled();
+});
+
+it('passes the Google token on as proof of the email', async () => {
+  const token = jwtWith({ email: 'a@b.co', email_verified: true });
+  await exchangeSucceedsWith(token);
+  expect(mockGo).toHaveBeenCalledWith('a@b.co', token);
+});
+
+it('refuses a provider token whose email is not verified', async () => {
+  await exchangeSucceedsWith(jwtWith({ email: 'a@b.co', email_verified: false }));
+  expect(mockGo).not.toHaveBeenCalled();
+  expect(mockUi.setError).toHaveBeenCalledWith(
+    expect.objectContaining({ key: 'signin.error.no_email' }),
+  );
 });

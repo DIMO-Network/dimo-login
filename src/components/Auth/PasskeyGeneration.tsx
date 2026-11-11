@@ -2,20 +2,12 @@ import React, { type FC, useState } from 'react';
 import { CheckIcon, KeyIcon } from '@heroicons/react/24/outline';
 
 import { useAuthContext } from '../../context/AuthContext';
-import { UiStates } from '../../enums';
 import { useUIManager } from '../../context/UIManagerContext';
 import { ErrorMessage } from '../Shared/ErrorMessage';
 import { LegalNotice } from '../Shared/LegalNotice';
-import { createAccount } from '../../services/accountsService';
-import { createPasskey } from '../../services/turnkeyService';
-import { useDevCredentials } from '../../context/DevCredentialsContext';
-import { UserObject } from '../../models/user';
+import { useSignUp } from '../../hooks/useSignUp';
 import { message, useT } from '../../i18n';
 import { ActionBar, Button, DoneHeader, Screen } from '../ui';
-
-interface PasskeyGenerationProps {
-  email: string;
-}
 
 const BENEFITS = [
   'create.benefit_biometric',
@@ -23,35 +15,33 @@ const BENEFITS = [
   'create.benefit_phishing',
 ] as const;
 
-/** A new account: create its passkey, which is how it signs in from now on. */
-export const PasskeyGeneration: FC<PasskeyGenerationProps> = ({ email }) => {
+/**
+ * A new account: create its passkey, which is how it signs in from now on.
+ * The email was proved on the way here (a code, or a Google/Apple token), and
+ * finishing sign-up is useSignUp's job: this screen only asks for it.
+ */
+export const PasskeyGeneration: FC = () => {
   const t = useT();
-  const { setUser } = useAuthContext();
-  const { setError, error, setUiState, setBusy } = useUIManager();
-  const { apiKey } = useDevCredentials();
+  const { signUpDraft } = useAuthContext();
+  const { finish } = useSignUp();
+  const { setError, error, setBusy } = useUIManager();
   // Kept on this screen rather than the shared loader, which would unmount it
   // mid-creation.
   const [creating, setCreating] = useState(false);
 
-  const createAccountWithPasskey = async (email: string): Promise<UserObject> => {
-    const [attestation, challenge] = await createPasskey(email);
-    return await createAccount({
-      email,
-      apiKey,
-      attestation,
-      challenge,
-      deployAccount: true,
-    });
-  };
+  if (!signUpDraft) return null;
+  const { email } = signUpDraft;
 
   const handlePasskeyGeneration = async () => {
     try {
       setError(null);
       setCreating(true);
       setBusy(true);
-      const newAccount = await createAccountWithPasskey(email);
-      setUser(newAccount);
-      setUiState(UiStates.PASSKEY_LOGIN);
+      // On success the hook moves on to sign-in; on a rejected code it has
+      // already returned to the code screen.
+      if ((await finish()) === 'code_rejected') {
+        setError(message('signup.error.code'));
+      }
     } catch (err) {
       setError(message('create.error'));
     } finally {

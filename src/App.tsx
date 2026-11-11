@@ -182,7 +182,7 @@ const App = () => {
     [UiStates.PASSKEY_LOGIN]: <PasskeyLogin email={email} />,
     [UiStates.OTP_INPUT]: <OtpInput email={email} />,
     [UiStates.PASSKEY_LOGIN_FAIL]: <PasskeyLoginFail email={email} />,
-    [UiStates.PASSKEY_GENERATOR]: <PasskeyGeneration email={email} />,
+    [UiStates.PASSKEY_GENERATOR]: <PasskeyGeneration />,
     [UiStates.SIGNUP_VERIFY_EMAIL]: <SignUpCode />,
     [UiStates.VEHICLE_MANAGER]: <VehicleManager />,
     [UiStates.MANAGE_VEHICLE]: <ManageVehicle />,

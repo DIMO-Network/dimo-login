@@ -52,13 +52,15 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   const constructOAuthUrl = useConstructOAuthUrl();
   const goToLoginOrSignUp = useGoToLoginOrSignUp();
 
-  const handleSuccessfulEmailSubmission = async (email: string) => {
+  const handleSuccessfulEmailSubmission = async (email: string, proofToken?: string) => {
     try {
       // An earlier attempt's error would otherwise follow onto the next screen.
       setError(null);
       setLoadingState(true, message('signin.signing_in'), false);
       onSubmit(email);
-      await goToLoginOrSignUp(email);
+      await (proofToken
+        ? goToLoginOrSignUp(email, proofToken)
+        : goToLoginOrSignUp(email));
     } catch (err) {
       captureException(err);
       setError(message('signin.error.details'));
@@ -93,11 +95,12 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
 
   const handleToken = async (token: string) => {
     const decodedJwt = decodeJwt(token);
-    if (!decodedJwt?.email) {
+    // The token is the proof of the email, so an unverified one is no proof.
+    if (!decodedJwt?.email || decodedJwt.email_verified === false) {
       return setError(message('signin.error.no_email'));
     }
     setEmail(decodedJwt.email);
-    await handleSuccessfulEmailSubmission(decodedJwt.email);
+    await handleSuccessfulEmailSubmission(decodedJwt.email, token);
   };
 
   const { isExchanging } = useOAuthCodeExchange({
