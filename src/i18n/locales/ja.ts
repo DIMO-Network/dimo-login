@@ -164,6 +164,13 @@ const ja: LocaleResources = {
   'otp.resent': '新しいコードを送信しました。',
   'otp.error.send': 'コードを送信できませんでした。もう一度お試しください。',
   'otp.error.verify': 'コードが正しくありません。確認して、もう一度お試しください。',
+  'signup.code_title': 'メールをご確認ください',
+  'signup.code_body':
+    '{{email}} に6桁のコードを送信しました。コードを入力してアカウントを作成してください。',
+  'signup.code_continue': '続ける',
+  'signup.error.code':
+    'コードが正しくありません。確認するか、新しいコードを送信してください。',
+  'signup.error.send': 'コードを送信できませんでした。もう一度お試しください。',
   'create.title': 'パスキーを作成',
   'create.body': 'DIMOアカウントには、パスワードの代わりにパスキーでサインインします。',
   'create.benefit_biometric': '指紋、顔認証、または端末のPINでサインイン',

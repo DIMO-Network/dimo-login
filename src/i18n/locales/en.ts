@@ -178,6 +178,12 @@ const en = {
   'otp.resent': 'A new code is on its way.',
   'otp.error.send': 'Couldn’t send a code. Try again.',
   'otp.error.verify': 'That code didn’t work. Check it and try again.',
+  'signup.code_title': 'Check your email',
+  'signup.code_body':
+    'We sent a 6-digit code to {{email}}. Enter it to create your account.',
+  'signup.code_continue': 'Continue',
+  'signup.error.code': 'That code didn’t work. Check it or send a new one.',
+  'signup.error.send': 'Couldn’t send a code. Try again.',
   'create.title': 'Create a passkey',
   'create.body': 'Your DIMO account signs in with a passkey instead of a password.',
   'create.benefit_biometric': 'Sign in with your fingerprint, face or device PIN',

@@ -184,6 +184,12 @@ const es: PluralLocaleResources = {
   'otp.resent': 'Te enviamos un código nuevo.',
   'otp.error.send': 'No se pudo enviar el código. Inténtalo de nuevo.',
   'otp.error.verify': 'Ese código no funcionó. Revísalo e inténtalo de nuevo.',
+  'signup.code_title': 'Revisa tu correo',
+  'signup.code_body':
+    'Enviamos un código de 6 dígitos a {{email}}. Ingrésalo para crear tu cuenta.',
+  'signup.code_continue': 'Continuar',
+  'signup.error.code': 'Ese código no funcionó. Revísalo o pide uno nuevo.',
+  'signup.error.send': 'No se pudo enviar el código. Inténtalo de nuevo.',
   'create.title': 'Crea una clave de acceso',
   'create.body':
     'Tu cuenta DIMO inicia sesión con una clave de acceso en lugar de una contraseña.',

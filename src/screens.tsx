@@ -96,6 +96,9 @@ const screens = {
   [UiStates.OTP_INPUT]: lazyScreen(() =>
     import('./components/Auth/OtpInput').then((m) => ({ default: m.OtpInput })),
   ),
+  [UiStates.SIGNUP_VERIFY_EMAIL]: lazyScreen(() =>
+    import('./components/Auth/SignUpCode').then((m) => ({ default: m.SignUpCode })),
+  ),
   [UiStates.PASSKEY_LOGIN_FAIL]: lazyScreen(() =>
     import('./components/Auth/PasskeyLoginFail').then((m) => ({
       default: m.PasskeyLoginFail,
@@ -190,6 +193,7 @@ const screens = {
 
 export const PasskeyLogin = screens[UiStates.PASSKEY_LOGIN];
 export const OtpInput = screens[UiStates.OTP_INPUT];
+export const SignUpCode = screens[UiStates.SIGNUP_VERIFY_EMAIL];
 export const PasskeyLoginFail = screens[UiStates.PASSKEY_LOGIN_FAIL];
 export const PasskeyGeneration = screens[UiStates.PASSKEY_GENERATOR];
 export const VehicleManager = screens[UiStates.VEHICLE_MANAGER];
@@ -215,6 +219,7 @@ export const ProvisionDeveloperLicense = screens[UiStates.PROVISION_DEVELOPER_LI
 export const SIGN_IN_STATES: UiStates[] = [
   UiStates.PASSKEY_LOGIN,
   UiStates.OTP_INPUT,
+  UiStates.SIGNUP_VERIFY_EMAIL,
   UiStates.PASSKEY_LOGIN_FAIL,
   UiStates.PASSKEY_GENERATOR,
   UiStates.EMAIL_CONSENT,

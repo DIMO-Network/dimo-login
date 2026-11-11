@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import debounce from 'lodash/debounce';
 import { EnvelopeIcon } from '@heroicons/react/24/outline';
 
@@ -7,13 +7,11 @@ import { sendOtp } from '../../services/accountsService';
 import { useAuthContext } from '../../context/AuthContext';
 import { message, translateText, useT, type Message } from '../../i18n';
 import { ActionBar, Button, DoneHeader, ErrorBox, Notice, Screen } from '../ui';
-import { cn } from '../ui/cn';
+import { CodeBoxes } from './CodeBoxes';
+
+export { toDigits } from './CodeBoxes';
 
 const LENGTH = 6;
-
-// Digits only, whatever the keyboard sent: NFKC turns full-width ３ (Japanese
-// IMEs) into 3, and anything else is dropped.
-export const toDigits = (value: string) => value.normalize('NFKC').replace(/\D/g, '');
 
 interface OtpInputProps {
   email: string;
@@ -35,7 +33,6 @@ export const OtpInput: React.FC<OtpInputProps> = ({ email: emailProp }) => {
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState<OtpError | null>(null);
   const [resent, setResent] = useState(false);
-  const inputs = useRef<(HTMLInputElement | null)[]>([]);
 
   const sendOtpCode = async (isResend = false) => {
     setError(null);
@@ -70,27 +67,10 @@ export const OtpInput: React.FC<OtpInputProps> = ({ email: emailProp }) => {
     // eslint-disable-next-line
   }, []);
 
-  const focus = (index: number) => inputs.current[Math.min(index, LENGTH - 1)]?.focus();
-
-  // Typing fills one box and moves on; pasting or autofill fills from here.
-  const fillFrom = (index: number, value: string) => {
-    const typed = toDigits(value);
-    if (!typed) {
-      setDigits((current) => current.map((d, i) => (i === index ? '' : d)));
-      return;
-    }
-    setDigits((current) => {
-      const next = [...current];
-      typed
-        .slice(0, LENGTH - index)
-        .split('')
-        .forEach((d, i) => {
-          next[index + i] = d;
-        });
-      return next;
-    });
-    setError(null);
-    focus(index + typed.length);
+  // Typing a digit (or pasting a code) dismisses the last error.
+  const changeDigits = (next: string[]) => {
+    if (next.some((d, i) => d && d !== digits[i])) setError(null);
+    setDigits(next);
   };
 
   const code = digits.join('');
@@ -110,25 +90,6 @@ export const OtpInput: React.FC<OtpInputProps> = ({ email: emailProp }) => {
       });
     } finally {
       setVerifying(false);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
-    const native = e.nativeEvent as unknown as {
-      isComposing?: boolean;
-      keyCode?: number;
-    };
-    if (native.isComposing || native.keyCode === 229) return;
-    if (e.key === 'Enter') {
-      handleSubmit();
-    } else if (e.key === 'Backspace' && !digits[index] && index > 0) {
-      e.preventDefault();
-      setDigits((current) => current.map((d, i) => (i === index - 1 ? '' : d)));
-      focus(index - 1);
-    } else if (e.key === 'ArrowLeft' && index > 0) {
-      focus(index - 1);
-    } else if (e.key === 'ArrowRight') {
-      focus(index + 1);
     }
   };
 
@@ -166,38 +127,12 @@ export const OtpInput: React.FC<OtpInputProps> = ({ email: emailProp }) => {
         </ErrorBox>
       )}
 
-      <fieldset className="flex flex-col gap-2">
-        <legend className="mb-2 text-label text-muted">{t('otp.label')}</legend>
-        <div className="flex justify-between gap-2">
-          {digits.map((digit, index) => (
-            <input
-              key={index}
-              ref={(el) => {
-                inputs.current[index] = el;
-              }}
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              // Lets the browser or keyboard offer the emailed code.
-              autoComplete={index === 0 ? 'one-time-code' : 'off'}
-              aria-label={t('otp.digit_label', { index: index + 1 })}
-              aria-invalid={error?.codeRejected ? true : undefined}
-              value={digit}
-              onChange={(e) => fillFrom(index, e.target.value)}
-              onPaste={(e) => {
-                e.preventDefault();
-                fillFrom(index, e.clipboardData.getData('text'));
-              }}
-              onFocus={(e) => e.target.select()}
-              onKeyDown={(e) => handleKeyDown(e, index)}
-              className={cn(
-                'h-12 w-full min-w-0 max-w-12 rounded-control border bg-control text-center text-title text-ink outline-hidden transition-[border-color,box-shadow] focus:border-focus-ring focus:ring-[3px] focus:ring-accent-soft',
-                error?.codeRejected ? 'border-negative' : 'border-control-border',
-              )}
-            />
-          ))}
-        </div>
-      </fieldset>
+      <CodeBoxes
+        digits={digits}
+        onDigitsChange={changeDigits}
+        invalid={!!error?.codeRejected}
+        onSubmit={handleSubmit}
+      />
 
       {resent && <Notice tone="positive">{t('otp.resent')}</Notice>}
       <Button
