@@ -37,11 +37,9 @@ export const PasskeyGeneration: FC = () => {
       setError(null);
       setCreating(true);
       setBusy(true);
-      // On success the hook moves on to sign-in; on a rejected code it has
-      // already returned to the code screen.
-      if ((await finish()) === 'code_rejected') {
-        setError(message('signup.error.code'));
-      }
+      // Sign-up moves on by itself: to sign-in, or back to the code screen
+      // with an error when the code was rejected.
+      await finish();
     } catch (err) {
       setError(message('create.error'));
     } finally {

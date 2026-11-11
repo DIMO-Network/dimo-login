@@ -10,7 +10,10 @@ import { UiStates } from '../../enums';
 
 vi.mock('../DevCredentialsContext', () => ({ useDevCredentials: vi.fn() }));
 vi.mock('../UIManagerContext', () => ({ useUIManager: vi.fn() }));
-vi.mock('../../services/walletLoader', () => ({ signInStepsWithSigner: vi.fn() }));
+vi.mock('../../services/walletLoader', () => ({
+  signInStepsWithSigner: vi.fn(),
+  loadSignInSteps: vi.fn(),
+}));
 
 const deferred = <T,>() => {
   let resolve!: (value: T) => void;
@@ -85,5 +88,21 @@ describe('AuthContext validateSession', () => {
 
     expect(setUiState).toHaveBeenCalledWith(UiStates.EMAIL_INPUT);
     expect(signInStepsWithSigner).not.toHaveBeenCalled();
+  });
+});
+
+describe('AuthContext sign-up', () => {
+  it('runs the sign-up sequence and shares its draft', async () => {
+    renderProvider();
+    await act(() => auth.signUp.start('a@b.co', 'tok'));
+    expect(auth.signUpDraft).toEqual({ kind: 'proof', email: 'a@b.co', proofToken: 'tok' });
+    expect(setUiState).toHaveBeenCalledWith(UiStates.PASSKEY_GENERATOR, { setBack: true });
+  });
+
+  it('resetUser also drops the sign-up in progress', async () => {
+    renderProvider();
+    await act(() => auth.signUp.start('a@b.co', 'tok'));
+    act(() => auth.resetUser());
+    expect(auth.signUpDraft).toBeNull();
   });
 });
