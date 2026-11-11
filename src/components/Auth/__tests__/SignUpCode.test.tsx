@@ -153,6 +153,13 @@ it('shows why it came back from the passkey step', () => {
   boxes().forEach((box) => expect(box).toHaveAttribute('aria-invalid', 'true'));
 });
 
+it('dismisses the error once a digit is typed', () => {
+  mockUi.error = message('signup.error.code');
+  renderScreen(sentAgo(0));
+  fireEvent.change(boxes()[0], { target: { value: '4' } });
+  expect(mockUi.setError).toHaveBeenCalledWith(null);
+});
+
 it('marks the boxes invalid only for a rejected code', () => {
   mockUi.error = message('create.error');
   renderScreen(sentAgo(0));

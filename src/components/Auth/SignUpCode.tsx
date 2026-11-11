@@ -5,14 +5,13 @@ import { useAuthContext } from '../../context/AuthContext';
 import { useUIManager } from '../../context/UIManagerContext';
 import { useSignUp } from '../../hooks/useSignUp';
 import { message, useT, type Text } from '../../i18n';
-import ErrorMessage from '../Shared/ErrorMessage';
+import { ErrorMessage } from '../Shared/ErrorMessage';
 import { ActionBar, Button, DoneHeader, Notice, Screen } from '../ui';
-import { CodeBoxes } from './CodeBoxes';
+import { CODE_LENGTH, CodeBoxes, hasNewDigit } from './CodeBoxes';
 
-const LENGTH = 6;
 export const RESEND_COOLDOWN_MS = 30_000;
 
-const noDigits = () => Array<string>(LENGTH).fill('');
+const noDigits = () => Array<string>(CODE_LENGTH).fill('');
 
 /** True until RESEND_COOLDOWN_MS after `sentAt`, the latest send. */
 const useResendCooldown = (sentAt: number): boolean => {
@@ -55,7 +54,7 @@ export const SignUpCode: React.FC = () => {
 
   const code = digits.join('');
   // Held while a new code is on its way: the one typed is about to stop working.
-  const canContinue = code.length === LENGTH && !resending;
+  const canContinue = code.length === CODE_LENGTH && !resending;
 
   const handleContinue = () => {
     if (canContinue) submitCode(code);
@@ -78,18 +77,18 @@ export const SignUpCode: React.FC = () => {
   };
 
   const changeDigits = (next: string[]) => {
-    if (next.some((d, i) => d && d !== digits[i])) setScreenError(null);
+    if (hasNewDigit(digits, next)) setScreenError(null);
     setDigits(next);
   };
 
-  const shownError = status === 'failed' ? message('signup.error.send') : screenError;
+  const shownError = status === 'failed' ? message('otp.error.send') : screenError;
 
   return (
     <Screen
       actions={
         <ActionBar>
           <Button fullWidth onClick={handleContinue} disabled={!canContinue}>
-            {t('signup.code_continue')}
+            {t('common.continue')}
           </Button>
         </ActionBar>
       }

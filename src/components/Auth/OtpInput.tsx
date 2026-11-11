@@ -7,11 +7,7 @@ import { sendOtp } from '../../services/accountsService';
 import { useAuthContext } from '../../context/AuthContext';
 import { message, translateText, useT, type Message } from '../../i18n';
 import { ActionBar, Button, DoneHeader, ErrorBox, Notice, Screen } from '../ui';
-import { CodeBoxes } from './CodeBoxes';
-
-export { toDigits } from './CodeBoxes';
-
-const LENGTH = 6;
+import { CODE_LENGTH, CodeBoxes, hasNewDigit } from './CodeBoxes';
 
 interface OtpInputProps {
   email: string;
@@ -28,7 +24,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({ email: emailProp }) => {
   // skipped (a returning session, the passkey retry screen).
   const email = emailProp || user?.email || '';
   const { setError: setScreenError } = useUIManager();
-  const [digits, setDigits] = useState<string[]>(Array(LENGTH).fill(''));
+  const [digits, setDigits] = useState<string[]>(Array(CODE_LENGTH).fill(''));
   const [otpId, setOtpId] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState<OtpError | null>(null);
@@ -69,12 +65,12 @@ export const OtpInput: React.FC<OtpInputProps> = ({ email: emailProp }) => {
 
   // Typing a digit (or pasting a code) dismisses the last error.
   const changeDigits = (next: string[]) => {
-    if (next.some((d, i) => d && d !== digits[i])) setError(null);
+    if (hasNewDigit(digits, next)) setError(null);
     setDigits(next);
   };
 
   const code = digits.join('');
-  const complete = code.length === LENGTH;
+  const complete = code.length === CODE_LENGTH;
 
   const handleSubmit = async () => {
     if (!complete || verifying) return;

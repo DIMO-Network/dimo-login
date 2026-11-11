@@ -3,11 +3,15 @@ import React, { useRef } from 'react';
 import { useT } from '../../i18n';
 import { cn } from '../ui/cn';
 
-const LENGTH = 6;
+export const CODE_LENGTH = 6;
 
 // Digits only, whatever the keyboard sent: NFKC turns full-width ３ (Japanese
 // IMEs) into 3, and anything else is dropped.
 export const toDigits = (value: string) => value.normalize('NFKC').replace(/\D/g, '');
+
+/** A digit was typed or pasted, not only deleted: the last error no longer applies. */
+export const hasNewDigit = (prev: string[], next: string[]): boolean =>
+  next.some((d, i) => d !== '' && d !== prev[i]);
 
 interface CodeBoxesProps {
   digits: string[];
@@ -28,7 +32,8 @@ export const CodeBoxes: React.FC<CodeBoxesProps> = ({
   const t = useT();
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
 
-  const focus = (index: number) => inputs.current[Math.min(index, LENGTH - 1)]?.focus();
+  const focus = (index: number) =>
+    inputs.current[Math.min(index, CODE_LENGTH - 1)]?.focus();
 
   // Typing fills one box and moves on; pasting or autofill fills from here.
   const fillFrom = (index: number, value: string) => {
@@ -39,7 +44,7 @@ export const CodeBoxes: React.FC<CodeBoxesProps> = ({
     }
     const next = [...digits];
     typed
-      .slice(0, LENGTH - index)
+      .slice(0, CODE_LENGTH - index)
       .split('')
       .forEach((d, i) => {
         next[index + i] = d;
