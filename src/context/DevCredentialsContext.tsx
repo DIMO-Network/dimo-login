@@ -37,7 +37,8 @@ import { getDefaultExpirationDate } from '../utils/dateUtils';
 import { sendMessageToReferrer } from '../utils/messageHandler';
 import { isStandalone } from '../utils/isStandalone';
 import { getEmbedderOrigin, isEmbed } from '../utils/isEmbed';
-import { originOf, removeQueryParam } from '../utils/urlHelpers';
+import { originOf, readHistoryState, removeQueryParam } from '../utils/urlHelpers';
+import { normalizeLoginHint } from '../utils/loginPrompt';
 import { getConfigurationById } from '../services/configurationService';
 import { CALLER_PARAM_KEYS, filterMessageParams } from '../utils/messageParams';
 
@@ -164,12 +165,17 @@ export const DevCredentialsProvider = ({
         parsedUrlParams[key] = value;
       }
     }
+    // A reload of this page (or Back to it, when the browser doesn't keep it
+    // in memory) after the hint left the address bar: this entry kept it.
+    if (!urlParams.has('loginHint')) {
+      parsedUrlParams.loginHint = normalizeLoginHint(readHistoryState('loginHint'));
+    }
     applyDevCredentialsConfig({
       ...filterMessageParams(parsedUrlParams),
       waitingForParams: false,
     });
-    // The hint is an email: it has been read, so it doesn't stay in the URL,
-    // where page URLs get logged and attached to error reports.
+    // The hint is an email: once read it leaves the address bar, where page
+    // URLs get logged, and stays in this history entry's state for a reload.
     removeQueryParam('loginHint');
 
     return true;

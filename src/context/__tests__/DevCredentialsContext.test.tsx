@@ -806,6 +806,40 @@ describe('DevCredentialsContext loginHint', () => {
     expect(window.location.search).toContain(`clientId=${CLIENT_ID}`);
     expect(window.location.search).toContain('altTitle=true');
     expect(window.location.hash).toBe('#top');
+    // Kept in this history entry, for a reload.
+    expect(window.history.state).toEqual({ loginHint: 'jun@example.com' });
+  });
+
+  it('redirect: a reload after the hint left the address bar still has it', async () => {
+    window.history.pushState(
+      { loginHint: ' Jun@Example.com ' },
+      '',
+      `/?clientId=${CLIENT_ID}&redirectUri=${encodeURIComponent(REDIRECT_URI)}`,
+    );
+    renderProvider('loginHint');
+    await waitFor(() => expect(probe()).toBe('"jun@example.com"'));
+  });
+
+  it('drops a hint kept in the history entry that is not an email', async () => {
+    window.history.pushState(
+      { loginHint: 'not an email' },
+      '',
+      `/?clientId=${CLIENT_ID}`,
+    );
+    renderProvider('loginHint');
+    await waitFor(() => expect(fetchOemBrandMock).toHaveBeenCalled());
+    expect(probe()).toBe('null');
+  });
+
+  it('prefers the hint in the URL to one kept in the history entry', async () => {
+    window.history.pushState(
+      { loginHint: 'old@example.com' },
+      '',
+      `/?clientId=${CLIENT_ID}&loginHint=new%40example.com`,
+    );
+    renderProvider('loginHint');
+    await waitFor(() => expect(probe()).toBe('"new@example.com"'));
+    expect(window.history.state).toEqual({ loginHint: 'new@example.com' });
   });
 
   it('leaves an OAuth return URL alone', async () => {
