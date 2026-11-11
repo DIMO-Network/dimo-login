@@ -11,6 +11,7 @@ import { useOracles } from '../context/OraclesContext';
 import { UiStates } from '../enums';
 import { setEmailRequest, setForceEmail } from '../stores/AuthStateStore';
 import { normalizeEmailRequest } from '../utils/emailRequest';
+import { normalizeLoginHint, normalizeLoginPrompt } from '../utils/loginPrompt';
 import { parseBooleanParam } from '../utils/parseBooleanParam';
 import { normalizeLanguage } from '../i18n/language';
 import { parseExpirationDate, getDefaultExpirationDate } from '../utils/dateUtils';
@@ -84,6 +85,17 @@ export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
       const emailRequest = normalizeEmailRequest(value);
       setEmailRequest(emailRequest);
       setDevCredentialsState((prev) => ({ ...prev, emailRequest }));
+    },
+    // Invalid values are ignored, keeping any earlier valid one.
+    prompt: (value: unknown) => {
+      const prompt = normalizeLoginPrompt(value);
+      if (prompt === undefined) return;
+      setDevCredentialsState((prev) => ({ ...prev, prompt }));
+    },
+    loginHint: (value: unknown) => {
+      const loginHint = normalizeLoginHint(value);
+      if (loginHint === undefined) return;
+      setDevCredentialsState((prev) => ({ ...prev, loginHint }));
     },
     altTitle: (value: unknown) => {
       const altTitle = parseBooleanParam(value);

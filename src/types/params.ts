@@ -3,6 +3,7 @@ import { OemBrand } from '../services/brandService';
 import { CloudEventAgreement } from './permissions';
 import type { Language } from '../i18n/language';
 import type { EmailRequest } from '../utils/emailRequest';
+import type { LoginPrompt } from '../utils/loginPrompt';
 
 export interface BaseParams {
   clientId: `0x${string}` | null;
@@ -16,6 +17,10 @@ export interface BaseParams {
   /** @deprecated by emailRequest; true means 'required'. */
   forceEmail?: boolean;
   emailRequest?: EmailRequest;
+  /** Asks for an account chooser or a fresh sign-in. */
+  prompt?: LoginPrompt;
+  /** Email to pre-fill on the sign-in screen. */
+  loginHint?: string;
   configCID?: string;
   /**
    * Brand the relying party selected, forwarded by the SDK — a URL query param
