@@ -59,9 +59,7 @@ export const SuccessPage: React.FC = () => {
 
   return (
     <Screen actions={actions}>
-      <DoneHeader title={t('login_done.title')}>
-        {user?.email ? t('login_done.body', { email: user.email }) : undefined}
-      </DoneHeader>
+      <DoneHeader title={t('login_done.title')} />
       {/* Embedded, the app already has the login and there's no Back to send
           a new answer with, so the switch would change nothing. */}
       {!embedded && <AboutYouEmail appName={appName} request={emailRequest} />}

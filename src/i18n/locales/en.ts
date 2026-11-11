@@ -196,7 +196,7 @@ const en = {
 
   // Plain sign-in done, and signing out
   'login_done.title': 'You’re signed in',
-  'login_done.body': 'Signed in as {{email}}.',
+  'account.signed_in_as': 'Signed in as {{email}}',
   'logout.signing_out': 'Signing out…',
 
   // Email sharing, as a switch row

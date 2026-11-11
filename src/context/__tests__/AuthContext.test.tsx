@@ -328,6 +328,45 @@ describe('AuthContext per-account wallet sessions', () => {
     expect(setUiState).toHaveBeenCalledWith(UiStates.EMAIL_INPUT);
     expect(setError).toHaveBeenCalledWith(null);
   });
+
+  it('after switchAccount, signing in as another account returns to the requested screen as that account', async () => {
+    (useUIManager as Mock).mockReturnValue({
+      setUiState,
+      setError,
+      entryState: 'VEHICLE_MANAGER',
+    });
+    localStorage.setItem('turnkey_session_sub-b', apiKeySession());
+    renderProvider();
+    signInAs('sub-a');
+    act(() => auth.switchAccount());
+    expect(setUiState).toHaveBeenLastCalledWith(UiStates.EMAIL_INPUT);
+
+    signer.resolve(
+      stepsWith(
+        {},
+        {
+          authenticateUser: vi.fn().mockResolvedValue({
+            accessToken: JWT,
+            walletAddress: '0xbob',
+            smartContractAddress: '0xbobsc',
+            turnkeySessionExpiration: Date.now() + 60_000,
+          }),
+        },
+      ),
+    );
+    await act(async () => {
+      await auth.resumeAccount({
+        email: 'bob@x.co',
+        subOrganizationId: 'sub-b',
+        lastUsedAt: 1,
+      });
+    });
+
+    expect(setUiState).toHaveBeenLastCalledWith(UiStates.VEHICLE_MANAGER);
+    expect(auth.user.email).toBe('bob@x.co');
+    expect(auth.user.smartContractAddress).toBe('0xbobsc');
+    expect(auth.jwt).toBe(JWT);
+  });
 });
 
 describe('AuthContext sign-up', () => {

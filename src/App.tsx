@@ -14,6 +14,7 @@ import { getValidationsForState } from './validations';
 import { EmailInput } from './components/Auth/EmailInput';
 import { ErrorScreen } from './components/Shared/ErrorScreen';
 import { LoadingScreen } from './components/Shared/LoadingScreen';
+import { AccountBar } from './components/Shell/AccountBar';
 import { AppShell } from './components/Shell/AppShell';
 import { FocusScreenHeading } from './components/Shell/FocusScreenHeading';
 import { ScreenErrorBoundary } from './components/Shell/ScreenErrorBoundary';
@@ -206,6 +207,7 @@ const App = () => {
 
   return (
     <AppShell>
+      <AccountBar />
       {/* Keyed by the screen, so Back recovers from one that failed. */}
       <ScreenErrorBoundary key={uiState} firstScreen={firstScreen}>
         <Suspense fallback={<LoadingScreen />}>

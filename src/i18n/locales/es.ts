@@ -205,7 +205,7 @@ const es: PluralLocaleResources = {
 
   // Plain sign-in done, and signing out
   'login_done.title': 'Iniciaste sesión',
-  'login_done.body': 'Sesión iniciada como {{email}}.',
+  'account.signed_in_as': 'Sesión iniciada como {{email}}',
   'logout.signing_out': 'Cerrando sesión…',
 
   // The email as part of the app's request

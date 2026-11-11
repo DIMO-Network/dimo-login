@@ -51,7 +51,13 @@ vi.mock('../context/DevCredentialsContext', () => ({
   }),
 }));
 vi.mock('../context/AuthContext', () => ({
-  useAuthContext: () => ({ setJwt: () => {}, setUser: () => {} }),
+  useAuthContext: () => ({
+    setJwt: () => {},
+    setUser: () => {},
+    jwt: 'jwt',
+    user: { email: 'alice@x.co' },
+    switchAccount: () => {},
+  }),
 }));
 vi.mock('../hooks/useErrorHandler', () => ({ useErrorHandler: () => ({ error: null }) }));
 vi.mock('../services/sessionService', () => ({ initializeSession: () => {} }));
@@ -146,6 +152,17 @@ it('moves focus to the error’s heading when the next screen fails', async () =
 
   const heading = await screen.findByRole('heading', { name: 'This screen didn’t load' });
   expect(document.activeElement).toBe(heading);
+});
+
+it('keeps naming the account when the screen fails', async () => {
+  mockApp.uiState = 'MANAGE_VEHICLE' as UiStates;
+  render(<App />);
+
+  expect(
+    screen.getByRole('heading', { name: 'This screen didn’t load' }),
+  ).toBeInTheDocument();
+  expect(screen.getByText('Signed in as alice@x.co')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Use another account' })).toBeInTheDocument();
 });
 
 it('shows the next screen after one that failed', async () => {

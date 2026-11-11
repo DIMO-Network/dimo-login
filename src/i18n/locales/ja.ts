@@ -183,7 +183,7 @@ const ja: LocaleResources = {
   'create.error': 'アカウントを作成できませんでした。もう一度お試しください。',
 
   'login_done.title': 'サインインしました',
-  'login_done.body': '{{email}}でサインインしています。',
+  'account.signed_in_as': '{{email}}でサインイン中',
   'logout.signing_out': 'サインアウトしています…',
 
   'email.item': 'メールアドレス',
