@@ -65,6 +65,13 @@ beforeEach(() => {
     JSON.stringify({ ...USER, credentialIds: undefined }),
   );
   setWalletSession('sub-jun', SESSION);
+  // As the sign-in just before the offer leaves it: the account remembered.
+  localStorage.setItem(
+    'dimo_accounts',
+    JSON.stringify([
+      { email: 'jun@example.com', subOrganizationId: 'sub-jun', lastUsedAt: 1 },
+    ]),
+  );
   steps.prepareEnrollment.mockResolvedValue(PREPARED);
   steps.enrollPasskey.mockResolvedValue(SIGNED);
   vi.mocked(addAuthenticator).mockResolvedValue(undefined);
@@ -138,6 +145,48 @@ it('shows that it is adding the passkey meanwhile, and can be skipped', async ()
   await act(async () => enrolling.resolve(SIGNED));
   expect(mockUi.setBusy).not.toHaveBeenCalled();
   expect(mockAuth.continueAfterSignIn).toHaveBeenCalledTimes(1);
+});
+
+it('after Not now, a late add touches nobody’s session but still records the passkey', async () => {
+  localStorage.setItem(
+    'dimo_accounts',
+    JSON.stringify([
+      { email: 'other@x.co', subOrganizationId: 'sub-other', lastUsedAt: 2 },
+      { email: 'jun@example.com', subOrganizationId: 'sub-jun', lastUsedAt: 1 },
+    ]),
+  );
+  const enrolling = Promise.withResolvers<typeof SIGNED>();
+  steps.enrollPasskey.mockReturnValue(enrolling.promise);
+  await ready();
+  fireEvent.click(addButton());
+  fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
+
+  await act(async () => enrolling.resolve(SIGNED));
+  await waitFor(() => expect(addAuthenticator).toHaveBeenCalled());
+  await act(async () => {});
+
+  // Whoever is signed in by now, the page's account is left alone.
+  expect(mockAuth.setUser).not.toHaveBeenCalled();
+  expect(JSON.parse(localStorage.getItem(`user_data_${CLIENT}`)!)).toMatchObject({
+    hasPasskey: true,
+  });
+  expect(getRememberedAccounts(null)).toEqual([
+    expect.objectContaining({ email: 'other@x.co', lastUsedAt: 2 }),
+    expect.objectContaining({
+      email: 'jun@example.com',
+      lastUsedAt: 1,
+      hasPasskey: true,
+    }),
+  ]);
+});
+
+it('marks only the account it added for', async () => {
+  await ready();
+  fireEvent.click(addButton());
+  await screen.findByText('Passkey added.');
+  const update = mockAuth.setUser.mock.calls[0][0];
+  const someoneElse = { ...USER, subOrganizationId: 'sub-other', hasPasskey: false };
+  expect(update(someoneElse)).toBe(someoneElse);
 });
 
 it('says it couldn’t add one when the accounts API doesn’t answer in time', async () => {

@@ -167,11 +167,16 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     setError(null);
     const ready = passkeyChallenge.take();
     let found = false;
+    // Only the prompt's own refusal can be a person closing it; an aborted
+    // request (a time limit) is a failure like any other.
+    let prompting = false;
     try {
       const lookup = ready?.lookup ?? (await loadPasskeyLookup());
       const challenge =
         ready?.challenge ?? (await lookup.fetchPasskeyChallenge()).challenge;
+      prompting = true;
       const assertion = await lookup.getPasskeyAssertion(challenge);
+      prompting = false;
       setLoadingState(true, message('signin.signing_in'), false);
       const account = await lookup.findAccountByPasskey(challenge, assertion);
       if (!account) return setError(message('signin.error.passkey_unknown'));
@@ -184,7 +189,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       onSubmit(account.email);
       setUiState(UiStates.PASSKEY_LOGIN);
     } catch (err) {
-      const closed = isPromptClosed(err);
+      const closed = prompting && isPromptClosed(err);
       if (closed && ready) return;
       if (!closed) captureException(err);
       setError(message('signin.error.passkey'));

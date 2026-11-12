@@ -391,6 +391,22 @@ describe('markHasPasskey', () => {
     expect(JSON.stringify({ ...localStorage })).not.toContain('cred-secret');
   });
 
+  it('keeps the remembered list’s order and times', () => {
+    rememberAccount(A, 1);
+    rememberAccount(B, 2);
+    markHasPasskey(CLIENT, A);
+    expect(getRememberedAccounts(null)).toEqual([
+      expect.objectContaining({ email: 'bob@x.co', lastUsedAt: 2 }),
+      expect.objectContaining({ email: 'alice@x.co', lastUsedAt: 1, hasPasskey: true }),
+    ]);
+  });
+
+  it('doesn’t remember an account that isn’t remembered', () => {
+    rememberAccount(B, 2);
+    markHasPasskey(CLIENT, A);
+    expect(getRememberedAccounts(null).map((a) => a.email)).toEqual(['bob@x.co']);
+  });
+
   it('leaves another account’s stored user alone', () => {
     signInApp(CLIENT, B);
     markHasPasskey(CLIENT, A);

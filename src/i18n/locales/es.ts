@@ -582,7 +582,7 @@ const es: PluralLocaleResources = {
   'apps.documents': 'Tus documentos',
   'apps.until': 'Hasta el {{date}}',
   'apps.stop': 'Dejar de compartir',
-  'apps.stopping': 'Deteniendo…',
+  'apps.stopping': 'Dejando de compartir…',
   'apps.keep': 'Seguir compartiendo',
   'apps.stop_title': '¿Dejar de compartir con {{appName}}?',
   'apps.stop_body':
@@ -599,6 +599,7 @@ const es: PluralLocaleResources = {
   'apps.stop_waiting': 'Dejando de compartir… esto puede tardar un minuto.',
   'apps.stop_slow':
     'Esto está tardando más de lo normal. Vuelve a revisar en unos minutos.',
+  'apps.check_again': 'Revisar de nuevo',
 };
 
 export default es;

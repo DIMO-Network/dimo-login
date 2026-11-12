@@ -234,7 +234,8 @@ export const getLastSignedInSubOrganizationId = (
 
 /**
  * The account now has a passkey: so says this app's stored user (when it is
- * this account) and the remembered account. Only the fields each keeps are
+ * this account) and its remembered entry (when it has one), in place, so the
+ * chooser's order and times stay as they were. Only the fields each keeps are
  * written. Never throws.
  */
 export const markHasPasskey = (
@@ -248,7 +249,13 @@ export const markHasPasskey = (
       storeUserInLocalStorage(clientId, { ...stored, hasPasskey: true });
     }
   });
-  quietly(() => rememberAccount({ ...account, hasPasskey: true }));
+  const accounts = readStoredAccounts();
+  if (accounts.some((a) => a.email === email)) {
+    writeJson(
+      ACCOUNTS_KEY,
+      accounts.map((a) => (a.email === email ? { ...a, hasPasskey: true } : a)),
+    );
+  }
 };
 
 // "Not now" on the passkey offer, per account: when it was said (ms).

@@ -155,7 +155,11 @@ it('stops sharing only after a confirmation, then reloads the list', async () =>
   await waitFor(() => expect(revokeAppAccess).toHaveBeenCalledWith(ACME_ACCESS));
   expect(mockValidate).toHaveBeenCalled();
   await waitFor(() => expect(mockApps.reload).toHaveBeenCalled());
-  expect(waitForRevocation).toHaveBeenCalledWith(OWNER, ACME_ACCESS);
+  expect(waitForRevocation).toHaveBeenCalledWith(
+    OWNER,
+    ACME_ACCESS,
+    expect.any(AbortSignal),
+  );
   expect(mockUi.setBusy).toHaveBeenCalledWith(true);
   expect(mockUi.setBusy).toHaveBeenLastCalledWith(false);
   expect(opener.postMessage).not.toHaveBeenCalled();
@@ -214,6 +218,48 @@ it('says it is taking longer, never that it failed, when the list doesn’t catc
   expect(screen.queryByText(/Couldn’t stop sharing/)).toBeNull();
   // The list as read now would still show the app.
   expect(mockApps.reload).not.toHaveBeenCalled();
+
+  // Checking again reads the list, and the message goes.
+  fireEvent.click(screen.getByRole('button', { name: 'Check again' }));
+  expect(mockApps.reload).toHaveBeenCalledTimes(1);
+  expect(
+    screen.queryByText('This is taking longer than usual. Check again in a few minutes.'),
+  ).toBeNull();
+});
+
+it('stops waiting for the list when the page goes, and sets nothing after', async () => {
+  let agree!: (agreed: boolean) => void;
+  vi.mocked(waitForRevocation).mockReturnValue(
+    new Promise<boolean>((resolve) => {
+      agree = resolve;
+    }),
+  );
+  const { unmount } = render(<ConnectedApps />);
+  confirmStop();
+  await screen.findByText('Stopping… this can take a minute.');
+  const signal = vi.mocked(waitForRevocation).mock.calls[0][2] as AbortSignal;
+  expect(signal.aborted).toBe(false);
+
+  // Leaving the page (or "Use another account", which leaves it too).
+  unmount();
+  expect(signal.aborted).toBe(true);
+  await act(async () => agree(true));
+  expect(mockApps.reload).not.toHaveBeenCalled();
+});
+
+it('doesn’t start waiting when the page went while signing', async () => {
+  let signed!: () => void;
+  vi.mocked(revokeAppAccess).mockReturnValue(
+    new Promise<void>((resolve) => {
+      signed = resolve;
+    }),
+  );
+  const { unmount } = render(<ConnectedApps />);
+  confirmStop();
+  await waitFor(() => expect(revokeAppAccess).toHaveBeenCalled());
+  unmount();
+  await act(async () => signed());
+  expect(waitForRevocation).not.toHaveBeenCalled();
 });
 
 it('says so when stopping fails, rather than assume it worked', async () => {

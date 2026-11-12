@@ -31,6 +31,9 @@ export const usePasskeyChallenge = (active: boolean) => {
   const refresh = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   // Bumped by each fetch and on stop: only the latest fetch's answer is kept.
   const latest = useRef(0);
+  // Asking is for while active and mounted only; a prefetch() at any other
+  // time (a sign-in attempt ending late, say) does nothing.
+  const asking = useRef(false);
 
   const stop = useCallback(() => {
     latest.current += 1;
@@ -38,6 +41,7 @@ export const usePasskeyChallenge = (active: boolean) => {
   }, []);
 
   const prefetch = useCallback(() => {
+    if (!asking.current) return;
     stop();
     const fetch = latest.current;
     const askedAt = Date.now();
@@ -57,9 +61,22 @@ export const usePasskeyChallenge = (active: boolean) => {
 
   useEffect(() => {
     if (!active) return undefined;
+    asking.current = true;
     prefetch();
-    return stop;
+    return () => {
+      asking.current = false;
+      stop();
+    };
   }, [active, prefetch, stop]);
+
+  // Whatever the state, nothing outlives the page.
+  useEffect(
+    () => () => {
+      asking.current = false;
+      stop();
+    },
+    [stop],
+  );
 
   /** The ready challenge and its module, once: null when there is none or it is too old to sign. */
   const take = useCallback((): { lookup: PasskeyLookup; challenge: string } | null => {

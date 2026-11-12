@@ -39,7 +39,8 @@ export const MyNewVehicleComponent = () => {
         </ActionBar>
       }
     >
-      <ScreenHeader title={t('my_view.title')} />…
+      <ScreenHeader title={t('my_view.title')} />
+      …
     </Screen>
   );
 };

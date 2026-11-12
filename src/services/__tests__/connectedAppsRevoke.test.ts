@@ -176,6 +176,25 @@ describe('waitForRevocation', () => {
     expect(agreed).toBe(true);
   });
 
+  it('stops looking once told to, and says it isn’t done', async () => {
+    vi.mocked(fetchAccountGrants).mockResolvedValue([inForce]);
+    const leaving = new AbortController();
+    const done = waitForRevocation(OWNER, app(0, true), leaving.signal);
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(fetchAccountGrants).toHaveBeenCalledTimes(2);
+    leaving.abort();
+    await vi.runAllTimersAsync();
+    await expect(done).resolves.toBe(false);
+    expect(fetchAccountGrants).toHaveBeenCalledTimes(2);
+  });
+
+  it('doesn’t look at all when told to stop first', async () => {
+    const leaving = new AbortController();
+    leaving.abort();
+    await expect(waitForRevocation(OWNER, app(1), leaving.signal)).resolves.toBe(false);
+    expect(fetchVehiclesStillGranted).not.toHaveBeenCalled();
+  });
+
   it('reads only what the app had', async () => {
     await run(app(1));
     expect(fetchAccountGrants).not.toHaveBeenCalled();

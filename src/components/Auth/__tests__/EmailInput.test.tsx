@@ -672,6 +672,25 @@ describe('Sign in with a passkey', () => {
     );
   });
 
+  it('says the passkey couldn’t be used when the lookup runs out of time', async () => {
+    // An abort of the lookup's request, not a closed prompt: it is said.
+    vi.mocked(findAccountByPasskey).mockRejectedValue(
+      new DOMException('aborted', 'AbortError'),
+    );
+    await renderReady();
+    fireEvent.click(passkeyButton()!);
+    await waitFor(() =>
+      expect(mockUi.setError).toHaveBeenCalledWith(
+        expect.objectContaining({ key: 'signin.error.passkey' }),
+      ),
+    );
+    // And the next click starts a new attempt.
+    vi.mocked(findAccountByPasskey).mockResolvedValue(ACCOUNT);
+    await act(async () => {});
+    fireEvent.click(passkeyButton()!);
+    await waitFor(() => expect(findAccountByPasskey).toHaveBeenCalledTimes(2));
+  });
+
   it('says the passkey couldn’t be used when anything else fails', async () => {
     vi.mocked(findAccountByPasskey).mockRejectedValue(new Error('Challenge expired'));
     await renderReady();

@@ -10,10 +10,14 @@
  */
 import type { UserObject } from '../models/user';
 import { base64UrlToBytes, bytesToBase64Url } from '../utils/base64url';
+import { fetchWithTimeout } from '../utils/withTimeout';
 import { DIMO_ACCOUNTS_BASE_URL } from './accountsBaseUrl';
 
 // As long as the passkey sign-in screen waits for its prompt.
 const PASSKEY_PROMPT_TIMEOUT_MS = 60_000;
+// How long each request may take before it is aborted (an AbortError).
+const CHALLENGE_TIMEOUT_MS = 10_000;
+const LOOKUP_TIMEOUT_MS = 15_000;
 
 /** A challenge to sign, good until expiresAt (ISO). */
 export type PasskeyChallenge = { challenge: string; expiresAt: string };
@@ -25,10 +29,11 @@ export type PasskeyAssertion = {
 };
 
 export const fetchPasskeyChallenge = async (): Promise<PasskeyChallenge> => {
-  const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account/passkey-challenge`, {
-    method: 'GET',
-    cache: 'no-store',
-  });
+  const response = await fetchWithTimeout(
+    `${DIMO_ACCOUNTS_BASE_URL}/account/passkey-challenge`,
+    { method: 'GET', cache: 'no-store' },
+    CHALLENGE_TIMEOUT_MS,
+  );
   if (!response.ok) throw new Error(`No passkey challenge (${response.status})`);
   return response.json();
 };
@@ -70,11 +75,15 @@ export const findAccountByPasskey = async (
   challenge: string,
   credential: PasskeyAssertion,
 ): Promise<UserObject | null> => {
-  const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account/by-passkey`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ challenge, credential }),
-  });
+  const response = await fetchWithTimeout(
+    `${DIMO_ACCOUNTS_BASE_URL}/account/by-passkey`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ challenge, credential }),
+    },
+    LOOKUP_TIMEOUT_MS,
+  );
   if (response.status === 404) return null;
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));

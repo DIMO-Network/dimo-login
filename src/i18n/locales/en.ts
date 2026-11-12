@@ -564,6 +564,7 @@ const en = {
     'Couldn’t stop sharing with {{appName}}. Check the list and try again.',
   'apps.stop_waiting': 'Stopping… this can take a minute.',
   'apps.stop_slow': 'This is taking longer than usual. Check again in a few minutes.',
+  'apps.check_again': 'Check again',
 } as const;
 
 export default en;

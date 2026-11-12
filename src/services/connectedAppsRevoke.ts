@@ -34,7 +34,17 @@ const chunks = <T>(items: T[], size: number): T[][] =>
     items.slice(i * size, (i + 1) * size),
   );
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+/** Waits `ms`, or less when `signal` aborts. */
+const sleep = (ms: number, signal?: AbortSignal) =>
+  new Promise<void>((resolve) => {
+    const done = () => {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', done);
+      resolve();
+    };
+    const timer = setTimeout(done, ms);
+    signal?.addEventListener('abort', done);
+  });
 
 /**
  * Ends the app's access: each vehicle grant re-signed with an expiry of 0, at
@@ -103,17 +113,20 @@ const revocationIndexed = async (owner: string, app: AppAccess): Promise<boolean
  * REVOCATION_POLL_MS until none is in force (true), or REVOCATION_WAIT_MS has
  * passed (false: not shown yet, which isn't a failure). A read that fails
  * counts as not yet. An expiry of 0 ending an account grant is checked here
- * too, since it isn't otherwise confirmed.
+ * too, since it isn't otherwise confirmed. Aborting `signal` (the page
+ * going) stops it, resolving false.
  */
 export const waitForRevocation = async (
   owner: string,
   app: AppAccess,
+  signal?: AbortSignal,
 ): Promise<boolean> => {
   const deadline = Date.now() + REVOCATION_WAIT_MS;
   for (;;) {
+    if (signal?.aborted) return false;
     const indexed = await revocationIndexed(owner, app).catch(() => false);
     if (indexed) return true;
-    if (Date.now() + REVOCATION_POLL_MS > deadline) return false;
-    await sleep(REVOCATION_POLL_MS);
+    if (signal?.aborted || Date.now() + REVOCATION_POLL_MS > deadline) return false;
+    await sleep(REVOCATION_POLL_MS, signal);
   }
 };

@@ -134,3 +134,39 @@ describe('findAccountByPasskey', () => {
     );
   });
 });
+
+describe('time limits', () => {
+  /** A fetch that answers only by being aborted. */
+  const hangingFetch = () =>
+    fetchMock.mockImplementation(
+      (_url: string, init: RequestInit) =>
+        new Promise((_, reject) =>
+          init.signal?.addEventListener('abort', () =>
+            reject(new DOMException('aborted', 'AbortError')),
+          ),
+        ),
+    );
+
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it.each([
+    ['the challenge', () => fetchPasskeyChallenge(), 10_000],
+    [
+      'the lookup',
+      () =>
+        findAccountByPasskey('AQID', {
+          id: 'cred-1',
+          response: { clientDataJSON: 'cd', authenticatorData: 'ad', signature: 'sig' },
+        }),
+      15_000,
+    ],
+  ])('gives up on %s after its limit', async (_, call, limit) => {
+    hangingFetch();
+    const settled = call().catch((error: unknown) => error);
+    await vi.advanceTimersByTimeAsync(limit - 1);
+    expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    await expect(settled).resolves.toMatchObject({ name: 'AbortError' });
+  });
+});

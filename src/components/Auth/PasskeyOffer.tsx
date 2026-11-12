@@ -66,8 +66,16 @@ export const PasskeyOffer: FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Recorded for the account it was added for. After "Not now" the page may
+  // have moved on, even to another account: then only storage is updated.
   const recordAdded = () => {
-    setUser((current) => ({ ...current, hasPasskey: true }));
+    if (!skipped.current) {
+      setUser((current) =>
+        current.subOrganizationId === subOrganizationId
+          ? { ...current, hasPasskey: true }
+          : current,
+      );
+    }
     markHasPasskey(clientId, user);
   };
 

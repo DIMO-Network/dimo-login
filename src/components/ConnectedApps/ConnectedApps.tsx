@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { captureException } from '@sentry/react';
 
 import { useAuthContext } from '../../context/AuthContext';
@@ -48,6 +48,10 @@ const ConnectedAppsPage = () => {
     grantee: string;
     phase: 'signing' | 'indexing';
   } | null>(null);
+  // The stop under way: leaving the page (or the account) aborts it, so it
+  // neither starts waiting for the list nor sets anything once the page is gone.
+  const stopRun = useRef<AbortController | null>(null);
+  useEffect(() => () => stopRun.current?.abort(), []);
   const [outcome, setOutcome] = useState<
     { kind: 'failed'; appName: string } | { kind: 'slow' } | null
   >(null);
@@ -73,6 +77,8 @@ const ConnectedAppsPage = () => {
   // a stopped share as still there; an index slower than a minute is reported
   // as slow, never as a failure.
   const stop = async (app: AppAccess) => {
+    const run = new AbortController();
+    stopRun.current = run;
     setConfirming(null);
     setOutcome(null);
     setStopping({ grantee: app.grantee, phase: 'signing' });
@@ -88,6 +94,7 @@ const ConnectedAppsPage = () => {
       await revokeAppAccess(app);
     } catch (error) {
       captureException(error);
+      if (run.signal.aborted) return;
       setOutcome({ kind: 'failed', appName: displayName(app.grantee) });
       setStopping(null);
       reload();
@@ -95,9 +102,10 @@ const ConnectedAppsPage = () => {
     } finally {
       setBusy(false);
     }
-    if (!owner) return;
+    if (!owner || run.signal.aborted) return;
     setStopping({ grantee: app.grantee, phase: 'indexing' });
-    const indexed = await waitForRevocation(owner, app);
+    const indexed = await waitForRevocation(owner, app, run.signal);
+    if (run.signal.aborted) return;
     setStopping(null);
     if (indexed) reload();
     else setOutcome({ kind: 'slow' });
@@ -123,7 +131,21 @@ const ConnectedAppsPage = () => {
       {outcome?.kind === 'failed' && (
         <ErrorBox title={t('apps.error.stop', { appName: outcome.appName })} />
       )}
-      {outcome?.kind === 'slow' && <Notice role="status">{t('apps.stop_slow')}</Notice>}
+      {outcome?.kind === 'slow' && (
+        <div className="flex flex-col gap-2">
+          <Notice role="status">{t('apps.stop_slow')}</Notice>
+          <Button
+            variant="secondary"
+            fullWidth
+            onClick={() => {
+              setOutcome(null);
+              reload();
+            }}
+          >
+            {t('apps.check_again')}
+          </Button>
+        </div>
+      )}
       {stopping?.phase === 'indexing' && (
         <Notice role="status">{t('apps.stop_waiting')}</Notice>
       )}

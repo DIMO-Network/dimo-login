@@ -528,6 +528,7 @@ const ja: LocaleResources = {
     '{{appName}}との共有を停止できませんでした。一覧を確認して、もう一度お試しください。',
   'apps.stop_waiting': '共有を停止しています…1分ほどかかる場合があります。',
   'apps.stop_slow': '通常より時間がかかっています。数分後にもう一度ご確認ください。',
+  'apps.check_again': 'もう一度確認',
 };
 
 export default ja;
