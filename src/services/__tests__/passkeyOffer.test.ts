@@ -77,6 +77,17 @@ describe('shouldOfferPasskey', () => {
     await expect(shouldOfferPasskey(ACCOUNT)).resolves.toBe(false);
   });
 
+  it('never offers when storage is blocked, as “Not now” couldn’t be kept', async () => {
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('blocked', 'SecurityError');
+    });
+    try {
+      await expect(shouldOfferPasskey(ACCOUNT)).resolves.toBe(false);
+    } finally {
+      setItem.mockRestore();
+    }
+  });
+
   it('never offers on a device with no platform authenticator', async () => {
     platformAuthenticator = async () => false;
     await expect(shouldOfferPasskey(ACCOUNT)).resolves.toBe(false);

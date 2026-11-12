@@ -109,6 +109,19 @@ describe('findAccountByPasskey', () => {
     expect(JSON.parse(init.body)).toEqual({ challenge: 'AQID', credential: ASSERTION });
   });
 
+  it.each([
+    ['no email', { email: '', subOrganizationId: 'sub-jun', emailVerified: true }],
+    ['no sub-organization', { email: 'jun@example.com', emailVerified: true }],
+    [
+      'an unverified email',
+      { email: 'jun@example.com', subOrganizationId: 'sub-jun', emailVerified: false },
+    ],
+    ['no body', null],
+  ])('refuses an answer with %s', async (_, body) => {
+    fetchMock.mockResolvedValue(response(200, body));
+    await expect(findAccountByPasskey('AQID', ASSERTION)).rejects.toThrow();
+  });
+
   it('answers null for a passkey it doesn’t recognise', async () => {
     fetchMock.mockResolvedValue(response(404, { error: 'Passkey not recognised' }));
     await expect(findAccountByPasskey('AQID', ASSERTION)).resolves.toBeNull();

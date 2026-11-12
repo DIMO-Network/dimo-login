@@ -7,6 +7,7 @@ import {
   getWalletSession,
   isPasskeyOfferSnoozed,
   listAppsSignedInAs,
+  markHasPasskey,
   rememberAccount,
   setWalletSession,
   signOutAppHere,
@@ -371,5 +372,41 @@ describe('the passkey offer', () => {
   it('is not snoozed by a value it can’t read', () => {
     localStorage.setItem('dimo_passkey_offer_sub-a', '"soon"');
     expect(isPasskeyOfferSnoozed('sub-a')).toBe(false);
+  });
+});
+
+describe('markHasPasskey', () => {
+  it('records the passkey in the app’s stored user and the remembered account, and nothing else', () => {
+    signInApp(CLIENT, A);
+    rememberAccount(A, 1);
+    markHasPasskey(CLIENT, { ...A, credentialIds: ['cred-secret'] });
+
+    expect(JSON.parse(localStorage.getItem(`user_data_${CLIENT}`)!)).toEqual({
+      ...A,
+      hasPasskey: true,
+    });
+    expect(getRememberedAccounts(null)).toEqual([
+      expect.objectContaining({ email: 'alice@x.co', hasPasskey: true }),
+    ]);
+    expect(JSON.stringify({ ...localStorage })).not.toContain('cred-secret');
+  });
+
+  it('leaves another account’s stored user alone', () => {
+    signInApp(CLIENT, B);
+    markHasPasskey(CLIENT, A);
+    expect(JSON.parse(localStorage.getItem(`user_data_${CLIENT}`)!)).toEqual(B);
+  });
+
+  it('never throws when storage is blocked', () => {
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('blocked', 'QuotaExceededError');
+    });
+    try {
+      signInApp(CLIENT, A);
+    } catch {
+      // The setup write is blocked too.
+    }
+    expect(() => markHasPasskey(CLIENT, A)).not.toThrow();
+    setItem.mockRestore();
   });
 });

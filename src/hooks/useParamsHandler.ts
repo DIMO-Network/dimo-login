@@ -23,6 +23,16 @@ import {
   setResponseMode,
 } from '../utils/messageHandler';
 
+/**
+ * Screens a sign-in leads to and goes on from, never a flow of their own: the
+ * passkey offer (after an email-code sign-in) and the relay notice (during a
+ * sign-up). As an app's entry state they'd lead nowhere after sign-in.
+ */
+const SIGN_IN_ONLY_STATES: ReadonlySet<UiStates> = new Set([
+  UiStates.PASSKEY_OFFER,
+  UiStates.SIGNUP_RELAY_NOTICE,
+]);
+
 // The SDK makes it from 16 random bytes; anything else isn't echoed back.
 const DIMO_STATE_PATTERN = /^[A-Za-z0-9_-]{16,128}$/;
 
@@ -73,11 +83,10 @@ export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
   const specialSetters = {
     entryState: (value: unknown) => {
       if (typeof value !== 'string' || !(value in UiStates)) return;
-      // Off, the page doesn't exist: dropped like any unknown state.
+      // Dropped like any unknown state: a screen only a sign-in leads to, and
+      // the connected-apps page while its flag is off.
+      if (SIGN_IN_ONLY_STATES.has(value as UiStates)) return;
       if (value === UiStates.CONNECTED_APPS && !connectedAppsEnabled()) return;
-      // Only an email-code sign-in leads to the passkey offer, which goes on to
-      // where that sign-in was going: as a flow of its own it would lead nowhere.
-      if (value === UiStates.PASSKEY_OFFER) return;
       setUiState(value as UiStates);
       setEntryState(value as UiStates);
       setDevCredentialsState((prev) => ({

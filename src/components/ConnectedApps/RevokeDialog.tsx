@@ -28,7 +28,7 @@ export const RevokeDialog = ({
           {t('apps.stop')}
         </Button>
         <Button variant="secondary" fullWidth onClick={onCancel} data-autofocus>
-          {t('stop.keep')}
+          {t('apps.keep')}
         </Button>
       </div>
     </Dialog>

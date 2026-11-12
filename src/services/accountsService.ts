@@ -2,9 +2,7 @@ import { CreateAccountParams } from '../models/account';
 import { CredentialResult, OtpResult } from '../models/resultTypes';
 import { UserObject } from '../models/user';
 import { fetchWithTimeout } from '../utils/withTimeout';
-
-const DIMO_ACCOUNTS_BASE_URL =
-  process.env.REACT_APP_DIMO_ACCOUNTS_URL || 'https://accounts.dev.dimo.org/api';
+import { DIMO_ACCOUNTS_BASE_URL } from './accountsBaseUrl';
 
 // Example: Send OTP using Accounts API
 export const sendOtp = async (email: string): Promise<OtpResult> => {

@@ -10,9 +10,7 @@
  */
 import type { UserObject } from '../models/user';
 import { base64UrlToBytes, bytesToBase64Url } from '../utils/base64url';
-
-const DIMO_ACCOUNTS_BASE_URL =
-  process.env.REACT_APP_DIMO_ACCOUNTS_URL || 'https://accounts.dev.dimo.org/api';
+import { DIMO_ACCOUNTS_BASE_URL } from './accountsBaseUrl';
 
 // As long as the passkey sign-in screen waits for its prompt.
 const PASSKEY_PROMPT_TIMEOUT_MS = 60_000;
@@ -84,11 +82,22 @@ export const findAccountByPasskey = async (
       typeof data?.error === 'string' ? data.error : 'Could not look up the passkey',
     );
   }
-  const { email, subOrganizationId, hasPasskey, emailVerified } = await response.json();
+  const body = await response.json();
+  // Only a verified account with its sub-organization can sign in next.
+  const { email, subOrganizationId, hasPasskey, emailVerified } = body ?? {};
+  if (
+    typeof email !== 'string' ||
+    !email ||
+    typeof subOrganizationId !== 'string' ||
+    !subOrganizationId ||
+    emailVerified !== true
+  ) {
+    throw new Error('The passkey lookup answered without a usable account');
+  }
   return {
     email,
     subOrganizationId,
-    hasPasskey,
+    hasPasskey: hasPasskey === true,
     emailVerified,
     smartContractAddress: null,
     walletAddress: null,

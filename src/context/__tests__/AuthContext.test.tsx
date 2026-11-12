@@ -823,6 +823,8 @@ describe('AuthContext passkey hint', () => {
 });
 
 describe('AuthContext sign-in notice', () => {
+  /** Lets anything the sign-in left queued run, so a call that shouldn't happen would have. */
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
   const FLAG = 'REACT_APP_SIGN_IN_NOTICE';
   const ALICE = {
     email: 'Alice@x.co',
@@ -878,7 +880,7 @@ describe('AuthContext sign-in notice', () => {
   it('says nothing for an account this browser already knows, whatever its case', async () => {
     remember('alice@x.co');
     await signInByPasskey();
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await flush();
     expect(sendSignInNotice).not.toHaveBeenCalled();
   });
 
@@ -886,11 +888,13 @@ describe('AuthContext sign-in notice', () => {
     await signInByPasskey();
     await vi.waitFor(() => expect(sendSignInNotice).toHaveBeenCalledTimes(1));
     await act(() => auth.completePasskeyLogin());
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await flush();
     expect(sendSignInNotice).toHaveBeenCalledTimes(1);
   });
 
   it('never on a silent resume', async () => {
+    // As the chooser offers it: a remembered account with a live code session.
+    remember('alice@x.co');
     localStorage.setItem(
       'turnkey_session_sub-a',
       JSON.stringify({
@@ -909,7 +913,7 @@ describe('AuthContext sign-in notice', () => {
         lastUsedAt: 1,
       });
     });
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await flush();
     expect(sendSignInNotice).not.toHaveBeenCalled();
   });
 
@@ -917,7 +921,7 @@ describe('AuthContext sign-in notice', () => {
     if (flag === undefined) delete process.env[FLAG];
     else process.env[FLAG] = flag;
     await signInByPasskey();
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await flush();
     expect(sendSignInNotice).not.toHaveBeenCalled();
   });
 });

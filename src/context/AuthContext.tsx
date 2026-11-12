@@ -34,14 +34,12 @@ import {
 } from '../services/accountStore';
 import { clearSessionData } from '../services/storageService';
 import { verifyOtp } from '../services/accountsService';
-import { shouldOfferPasskey } from '../services/passkeyOffer';
 import { signInStepsWithSigner, type SignInSteps } from '../services/walletLoader';
 import { useSignUpFlow, type SignUp, type SignUpDraft } from '../hooks/useSignUpFlow';
+import { usePasskeyOfferGate } from '../hooks/usePasskeyOfferGate';
 import type { AccountRequest } from '../utils/loginPrompt';
-import { PasskeyOffer } from '../screens';
 import { base64UrlToBytes } from '../utils/base64url';
 import { signInNoticeEnabled } from '../utils/featureFlags';
-import { withTimeout } from '../utils/withTimeout';
 import { sendSignInNotice } from '../services/signInNotice';
 
 /** The passkey "Sign in with a passkey" found, for the account it belongs to. */
@@ -95,9 +93,6 @@ interface AuthContextProps {
   signUp: SignUp;
 }
 
-/** How long a code sign-in waits to decide on the passkey offer. */
-const OFFER_DECISION_MS = 1_500;
-
 /** What Sentry gets when a stored wallet session fails: fixed text, nothing from the caught error. */
 const storedSessionError = () => new Error('Stored wallet session could not be used');
 
@@ -145,8 +140,7 @@ export const AuthProvider = ({
   if (jwt && !signedInHere) setSignedInHere(true);
   const accountRequest: AccountRequest = signedInHere ? {} : { prompt, loginHint };
 
-  // Where an email-code sign-in goes once the passkey offer is answered.
-  const afterSignInRef = useRef<(() => void) | null>(null);
+  const passkeyOffer = usePasskeyOfferGate(setUiState);
   const passkeyHintRef = useRef<PasskeyHint | null>(null);
   const setPasskeyHint = (hint: PasskeyHint | null) => {
     passkeyHintRef.current = hint;
@@ -155,7 +149,7 @@ export const AuthProvider = ({
   const resetUser = () => {
     setUser(defaultUser);
     clearDraft();
-    afterSignInRef.current = null;
+    passkeyOffer.drop();
     passkeyHintRef.current = null;
   };
 
@@ -191,8 +185,8 @@ export const AuthProvider = ({
 
   /**
    * Signs this app in as the account once authenticate has succeeded, then
-   * goes where the sign-in was going, or hands that step to `holdFor` (the
-   * passkey offer) to run later. `resumed`: a silent resume from the chooser.
+   * goes where the sign-in was going, or, with `offerPasskey`, shows the
+   * passkey offer first, which goes there once it's answered.
    */
   const completeLogin = (
     account: UserObject,
@@ -203,10 +197,7 @@ export const AuthProvider = ({
       turnkeySessionExpiration,
     }: Awaited<ReturnType<typeof authenticate>>,
     turnkeySessionData: TurnkeySessionData,
-    {
-      holdFor,
-      resumed = false,
-    }: { holdFor?: (proceed: () => void) => void; resumed?: boolean } = {},
+    { offerPasskey = false }: { offerPasskey?: boolean } = {},
   ) => {
     const updatedUserObject: UserObject = {
       ...account,
@@ -217,16 +208,16 @@ export const AuthProvider = ({
     const { credentialIds, ...storedUser } = updatedUserObject;
 
     // Read before createSession remembers the account: a first sign-in on this
-    // browser (never a silent resume) tells the accounts API, which decides
-    // whether to email the account.
+    // browser tells the accounts API, which decides whether to email the
+    // account. A silent resume never does: it is of a remembered account (the
+    // chooser lists only those, and keeps a wallet session only for them).
     const firstHere =
-      !resumed &&
       signInNoticeEnabled() &&
       !getRememberedAccounts(null).some(
         (remembered) => remembered.email === account.email.trim().toLowerCase(),
       );
 
-    afterSignInRef.current = null;
+    passkeyOffer.drop();
     setJwt(accessToken);
     setUser(updatedUserObject);
 
@@ -248,37 +239,8 @@ export const AuthProvider = ({
         user: updatedUserObject,
         jwt: accessToken,
       });
-    if (holdFor) holdFor(proceed);
+    if (offerPasskey) passkeyOffer.hold(proceed);
     else proceed();
-  };
-
-  /**
-   * Whether to show the passkey offer: its screen must load, or the sign-in
-   * would stall. The person is already signed in by then, so the whole decision
-   * gets OFFER_DECISION_MS; past that, the sign-in goes on without the offer.
-   */
-  const offersPasskey = async (account: UserObject) => {
-    const decide = async () => {
-      if (!(await shouldOfferPasskey(account))) return false;
-      await PasskeyOffer.preload();
-      return true;
-    };
-    try {
-      return await withTimeout(decide(), OFFER_DECISION_MS, 'passkey offer');
-    } catch {
-      return false;
-    }
-  };
-
-  const holdForPasskeyOffer = (proceed: () => void) => {
-    afterSignInRef.current = proceed;
-    setUiState(UiStates.PASSKEY_OFFER);
-  };
-
-  const continueAfterSignIn = () => {
-    const proceed = afterSignInRef.current;
-    afterSignInRef.current = null;
-    proceed?.();
   };
 
   const loginToDIMO = async ({
@@ -331,12 +293,12 @@ export const AuthProvider = ({
     });
     const result = await authenticate(user, steps, apiKeyStamper);
     // Only here: never after a passkey sign-in or a silent resume.
-    const offer = await offersPasskey(user);
+    const offerPasskey = await passkeyOffer.decide(user);
     completeLogin(
       user,
       result,
       { embeddedKey: keyPair.privateKey, credentialBundle, sessionType: 'api_key' },
-      { holdFor: offer ? holdForPasskeyOffer : undefined },
+      { offerPasskey },
     );
   };
 
@@ -433,7 +395,7 @@ export const AuthProvider = ({
       return false;
     }
     // Past this point the person is signed in: a failure here is not a failed resume.
-    completeLogin(resumed, result, turnkeySessionData, { resumed: true });
+    completeLogin(resumed, result, turnkeySessionData);
     return true;
   };
 
@@ -461,7 +423,7 @@ export const AuthProvider = ({
         openEmailForm,
         emailFormIntent,
         clearEmailFormIntent,
-        continueAfterSignIn,
+        continueAfterSignIn: passkeyOffer.continueAfterSignIn,
         setPasskeyHint,
         accountRequest,
         signUpDraft,

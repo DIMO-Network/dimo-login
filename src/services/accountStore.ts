@@ -7,6 +7,7 @@ import {
   clearSessionData,
   getLoggedEmail,
   getUserFromLocalStorage,
+  storeUserInLocalStorage,
 } from './storageService';
 import { isValidEmail } from '../utils/emailUtils';
 
@@ -229,6 +230,25 @@ export const getLastSignedInSubOrganizationId = (
   const logged = readLoggedEmail(clientId)?.trim().toLowerCase();
   if (!logged) return undefined;
   return readStoredAccounts().find((a) => a.email === logged)?.subOrganizationId;
+};
+
+/**
+ * The account now has a passkey: so says this app's stored user (when it is
+ * this account) and the remembered account. Only the fields each keeps are
+ * written. Never throws.
+ */
+export const markHasPasskey = (
+  clientId: `0x${string}` | null,
+  account: UserObject,
+): void => {
+  const email = account.email.trim().toLowerCase();
+  quietly(() => {
+    const stored = getUserFromLocalStorage(clientId);
+    if (stored && sameEmail(stored.email, email)) {
+      storeUserInLocalStorage(clientId, { ...stored, hasPasskey: true });
+    }
+  });
+  quietly(() => rememberAccount({ ...account, hasPasskey: true }));
 };
 
 // "Not now" on the passkey offer, per account: when it was said (ms).

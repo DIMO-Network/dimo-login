@@ -24,15 +24,20 @@ vi.mock('../turnkeyService', () => ({
 import { enrollPasskey, prepareEnrollment } from '../passkeyEnrollment';
 import { createPasskey, getApiKeyStamper } from '../turnkeyService';
 
-const SESSION = {
-  sessionType: 'api_key',
-  embeddedKey: 'key',
-  credentialBundle: 'bundle',
-  expiresAt: Date.now() + 60_000,
-} as const;
+/** A live email-code session, as of when it is made. */
+const session = (expiresIn = 60_000) =>
+  ({
+    sessionType: 'api_key',
+    embeddedKey: 'key',
+    credentialBundle: 'bundle',
+    expiresAt: Date.now() + expiresIn,
+  }) as const;
 
 beforeEach(() => {
   turnkey.clientConfig = [];
+});
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe('prepareEnrollment', () => {
@@ -40,7 +45,7 @@ describe('prepareEnrollment', () => {
     vi.mocked(getApiKeyStamper).mockReturnValue({ stamp: 'api' } as never);
     turnkey.whoami.mockResolvedValue({ organizationId: 'sub-jun', userId: 'user-1' });
 
-    const prepared = await prepareEnrollment(SESSION, 'sub-jun', ['cred-other-device']);
+    const prepared = await prepareEnrollment(session(), 'sub-jun', ['cred-other-device']);
 
     expect(getApiKeyStamper).toHaveBeenCalledWith({
       credentialBundle: 'bundle',
@@ -58,17 +63,20 @@ describe('prepareEnrollment', () => {
   });
 
   it.each([
-    ['no session', null],
-    ['a passkey session', { sessionType: 'passkey', expiresAt: Date.now() + 60_000 }],
-    ['an expired key', { ...SESSION, expiresAt: Date.now() - 1 }],
-  ])('refuses with %s', async (_, session) => {
-    await expect(prepareEnrollment(session as never, 'sub-jun', [])).rejects.toThrow();
+    ['no session', () => null],
+    [
+      'a passkey session',
+      () => ({ sessionType: 'passkey', expiresAt: Date.now() + 60_000 }),
+    ],
+    ['an expired key', () => session(-1)],
+  ])('refuses with %s', async (_, made) => {
+    await expect(prepareEnrollment(made() as never, 'sub-jun', [])).rejects.toThrow();
     expect(turnkey.whoami).not.toHaveBeenCalled();
   });
 
   it('refuses when Turnkey answers for another organization', async () => {
     turnkey.whoami.mockResolvedValue({ organizationId: 'sub-other', userId: 'user-1' });
-    await expect(prepareEnrollment(SESSION, 'sub-jun', [])).rejects.toThrow();
+    await expect(prepareEnrollment(session(), 'sub-jun', [])).rejects.toThrow();
   });
 });
 
@@ -115,7 +123,6 @@ describe('enrollPasskey', () => {
         ],
       },
     });
-    vi.restoreAllMocks();
   });
 
   it('asks for the passkey before anything else, inside the click', () => {

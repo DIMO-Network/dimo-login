@@ -108,6 +108,8 @@ const ConnectedAppsPage = () => {
       <Button
         fullWidth
         disabled={stopping?.phase === 'signing'}
+        // Nothing but the redirect (and the SDK's dimoState): no utm either,
+        // since this page uses no parameter but entryState.
         onClick={() => backToThirdParty({}, redirectUri, '')}
       >
         {t('common.back_to_app', { appName })}
@@ -153,7 +155,7 @@ const ConnectedAppsPage = () => {
                     className="shrink-0"
                     disabled={stopping !== null}
                     loading={stopping?.grantee === app.grantee}
-                    loadingLabel={t('manage.busy.revoke')}
+                    loadingLabel={t('apps.stopping')}
                     onClick={() => setConfirming(app)}
                   >
                     {t('apps.stop')}

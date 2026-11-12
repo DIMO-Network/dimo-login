@@ -113,17 +113,20 @@ describe('entryState=CONNECTED_APPS', () => {
   });
 });
 
-describe('entryState=PASSKEY_OFFER', () => {
-  it('is dropped: only an email-code sign-in leads there', () => {
-    process.env.REACT_APP_PASSKEY_OFFER = 'true';
-    try {
-      const { apply, state } = setup();
-      apply({ entryState: 'PASSKEY_OFFER' });
-      expect(state().entryState).toBeUndefined();
-      expect(mockUi.setUiState).not.toHaveBeenCalled();
-      expect(mockUi.setEntryState).not.toHaveBeenCalled();
-    } finally {
-      delete process.env.REACT_APP_PASSKEY_OFFER;
-    }
-  });
+describe('screens only a sign-in leads to', () => {
+  it.each(['PASSKEY_OFFER', 'SIGNUP_RELAY_NOTICE'])(
+    'drops entryState=%s, as an unknown state',
+    (entryState) => {
+      process.env.REACT_APP_PASSKEY_OFFER = 'true';
+      try {
+        const { apply, state } = setup();
+        apply({ entryState });
+        expect(state().entryState).toBeUndefined();
+        expect(mockUi.setUiState).not.toHaveBeenCalled();
+        expect(mockUi.setEntryState).not.toHaveBeenCalled();
+      } finally {
+        delete process.env.REACT_APP_PASSKEY_OFFER;
+      }
+    },
+  );
 });

@@ -548,6 +548,8 @@ const en = {
   'apps.documents': 'Your documents',
   'apps.until': 'Until {{date}}',
   'apps.stop': 'Stop sharing',
+  'apps.stopping': 'Stopping…',
+  'apps.keep': 'Keep sharing',
   'apps.stop_title': 'Stop sharing with {{appName}}?',
   'apps.stop_body':
     '{{appName}} loses access from now on. It keeps any data it already has.',

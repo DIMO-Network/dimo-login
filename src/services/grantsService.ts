@@ -100,24 +100,43 @@ const queryWhole = async <T>(query: string, variables: Record<string, unknown>) 
   return data;
 };
 
+// More pages than this (2,000 vehicles or grants) is taken as paging gone wrong.
+const MAX_PAGES = 40;
+
+/**
+ * The cursor of the page after this one, or null at the end. Throws when the
+ * paging wouldn't end: a next page with no cursor, a cursor that doesn't move
+ * on, or more than MAX_PAGES pages.
+ */
+const nextCursor = (
+  pageInfo: PageInfo | undefined,
+  previous: string | null,
+  pagesRead: number,
+): string | null => {
+  if (!pageInfo?.hasNextPage) return null;
+  if (!pageInfo.endCursor || pageInfo.endCursor === previous) {
+    throw new Error('identity-api paging did not move on');
+  }
+  if (pagesRead >= MAX_PAGES) throw new Error(`More than ${MAX_PAGES} pages of grants`);
+  return pageInfo.endCursor;
+};
+
 const vehicleName = (
   definition?: { make?: string; model?: string; year?: number } | null,
 ) => [definition?.year, definition?.make, definition?.model].filter(Boolean).join(' ');
 
-const restOfVehicleGrants = async (tokenId: number, after: string | null) => {
+const restOfVehicleGrants = async (tokenId: number, after: string) => {
   const grants: SacdGrant[] = [];
-  let cursor = after;
-  while (cursor) {
-    const data = await queryWhole<{ vehicle: { sacds: GrantPage } | null }>(
+  let cursor: string | null = after;
+  // The vehicle's first page came with the vehicles.
+  for (let pages = 2; cursor; pages += 1) {
+    const data: { vehicle: { sacds: GrantPage } | null } = await queryWhole(
       VEHICLE_GRANTS,
-      {
-        tokenId,
-        after: cursor,
-      },
+      { tokenId, after: cursor },
     );
     const page = data.vehicle?.sacds;
     grants.push(...(page?.nodes ?? []));
-    cursor = page?.pageInfo.hasNextPage ? page.pageInfo.endCursor : null;
+    cursor = nextCursor(page?.pageInfo, cursor, pages);
   }
   return grants;
 };
@@ -128,13 +147,13 @@ const fetchGrants = async (
 ): Promise<ConnectedAppGrants> => {
   const vehicles: OwnedVehicleGrants[] = [];
   const accountGrants: SacdGrant[] = [];
-  const moreGrants: { vehicle: OwnedVehicleGrants; after: string | null }[] = [];
+  const moreGrants: { vehicle: OwnedVehicleGrants; after: string }[] = [];
   let vehiclesAfter: string | null = null;
   let accountAfter: string | null = null;
   let wantVehicles = withVehicles;
   let wantAccount = true;
 
-  while (wantVehicles || wantAccount) {
+  for (let pages = 1; wantVehicles || wantAccount; pages += 1) {
     const data: ConnectedAppGrantsResult = await queryWhole<ConnectedAppGrantsResult>(
       CONNECTED_APP_GRANTS,
       {
@@ -154,19 +173,17 @@ const fetchGrants = async (
           grants: [...node.sacds.nodes],
         };
         vehicles.push(vehicle);
-        if (node.sacds.pageInfo.hasNextPage) {
-          moreGrants.push({ vehicle, after: node.sacds.pageInfo.endCursor });
-        }
+        const after = nextCursor(node.sacds.pageInfo, null, 1);
+        if (after) moreGrants.push({ vehicle, after });
       }
-      const page = data.vehicles?.pageInfo;
-      wantVehicles = Boolean(page?.hasNextPage);
-      vehiclesAfter = page?.endCursor ?? null;
+      vehiclesAfter = nextCursor(data.vehicles?.pageInfo, vehiclesAfter, pages);
+      wantVehicles = vehiclesAfter !== null;
     }
     if (wantAccount) {
       const page = data.account?.sacds;
       accountGrants.push(...(page?.nodes ?? []));
-      wantAccount = Boolean(page?.pageInfo.hasNextPage);
-      accountAfter = page?.pageInfo.endCursor ?? null;
+      accountAfter = nextCursor(page?.pageInfo, accountAfter, pages);
+      wantAccount = accountAfter !== null;
     }
   }
 

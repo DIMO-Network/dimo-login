@@ -9,14 +9,10 @@ import { useT } from '../../i18n';
 import { addAuthenticator } from '../../services/accountsService';
 import {
   getWalletSession,
-  rememberAccount,
+  markHasPasskey,
   snoozePasskeyOffer,
 } from '../../services/accountStore';
 import type { PreparedEnrollment } from '../../services/passkeyEnrollment';
-import {
-  getUserFromLocalStorage,
-  storeUserInLocalStorage,
-} from '../../services/storageService';
 import { loadSignInSteps, type SignInSteps } from '../../services/walletLoader';
 import { ActionBar, Button, DoneHeader, Notice, Screen } from '../ui';
 
@@ -72,13 +68,7 @@ export const PasskeyOffer: FC = () => {
 
   const recordAdded = () => {
     setUser((current) => ({ ...current, hasPasskey: true }));
-    try {
-      const stored = getUserFromLocalStorage(clientId);
-      if (stored) storeUserInLocalStorage(clientId, { ...stored, hasPasskey: true });
-      rememberAccount({ ...user, hasPasskey: true });
-    } catch {
-      // Storage blocked: the next sign-in reads the account again.
-    }
+    markHasPasskey(clientId, user);
   };
 
   const add = () => {

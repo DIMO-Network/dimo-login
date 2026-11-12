@@ -10,7 +10,7 @@ const USER = {
   walletAddress: '0xw' as const,
   smartContractAddress: '0xs' as const,
   emailVerified: true,
-  credentialIds: [],
+  credentialIds: ['cred-recorded'],
 };
 const mockAuth = {
   user: USER,
@@ -85,7 +85,9 @@ it('offers a passkey for the account, once it is ready to make one', async () =>
   expect(addButton()).toHaveAttribute('aria-disabled', 'true');
   // With the account's own session and the passkeys it has.
   await waitFor(() =>
-    expect(steps.prepareEnrollment).toHaveBeenCalledWith(SESSION, 'sub-jun', []),
+    expect(steps.prepareEnrollment).toHaveBeenCalledWith(SESSION, 'sub-jun', [
+      'cred-recorded',
+    ]),
   );
 
   await act(async () => prepared.resolve(PREPARED));
@@ -107,6 +109,8 @@ it('adds the passkey, records that the account has one, then goes on', async () 
   expect(getRememberedAccounts(null)).toEqual([
     expect.objectContaining({ email: 'jun@example.com', hasPasskey: true }),
   ]);
+  // The recorded credential IDs stay in memory.
+  expect(JSON.stringify({ ...localStorage })).not.toContain('cred-recorded');
   expect(mockUi.setBusy).toHaveBeenCalledWith(true);
   expect(mockUi.setBusy).toHaveBeenLastCalledWith(false);
   expect(mockAuth.continueAfterSignIn).not.toHaveBeenCalled();

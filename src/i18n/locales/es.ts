@@ -216,14 +216,14 @@ const es: PluralLocaleResources = {
   'create.error': 'No se pudo crear tu cuenta. Inténtalo de nuevo.',
   'passkey_offer.title': 'Inicia sesión más rápido la próxima vez',
   'passkey_offer.body':
-    'Añade una clave de acceso para {{email}} en este dispositivo. La próxima vez, inicia sesión con tu huella, tu cara o el PIN del dispositivo en lugar de un código.',
-  'passkey_offer.add': 'Añadir clave de acceso',
-  'passkey_offer.adding': 'Añadiendo tu clave de acceso…',
+    'Agrega una clave de acceso para {{email}} en este dispositivo. La próxima vez, inicia sesión con tu huella digital, tu rostro o el PIN del dispositivo en lugar de un código.',
+  'passkey_offer.add': 'Agregar clave de acceso',
+  'passkey_offer.adding': 'Agregando tu clave de acceso…',
   'passkey_offer.not_now': 'Ahora no',
-  'passkey_offer.added': 'Clave de acceso añadida.',
+  'passkey_offer.added': 'Clave de acceso agregada.',
   'passkey_offer.exists': 'Este dispositivo ya tiene una clave de acceso para {{email}}.',
   'passkey_offer.error':
-    'No se pudo añadir la clave de acceso. Puedes seguir usando códigos por correo.',
+    'No se pudo agregar la clave de acceso. Puedes seguir usando códigos por correo.',
 
   // Plain sign-in done, and signing out
   'login_done.title': 'Iniciaste sesión',
@@ -582,6 +582,8 @@ const es: PluralLocaleResources = {
   'apps.documents': 'Tus documentos',
   'apps.until': 'Hasta el {{date}}',
   'apps.stop': 'Dejar de compartir',
+  'apps.stopping': 'Deteniendo…',
+  'apps.keep': 'Seguir compartiendo',
   'apps.stop_title': '¿Dejar de compartir con {{appName}}?',
   'apps.stop_body':
     '{{appName}} pierde el acceso a partir de ahora. Conserva los datos que ya tenga.',

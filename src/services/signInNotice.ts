@@ -10,9 +10,7 @@
 import { i18n } from '../i18n/instance';
 import { normalizeLanguage } from '../i18n/language';
 import { bytesToBase64Url } from '../utils/base64url';
-
-const DIMO_ACCOUNTS_BASE_URL =
-  process.env.REACT_APP_DIMO_ACCOUNTS_URL || 'https://accounts.dev.dimo.org/api';
+import { DIMO_ACCOUNTS_BASE_URL } from './accountsBaseUrl';
 
 const DEVICE_KEY = 'dimo_device_key';
 // 24 random bytes; the accounts API takes 16 to 48.

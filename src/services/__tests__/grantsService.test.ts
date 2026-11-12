@@ -104,6 +104,51 @@ describe('connected apps', () => {
     expect(mockQuery.mock.calls[1][1]).toMatchObject({ vehicles: true, account: false });
   });
 
+  it('stops when identity-api’s paging doesn’t move on', async () => {
+    mockQuery.mockResolvedValue({
+      data: { vehicles: page([], 'vc1'), account: { sacds: page([]) } },
+      errors: [],
+    });
+    await expect(fetchConnectedAppGrants(OWNER)).rejects.toThrow();
+    expect(mockQuery).toHaveBeenCalledTimes(2);
+  });
+
+  it('stops when a next page has no cursor', async () => {
+    mockQuery.mockResolvedValue({
+      data: {
+        vehicles: { nodes: [], pageInfo: { hasNextPage: true, endCursor: null } },
+        account: { sacds: page([]) },
+      },
+      errors: [],
+    });
+    await expect(fetchConnectedAppGrants(OWNER)).rejects.toThrow();
+    expect(mockQuery).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops after 40 pages', async () => {
+    let n = 0;
+    mockQuery.mockImplementation(async () => ({
+      data: { account: { sacds: page([grant('0xg1')], `ac${(n += 1)}`) } },
+      errors: [],
+    }));
+    await expect(fetchAccountGrants(OWNER)).rejects.toThrow();
+    expect(mockQuery).toHaveBeenCalledTimes(40);
+  });
+
+  it('stops when a vehicle’s grants page without moving on', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        data: {
+          vehicles: page([vehicle(1, page([], 'v1c'))]),
+          account: { sacds: page([]) },
+        },
+        errors: [],
+      })
+      .mockResolvedValue({ data: { vehicle: { sacds: page([], 'v1c') } }, errors: [] });
+    await expect(fetchConnectedAppGrants(OWNER)).rejects.toThrow();
+    expect(mockQuery).toHaveBeenCalledTimes(2);
+  });
+
   it('throws when identity-api fails, rather than show a partial list', async () => {
     mockQuery.mockResolvedValueOnce({ data: null, errors: [{ message: 'boom' }] });
     await expect(fetchConnectedAppGrants(OWNER)).rejects.toThrow('boom');

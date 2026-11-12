@@ -1,7 +1,8 @@
 /**
  * base64url (RFC 4648 §5, unpadded), as WebAuthn credential IDs and challenges
  * travel. Native atob/btoa only: the first screen may import this, and must
- * not load `buffer` or the wallet stack.
+ * not load `buffer` or the wallet stack. (cryptoUtils' base64UrlEncode is
+ * built on `buffer`, which is why it isn't reused here.)
  */
 
 const BASE64URL = /^[A-Za-z0-9_-]*$/;

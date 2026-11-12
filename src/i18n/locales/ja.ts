@@ -195,7 +195,7 @@ const ja: LocaleResources = {
   'create.error': 'アカウントを作成できませんでした。もう一度お試しください。',
   'passkey_offer.title': '次回はもっと簡単にサインイン',
   'passkey_offer.body':
-    'このデバイスに {{email}} のパスキーを追加しましょう。次回からは、コードの代わりに指紋・顔認証・デバイスのPINでサインインできます。',
+    'このデバイスに {{email}} のパスキーを追加しましょう。次回からは、コードの代わりに指紋、顔認証、または端末のPINでサインインできます。',
   'passkey_offer.add': 'パスキーを追加',
   'passkey_offer.adding': 'パスキーを追加しています…',
   'passkey_offer.not_now': '今はしない',
@@ -512,6 +512,8 @@ const ja: LocaleResources = {
   'apps.documents': 'あなたの書類',
   'apps.until': '{{date}}まで',
   'apps.stop': '共有を停止',
+  'apps.stopping': '停止しています…',
+  'apps.keep': '共有を続ける',
   'apps.stop_title': '{{appName}}との共有を停止しますか？',
   'apps.stop_body':
     '{{appName}}は今後アクセスできなくなります。すでに取得したデータはそのまま残ります。',

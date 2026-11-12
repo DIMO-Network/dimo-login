@@ -12,8 +12,8 @@ import { ActionBar, Button, DoneHeader, Notice, Screen } from '../ui';
 /**
  * A brand-new account from Sign in with Apple's Hide My Email address: it
  * would be separate from any account under the person's own email, so they
- * choose before the passkey step. Without that sign-up in progress (an app
- * naming this state as its entryState, say) it goes to the email screen.
+ * choose before the passkey step. Without that sign-up in progress it goes to
+ * the email screen (an app can't name this state as its entryState).
  */
 export const RelayEmailNotice: FC = () => {
   const t = useT();
