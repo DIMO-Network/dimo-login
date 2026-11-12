@@ -1,6 +1,6 @@
 import type { Mock } from 'vitest';
 import { UiStates } from '../../enums';
-import { initializeSession } from '../sessionService';
+import { initializeSession, minSessionTokenLifetimeS } from '../sessionService';
 
 const CLIENT_ID = '0xb92d74B468B4047289AEa7c9B953066E39768C16';
 const b64 = (o: object) => btoa(JSON.stringify(o)).replace(/=+$/, '');
@@ -9,6 +9,12 @@ const USER = { email: 'jun@example.com', smartContractAddress: '0xabc' };
 
 const jwtExpiringIn = (seconds: number) =>
   `${b64({ alg: 'HS256' })}.${b64({ exp: Math.floor(Date.now() / 1000) + seconds })}.sig`;
+
+/** A token issued `lifetime` seconds before it expires, with `left` seconds still to run. */
+const jwtWithLifetime = (lifetime: number, left: number) => {
+  const exp = Math.floor(Date.now() / 1000) + left;
+  return `${b64({ alg: 'HS256' })}.${b64({ iat: exp - lifetime, exp })}.sig`;
+};
 
 const signIn = (token: string = JWT) => {
   document.cookie = `auth_token_${CLIENT_ID}=${token}; path=/`;
@@ -76,6 +82,22 @@ describe('initializeSession', () => {
     expect(run(UiStates.VEHICLE_MANAGER)).toHaveBeenCalledWith(UiStates.VEHICLE_MANAGER);
   });
 
+  it('uses a short-lived token with more than a quarter of its lifetime left', () => {
+    // A 1-hour token can never have an hour left; a quarter (15 min) is the floor.
+    signIn(jwtWithLifetime(3600, 1800));
+    expect(run(UiStates.VEHICLE_MANAGER)).toHaveBeenCalledWith(UiStates.VEHICLE_MANAGER);
+  });
+
+  it('does not use a short-lived token with less than a quarter of its lifetime left', () => {
+    signIn(jwtWithLifetime(3600, 600));
+    expect(run(UiStates.VEHICLE_MANAGER)).toHaveBeenCalledWith(UiStates.EMAIL_INPUT);
+  });
+
+  it('still wants an hour left on a long-lived token', () => {
+    signIn(jwtWithLifetime(336 * 3600, 1800));
+    expect(run(UiStates.VEHICLE_MANAGER)).toHaveBeenCalledWith(UiStates.EMAIL_INPUT);
+  });
+
   it('treats a token with no expiry as expired', () => {
     signIn(`${b64({ alg: 'HS256' })}.${b64({ sub: 'x' })}.sig`);
     expect(run(UiStates.EMAIL_INPUT)).toHaveBeenCalledWith(UiStates.EMAIL_INPUT);
@@ -132,5 +154,23 @@ describe('initializeSession', () => {
     expect(run(UiStates.LOGOUT, undefined, { prompt: 'login' })).toHaveBeenCalledWith(
       UiStates.LOGOUT,
     );
+  });
+});
+
+describe('minSessionTokenLifetimeS', () => {
+  it('is an hour for a 336-hour token', () => {
+    expect(minSessionTokenLifetimeS(jwtWithLifetime(336 * 3600, 336 * 3600))).toBe(3600);
+  });
+
+  it('is a quarter of the lifetime for a 1-hour token', () => {
+    expect(minSessionTokenLifetimeS(jwtWithLifetime(3600, 3600))).toBe(900);
+  });
+
+  it('is an hour for a token with no iat', () => {
+    expect(minSessionTokenLifetimeS(jwtExpiringIn(3600))).toBe(3600);
+  });
+
+  it('is an hour for a token that cannot be read', () => {
+    expect(minSessionTokenLifetimeS('not-a-jwt')).toBe(3600);
   });
 });

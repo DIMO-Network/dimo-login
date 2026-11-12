@@ -4,10 +4,22 @@ import { UiStates } from '../enums';
 import type { LoginPrompt } from '../utils/loginPrompt';
 import { UserObject } from '../models/user';
 import { getJWTFromCookies, getUserFromLocalStorage } from './storageService';
-import { isTokenExpired } from './tokenService';
+import { isTokenExpired, tokenLifetimeSeconds } from './tokenService';
 
-/** A cached token only counts as a session with at least this long left, so the app never gets one about to expire. */
+/** The most a cached token must have left to count as a session. */
 export const MIN_SESSION_TOKEN_LIFETIME_S = 3600;
+
+/**
+ * How long a cached token must still have to count as a session, so the app
+ * never gets one about to expire: an hour, or a quarter of the token's
+ * lifetime when that is shorter (a 1-hour token would otherwise never count).
+ * An hour when the token says nothing of when it was issued.
+ */
+export const minSessionTokenLifetimeS = (token: string): number => {
+  const lifetime = tokenLifetimeSeconds(token);
+  if (lifetime === undefined) return MIN_SESSION_TOKEN_LIFETIME_S;
+  return Math.min(MIN_SESSION_TOKEN_LIFETIME_S, lifetime / 4);
+};
 
 // Define types for the function parameters
 type InitializeSessionParams = {
@@ -63,7 +75,7 @@ export function initializeSession({
 
   if (
     jwt &&
-    !isTokenExpired(jwt, MIN_SESSION_TOKEN_LIFETIME_S) &&
+    !isTokenExpired(jwt, minSessionTokenLifetimeS(jwt)) &&
     user &&
     !askedForAnother
   ) {

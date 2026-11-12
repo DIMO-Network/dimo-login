@@ -27,6 +27,18 @@ function decodeJWT(token: string): JWTPayload {
   }
 }
 
+/** The token's lifetime (exp − iat) in seconds; undefined when it lacks either or can't be read. */
+export const tokenLifetimeSeconds = (token: string): number | undefined => {
+  try {
+    const { iat, exp } = decodeJWT(token);
+    if (typeof iat !== 'number' || typeof exp !== 'number' || exp <= iat)
+      return undefined;
+    return exp - iat;
+  } catch {
+    return undefined;
+  }
+};
+
 export const isTokenExpired = (token: string, minRemainingSeconds = 0): boolean => {
   try {
     const decoded = decodeJWT(token);
