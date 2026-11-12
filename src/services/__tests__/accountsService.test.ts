@@ -67,17 +67,45 @@ describe('accountsService verified sign-up calls', () => {
     });
   });
 
-  it('createAccount sends the proof token when given one', async () => {
-    fetchMock.mockResolvedValue(ok({ subOrganizationId: 's', hasPasskey: true }));
-    await createAccount({
-      email: 'a@b.co',
-      apiKey: 'k',
-      attestation: {},
-      challenge: 'ch',
-      deployAccount: true,
-      proofToken: 'tok',
+  describe('createAccount with a proof token', () => {
+    const FLAG = 'REACT_APP_SIGN_UP_PROOF';
+    const create = () =>
+      createAccount({
+        email: 'a@b.co',
+        apiKey: 'k',
+        attestation: {},
+        challenge: 'ch',
+        deployAccount: true,
+        proofToken: 'tok',
+      });
+
+    afterEach(() => {
+      delete process.env[FLAG];
     });
-    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('Bearer tok');
+
+    it('sends it with REACT_APP_SIGN_UP_PROOF=true', async () => {
+      process.env[FLAG] = 'true';
+      fetchMock.mockResolvedValue(ok({ subOrganizationId: 's', hasPasskey: true }));
+      await create();
+      expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('Bearer tok');
+    });
+
+    // The accounts API in production allows no Authorization header: the
+    // browser would refuse the request before it was sent.
+    it.each([undefined, 'false', 'TRUE'])(
+      'leaves it out with the flag %s, as the login always has',
+      async (value) => {
+        if (value !== undefined) process.env[FLAG] = value;
+        fetchMock.mockResolvedValue(ok({ subOrganizationId: 's', hasPasskey: true }));
+        await create();
+        const [, init] = fetchMock.mock.calls[0];
+        expect(init.headers).toEqual({ 'Content-Type': 'application/json' });
+        expect(JSON.parse(init.body)).toMatchObject({
+          email: 'a@b.co',
+          deployAccount: true,
+        });
+      },
+    );
   });
 
   it('fetchUserDetails reports an unverified account and encodes the email', async () => {

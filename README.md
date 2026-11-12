@@ -49,6 +49,7 @@ REACT_APP_CONNECTED_APPS=false
 REACT_APP_PASSKEY_OFFER=false
 REACT_APP_PASSKEY_FIRST=false
 REACT_APP_SIGN_IN_NOTICE=false
+REACT_APP_SIGN_UP_PROOF=false
 ```
 
 Features that ship dark are off unless their variable is exactly `true` at build time (`src/utils/featureFlags.ts`):
@@ -57,6 +58,7 @@ Features that ship dark are off unless their variable is exactly `true` at build
 - `REACT_APP_PASSKEY_OFFER`: the offer to add a passkey after an email-code sign-in (`PASSKEY_OFFER`). Needs the accounts API's `POST /account/authenticator`.
 - `REACT_APP_PASSKEY_FIRST`: "Sign in with a passkey" on the email form, without typing an email. Needs the accounts API's `GET /account/passkey-challenge` and `POST /account/by-passkey`.
 - `REACT_APP_SIGN_IN_NOTICE`: tell the accounts API about an account's first sign-in on this browser (`POST /account/sign-in-notice`), which may email the account.
+- `REACT_APP_SIGN_UP_PROOF`: when Google or Apple sign-up creates an account, send the provider's token to `POST /account` as `Authorization: Bearer`, the proof the accounts API asks for once its `ACCOUNT_CREATE_REQUIRE_PROOF` is on. Turn it on only after the accounts API that allows the `Authorization` header (CORS) is live: before that the browser refuses the request and Google/Apple sign-up fails. Turn it on before the accounts API starts requiring proof.
 
 🗂️ Folder Structure Overview
 

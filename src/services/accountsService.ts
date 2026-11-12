@@ -3,6 +3,7 @@ import { CredentialResult, OtpResult } from '../models/resultTypes';
 import { UserObject } from '../models/user';
 import { fetchWithTimeout } from '../utils/withTimeout';
 import { DIMO_ACCOUNTS_BASE_URL } from './accountsBaseUrl';
+import { signUpProofEnabled } from '../utils/featureFlags';
 
 // Example: Send OTP using Accounts API
 export const sendOtp = async (email: string): Promise<OtpResult> => {
@@ -150,7 +151,9 @@ export const createAccount = async ({
   proofToken,
 }: CreateAccountParams): Promise<UserObject> => {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (proofToken) {
+  // Only with the flag on: an accounts API that doesn't list Authorization in
+  // its CORS headers refuses the whole request (see signUpProofEnabled).
+  if (proofToken && signUpProofEnabled()) {
     headers.Authorization = `Bearer ${proofToken}`;
   }
   const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account`, {

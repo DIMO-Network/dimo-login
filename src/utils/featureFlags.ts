@@ -15,3 +15,12 @@ export const passkeyFirstEnabled = () => process.env.REACT_APP_PASSKEY_FIRST ===
 
 /** Telling the accounts API about a first sign-in on this browser (signInNotice). */
 export const signInNoticeEnabled = () => process.env.REACT_APP_SIGN_IN_NOTICE === 'true';
+
+/**
+ * Sending the Google/Apple token as proof of the email when that sign-up
+ * creates the account (POST /account). Off, the request is the one the login
+ * has always sent. The accounts API allows the Authorization header only from
+ * its proof-of-email release on, so a login built with this on before that
+ * release is live can't create accounts from Google or Apple at all.
+ */
+export const signUpProofEnabled = () => process.env.REACT_APP_SIGN_UP_PROOF === 'true';
