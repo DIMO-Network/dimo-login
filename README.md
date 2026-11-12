@@ -46,11 +46,13 @@ REACT_APP_TESLA_REDIRECT_URI=http://localhost:3000/v1
 REACT_APP_TESLA_VIRTUAL_KEY_URL=https://www.tesla.com/_ak/auth.dev.drivedimo.com
 REACT_APP_RPCID_URL=localhost
 REACT_APP_CONNECTED_APPS=false
+REACT_APP_PASSKEY_OFFER=false
 ```
 
 Features that ship dark are off unless their variable is exactly `true` at build time (`src/utils/featureFlags.ts`):
 
 - `REACT_APP_CONNECTED_APPS`: the connected-apps page, `entryState=CONNECTED_APPS` (see `docs/flows.md`).
+- `REACT_APP_PASSKEY_OFFER`: the offer to add a passkey after an email-code sign-in (`PASSKEY_OFFER`). Needs the accounts API's `POST /account/authenticator`.
 
 🗂️ Folder Structure Overview
 

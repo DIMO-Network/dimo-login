@@ -196,7 +196,8 @@ export const fetchUserDetails = async (email: string): Promise<null | UserObject
     const data = await response.json();
     throw new Error(data.message ?? 'Failed to fetch user details');
   }
-  const { subOrganizationId, hasPasskey, emailVerified } = await response.json();
+  const { subOrganizationId, hasPasskey, emailVerified, authenticators } =
+    await response.json();
   return {
     email,
     subOrganizationId,
@@ -205,5 +206,37 @@ export const fetchUserDetails = async (email: string): Promise<null | UserObject
     walletAddress: null,
     // Older API builds omit the field; treat those as verified.
     emailVerified: emailVerified !== false,
+    ...(Array.isArray(authenticators) && {
+      credentialIds: authenticators.map(
+        (authenticator: { credentialId: string }) => authenticator.credentialId,
+      ),
+    }),
   };
+};
+
+/** A Turnkey request the browser stamped, for the accounts API to forward. */
+export type StampedRequest = {
+  url: string;
+  body: string;
+  stamp: { stampHeaderName: string; stampHeaderValue: string };
+};
+
+/**
+ * Has the accounts API forward a stamped CREATE_AUTHENTICATORS_V2 request (a
+ * passkey added with the account's own email-code session) and record the
+ * passkey. The signed request is the proof: no token is sent.
+ */
+export const addAuthenticator = async (
+  email: string,
+  signedCreateAuthenticatorsRequest: StampedRequest,
+): Promise<void> => {
+  const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account/authenticator`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, signedCreateAuthenticatorsRequest }),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data?.error ?? 'Could not add the passkey');
+  }
 };

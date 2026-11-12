@@ -209,6 +209,16 @@ const es: PluralLocaleResources = {
   'create.cta': 'Crear clave de acceso',
   'create.creating': 'Creando tu cuenta. Puede tardar un minuto.',
   'create.error': 'No se pudo crear tu cuenta. Inténtalo de nuevo.',
+  'passkey_offer.title': 'Inicia sesión más rápido la próxima vez',
+  'passkey_offer.body':
+    'Añade una clave de acceso para {{email}} en este dispositivo. La próxima vez, inicia sesión con tu huella, tu cara o el PIN del dispositivo en lugar de un código.',
+  'passkey_offer.add': 'Añadir clave de acceso',
+  'passkey_offer.adding': 'Añadiendo tu clave de acceso…',
+  'passkey_offer.not_now': 'Ahora no',
+  'passkey_offer.added': 'Clave de acceso añadida.',
+  'passkey_offer.exists': 'Este dispositivo ya tiene una clave de acceso para {{email}}.',
+  'passkey_offer.error':
+    'No se pudo añadir la clave de acceso. Puedes seguir usando códigos por correo.',
 
   // Plain sign-in done, and signing out
   'login_done.title': 'Iniciaste sesión',

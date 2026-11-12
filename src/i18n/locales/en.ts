@@ -200,6 +200,15 @@ const en = {
   'create.cta': 'Create passkey',
   'create.creating': 'Creating your account. This can take a minute.',
   'create.error': 'Couldn’t create your account. Try again.',
+  'passkey_offer.title': 'Sign in faster next time',
+  'passkey_offer.body':
+    'Add a passkey for {{email}} on this device. Next time, sign in with your fingerprint, face or device PIN instead of a code.',
+  'passkey_offer.add': 'Add a passkey',
+  'passkey_offer.adding': 'Adding your passkey…',
+  'passkey_offer.not_now': 'Not now',
+  'passkey_offer.added': 'Passkey added.',
+  'passkey_offer.exists': 'This device already has a passkey for {{email}}.',
+  'passkey_offer.error': 'Couldn’t add a passkey. You can keep using email codes.',
 
   // Plain sign-in done, and signing out
   'login_done.title': 'You’re signed in',

@@ -112,3 +112,18 @@ describe('entryState=CONNECTED_APPS', () => {
     expect(state().entryState).toBe('VEHICLE_MANAGER');
   });
 });
+
+describe('entryState=PASSKEY_OFFER', () => {
+  it('is dropped: only an email-code sign-in leads there', () => {
+    process.env.REACT_APP_PASSKEY_OFFER = 'true';
+    try {
+      const { apply, state } = setup();
+      apply({ entryState: 'PASSKEY_OFFER' });
+      expect(state().entryState).toBeUndefined();
+      expect(mockUi.setUiState).not.toHaveBeenCalled();
+      expect(mockUi.setEntryState).not.toHaveBeenCalled();
+    } finally {
+      delete process.env.REACT_APP_PASSKEY_OFFER;
+    }
+  });
+});

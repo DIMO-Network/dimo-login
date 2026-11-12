@@ -7,6 +7,9 @@ import { AuthProvider, useAuthContext } from '../AuthContext';
 import { useDevCredentials } from '../DevCredentialsContext';
 import { useUIManager } from '../UIManagerContext';
 import { signInStepsWithSigner, type SignInSteps } from '../../services/walletLoader';
+import { verifyOtp } from '../../services/accountsService';
+import { PasskeyOffer } from '../../screens';
+import { shouldOfferPasskey } from '../../services/passkeyOffer';
 import { UiStates } from '../../enums';
 
 vi.mock('@sentry/react', () => ({ captureException: vi.fn() }));
@@ -16,6 +19,13 @@ vi.mock('../../services/walletLoader', () => ({
   signInStepsWithSigner: vi.fn(),
   loadSignInSteps: vi.fn(),
 }));
+vi.mock('../../services/accountsService', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../services/accountsService')>()),
+  verifyOtp: vi.fn(),
+}));
+// The passkey offer's screen, which a code sign-in loads before showing it.
+vi.mock('../../screens', () => ({ PasskeyOffer: { preload: vi.fn() } }));
+vi.mock('../../services/passkeyOffer', () => ({ shouldOfferPasskey: vi.fn() }));
 
 const deferred = <T,>() => {
   let resolve!: (value: T) => void;
@@ -548,5 +558,140 @@ describe('AuthContext sign-up', () => {
     expect(auth.emailFormIntent).toBe(true);
     act(() => auth.clearEmailFormIntent());
     expect(auth.emailFormIntent).toBe(false);
+  });
+});
+
+describe('AuthContext passkey offer', () => {
+  const ALICE = {
+    email: 'alice@x.co',
+    subOrganizationId: 'sub-a',
+    hasPasskey: true,
+    walletAddress: null,
+    smartContractAddress: null,
+    emailVerified: true,
+    credentialIds: ['cred-1'],
+  };
+  const offerSteps = (offer: boolean) => {
+    vi.mocked(shouldOfferPasskey).mockResolvedValue(offer);
+    return stepsWith(
+      {},
+      {
+        generateP256KeyPair: () => ({ publicKeyUncompressed: 'pub', privateKey: 'priv' }),
+      },
+    );
+  };
+
+  beforeEach(() => {
+    (useUIManager as Mock).mockReturnValue({
+      setUiState,
+      setError,
+      entryState: 'VEHICLE_MANAGER',
+    });
+    vi.mocked(verifyOtp).mockResolvedValue({ credentialBundle: 'bundle' } as never);
+    vi.mocked(PasskeyOffer.preload).mockResolvedValue({} as never);
+  });
+
+  const signInByCode = async (steps: SignInSteps) => {
+    renderProvider();
+    act(() => auth.setUser(ALICE));
+    signer.resolve(steps);
+    await act(() => auth.completeOTPLogin({ otpId: 'otp', otpCode: '123456' }));
+  };
+
+  it('after a code sign-in, offers a passkey before going on, and goes on once', async () => {
+    await signInByCode(offerSteps(true));
+
+    expect(shouldOfferPasskey).toHaveBeenCalledWith(
+      expect.objectContaining({ email: 'alice@x.co', subOrganizationId: 'sub-a' }),
+    );
+    expect(setUiState).toHaveBeenLastCalledWith(UiStates.PASSKEY_OFFER);
+    expect(setUiState).not.toHaveBeenCalledWith(UiStates.VEHICLE_MANAGER);
+    // Signed in already: the session is made before the offer.
+    expect(auth.jwt).toBe(JWT);
+    expect(localStorage.getItem('user_data_0xc')).not.toBeNull();
+
+    act(() => auth.continueAfterSignIn());
+    expect(setUiState).toHaveBeenLastCalledWith(UiStates.VEHICLE_MANAGER);
+    act(() => auth.continueAfterSignIn());
+    expect(
+      setUiState.mock.calls.filter(([state]) => state === UiStates.VEHICLE_MANAGER),
+    ).toHaveLength(1);
+  });
+
+  it('goes straight on when there is nothing to offer', async () => {
+    await signInByCode(offerSteps(false));
+    expect(setUiState).toHaveBeenLastCalledWith(UiStates.VEHICLE_MANAGER);
+    expect(setUiState).not.toHaveBeenCalledWith(UiStates.PASSKEY_OFFER);
+  });
+
+  it('goes straight on when the offer’s screen can’t load', async () => {
+    vi.mocked(PasskeyOffer.preload).mockRejectedValue(new Error('chunk'));
+    await signInByCode(offerSteps(true));
+    expect(setUiState).toHaveBeenLastCalledWith(UiStates.VEHICLE_MANAGER);
+    expect(setUiState).not.toHaveBeenCalledWith(UiStates.PASSKEY_OFFER);
+  });
+
+  it('goes straight on when deciding fails', async () => {
+    const steps = offerSteps(true);
+    vi.mocked(shouldOfferPasskey).mockRejectedValue(new Error('boom'));
+    await signInByCode(steps);
+    expect(setUiState).toHaveBeenLastCalledWith(UiStates.VEHICLE_MANAGER);
+  });
+
+  it('never offers after a passkey sign-in', async () => {
+    const steps = offerSteps(true);
+    renderProvider();
+    act(() => auth.setUser(ALICE));
+    signer.resolve(steps);
+    await act(() => auth.completePasskeyLogin());
+    expect(shouldOfferPasskey).not.toHaveBeenCalled();
+    expect(setUiState).toHaveBeenLastCalledWith(UiStates.VEHICLE_MANAGER);
+  });
+
+  it('never offers on a silent resume', async () => {
+    const steps = offerSteps(true);
+    localStorage.setItem(
+      'turnkey_session_sub-a',
+      JSON.stringify({
+        sessionType: 'api_key',
+        embeddedKey: 'k',
+        credentialBundle: 'b',
+        expiresAt: Date.now() + 60_000,
+      }),
+    );
+    renderProvider();
+    signer.resolve(steps);
+    await act(async () => {
+      await auth.resumeAccount({
+        email: 'alice@x.co',
+        subOrganizationId: 'sub-a',
+        lastUsedAt: 1,
+      });
+    });
+    expect(shouldOfferPasskey).not.toHaveBeenCalled();
+    expect(setUiState).toHaveBeenLastCalledWith(UiStates.VEHICLE_MANAGER);
+  });
+
+  it('continueAfterSignIn does nothing when nothing is waiting', () => {
+    renderProvider();
+    act(() => auth.continueAfterSignIn());
+    expect(setUiState).not.toHaveBeenCalled();
+  });
+
+  it('a new sign-in drops a continuation left waiting by an earlier one', async () => {
+    await signInByCode(offerSteps(true));
+    // "Use another account" from the offer would be a new sign-in: the first
+    // sign-in's continuation must never run for the second.
+    act(() => auth.switchAccount());
+    act(() => auth.continueAfterSignIn());
+    expect(setUiState).not.toHaveBeenCalledWith(UiStates.VEHICLE_MANAGER);
+  });
+
+  it('keeps the account’s credential IDs out of storage', async () => {
+    await signInByCode(offerSteps(false));
+    expect(JSON.parse(localStorage.getItem('user_data_0xc')!)).not.toHaveProperty(
+      'credentialIds',
+    );
+    expect(localStorage.getItem('dimo_accounts')).not.toContain('cred-1');
   });
 });

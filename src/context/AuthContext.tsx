@@ -17,7 +17,7 @@
  */
 
 import { captureException } from '@sentry/react';
-import React, { createContext, ReactNode, useContext, useState } from 'react';
+import React, { createContext, ReactNode, useContext, useRef, useState } from 'react';
 
 import { createSession, handlePostAuthUIState, TStamper } from '../utils/authUtils';
 import { useDevCredentials } from './DevCredentialsContext';
@@ -33,9 +33,11 @@ import {
 } from '../services/accountStore';
 import { clearSessionData } from '../services/storageService';
 import { verifyOtp } from '../services/accountsService';
+import { shouldOfferPasskey } from '../services/passkeyOffer';
 import { signInStepsWithSigner, type SignInSteps } from '../services/walletLoader';
 import { useSignUpFlow, type SignUp, type SignUpDraft } from '../hooks/useSignUpFlow';
 import type { AccountRequest } from '../utils/loginPrompt';
+import { PasskeyOffer } from '../screens';
 
 interface AuthContextProps {
   completePasskeyLogin: () => Promise<void>;
@@ -62,6 +64,11 @@ interface AuthContextProps {
   /** Set by openEmailForm until the email screen has read it (clearEmailFormIntent). */
   emailFormIntent: boolean;
   clearEmailFormIntent: () => void;
+  /**
+   * Goes on from the passkey offer to where the email-code sign-in was going.
+   * Runs that once; later calls do nothing.
+   */
+  continueAfterSignIn: () => void;
   /**
    * What the app asked of the sign-in (prompt, loginHint), until someone signs
    * in on this page; empty from then on, switchAccount included. Read it here,
@@ -121,9 +128,13 @@ export const AuthProvider = ({
   if (jwt && !signedInHere) setSignedInHere(true);
   const accountRequest: AccountRequest = signedInHere ? {} : { prompt, loginHint };
 
+  // Where an email-code sign-in goes once the passkey offer is answered.
+  const afterSignInRef = useRef<(() => void) | null>(null);
+
   const resetUser = () => {
     setUser(defaultUser);
     clearDraft();
+    afterSignInRef.current = null;
   };
 
   const [emailFormIntent, setEmailFormIntent] = useState(false);
@@ -156,7 +167,11 @@ export const AuthProvider = ({
     );
   };
 
-  /** Signs this app in as the account once authenticate has succeeded. */
+  /**
+   * Signs this app in as the account once authenticate has succeeded, then
+   * goes where the sign-in was going, or hands that step to `holdFor` (the
+   * passkey offer) to run later.
+   */
   const completeLogin = (
     account: UserObject,
     {
@@ -166,32 +181,61 @@ export const AuthProvider = ({
       turnkeySessionExpiration,
     }: Awaited<ReturnType<typeof authenticate>>,
     turnkeySessionData: TurnkeySessionData,
+    holdFor?: (proceed: () => void) => void,
   ) => {
     const updatedUserObject: UserObject = {
       ...account,
       walletAddress,
       smartContractAddress,
     };
+    // The account's credential IDs stay in memory.
+    const { credentialIds, ...storedUser } = updatedUserObject;
 
+    afterSignInRef.current = null;
     setJwt(accessToken);
     setUser(updatedUserObject);
 
     createSession({
       clientId,
       jwt: accessToken,
-      user: updatedUserObject,
+      user: storedUser,
       turnkeySessionData: { ...turnkeySessionData, expiresAt: turnkeySessionExpiration },
     });
 
-    handlePostAuthUIState({
-      entryState,
-      clientId,
-      redirectUri,
-      utm,
-      setUiState,
-      user: updatedUserObject,
-      jwt: accessToken,
-    });
+    const proceed = () =>
+      handlePostAuthUIState({
+        entryState,
+        clientId,
+        redirectUri,
+        utm,
+        setUiState,
+        user: updatedUserObject,
+        jwt: accessToken,
+      });
+    if (holdFor) holdFor(proceed);
+    else proceed();
+  };
+
+  /** Whether to show the passkey offer: its screen must load, or the sign-in would stall. */
+  const offersPasskey = async (account: UserObject) => {
+    try {
+      if (!(await shouldOfferPasskey(account))) return false;
+      await PasskeyOffer.preload();
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const holdForPasskeyOffer = (proceed: () => void) => {
+    afterSignInRef.current = proceed;
+    setUiState(UiStates.PASSKEY_OFFER);
+  };
+
+  const continueAfterSignIn = () => {
+    const proceed = afterSignInRef.current;
+    afterSignInRef.current = null;
+    proceed?.();
   };
 
   const loginToDIMO = async ({
@@ -228,15 +272,15 @@ export const AuthProvider = ({
       credentialBundle,
       embeddedKey: keyPair.privateKey,
     });
-    await loginToDIMO({
-      steps,
-      stamper: apiKeyStamper,
-      turnkeySessionData: {
-        embeddedKey: keyPair.privateKey,
-        credentialBundle,
-        sessionType: 'api_key',
-      },
-    });
+    const result = await authenticate(user, steps, apiKeyStamper);
+    // Only here: never after a passkey sign-in or a silent resume.
+    const offer = await offersPasskey(user);
+    completeLogin(
+      user,
+      result,
+      { embeddedKey: keyPair.privateKey, credentialBundle, sessionType: 'api_key' },
+      offer ? holdForPasskeyOffer : undefined,
+    );
   };
 
   const validateSession = async () => {
@@ -360,6 +404,7 @@ export const AuthProvider = ({
         openEmailForm,
         emailFormIntent,
         clearEmailFormIntent,
+        continueAfterSignIn,
         accountRequest,
         signUpDraft,
         signUp,

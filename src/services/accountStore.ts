@@ -231,6 +231,23 @@ export const getLastSignedInSubOrganizationId = (
   return readStoredAccounts().find((a) => a.email === logged)?.subOrganizationId;
 };
 
+// "Not now" on the passkey offer, per account: when it was said (ms).
+const passkeyOfferKey = (subOrganizationId: string) =>
+  `dimo_passkey_offer_${subOrganizationId}`;
+const PASSKEY_OFFER_SNOOZE_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** Don't offer this account a passkey on this browser for 30 days. */
+export const snoozePasskeyOffer = (subOrganizationId: string, now = Date.now()): void =>
+  writeJson(passkeyOfferKey(subOrganizationId), now);
+
+export const isPasskeyOfferSnoozed = (
+  subOrganizationId: string,
+  now = Date.now(),
+): boolean => {
+  const snoozedAt = readJson(passkeyOfferKey(subOrganizationId));
+  return typeof snoozedAt === 'number' && now - snoozedAt < PASSKEY_OFFER_SNOOZE_MS;
+};
+
 export const getWalletSession = (
   subOrganizationId: string,
 ): TurnkeySessionDataWithExpiry | null => {

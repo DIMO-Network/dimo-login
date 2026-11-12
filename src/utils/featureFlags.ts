@@ -6,3 +6,6 @@
 
 /** The connected-apps page (`entryState=CONNECTED_APPS`). */
 export const connectedAppsEnabled = () => process.env.REACT_APP_CONNECTED_APPS === 'true';
+
+/** The offer to add a passkey after an email-code sign-in (PASSKEY_OFFER). */
+export const passkeyOfferEnabled = () => process.env.REACT_APP_PASSKEY_OFFER === 'true';

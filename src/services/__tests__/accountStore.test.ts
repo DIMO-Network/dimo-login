@@ -5,10 +5,12 @@ import {
   forgetAccount,
   getRememberedAccounts,
   getWalletSession,
+  isPasskeyOfferSnoozed,
   listAppsSignedInAs,
   rememberAccount,
   setWalletSession,
   signOutAppHere,
+  snoozePasskeyOffer,
 } from '../accountStore';
 import { getJWTFromCookies, storeJWTInCookies } from '../storageService';
 
@@ -352,5 +354,22 @@ describe('apps signed in on this browser', () => {
     expect(listAppsSignedInAs('alice@x.co')).toEqual([CLIENT]);
     expect(getRememberedAccounts(null).map((a) => a.email)).toEqual(['alice@x.co']);
     expect(getWalletSession('sub-a')).toEqual(PASSKEY);
+  });
+});
+
+describe('the passkey offer', () => {
+  const DAY = 24 * 60 * 60 * 1000;
+
+  it('is snoozed for 30 days, for that account only', () => {
+    snoozePasskeyOffer('sub-a', 1_000);
+    expect(localStorage.getItem('dimo_passkey_offer_sub-a')).not.toBeNull();
+    expect(isPasskeyOfferSnoozed('sub-a', 1_000 + 29 * DAY)).toBe(true);
+    expect(isPasskeyOfferSnoozed('sub-a', 1_000 + 30 * DAY)).toBe(false);
+    expect(isPasskeyOfferSnoozed('sub-b', 1_000)).toBe(false);
+  });
+
+  it('is not snoozed by a value it can’t read', () => {
+    localStorage.setItem('dimo_passkey_offer_sub-a', '"soon"');
+    expect(isPasskeyOfferSnoozed('sub-a')).toBe(false);
   });
 });

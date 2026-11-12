@@ -1,5 +1,6 @@
 import type { Mock } from 'vitest';
 import {
+  addAuthenticator,
   createAccount,
   fetchUserDetails,
   registerAccount,
@@ -85,5 +86,77 @@ describe('accountsService verified sign-up calls', () => {
     );
     await expect(fetchUserDetails('a+b@c.co')).resolves.toMatchObject({ emailVerified: false });
     expect(fetchMock.mock.calls[0][0]).toMatch(/\/account\/a%2Bb%40c\.co$/);
+  });
+
+  it('fetchUserDetails passes on the recorded passkeys’ credential IDs', async () => {
+    fetchMock.mockResolvedValue(
+      ok({
+        subOrganizationId: 's',
+        hasPasskey: true,
+        emailVerified: true,
+        authenticators: [
+          { credentialId: 'cred-1', transports: [], creationDate: '2025-01-01' },
+          { credentialId: 'cred-2', transports: [], creationDate: '2025-02-01' },
+        ],
+      }),
+    );
+    await expect(fetchUserDetails('a@b.co')).resolves.toMatchObject({
+      credentialIds: ['cred-1', 'cred-2'],
+    });
+  });
+
+  it('fetchUserDetails leaves credentialIds out when the API sends no list', async () => {
+    fetchMock.mockResolvedValue(ok({ subOrganizationId: 's', hasPasskey: true }));
+    const user = await fetchUserDetails('a@b.co');
+    expect(user).not.toHaveProperty('credentialIds');
+  });
+});
+
+describe('addAuthenticator', () => {
+  let fetchMock: Mock;
+  const SIGNED = {
+    url: 'https://api.turnkey.com/public/v1/submit/create_authenticators',
+    body: '{"type":"ACTIVITY_TYPE_CREATE_AUTHENTICATORS_V2"}',
+    stamp: { stampHeaderName: 'X-Stamp', stampHeaderValue: 'stamp' },
+  };
+
+  beforeEach(() => {
+    fetchMock = vi.fn();
+    (global as unknown as { fetch: Mock }).fetch = fetchMock;
+  });
+
+  it('posts the email and the signed request, with no bearer token', async () => {
+    fetchMock.mockResolvedValue({ ...ok({ subOrganizationId: 's' }), status: 201 });
+    await addAuthenticator('a@b.co', SIGNED);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toMatch(/\/account\/authenticator$/);
+    expect(init.method).toBe('POST');
+    expect(init.headers).not.toHaveProperty('Authorization');
+    expect(JSON.parse(init.body)).toEqual({
+      email: 'a@b.co',
+      signedCreateAuthenticatorsRequest: SIGNED,
+    });
+  });
+
+  it('throws with the server’s reason', async () => {
+    fetchMock.mockResolvedValue(
+      fail(409, { error: 'Existing passkeys are not recorded' }),
+    );
+    await expect(addAuthenticator('a@b.co', SIGNED)).rejects.toThrow(
+      'Existing passkeys are not recorded',
+    );
+  });
+
+  it('throws even when the error body isn’t JSON', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 502,
+      json: async () => {
+        throw new SyntaxError('not json');
+      },
+    });
+    await expect(addAuthenticator('a@b.co', SIGNED)).rejects.toThrow(
+      'Could not add the passkey',
+    );
   });
 });

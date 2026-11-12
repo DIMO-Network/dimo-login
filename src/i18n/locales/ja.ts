@@ -188,6 +188,16 @@ const ja: LocaleResources = {
   'create.cta': 'パスキーを作成',
   'create.creating': 'アカウントを作成しています。少し時間がかかることがあります。',
   'create.error': 'アカウントを作成できませんでした。もう一度お試しください。',
+  'passkey_offer.title': '次回はもっと簡単にサインイン',
+  'passkey_offer.body':
+    'このデバイスに {{email}} のパスキーを追加しましょう。次回からは、コードの代わりに指紋・顔認証・デバイスのPINでサインインできます。',
+  'passkey_offer.add': 'パスキーを追加',
+  'passkey_offer.adding': 'パスキーを追加しています…',
+  'passkey_offer.not_now': '今はしない',
+  'passkey_offer.added': 'パスキーを追加しました。',
+  'passkey_offer.exists': 'このデバイスには {{email}} のパスキーがすでにあります。',
+  'passkey_offer.error':
+    'パスキーを追加できませんでした。引き続きメールのコードでサインインできます。',
 
   'login_done.title': 'サインインしました',
   'account.signed_in_as': '{{email}}でサインイン中',

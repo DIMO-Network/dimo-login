@@ -72,6 +72,9 @@ export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
       if (typeof value !== 'string' || !(value in UiStates)) return;
       // Off, the page doesn't exist: dropped like any unknown state.
       if (value === UiStates.CONNECTED_APPS && !connectedAppsEnabled()) return;
+      // Only an email-code sign-in leads to the passkey offer, which goes on to
+      // where that sign-in was going: as a flow of its own it would lead nowhere.
+      if (value === UiStates.PASSKEY_OFFER) return;
       setUiState(value as UiStates);
       setEntryState(value as UiStates);
       setDevCredentialsState((prev) => ({

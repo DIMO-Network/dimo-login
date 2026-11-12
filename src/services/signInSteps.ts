@@ -30,6 +30,11 @@ export {
   passkeyStamper,
 } from './turnkeyService';
 export { generateP256KeyPair } from '@turnkey/crypto';
+export {
+  enrollPasskey,
+  prepareEnrollment,
+  type PreparedEnrollment,
+} from './passkeyEnrollment';
 
 async function initializeKernelClient(
   subOrganizationId: string,
