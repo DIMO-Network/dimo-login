@@ -221,3 +221,42 @@ export const fetchLicenseAliases = async (
   }
   return aliases;
 };
+
+// Aliases per query when asking after many vehicles at once.
+const VEHICLES_PER_QUERY = 50;
+
+/**
+ * The vehicles among `tokenIds` on which `grantee` still has a grant in force,
+ * as identity-api's index has it now: each vehicle's `sacd(grantee)`, 50 to a
+ * query, the IDs and the grantee as variables. Throws when an answer isn't whole.
+ */
+export const fetchVehiclesStillGranted = async (
+  tokenIds: number[],
+  grantee: string,
+): Promise<number[]> => {
+  const now = Date.now();
+  const still: number[] = [];
+  for (let start = 0; start < tokenIds.length; start += VEHICLES_PER_QUERY) {
+    const ids = tokenIds.slice(start, start + VEHICLES_PER_QUERY);
+    const params = ids.map((_, i) => `$t${i}: Int!`).join(', ');
+    const fields = ids
+      .map(
+        (_, i) =>
+          `v${i}: vehicle(tokenId: $t${i}) { sacd(grantee: $grantee) { expiresAt } }`,
+      )
+      .join('\n  ');
+    const query = `query VehiclesStillGranted($grantee: Address!, ${params}) {\n  ${fields}\n}`;
+    const variables = {
+      grantee: grantee.toLowerCase(),
+      ...Object.fromEntries(ids.map((id, i) => [`t${i}`, id])),
+    };
+    const data = await queryWhole<
+      Record<string, { sacd: { expiresAt: string } | null } | null>
+    >(query, variables);
+    ids.forEach((id, i) => {
+      const expiresAt = data[`v${i}`]?.sacd?.expiresAt;
+      if (expiresAt && Date.parse(expiresAt) > now) still.push(id);
+    });
+  }
+  return still;
+};

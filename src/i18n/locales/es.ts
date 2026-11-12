@@ -594,6 +594,9 @@ const es: PluralLocaleResources = {
   'apps.error.load': 'No se pudieron cargar tus apps. Inténtalo de nuevo.',
   'apps.error.stop':
     'No se pudo dejar de compartir con {{appName}}. Revisa la lista e inténtalo de nuevo.',
+  'apps.stop_waiting': 'Dejando de compartir… esto puede tardar un minuto.',
+  'apps.stop_slow':
+    'Esto está tardando más de lo normal. Vuelve a revisar en unos minutos.',
 };
 
 export default es;

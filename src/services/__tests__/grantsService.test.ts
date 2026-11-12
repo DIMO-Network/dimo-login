@@ -3,6 +3,7 @@ import {
   fetchAccountGrants,
   fetchConnectedAppGrants,
   fetchLicenseAliases,
+  fetchVehiclesStillGranted,
 } from '../grantsService';
 import { queryIdentity } from '../identityGraphql';
 
@@ -154,6 +155,47 @@ describe('connected apps', () => {
 
   it('skips anything that isn’t an address, and asks nothing for no addresses', async () => {
     expect((await fetchLicenseAliases(['not-an-address'])).size).toBe(0);
+    expect(mockQuery).not.toHaveBeenCalled();
+  });
+});
+
+describe('fetchVehiclesStillGranted', () => {
+  const mockQuery = queryIdentity as Mock;
+  const G = '0x00000000000000000000000000000000000000B1';
+
+  beforeEach(() => mockQuery.mockReset());
+
+  it('asks for each vehicle’s grant to the app in one query, by variables', async () => {
+    mockQuery.mockResolvedValueOnce({
+      data: {
+        v0: { sacd: { expiresAt: '2999-01-01T00:00:00Z' } },
+        v1: { sacd: null },
+        v2: { sacd: { expiresAt: '1970-01-01T00:00:00Z' } },
+      },
+      errors: [],
+    });
+    await expect(fetchVehiclesStillGranted([7, 8, 9], G)).resolves.toEqual([7]);
+    const [query, variables] = mockQuery.mock.calls[0];
+    expect(query).toMatch(/v0: vehicle\(tokenId: \$t0\) \{ sacd\(grantee: \$grantee\)/);
+    expect(variables).toEqual({ grantee: G.toLowerCase(), t0: 7, t1: 8, t2: 9 });
+  });
+
+  it('asks 50 vehicles at a time', async () => {
+    mockQuery.mockResolvedValue({ data: {}, errors: [] });
+    await fetchVehiclesStillGranted(
+      Array.from({ length: 120 }, (_, i) => i + 1),
+      G,
+    );
+    expect(mockQuery).toHaveBeenCalledTimes(3);
+  });
+
+  it('throws when the answer isn’t whole', async () => {
+    mockQuery.mockResolvedValueOnce({ data: null, errors: [{ message: 'boom' }] });
+    await expect(fetchVehiclesStillGranted([7], G)).rejects.toThrow('boom');
+  });
+
+  it('asks nothing for no vehicles', async () => {
+    await expect(fetchVehiclesStillGranted([], G)).resolves.toEqual([]);
     expect(mockQuery).not.toHaveBeenCalled();
   });
 });

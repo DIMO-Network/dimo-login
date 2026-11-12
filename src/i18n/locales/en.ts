@@ -560,6 +560,8 @@ const en = {
   'apps.error.load': 'Couldn’t load your apps. Try again.',
   'apps.error.stop':
     'Couldn’t stop sharing with {{appName}}. Check the list and try again.',
+  'apps.stop_waiting': 'Stopping… this can take a minute.',
+  'apps.stop_slow': 'This is taking longer than usual. Check again in a few minutes.',
 } as const;
 
 export default en;

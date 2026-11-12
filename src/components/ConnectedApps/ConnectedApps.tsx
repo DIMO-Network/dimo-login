@@ -8,13 +8,13 @@ import { useAppName } from '../../hooks/useAppName';
 import { useConnectedApps, type AppAccess } from '../../hooks/useConnectedApps';
 import { message, useT } from '../../i18n';
 import { formatDate } from '../../i18n/format';
-import { revokeAppAccess } from '../../services/connectedAppsRevoke';
+import { revokeAppAccess, waitForRevocation } from '../../services/connectedAppsRevoke';
 import { grantEndOf } from '../../utils/dateUtils';
 import { isEmbed } from '../../utils/isEmbed';
 import { backToThirdParty } from '../../utils/messageHandler';
 import { ErrorContent } from '../Shared/ErrorScreen';
 import { Loader } from '../Shared/Loader';
-import { ActionBar, Button, ErrorBox, Screen, ScreenHeader } from '../ui';
+import { ActionBar, Button, ErrorBox, Notice, Screen, ScreenHeader } from '../ui';
 import { AppRow } from './AppRow';
 import { RevokeDialog } from './RevokeDialog';
 
@@ -42,8 +42,15 @@ const ConnectedAppsPage = () => {
   const { setBusy } = useUIManager();
   const { grants, browserApps, nameOf, reload, signOutHere } = useConnectedApps();
   const [confirming, setConfirming] = useState<AppAccess | null>(null);
-  const [stopping, setStopping] = useState<string | null>(null);
-  const [failedName, setFailedName] = useState<string | null>(null);
+  // Signing: the user operations are being sent. Indexing: sent, and waiting
+  // for the list (identity-api's index) to show the grants ended.
+  const [stopping, setStopping] = useState<{
+    grantee: string;
+    phase: 'signing' | 'indexing';
+  } | null>(null);
+  const [outcome, setOutcome] = useState<
+    { kind: 'failed'; appName: string } | { kind: 'slow' } | null
+  >(null);
 
   const displayName = (address: string) =>
     nameOf(address) ?? t('apps.unknown_app', { address: shortAddress(address) });
@@ -61,33 +68,46 @@ const ConnectedAppsPage = () => {
   };
 
   // Needs the confirmation, then the account's signature (validateSession
-  // sends the person to sign in when there's no wallet session). Afterwards
-  // the list is read again, so it shows what is on chain, not what was hoped.
+  // sends the person to sign in when there's no wallet session). The list is
+  // read again only once the index shows the grants ended, so it never shows
+  // a stopped share as still there; an index slower than a minute is reported
+  // as slow, never as a failure.
   const stop = async (app: AppAccess) => {
     setConfirming(null);
-    setFailedName(null);
-    setStopping(app.grantee);
+    setOutcome(null);
+    setStopping({ grantee: app.grantee, phase: 'signing' });
     setBusy(true);
+    let owner: string | null = null;
     try {
-      if (!(await validateSession())) return;
-      const owner = user.smartContractAddress;
+      if (!(await validateSession())) {
+        setStopping(null);
+        return;
+      }
+      owner = user.smartContractAddress;
       if (!owner) throw new Error('The account has no wallet address');
-      await revokeAppAccess(owner, app);
+      await revokeAppAccess(app);
     } catch (error) {
       captureException(error);
-      setFailedName(displayName(app.grantee));
-    } finally {
+      setOutcome({ kind: 'failed', appName: displayName(app.grantee) });
       setStopping(null);
+      reload();
+      return;
+    } finally {
       setBusy(false);
     }
-    reload();
+    if (!owner) return;
+    setStopping({ grantee: app.grantee, phase: 'indexing' });
+    const indexed = await waitForRevocation(owner, app);
+    setStopping(null);
+    if (indexed) reload();
+    else setOutcome({ kind: 'slow' });
   };
 
   const actions = (
     <ActionBar>
       <Button
         fullWidth
-        disabled={stopping !== null}
+        disabled={stopping?.phase === 'signing'}
         onClick={() => backToThirdParty({}, redirectUri, '')}
       >
         {t('common.back_to_app', { appName })}
@@ -98,7 +118,13 @@ const ConnectedAppsPage = () => {
   return (
     <Screen actions={actions}>
       <ScreenHeader title={t('apps.title')} subtitle={t('apps.subtitle')} />
-      {failedName && <ErrorBox title={t('apps.error.stop', { appName: failedName })} />}
+      {outcome?.kind === 'failed' && (
+        <ErrorBox title={t('apps.error.stop', { appName: outcome.appName })} />
+      )}
+      {outcome?.kind === 'slow' && <Notice role="status">{t('apps.stop_slow')}</Notice>}
+      {stopping?.phase === 'indexing' && (
+        <Notice role="status">{t('apps.stop_waiting')}</Notice>
+      )}
 
       <Section label={t('apps.section_data')}>
         {grants === 'loading' && <Loader />}
@@ -126,7 +152,7 @@ const ConnectedAppsPage = () => {
                     size="sm"
                     className="shrink-0"
                     disabled={stopping !== null}
-                    loading={stopping === app.grantee}
+                    loading={stopping?.grantee === app.grantee}
                     loadingLabel={t('manage.busy.revoke')}
                     onClick={() => setConfirming(app)}
                   >

@@ -1,6 +1,6 @@
 /* eslint-disable import/first -- vi.mock calls must precede the imports they mock */
 import React from 'react';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { AppAccess } from '../../../hooks/useConnectedApps';
 
 const OWNER = '0x00000000000000000000000000000000000000aa';
@@ -40,13 +40,19 @@ vi.mock('../../../hooks/useConnectedApps', () => ({
     return mockApps;
   },
 }));
-vi.mock('../../../services/connectedAppsRevoke', () => ({ revokeAppAccess: vi.fn() }));
+vi.mock('../../../services/connectedAppsRevoke', () => ({
+  revokeAppAccess: vi.fn(),
+  waitForRevocation: vi.fn(),
+}));
 vi.mock('../../../utils/messageHandler', () => ({ backToThirdParty: vi.fn() }));
 let mockEmbedded = false;
 vi.mock('../../../utils/isEmbed', () => ({ isEmbed: () => mockEmbedded }));
 vi.mock('@sentry/react', () => ({ captureException: vi.fn() }));
 
-import { revokeAppAccess } from '../../../services/connectedAppsRevoke';
+import {
+  revokeAppAccess,
+  waitForRevocation,
+} from '../../../services/connectedAppsRevoke';
 import { backToThirdParty } from '../../../utils/messageHandler';
 import { ConnectedApps } from '../ConnectedApps';
 
@@ -86,6 +92,7 @@ beforeEach(() => {
   mockApps.browserApps = [];
   mockValidate.mockResolvedValue(true);
   vi.mocked(revokeAppAccess).mockResolvedValue(undefined);
+  vi.mocked(waitForRevocation).mockResolvedValue(true);
   Object.defineProperty(window, 'opener', { value: opener, configurable: true });
 });
 afterEach(() => {
@@ -125,6 +132,13 @@ it('offers to try again when the list can’t load', () => {
   expect(mockApps.reload).toHaveBeenCalled();
 });
 
+const confirmStop = () => {
+  fireEvent.click(within(rowFor('Acme')).getByRole('button', { name: 'Stop sharing' }));
+  fireEvent.click(
+    within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Stop sharing' }),
+  );
+};
+
 it('stops sharing only after a confirmation, then reloads the list', async () => {
   render(<ConnectedApps />);
   fireEvent.click(within(rowFor('Acme')).getByRole('button', { name: 'Stop sharing' }));
@@ -138,9 +152,10 @@ it('stops sharing only after a confirmation, then reloads the list', async () =>
   ).toBeInTheDocument();
   fireEvent.click(within(dialog).getByRole('button', { name: 'Stop sharing' }));
 
-  await waitFor(() => expect(revokeAppAccess).toHaveBeenCalledWith(OWNER, ACME_ACCESS));
+  await waitFor(() => expect(revokeAppAccess).toHaveBeenCalledWith(ACME_ACCESS));
   expect(mockValidate).toHaveBeenCalled();
   await waitFor(() => expect(mockApps.reload).toHaveBeenCalled());
+  expect(waitForRevocation).toHaveBeenCalledWith(OWNER, ACME_ACCESS);
   expect(mockUi.setBusy).toHaveBeenCalledWith(true);
   expect(mockUi.setBusy).toHaveBeenLastCalledWith(false);
   expect(opener.postMessage).not.toHaveBeenCalled();
@@ -165,8 +180,44 @@ it('signs nothing without a wallet session (sign-in takes over)', async () => {
   expect(revokeAppAccess).not.toHaveBeenCalled();
 });
 
+it('says it is stopping while the change reaches the list, then reloads it', async () => {
+  let agree!: (agreed: boolean) => void;
+  vi.mocked(waitForRevocation).mockReturnValue(
+    new Promise<boolean>((resolve) => {
+      agree = resolve;
+    }),
+  );
+  render(<ConnectedApps />);
+  confirmStop();
+  expect(
+    await screen.findByText('Stopping… this can take a minute.'),
+  ).toBeInTheDocument();
+  // Signed and sent: the person can leave while the list catches up.
+  await waitFor(() => expect(mockUi.setBusy).toHaveBeenLastCalledWith(false));
+  expect(mockApps.reload).not.toHaveBeenCalled();
+
+  await act(async () => agree(true));
+  expect(mockApps.reload).toHaveBeenCalledTimes(1);
+  expect(screen.queryByText('Stopping… this can take a minute.')).toBeNull();
+  expect(screen.queryByText(/Couldn’t stop sharing/)).toBeNull();
+});
+
+it('says it is taking longer, never that it failed, when the list doesn’t catch up', async () => {
+  vi.mocked(waitForRevocation).mockResolvedValue(false);
+  render(<ConnectedApps />);
+  confirmStop();
+  expect(
+    await screen.findByText(
+      'This is taking longer than usual. Check again in a few minutes.',
+    ),
+  ).toBeInTheDocument();
+  expect(screen.queryByText(/Couldn’t stop sharing/)).toBeNull();
+  // The list as read now would still show the app.
+  expect(mockApps.reload).not.toHaveBeenCalled();
+});
+
 it('says so when stopping fails, rather than assume it worked', async () => {
-  vi.mocked(revokeAppAccess).mockRejectedValue(new Error('still in force'));
+  vi.mocked(revokeAppAccess).mockRejectedValue(new Error('bundler'));
   render(<ConnectedApps />);
   fireEvent.click(within(rowFor('Acme')).getByRole('button', { name: 'Stop sharing' }));
   fireEvent.click(
@@ -177,6 +228,7 @@ it('says so when stopping fails, rather than assume it worked', async () => {
       'Couldn’t stop sharing with Acme. Check the list and try again.',
     ),
   ).toBeInTheDocument();
+  expect(waitForRevocation).not.toHaveBeenCalled();
   expect(mockApps.reload).toHaveBeenCalled();
 });
 

@@ -1,13 +1,13 @@
 import { Permission } from '@dimo-network/transactions';
 
-import { revokeAppAccess } from '../connectedAppsRevoke';
+import { revokeAppAccess, waitForRevocation } from '../connectedAppsRevoke';
 import {
   generateAccountIpfsSource,
   generateIpfsSources,
   setAccountPermissions,
   setVehiclePermissionsBatch,
 } from '../turnkeyService';
-import { fetchAccountGrants } from '../grantsService';
+import { fetchAccountGrants, fetchVehiclesStillGranted } from '../grantsService';
 import type { AppAccess } from '../../hooks/useConnectedApps';
 
 vi.mock('../turnkeyService', () => ({
@@ -17,7 +17,10 @@ vi.mock('../turnkeyService', () => ({
   setVehiclePermissionsBatch: vi.fn(),
   setAccountPermissions: vi.fn(),
 }));
-vi.mock('../grantsService', () => ({ fetchAccountGrants: vi.fn() }));
+vi.mock('../grantsService', () => ({
+  fetchAccountGrants: vi.fn(),
+  fetchVehiclesStillGranted: vi.fn(),
+}));
 
 const OWNER = '0x00000000000000000000000000000000000000aa';
 const G = '0x00000000000000000000000000000000000000b1';
@@ -51,10 +54,11 @@ beforeEach(() => {
   vi.mocked(setVehiclePermissionsBatch).mockResolvedValue(undefined);
   vi.mocked(setAccountPermissions).mockResolvedValue(undefined);
   vi.mocked(fetchAccountGrants).mockResolvedValue([]);
+  vi.mocked(fetchVehiclesStillGranted).mockResolvedValue([]);
 });
 
 it('ends every vehicle grant to the app, 24 to a user operation', async () => {
-  await revokeAppAccess(OWNER, app(30));
+  await revokeAppAccess(app(30));
 
   expect(generateIpfsSources).toHaveBeenCalledTimes(30);
   expect(generateIpfsSources).toHaveBeenCalledWith(
@@ -78,12 +82,12 @@ it('ends every vehicle grant to the app, 24 to a user operation', async () => {
 });
 
 it('sends one user operation for one vehicle', async () => {
-  await revokeAppAccess(OWNER, app(1));
+  await revokeAppAccess(app(1));
   expect(setVehiclePermissionsBatch).toHaveBeenCalledTimes(1);
 });
 
-it('ends the account grant too, and checks that it ended', async () => {
-  await revokeAppAccess(OWNER, app(1, true));
+it('ends the account grant too, and leaves checking to waitForRevocation', async () => {
+  await revokeAppAccess(app(1, true));
 
   expect(generateAccountIpfsSource).toHaveBeenCalledWith(
     [Permission.GetNonLocationHistory, Permission.GetCurrentLocation],
@@ -97,26 +101,85 @@ it('ends the account grant too, and checks that it ended', async () => {
     templateId: ZERO,
     source: 'ipfs://account',
   });
-  expect(fetchAccountGrants).toHaveBeenCalledWith(OWNER);
-});
-
-it('fails when the account grant is still in force afterwards', async () => {
-  vi.mocked(fetchAccountGrants).mockResolvedValue([
-    { ...grant, grantee: G.toUpperCase().replace('0X', '0x') },
-  ]);
-  await expect(revokeAppAccess(OWNER, app(1, true))).rejects.toThrow('still in force');
-  // The vehicles were already done.
-  expect(setVehiclePermissionsBatch).toHaveBeenCalledTimes(1);
+  expect(fetchAccountGrants).not.toHaveBeenCalled();
+  expect(fetchVehiclesStillGranted).not.toHaveBeenCalled();
 });
 
 it('fails when the account grant can’t be changed', async () => {
   vi.mocked(setAccountPermissions).mockRejectedValue(new Error('reverted'));
-  await expect(revokeAppAccess(OWNER, app(0, true))).rejects.toThrow('reverted');
+  await expect(revokeAppAccess(app(0, true))).rejects.toThrow('reverted');
   expect(setVehiclePermissionsBatch).not.toHaveBeenCalled();
 });
 
 it('fails when a vehicle batch fails, before touching the account grant', async () => {
   vi.mocked(setVehiclePermissionsBatch).mockRejectedValue(new Error('bundler'));
-  await expect(revokeAppAccess(OWNER, app(2, true))).rejects.toThrow('bundler');
+  await expect(revokeAppAccess(app(2, true))).rejects.toThrow('bundler');
   expect(setAccountPermissions).not.toHaveBeenCalled();
+});
+
+describe('waitForRevocation', () => {
+  const inForce = { ...grant, grantee: G.toUpperCase().replace('0X', '0x') };
+
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  /** Runs it to the end on fake time, and says how long it took. */
+  const run = async (access: AppAccess) => {
+    const started = Date.now();
+    const done = waitForRevocation(OWNER, access);
+    await vi.runAllTimersAsync();
+    return { agreed: await done, waited: Date.now() - started };
+  };
+
+  it('is done as soon as the index agrees, here on the third look', async () => {
+    vi.mocked(fetchVehiclesStillGranted)
+      .mockResolvedValueOnce([1, 2])
+      .mockResolvedValueOnce([2])
+      .mockResolvedValue([]);
+    vi.mocked(fetchAccountGrants)
+      .mockResolvedValueOnce([inForce])
+      .mockResolvedValueOnce([inForce])
+      .mockResolvedValue([]);
+
+    const { agreed, waited } = await run(app(2, true));
+
+    expect(agreed).toBe(true);
+    expect(waited).toBe(4_000);
+    expect(fetchVehiclesStillGranted).toHaveBeenCalledTimes(3);
+    expect(fetchVehiclesStillGranted).toHaveBeenCalledWith([1, 2], G);
+    expect(fetchAccountGrants).toHaveBeenCalledWith(OWNER);
+  });
+
+  it('gives up after a minute when the index never agrees, without saying it failed', async () => {
+    vi.mocked(fetchAccountGrants).mockResolvedValue([inForce]);
+    const { agreed, waited } = await run(app(0, true));
+    expect(agreed).toBe(false);
+    expect(waited).toBe(60_000);
+    // Every 2 seconds from the start: 0 s, 2 s, … 60 s.
+    expect(fetchAccountGrants).toHaveBeenCalledTimes(31);
+  });
+
+  it('counts a read that fails as not yet', async () => {
+    vi.mocked(fetchVehiclesStillGranted)
+      .mockRejectedValueOnce(new Error('identity-api down'))
+      .mockResolvedValue([]);
+    const { agreed, waited } = await run(app(1));
+    expect(agreed).toBe(true);
+    expect(waited).toBe(2_000);
+  });
+
+  it('ignores a grant that has ended', async () => {
+    vi.mocked(fetchAccountGrants).mockResolvedValue([
+      { ...grant, expiresAt: '1970-01-01T00:00:00Z' },
+    ]);
+    const { agreed } = await run(app(0, true));
+    expect(agreed).toBe(true);
+  });
+
+  it('reads only what the app had', async () => {
+    await run(app(1));
+    expect(fetchAccountGrants).not.toHaveBeenCalled();
+    await run(app(0, true));
+    expect(fetchVehiclesStillGranted).toHaveBeenCalledTimes(1);
+  });
 });
