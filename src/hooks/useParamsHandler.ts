@@ -16,7 +16,6 @@ import { parseBooleanParam } from '../utils/parseBooleanParam';
 import { connectedAppsEnabled } from '../utils/featureFlags';
 import { normalizeLanguage } from '../i18n/language';
 import { parseExpirationDate, getDefaultExpirationDate } from '../utils/dateUtils';
-import { toCloudEventAgreements } from '../services/vehicleDocumentAgreements';
 import { DOCUMENT_EVENT_TYPES } from '../enums/documentEventTypes';
 import {
   normalizeResponseMode,
@@ -49,7 +48,11 @@ const parseCloudEvent = (
 
 // Only document requests the consent screen can name are signed (see
 // toCloudEventAgreements). Say so, so an app doesn't assume it got the rest.
-const warnAboutUnsupportedCloudEvents = (cloudEvent: unknown) => {
+// Its module is loaded here, on demand: the sharing screens need it, the first
+// screen doesn't.
+const warnAboutUnsupportedCloudEvents = async (cloudEvent: unknown) => {
+  const { toCloudEventAgreements } =
+    await import('../services/vehicleDocumentAgreements');
   const requested = Array.isArray(cloudEvent) ? cloudEvent.length : 1;
   const dropped = requested - toCloudEventAgreements(cloudEvent).length;
   if (dropped > 0) {
@@ -178,7 +181,7 @@ export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
     cloudEvent: (value: unknown) => {
       const cloudEvent = parseCloudEvent(value);
       if (!cloudEvent) return;
-      warnAboutUnsupportedCloudEvents(cloudEvent);
+      warnAboutUnsupportedCloudEvents(cloudEvent).catch(() => {});
       setDevCredentialsState((prev) => ({ ...prev, cloudEvent }));
     },
   };

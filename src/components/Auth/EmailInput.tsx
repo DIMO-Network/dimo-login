@@ -14,12 +14,7 @@ import { useAuthContext } from '../../context/AuthContext';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { useUIManager } from '../../context/UIManagerContext';
 import { UiStates } from '../../enums';
-import {
-  fetchPasskeyChallenge,
-  findAccountByPasskey,
-  getPasskeyAssertion,
-} from '../../services/passkeyLookup';
-import { usePasskeyChallenge } from '../../hooks/usePasskeyChallenge';
+import { loadPasskeyLookup, usePasskeyChallenge } from '../../hooks/usePasskeyChallenge';
 import { passkeyFirstEnabled } from '../../utils/featureFlags';
 import { isEmbed } from '../../utils/isEmbed';
 import { decodeJwt } from '../../utils/jwtUtils';
@@ -173,10 +168,12 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     const ready = passkeyChallenge.take();
     let found = false;
     try {
-      const challenge = ready ?? (await fetchPasskeyChallenge()).challenge;
-      const assertion = await getPasskeyAssertion(challenge);
+      const lookup = ready?.lookup ?? (await loadPasskeyLookup());
+      const challenge =
+        ready?.challenge ?? (await lookup.fetchPasskeyChallenge()).challenge;
+      const assertion = await lookup.getPasskeyAssertion(challenge);
       setLoadingState(true, message('signin.signing_in'), false);
-      const account = await findAccountByPasskey(challenge, assertion);
+      const account = await lookup.findAccountByPasskey(challenge, assertion);
       if (!account) return setError(message('signin.error.passkey_unknown'));
       found = true;
       setUser(account);

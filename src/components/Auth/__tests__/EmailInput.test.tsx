@@ -496,9 +496,10 @@ describe('Sign in with a passkey', () => {
   };
   const passkeyButton = () =>
     screen.queryByRole('button', { name: 'Sign in with a passkey' });
-  /** The email form, once its challenge has come in. */
+  /** The email form, once its challenge (and the module that signs it) has come in. */
   const renderReady = async () => {
     const view = render(<EmailInput onSubmit={onSubmit} />);
+    await waitFor(() => expect(fetchPasskeyChallenge).toHaveBeenCalled());
     await act(async () => {});
     return view;
   };
@@ -585,13 +586,14 @@ describe('Sign in with a passkey', () => {
   });
 
   it('keeps a challenge ready, fetching the next before the last runs out', async () => {
+    // Asked for again 90 s after the last was asked for.
     const { unmount } = await renderReady();
-    await act(() => vi.advanceTimersByTimeAsync(89_999));
+    await act(() => vi.advanceTimersByTimeAsync(85_000));
     expect(fetchPasskeyChallenge).toHaveBeenCalledTimes(1);
-    await act(() => vi.advanceTimersByTimeAsync(1));
-    expect(fetchPasskeyChallenge).toHaveBeenCalledTimes(2);
+    await act(() => vi.advanceTimersByTimeAsync(10_000));
+    await waitFor(() => expect(fetchPasskeyChallenge).toHaveBeenCalledTimes(2));
     await act(() => vi.advanceTimersByTimeAsync(90_000));
-    expect(fetchPasskeyChallenge).toHaveBeenCalledTimes(3);
+    await waitFor(() => expect(fetchPasskeyChallenge).toHaveBeenCalledTimes(3));
 
     unmount();
     await act(() => vi.advanceTimersByTimeAsync(300_000));

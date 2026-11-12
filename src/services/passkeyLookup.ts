@@ -4,8 +4,9 @@
  * "Sign in with a passkey" without typing an email: the browser signs a
  * challenge from the accounts API with any of this site's passkeys, and the
  * accounts API returns the account only once it has verified that signature
- * against the passkey it has on record. First-screen safe: native fetch and
- * WebAuthn only, nothing from `buffer`, Turnkey or the wallet stack.
+ * against the passkey it has on record. Native fetch and WebAuthn only,
+ * nothing from `buffer`, Turnkey or the wallet stack; the email form loads it
+ * when it shows (usePasskeyChallenge).
  */
 import type { UserObject } from '../models/user';
 import { base64UrlToBytes, bytesToBase64Url } from '../utils/base64url';
