@@ -190,6 +190,29 @@ export const forgetAccount = (email: string): void => {
 };
 
 /**
+ * The apps signed in as this account on this browser: each one whose stored
+ * user (user_data_<clientId>) has the email, compared ignoring case.
+ */
+export const listAppsSignedInAs = (email: string): `0x${string}`[] => {
+  const target = email.trim().toLowerCase();
+  return storageKeys()
+    .filter((key) => key.startsWith(USER_DATA_PREFIX))
+    .filter((key) => {
+      const user = readJson(key) as Partial<UserObject> | null;
+      return sameEmail(user?.email, target);
+    })
+    .map((key) => appOf(key, USER_DATA_PREFIX));
+};
+
+/**
+ * Signs one app out of the login on this browser (its token and stored user),
+ * as "Use another account" does. The account stays remembered, its wallet
+ * session too, and the app's own copy of the token is untouched.
+ */
+export const signOutAppHere = (clientId: `0x${string}`): void =>
+  quietly(() => clearSessionData(clientId));
+
+/**
  * The account an app was last signed in as on this browser: its stored user,
  * or, once "Use another account" removed that, the remembered account its
  * logged email names.

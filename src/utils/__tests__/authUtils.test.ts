@@ -1,4 +1,9 @@
-import { buildAuthPayload, isTokenExpiredError, logout } from '../authUtils';
+import {
+  buildAuthPayload,
+  handlePostAuthUIState,
+  isTokenExpiredError,
+  logout,
+} from '../authUtils';
 import { UiStates } from '../../enums';
 import type { UserObject } from '../../models/user';
 import { clearSessionData, storeJWTInCookies } from '../../services/storageService';
@@ -149,5 +154,23 @@ describe('logout', () => {
     const setUiState = vi.fn();
     expect(() => logout(CLIENT, 'https://app.example/cb', '', setUiState)).not.toThrow();
     expect(setUiState).not.toHaveBeenCalledWith(UiStates.SUCCESS);
+  });
+});
+
+describe('handlePostAuthUIState', () => {
+  it('opens connected apps after sign-in, sending the app nothing', () => {
+    const setUiState = vi.fn();
+    handlePostAuthUIState({
+      entryState: UiStates.CONNECTED_APPS,
+      clientId: CLIENT,
+      jwt: tokenExpiringIn(3600, 'alice'),
+      user: account('alice'),
+      redirectUri: 'https://app.example/cb',
+      utm: '',
+      setUiState,
+    });
+    expect(setUiState).toHaveBeenCalledWith(UiStates.CONNECTED_APPS);
+    expect(messageHandler.sendMessageToReferrer).not.toHaveBeenCalled();
+    expect(messageHandler.backToThirdParty).not.toHaveBeenCalled();
   });
 });

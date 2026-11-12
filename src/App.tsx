@@ -25,6 +25,7 @@ import {
   CancelledTransaction,
   CompatibilityCheck,
   ConnectDevice,
+  ConnectedApps,
   ConnectTesla,
   EmailConsent,
   Logout,
@@ -208,6 +209,7 @@ const App = () => {
     [UiStates.EMAIL_CONSENT]: <EmailConsent />,
     [UiStates.LOGOUT]: <Logout />,
     [UiStates.PROVISION_DEVELOPER_LICENSE]: <ProvisionDeveloperLicense />,
+    [UiStates.CONNECTED_APPS]: <ConnectedApps />,
   };
 
   return (

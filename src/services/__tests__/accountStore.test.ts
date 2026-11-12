@@ -5,8 +5,10 @@ import {
   forgetAccount,
   getRememberedAccounts,
   getWalletSession,
+  listAppsSignedInAs,
   rememberAccount,
   setWalletSession,
+  signOutAppHere,
 } from '../accountStore';
 import { getJWTFromCookies, storeJWTInCookies } from '../storageService';
 
@@ -319,4 +321,36 @@ describe('wallet sessions nothing can use any more', () => {
       expect(getRememberedAccounts(null)).toEqual([]);
     },
   );
+});
+
+describe('apps signed in on this browser', () => {
+  const OTHER = '0x2222222222222222222222222222222222222222' as const;
+  const THIRD = '0x3333333333333333333333333333333333333333' as const;
+
+  it('lists the apps signed in as the account, whatever the stored case', () => {
+    signInApp(CLIENT, A);
+    signInApp(OTHER, { ...A, email: 'ALICE@x.co' });
+    signInApp(THIRD, B);
+    expect(listAppsSignedInAs('alice@x.co').sort()).toEqual([CLIENT, OTHER].sort());
+  });
+
+  it('skips a stored user it can’t read', () => {
+    localStorage.setItem(`user_data_${OTHER}`, '{not json');
+    signInApp(CLIENT, A);
+    expect(listAppsSignedInAs('alice@x.co')).toEqual([CLIENT]);
+  });
+
+  it('signs one app out here: its token and stored user, nothing else', () => {
+    rememberAccount(A, 1);
+    setWalletSession('sub-a', PASSKEY);
+    signInApp(CLIENT, A);
+    signInApp(OTHER, A);
+    signOutAppHere(OTHER);
+    expect(getJWTFromCookies(OTHER)).toBeNull();
+    expect(localStorage.getItem(`user_data_${OTHER}`)).toBeNull();
+    expect(getJWTFromCookies(CLIENT)).toBe(JWT);
+    expect(listAppsSignedInAs('alice@x.co')).toEqual([CLIENT]);
+    expect(getRememberedAccounts(null).map((a) => a.email)).toEqual(['alice@x.co']);
+    expect(getWalletSession('sub-a')).toEqual(PASSKEY);
+  });
 });

@@ -194,6 +194,11 @@ const screens = {
       (m) => ({ default: m.ProvisionDeveloperLicense }),
     ),
   ),
+  [UiStates.CONNECTED_APPS]: lazyScreen(() =>
+    import('./components/ConnectedApps/ConnectedApps').then((m) => ({
+      default: m.ConnectedApps,
+    })),
+  ),
 };
 
 export const PasskeyLogin = screens[UiStates.PASSKEY_LOGIN];
@@ -220,6 +225,7 @@ export const SuccessPage = screens[UiStates.SUCCESS];
 export const EmailConsent = screens[UiStates.EMAIL_CONSENT];
 export const Logout = screens[UiStates.LOGOUT];
 export const ProvisionDeveloperLicense = screens[UiStates.PROVISION_DEVELOPER_LICENSE];
+export const ConnectedApps = screens[UiStates.CONNECTED_APPS];
 
 /** The screens a sign-in can pass through after the email screen. */
 export const SIGN_IN_STATES: UiStates[] = [

@@ -13,6 +13,7 @@ import { setEmailRequest, setForceEmail } from '../stores/AuthStateStore';
 import { normalizeEmailRequest } from '../utils/emailRequest';
 import { normalizeLoginHint, normalizeLoginPrompt } from '../utils/loginPrompt';
 import { parseBooleanParam } from '../utils/parseBooleanParam';
+import { connectedAppsEnabled } from '../utils/featureFlags';
 import { normalizeLanguage } from '../i18n/language';
 import { parseExpirationDate, getDefaultExpirationDate } from '../utils/dateUtils';
 import { toCloudEventAgreements } from '../services/vehicleDocumentAgreements';
@@ -69,6 +70,8 @@ export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
   const specialSetters = {
     entryState: (value: unknown) => {
       if (typeof value !== 'string' || !(value in UiStates)) return;
+      // Off, the page doesn't exist: dropped like any unknown state.
+      if (value === UiStates.CONNECTED_APPS && !connectedAppsEnabled()) return;
       setUiState(value as UiStates);
       setEntryState(value as UiStates);
       setDevCredentialsState((prev) => ({

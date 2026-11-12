@@ -16,6 +16,7 @@ export const ACCOUNT_BAR_STATES: ReadonlySet<UiStates> = new Set([
   UiStates.SIGN_MESSAGE,
   UiStates.ADVANCED_TRANSACTION,
   UiStates.PROVISION_DEVELOPER_LICENSE,
+  UiStates.CONNECTED_APPS,
 ]);
 
 /**

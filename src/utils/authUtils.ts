@@ -195,6 +195,9 @@ export function handlePostAuthUIState({
     setUiState(UiStates.SIGN_MESSAGE);
   } else if (entryState === UiStates.PROVISION_DEVELOPER_LICENSE) {
     setUiState(UiStates.PROVISION_DEVELOPER_LICENSE);
+  } else if (entryState === UiStates.CONNECTED_APPS) {
+    // The app that opened it gets nothing: no token, no list.
+    setUiState(UiStates.CONNECTED_APPS);
   }
 }
 

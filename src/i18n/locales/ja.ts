@@ -487,6 +487,28 @@ const ja: LocaleResources = {
   'contract.permission.GetRawData': '生データ：未加工のペイロードデータへのアクセス。',
   'contract.permission.GetApproximateLocation':
     'おおよその位置：車両のおおよその位置へのアクセス。',
+
+  'apps.title': '連携中のアプリ',
+  'apps.subtitle':
+    'DIMOのデータを利用できるアプリと、このブラウザでサインインしているアプリです。',
+  'apps.section_data': 'データにアクセスできるアプリ',
+  'apps.section_browser': 'このブラウザでサインイン中',
+  'apps.vehicles_other': '{{count}}台の車両',
+  'apps.documents': 'あなたの書類',
+  'apps.until': '{{date}}まで',
+  'apps.stop': '共有を停止',
+  'apps.stop_title': '{{appName}}との共有を停止しますか？',
+  'apps.stop_body':
+    '{{appName}}は今後アクセスできなくなります。すでに取得したデータはそのまま残ります。',
+  'apps.sign_out_here': 'ここでサインアウト',
+  'apps.sign_out_note':
+    'このブラウザのDIMOログインから{{appName}}をサインアウトします。アプリ自体は、そのセッションが終わるまでサインインしたままの場合があります。',
+  'apps.unknown_app': 'アカウント {{address}}',
+  'apps.empty': 'データにアクセスできるアプリはありません。',
+  'apps.embedded': 'このページは別のウィンドウで開いてください。',
+  'apps.error.load': 'アプリを読み込めませんでした。もう一度お試しください。',
+  'apps.error.stop':
+    '{{appName}}との共有を停止できませんでした。一覧を確認して、もう一度お試しください。',
 };
 
 export default ja;

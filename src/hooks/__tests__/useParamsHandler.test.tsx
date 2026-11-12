@@ -3,12 +3,9 @@ import { useParamsHandler } from '../useParamsHandler';
 import type { AllParams } from '../../types';
 import { setResponseMode } from '../../utils/messageHandler';
 
+const mockUi = { setUiState: vi.fn(), setEntryState: vi.fn(), setAltTitle: vi.fn() };
 vi.mock('../../context/UIManagerContext', () => ({
-  useUIManager: () => ({
-    setUiState: vi.fn(),
-    setEntryState: vi.fn(),
-    setAltTitle: vi.fn(),
-  }),
+  useUIManager: () => mockUi,
 }));
 vi.mock('../../context/OraclesContext', () => ({
   useOracles: () => ({ setOnboardingEnabled: vi.fn() }),
@@ -81,4 +78,37 @@ describe('responseMode', () => {
       expect(setResponseMode).toHaveBeenCalledTimes(1);
     },
   );
+});
+
+describe('entryState=CONNECTED_APPS', () => {
+  const FLAG = 'REACT_APP_CONNECTED_APPS';
+  afterEach(() => {
+    delete process.env[FLAG];
+  });
+
+  it.each([undefined, 'false', '1', 'TRUE'])(
+    'is dropped as unknown with the flag %s',
+    (flag) => {
+      if (flag !== undefined) process.env[FLAG] = flag;
+      const { apply, state } = setup();
+      apply({ entryState: 'CONNECTED_APPS' });
+      expect(state().entryState).toBeUndefined();
+      expect(mockUi.setEntryState).not.toHaveBeenCalled();
+      expect(mockUi.setUiState).not.toHaveBeenCalled();
+    },
+  );
+
+  it('is accepted with the flag on', () => {
+    process.env[FLAG] = 'true';
+    const { apply, state } = setup();
+    apply({ entryState: 'CONNECTED_APPS' });
+    expect(state().entryState).toBe('CONNECTED_APPS');
+    expect(mockUi.setEntryState).toHaveBeenCalledWith('CONNECTED_APPS');
+  });
+
+  it('leaves other entry states alone', () => {
+    const { apply, state } = setup();
+    apply({ entryState: 'VEHICLE_MANAGER' });
+    expect(state().entryState).toBe('VEHICLE_MANAGER');
+  });
 });

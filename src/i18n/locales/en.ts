@@ -523,6 +523,30 @@ const en = {
   'contract.permission.GetRawData': 'RAW_DATA: access to raw payload data.',
   'contract.permission.GetApproximateLocation':
     'APPROXIMATE_LOCATION: access to approximate vehicle location.',
+
+  // Connected apps (entryState=CONNECTED_APPS)
+  'apps.title': 'Connected apps',
+  'apps.subtitle':
+    'Apps that can use your DIMO data, and apps signed in on this browser.',
+  'apps.section_data': 'Can access your data',
+  'apps.section_browser': 'Signed in on this browser',
+  'apps.vehicles_one': '{{count}} vehicle',
+  'apps.vehicles_other': '{{count}} vehicles',
+  'apps.documents': 'Your documents',
+  'apps.until': 'Until {{date}}',
+  'apps.stop': 'Stop sharing',
+  'apps.stop_title': 'Stop sharing with {{appName}}?',
+  'apps.stop_body':
+    '{{appName}} loses access from now on. It keeps any data it already has.',
+  'apps.sign_out_here': 'Sign out here',
+  'apps.sign_out_note':
+    'Signs {{appName}} out of DIMO login on this browser. The app itself may stay signed in until its session ends.',
+  'apps.unknown_app': 'Account {{address}}',
+  'apps.empty': 'No apps can access your data.',
+  'apps.embedded': 'Open this page in its own window.',
+  'apps.error.load': 'Couldn’t load your apps. Try again.',
+  'apps.error.stop':
+    'Couldn’t stop sharing with {{appName}}. Check the list and try again.',
 } as const;
 
 export default en;

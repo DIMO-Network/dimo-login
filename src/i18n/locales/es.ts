@@ -555,6 +555,30 @@ const es: PluralLocaleResources = {
   'contract.permission.GetRawData': 'RAW_DATA: acceso a los datos sin procesar.',
   'contract.permission.GetApproximateLocation':
     'APPROXIMATE_LOCATION: acceso a la ubicación aproximada del vehículo.',
+
+  'apps.title': 'Apps conectadas',
+  'apps.subtitle':
+    'Apps que pueden usar tus datos de DIMO y apps con la sesión iniciada en este navegador.',
+  'apps.section_data': 'Pueden acceder a tus datos',
+  'apps.section_browser': 'Con la sesión iniciada en este navegador',
+  'apps.vehicles_one': '{{count}} vehículo',
+  'apps.vehicles_many': '{{count}} de vehículos',
+  'apps.vehicles_other': '{{count}} vehículos',
+  'apps.documents': 'Tus documentos',
+  'apps.until': 'Hasta el {{date}}',
+  'apps.stop': 'Dejar de compartir',
+  'apps.stop_title': '¿Dejar de compartir con {{appName}}?',
+  'apps.stop_body':
+    '{{appName}} pierde el acceso a partir de ahora. Conserva los datos que ya tenga.',
+  'apps.sign_out_here': 'Cerrar sesión aquí',
+  'apps.sign_out_note':
+    'Cierra la sesión de {{appName}} en el inicio de sesión de DIMO de este navegador. Es posible que la app siga con la sesión iniciada hasta que termine su sesión.',
+  'apps.unknown_app': 'Cuenta {{address}}',
+  'apps.empty': 'Ninguna app puede acceder a tus datos.',
+  'apps.embedded': 'Abre esta página en su propia ventana.',
+  'apps.error.load': 'No se pudieron cargar tus apps. Inténtalo de nuevo.',
+  'apps.error.stop':
+    'No se pudo dejar de compartir con {{appName}}. Revisa la lista e inténtalo de nuevo.',
 };
 
 export default es;

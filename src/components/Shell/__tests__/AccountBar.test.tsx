@@ -46,6 +46,10 @@ beforeEach(() => {
   mockState.switchAccount = vi.fn();
 });
 
+it('is part of the connected apps page', () => {
+  expect(ACCOUNT_BAR_STATES.has(UiStates.CONNECTED_APPS)).toBe(true);
+});
+
 it.each([...ACCOUNT_BAR_STATES])('names the account on %s', (state) => {
   renderBar({ uiState: state });
   expect(screen.getByText('Signed in as alice@x.co')).toBeInTheDocument();
