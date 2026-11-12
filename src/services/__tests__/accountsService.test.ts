@@ -138,6 +138,27 @@ describe('addAuthenticator', () => {
     });
   });
 
+  it('gives up after 30 seconds', async () => {
+    vi.useFakeTimers();
+    try {
+      fetchMock.mockImplementation(
+        (_url: string, init: RequestInit) =>
+          new Promise((_, reject) =>
+            init.signal?.addEventListener('abort', () =>
+              reject(new DOMException('aborted', 'AbortError')),
+            ),
+          ),
+      );
+      const settled = addAuthenticator('a@b.co', SIGNED).catch((error: unknown) => error);
+      await vi.advanceTimersByTimeAsync(29_999);
+      expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+      await expect(settled).resolves.toMatchObject({ name: 'AbortError' });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('throws with the server’s reason', async () => {
     fetchMock.mockResolvedValue(
       fail(409, { error: 'Existing passkeys are not recorded' }),

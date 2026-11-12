@@ -115,12 +115,38 @@ it('adds the passkey, records that the account has one, then goes on', async () 
   expect(mockAuth.continueAfterSignIn).toHaveBeenCalledTimes(1);
 });
 
-it('shows that it is adding the passkey meanwhile', async () => {
-  steps.enrollPasskey.mockReturnValue(new Promise(() => {}));
+it('shows that it is adding the passkey meanwhile, and can be skipped', async () => {
+  const enrolling = Promise.withResolvers<typeof SIGNED>();
+  steps.enrollPasskey.mockReturnValue(enrolling.promise);
   await ready();
   fireEvent.click(addButton());
   expect(await screen.findByText('Adding your passkey…')).toBeInTheDocument();
-  expect(screen.queryByRole('button', { name: 'Not now' })).toBeNull();
+  expect(mockUi.setBusy).toHaveBeenLastCalledWith(true);
+
+  // Whatever the add is waiting on, the sign-in can go on.
+  fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
+  expect(mockAuth.continueAfterSignIn).toHaveBeenCalledTimes(1);
+  expect(mockUi.setBusy).toHaveBeenLastCalledWith(false);
+  expect(isPasskeyOfferSnoozed('sub-jun')).toBe(true);
+
+  // When the add settles later, the next screen's busy state isn't touched.
+  mockUi.setBusy.mockClear();
+  await act(async () => enrolling.resolve(SIGNED));
+  expect(mockUi.setBusy).not.toHaveBeenCalled();
+  expect(mockAuth.continueAfterSignIn).toHaveBeenCalledTimes(1);
+});
+
+it('says it couldn’t add one when the accounts API doesn’t answer in time', async () => {
+  vi.mocked(addAuthenticator).mockRejectedValue(
+    new DOMException('aborted', 'AbortError'),
+  );
+  await ready();
+  fireEvent.click(addButton());
+  expect(
+    await screen.findByText('Couldn’t add a passkey. You can keep using email codes.'),
+  ).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  expect(mockAuth.continueAfterSignIn).toHaveBeenCalledTimes(1);
 });
 
 it('Not now snoozes the offer for the account and goes on', async () => {

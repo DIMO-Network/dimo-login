@@ -46,6 +46,8 @@ vi.mock('../../../context/AuthContext', () => ({
     setPasskeyHint: mockSetPasskeyHint,
   }),
 }));
+let mockEmbedded = false;
+vi.mock('../../../utils/isEmbed', () => ({ isEmbed: () => mockEmbedded }));
 vi.mock('../../../services/passkeyLookup', () => ({
   fetchPasskeyChallenge: vi.fn(),
   getPasskeyAssertion: vi.fn(),
@@ -478,10 +480,8 @@ it('offers every account, and an empty field, once the app’s request is spent'
 
 describe('Sign in with a passkey', () => {
   const FLAG = 'REACT_APP_PASSKEY_FIRST';
-  const CHALLENGE = {
-    challenge: 'AQID',
-    expiresAt: new Date(Date.now() + 120_000).toISOString(),
-  };
+  // Made per test: the clock is fake, and its time differs from test to test.
+  let challenge: { challenge: string; expiresAt: string };
   const ASSERTION = {
     id: 'cred-1',
     response: { clientDataJSON: 'cd', authenticatorData: 'ad', signature: 'sig' },
@@ -496,6 +496,12 @@ describe('Sign in with a passkey', () => {
   };
   const passkeyButton = () =>
     screen.queryByRole('button', { name: 'Sign in with a passkey' });
+  /** The email form, once its challenge has come in. */
+  const renderReady = async () => {
+    const view = render(<EmailInput onSubmit={onSubmit} />);
+    await act(async () => {});
+    return view;
+  };
 
   beforeEach(() => {
     process.env[FLAG] = 'true';
@@ -503,13 +509,18 @@ describe('Sign in with a passkey', () => {
       configurable: true,
       value: function PublicKeyCredential() {},
     });
-    vi.mocked(fetchPasskeyChallenge).mockResolvedValue(CHALLENGE);
+    challenge = {
+      challenge: 'AQID',
+      expiresAt: new Date(Date.now() + 120_000).toISOString(),
+    };
+    vi.mocked(fetchPasskeyChallenge).mockImplementation(async () => challenge);
     vi.mocked(getPasskeyAssertion).mockResolvedValue(ASSERTION);
     vi.mocked(findAccountByPasskey).mockResolvedValue(ACCOUNT);
   });
   afterEach(() => {
     delete process.env[FLAG];
     Reflect.deleteProperty(window, 'PublicKeyCredential');
+    mockEmbedded = false;
   });
 
   it.each([undefined, 'false', 'TRUE'])('is hidden with the flag %s', (flag) => {
@@ -524,6 +535,13 @@ describe('Sign in with a passkey', () => {
     Reflect.deleteProperty(window, 'PublicKeyCredential');
     render(<EmailInput onSubmit={onSubmit} />);
     expect(passkeyButton()).toBeNull();
+  });
+
+  it('is hidden embedded', () => {
+    mockEmbedded = true;
+    render(<EmailInput onSubmit={onSubmit} />);
+    expect(passkeyButton()).toBeNull();
+    expect(fetchPasskeyChallenge).not.toHaveBeenCalled();
   });
 
   it('shows on the email form, after Apple, and fetches a challenge for it', async () => {
@@ -543,8 +561,7 @@ describe('Sign in with a passkey', () => {
   });
 
   it('signs in as the account the passkey proves, pinned to that passkey', async () => {
-    render(<EmailInput onSubmit={onSubmit} />);
-    await waitFor(() => expect(fetchPasskeyChallenge).toHaveBeenCalled());
+    await renderReady();
     fireEvent.click(passkeyButton()!);
 
     await waitFor(() => expect(mockUi.setUiState).toHaveBeenCalledWith('PASSKEY_LOGIN'));
@@ -559,9 +576,50 @@ describe('Sign in with a passkey', () => {
     expect(mockGo).not.toHaveBeenCalled();
   });
 
+  it('opens the prompt inside the click when a challenge is ready', async () => {
+    await renderReady();
+    fireEvent.click(passkeyButton()!);
+    // Nothing awaited first: Safari opens the prompt only while the click is handled.
+    expect(getPasskeyAssertion).toHaveBeenCalledWith('AQID');
+    expect(fetchPasskeyChallenge).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps a challenge ready, fetching the next before the last runs out', async () => {
+    const { unmount } = await renderReady();
+    await act(() => vi.advanceTimersByTimeAsync(89_999));
+    expect(fetchPasskeyChallenge).toHaveBeenCalledTimes(1);
+    await act(() => vi.advanceTimersByTimeAsync(1));
+    expect(fetchPasskeyChallenge).toHaveBeenCalledTimes(2);
+    await act(() => vi.advanceTimersByTimeAsync(90_000));
+    expect(fetchPasskeyChallenge).toHaveBeenCalledTimes(3);
+
+    unmount();
+    await act(() => vi.advanceTimersByTimeAsync(300_000));
+    expect(fetchPasskeyChallenge).toHaveBeenCalledTimes(3);
+  });
+
+  it('judges a challenge’s age by when this page asked for it', async () => {
+    // The server's clock says it has already run out; it was asked for just now.
+    challenge = { challenge: 'AQID', expiresAt: '2000-01-01T00:00:00Z' };
+    await renderReady();
+    fireEvent.click(passkeyButton()!);
+    expect(getPasskeyAssertion).toHaveBeenCalledWith('AQID');
+  });
+
+  it('fetches a new challenge on the click when the ready one is too old', async () => {
+    await renderReady();
+    // The refresh never comes back, and the challenge from the start gets old.
+    vi.mocked(fetchPasskeyChallenge).mockReturnValueOnce(new Promise(() => {}));
+    await act(() => vi.advanceTimersByTimeAsync(106_000));
+    challenge = { ...challenge, challenge: 'BAUG' };
+    fireEvent.click(passkeyButton()!);
+    expect(getPasskeyAssertion).not.toHaveBeenCalled();
+    await waitFor(() => expect(getPasskeyAssertion).toHaveBeenCalledWith('BAUG'));
+  });
+
   it('says so when the passkey has no account it can find, and leaves the form', async () => {
     vi.mocked(findAccountByPasskey).mockResolvedValue(null);
-    render(<EmailInput onSubmit={onSubmit} />);
+    await renderReady();
     fireEvent.click(passkeyButton()!);
     await waitFor(() =>
       expect(mockUi.setError).toHaveBeenCalledWith(
@@ -578,9 +636,8 @@ describe('Sign in with a passkey', () => {
     'says nothing when the prompt ends with %s, and leaves the form usable',
     async (name) => {
       vi.mocked(getPasskeyAssertion).mockRejectedValue(new DOMException('closed', name));
-      render(<EmailInput onSubmit={onSubmit} />);
+      await renderReady();
       fireEvent.click(passkeyButton()!);
-      await waitFor(() => expect(getPasskeyAssertion).toHaveBeenCalled());
       await waitFor(() => expect(mockUi.setLoadingState).toHaveBeenLastCalledWith(false));
       expect(mockUi.setError).not.toHaveBeenCalledWith(
         expect.objectContaining({ key: expect.any(String) }),
@@ -598,9 +655,24 @@ describe('Sign in with a passkey', () => {
     },
   );
 
+  it('says the passkey couldn’t be used when a prompt that waited for the network is refused', async () => {
+    // No challenge in advance: the prompt opens after a fetch, which Safari may refuse.
+    vi.mocked(fetchPasskeyChallenge).mockRejectedValueOnce(new Error('offline'));
+    vi.mocked(getPasskeyAssertion).mockRejectedValue(
+      new DOMException('refused', 'NotAllowedError'),
+    );
+    await renderReady();
+    fireEvent.click(passkeyButton()!);
+    await waitFor(() =>
+      expect(mockUi.setError).toHaveBeenCalledWith(
+        expect.objectContaining({ key: 'signin.error.passkey' }),
+      ),
+    );
+  });
+
   it('says the passkey couldn’t be used when anything else fails', async () => {
     vi.mocked(findAccountByPasskey).mockRejectedValue(new Error('Challenge expired'));
-    render(<EmailInput onSubmit={onSubmit} />);
+    await renderReady();
     fireEvent.click(passkeyButton()!);
     await waitFor(() =>
       expect(mockUi.setError).toHaveBeenCalledWith(
@@ -611,11 +683,8 @@ describe('Sign in with a passkey', () => {
   });
 
   it('fetches a challenge on the click when none came in advance', async () => {
-    vi.mocked(fetchPasskeyChallenge)
-      .mockRejectedValueOnce(new Error('offline'))
-      .mockResolvedValue(CHALLENGE);
-    render(<EmailInput onSubmit={onSubmit} />);
-    await waitFor(() => expect(fetchPasskeyChallenge).toHaveBeenCalledTimes(1));
+    vi.mocked(fetchPasskeyChallenge).mockRejectedValueOnce(new Error('offline'));
+    await renderReady();
     fireEvent.click(passkeyButton()!);
     await waitFor(() => expect(getPasskeyAssertion).toHaveBeenCalledWith('AQID'));
     expect(fetchPasskeyChallenge).toHaveBeenCalledTimes(2);
@@ -625,10 +694,17 @@ describe('Sign in with a passkey', () => {
     vi.mocked(getPasskeyAssertion).mockRejectedValue(
       new DOMException('closed', 'NotAllowedError'),
     );
-    render(<EmailInput onSubmit={onSubmit} />);
-    await waitFor(() => expect(fetchPasskeyChallenge).toHaveBeenCalledTimes(1));
+    await renderReady();
     fireEvent.click(passkeyButton()!);
     await waitFor(() => expect(getPasskeyAssertion).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(fetchPasskeyChallenge).toHaveBeenCalledTimes(2));
+  });
+
+  it('starts one attempt on a double click', async () => {
+    vi.mocked(getPasskeyAssertion).mockReturnValue(new Promise(() => {}));
+    await renderReady();
+    fireEvent.click(passkeyButton()!);
+    fireEvent.click(passkeyButton()!);
+    expect(getPasskeyAssertion).toHaveBeenCalledTimes(1);
   });
 });

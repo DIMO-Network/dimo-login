@@ -633,6 +633,40 @@ describe('AuthContext passkey offer', () => {
     expect(setUiState).not.toHaveBeenCalledWith(UiStates.PASSKEY_OFFER);
   });
 
+  it.each([
+    [
+      'the check',
+      () => vi.mocked(shouldOfferPasskey).mockReturnValue(new Promise(() => {})),
+    ],
+    [
+      'the screen’s load',
+      () => vi.mocked(PasskeyOffer.preload).mockReturnValue(new Promise(() => {})),
+    ],
+  ])('goes straight on when %s never answers, after 1.5 s', async (_, hang) => {
+    const steps = offerSteps(true);
+    hang();
+    vi.useFakeTimers();
+    try {
+      renderProvider();
+      act(() => auth.setUser(ALICE));
+      signer.resolve(steps);
+      let signedIn = false;
+      act(() => {
+        void auth.completeOTPLogin({ otpId: 'otp', otpCode: '123456' }).then(() => {
+          signedIn = true;
+        });
+      });
+      await act(() => vi.advanceTimersByTimeAsync(1_499));
+      expect(signedIn).toBe(false);
+      await act(() => vi.advanceTimersByTimeAsync(1));
+      expect(signedIn).toBe(true);
+      expect(setUiState).toHaveBeenLastCalledWith(UiStates.VEHICLE_MANAGER);
+      expect(setUiState).not.toHaveBeenCalledWith(UiStates.PASSKEY_OFFER);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('goes straight on when deciding fails', async () => {
     const steps = offerSteps(true);
     vi.mocked(shouldOfferPasskey).mockRejectedValue(new Error('boom'));

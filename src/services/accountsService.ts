@@ -1,6 +1,7 @@
 import { CreateAccountParams } from '../models/account';
 import { CredentialResult, OtpResult } from '../models/resultTypes';
 import { UserObject } from '../models/user';
+import { fetchWithTimeout } from '../utils/withTimeout';
 
 const DIMO_ACCOUNTS_BASE_URL =
   process.env.REACT_APP_DIMO_ACCOUNTS_URL || 'https://accounts.dev.dimo.org/api';
@@ -221,20 +222,28 @@ export type StampedRequest = {
   stamp: { stampHeaderName: string; stampHeaderValue: string };
 };
 
+// The passkey offer waits this long for the accounts API before saying it couldn't.
+const ADD_AUTHENTICATOR_TIMEOUT_MS = 30_000;
+
 /**
  * Has the accounts API forward a stamped CREATE_AUTHENTICATORS_V2 request (a
  * passkey added with the account's own email-code session) and record the
- * passkey. The signed request is the proof: no token is sent.
+ * passkey. The signed request is the proof: no token is sent. Aborted after
+ * ADD_AUTHENTICATOR_TIMEOUT_MS.
  */
 export const addAuthenticator = async (
   email: string,
   signedCreateAuthenticatorsRequest: StampedRequest,
 ): Promise<void> => {
-  const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account/authenticator`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, signedCreateAuthenticatorsRequest }),
-  });
+  const response = await fetchWithTimeout(
+    `${DIMO_ACCOUNTS_BASE_URL}/account/authenticator`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, signedCreateAuthenticatorsRequest }),
+    },
+    ADD_AUTHENTICATOR_TIMEOUT_MS,
+  );
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
     throw new Error(data?.error ?? 'Could not add the passkey');

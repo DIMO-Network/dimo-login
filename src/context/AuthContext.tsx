@@ -41,6 +41,7 @@ import type { AccountRequest } from '../utils/loginPrompt';
 import { PasskeyOffer } from '../screens';
 import { base64UrlToBytes } from '../utils/base64url';
 import { signInNoticeEnabled } from '../utils/featureFlags';
+import { withTimeout } from '../utils/withTimeout';
 import { sendSignInNotice } from '../services/signInNotice';
 
 /** The passkey "Sign in with a passkey" found, for the account it belongs to. */
@@ -93,6 +94,9 @@ interface AuthContextProps {
   /** The sign-up sequence; screens reach it through useSignUp(). */
   signUp: SignUp;
 }
+
+/** How long a code sign-in waits to decide on the passkey offer. */
+const OFFER_DECISION_MS = 1_500;
 
 /** What Sentry gets when a stored wallet session fails: fixed text, nothing from the caught error. */
 const storedSessionError = () => new Error('Stored wallet session could not be used');
@@ -248,12 +252,19 @@ export const AuthProvider = ({
     else proceed();
   };
 
-  /** Whether to show the passkey offer: its screen must load, or the sign-in would stall. */
+  /**
+   * Whether to show the passkey offer: its screen must load, or the sign-in
+   * would stall. The person is already signed in by then, so the whole decision
+   * gets OFFER_DECISION_MS; past that, the sign-in goes on without the offer.
+   */
   const offersPasskey = async (account: UserObject) => {
-    try {
+    const decide = async () => {
       if (!(await shouldOfferPasskey(account))) return false;
       await PasskeyOffer.preload();
       return true;
+    };
+    try {
+      return await withTimeout(decide(), OFFER_DECISION_MS, 'passkey offer');
     } catch {
       return false;
     }

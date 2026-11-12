@@ -40,6 +40,8 @@ export const PasskeyOffer: FC = () => {
     null,
   );
   const { email, subOrganizationId } = user;
+  // Skipped while adding: the add may still settle, after the next screen shows.
+  const skipped = useRef(false);
 
   // Got ready before the click, which then opens the passkey prompt at once.
   useEffect(() => {
@@ -108,11 +110,17 @@ export const PasskeyOffer: FC = () => {
           }
         },
       )
-      .finally(() => setBusy(false));
+      .finally(() => {
+        // The next screen owns the busy state by then.
+        if (!skipped.current) setBusy(false);
+      });
   };
 
+  // Also while adding: whatever that waits on, the sign-in can go on.
   const notNow = () => {
     snoozePasskeyOffer(subOrganizationId);
+    skipped.current = true;
+    setBusy(false);
     continueAfterSignIn();
   };
 
@@ -134,11 +142,9 @@ export const PasskeyOffer: FC = () => {
           >
             {t('passkey_offer.add')}
           </Button>
-          {status !== 'adding' && (
-            <Button variant="ghost" fullWidth onClick={notNow}>
-              {t('passkey_offer.not_now')}
-            </Button>
-          )}
+          <Button variant="ghost" fullWidth onClick={notNow}>
+            {t('passkey_offer.not_now')}
+          </Button>
         </>
       )}
     </ActionBar>

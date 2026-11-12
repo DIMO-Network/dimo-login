@@ -18,9 +18,10 @@ import {
   fetchPasskeyChallenge,
   findAccountByPasskey,
   getPasskeyAssertion,
-  type PasskeyChallenge,
 } from '../../services/passkeyLookup';
+import { usePasskeyChallenge } from '../../hooks/usePasskeyChallenge';
 import { passkeyFirstEnabled } from '../../utils/featureFlags';
+import { isEmbed } from '../../utils/isEmbed';
 import { decodeJwt } from '../../utils/jwtUtils';
 import { sendErrorToParent } from '../../utils/errorUtils';
 import { normalizeEmail, validateEmail } from '../../utils/emailUtils';
@@ -41,9 +42,6 @@ interface EmailInputProps {
  * popup opened under a rapid click can't take that click as a choice.
  */
 export const CHOOSER_ARM_MS = 500;
-
-// A challenge this close to its end is fetched again rather than signed.
-const CHALLENGE_MARGIN_MS = 15_000;
 
 const isPromptClosed = (error: unknown) =>
   error instanceof DOMException && ['NotAllowedError', 'AbortError'].includes(error.name);
@@ -94,9 +92,11 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     emailFormIntent || (Boolean(loginHint) && !hintedAccount),
   );
   const armed = useRef(false);
-  const passkeyFirst = passkeyFirstEnabled() && !!window.PublicKeyCredential;
-  // Fetched when the email form shows, so the click opens the prompt at once.
-  const passkeyChallenge = useRef<Promise<PasskeyChallenge> | null>(null);
+  // Not embedded: the embedding page may not allow the passkey prompt.
+  const passkeyFirst =
+    passkeyFirstEnabled() && !!window.PublicKeyCredential && !isEmbed();
+  // One "Sign in with a passkey" at a time, a double click included.
+  const passkeyAttempt = useRef(false);
   const constructOAuthUrl = useConstructOAuthUrl();
   const goToLoginOrSignUp = useGoToLoginOrSignUp();
 
@@ -110,15 +110,6 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   useEffect(() => {
     if (emailFormIntent) clearEmailFormIntent();
   }, [emailFormIntent, clearEmailFormIntent]);
-
-  const prefetchPasskeyChallenge = () => {
-    const challenge = fetchPasskeyChallenge();
-    // A failed prefetch is retried on the click.
-    challenge.catch(() => {
-      if (passkeyChallenge.current === challenge) passkeyChallenge.current = null;
-    });
-    passkeyChallenge.current = challenge;
-  };
 
   const handleSuccessfulEmailSubmission = async (email: string, proofToken?: string) => {
     try {
@@ -169,26 +160,20 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     setAccounts(getRememberedAccounts(clientId));
   };
 
-  // A challenge is signed once; a fresh one is fetched for the next try.
-  const takePasskeyChallenge = async (): Promise<PasskeyChallenge> => {
-    const prefetched = passkeyChallenge.current;
-    passkeyChallenge.current = null;
-    const challenge = await (prefetched ?? fetchPasskeyChallenge()).catch(() =>
-      fetchPasskeyChallenge(),
-    );
-    return Date.parse(challenge.expiresAt) - Date.now() > CHALLENGE_MARGIN_MS
-      ? challenge
-      : fetchPasskeyChallenge();
-  };
-
   // The accounts API names the account only once it has checked the
   // passkey's signature; the usual passkey step then signs in, its prompt
-  // pinned to that passkey. A closed prompt says nothing.
+  // pinned to that passkey. With a challenge ready, the prompt opens before
+  // anything is awaited; without one it waits for a fetch, and then a refused
+  // prompt may be the browser's doing (Safari wants the click), so it is told.
+  // Otherwise a closed prompt says nothing.
   const handlePasskeySignIn = async () => {
+    if (passkeyAttempt.current) return;
+    passkeyAttempt.current = true;
     setError(null);
+    const ready = passkeyChallenge.take();
     let found = false;
     try {
-      const { challenge } = await takePasskeyChallenge();
+      const challenge = ready ?? (await fetchPasskeyChallenge()).challenge;
       const assertion = await getPasskeyAssertion(challenge);
       setLoadingState(true, message('signin.signing_in'), false);
       const account = await findAccountByPasskey(challenge, assertion);
@@ -202,13 +187,15 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
       onSubmit(account.email);
       setUiState(UiStates.PASSKEY_LOGIN);
     } catch (err) {
-      if (isPromptClosed(err)) return;
-      captureException(err);
+      const closed = isPromptClosed(err);
+      if (closed && ready) return;
+      if (!closed) captureException(err);
       setError(message('signin.error.passkey'));
     } finally {
+      passkeyAttempt.current = false;
       setLoadingState(false);
       // Still on the form: ready for another try.
-      if (!found) prefetchPasskeyChallenge();
+      if (!found) passkeyChallenge.prefetch();
     }
   };
 
@@ -247,12 +234,10 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   });
 
   const choosing = accounts.length > 0 && !otherAccount;
-
-  useEffect(() => {
-    if (passkeyFirst && !choosing && !isExchanging) prefetchPasskeyChallenge();
-    // Again whenever the email form shows.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [passkeyFirst, choosing, isExchanging]);
+  // Kept ready while the email form shows.
+  const passkeyChallenge = usePasskeyChallenge(
+    passkeyFirst && !choosing && !isExchanging,
+  );
 
   if (isExchanging) {
     return <Loader message={message('signin.signing_in')} />;
