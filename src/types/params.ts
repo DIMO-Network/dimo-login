@@ -4,6 +4,7 @@ import { CloudEventAgreement } from './permissions';
 import type { Language } from '../i18n/language';
 import type { EmailRequest } from '../utils/emailRequest';
 import type { LoginPrompt } from '../utils/loginPrompt';
+import type { ResponseMode } from '../utils/messageHandler';
 
 export interface BaseParams {
   clientId: `0x${string}` | null;
@@ -61,6 +62,12 @@ export interface BaseParams {
   existingClientId?: string;
   /** The SDK's redirect-mode nonce, returned with every redirect back. */
   dimoState?: string;
+  /**
+   * Redirect mode: where the session (token, walletAddress, email, logout and
+   * dimoState) goes on the way back. `query` (the default) or `fragment`; any
+   * other value is dropped. A redirect URI that has a `#` gets the query.
+   */
+  responseMode?: ResponseMode;
 }
 
 export interface FetchedParams {

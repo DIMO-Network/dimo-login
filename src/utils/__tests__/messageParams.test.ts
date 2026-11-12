@@ -65,4 +65,10 @@ describe('filterMessageParams', () => {
       filterMessageParams({ prompt: 'login', loginHint: 'a@x.co', evil: 1 }),
     ).toEqual({ prompt: 'login', loginHint: 'a@x.co' });
   });
+
+  it('lets responseMode through', () => {
+    expect(filterMessageParams({ responseMode: 'fragment', evil: 1 })).toEqual({
+      responseMode: 'fragment',
+    });
+  });
 });

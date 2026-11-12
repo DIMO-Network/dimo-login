@@ -1,6 +1,7 @@
 import { render, act } from '@testing-library/react';
 import { useParamsHandler } from '../useParamsHandler';
 import type { AllParams } from '../../types';
+import { setResponseMode } from '../../utils/messageHandler';
 
 vi.mock('../../context/UIManagerContext', () => ({
   useUIManager: () => ({
@@ -11,6 +12,10 @@ vi.mock('../../context/UIManagerContext', () => ({
 }));
 vi.mock('../../context/OraclesContext', () => ({
   useOracles: () => ({ setOnboardingEnabled: vi.fn() }),
+}));
+vi.mock('../../utils/messageHandler', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../utils/messageHandler')>()),
+  setResponseMode: vi.fn(),
 }));
 
 // Probe component exposing the hook's current state and its apply function.
@@ -56,4 +61,24 @@ describe('loginHint', () => {
     apply({ loginHint: ['b@x.co'] });
     expect(state().loginHint).toBe('a@x.co');
   });
+});
+
+describe('responseMode', () => {
+  it.each(['fragment', 'query'] as const)('accepts %s', (mode) => {
+    const { apply, state } = setup();
+    apply({ responseMode: mode });
+    expect(state().responseMode).toBe(mode);
+    expect(setResponseMode).toHaveBeenCalledWith(mode);
+  });
+
+  it.each(['form_post', 'Fragment ', '', ['fragment'], 1])(
+    'drops %j, keeping an earlier valid value',
+    (value) => {
+      const { apply, state } = setup();
+      apply({ responseMode: 'fragment' });
+      apply({ responseMode: value });
+      expect(state().responseMode).toBe('fragment');
+      expect(setResponseMode).toHaveBeenCalledTimes(1);
+    },
+  );
 });

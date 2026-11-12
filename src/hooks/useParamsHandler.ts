@@ -17,7 +17,11 @@ import { normalizeLanguage } from '../i18n/language';
 import { parseExpirationDate, getDefaultExpirationDate } from '../utils/dateUtils';
 import { toCloudEventAgreements } from '../services/vehicleDocumentAgreements';
 import { DOCUMENT_EVENT_TYPES } from '../enums/documentEventTypes';
-import { setAppState } from '../utils/messageHandler';
+import {
+  normalizeResponseMode,
+  setAppState,
+  setResponseMode,
+} from '../utils/messageHandler';
 
 // The SDK makes it from 16 random bytes; anything else isn't echoed back.
 const DIMO_STATE_PATTERN = /^[A-Za-z0-9_-]{16,128}$/;
@@ -158,6 +162,13 @@ export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
       setAppState(value);
       setDevCredentialsState((prev) => ({ ...prev, dimoState: value }));
     },
+    // Only `query` and `fragment`; anything else keeps an earlier valid value.
+    responseMode: (value: unknown) => {
+      const responseMode = normalizeResponseMode(value);
+      if (responseMode === undefined) return;
+      setResponseMode(responseMode);
+      setDevCredentialsState((prev) => ({ ...prev, responseMode }));
+    },
     cloudEvent: (value: unknown) => {
       const cloudEvent = parseCloudEvent(value);
       if (!cloudEvent) return;
@@ -173,10 +184,7 @@ export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
       // expirationDate would overwrite the 100-year default with undefined, which
       // the account SACD builder then feeds to `new Date()` → "Invalid Date".)
       if (value === undefined) return;
-      if (
-        key in specialSetters &&
-        specialSetters[key as keyof typeof specialSetters]
-      ) {
+      if (key in specialSetters && specialSetters[key as keyof typeof specialSetters]) {
         specialSetters[key as keyof typeof specialSetters](value);
       } else {
         // Bail out when the value is unchanged so a re-delivered AUTH_INIT (or a
