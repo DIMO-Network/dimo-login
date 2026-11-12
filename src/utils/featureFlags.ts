@@ -12,3 +12,6 @@ export const passkeyOfferEnabled = () => process.env.REACT_APP_PASSKEY_OFFER ===
 
 /** "Sign in with a passkey" on the email form, without typing an email. */
 export const passkeyFirstEnabled = () => process.env.REACT_APP_PASSKEY_FIRST === 'true';
+
+/** Telling the accounts API about a first sign-in on this browser (signInNotice). */
+export const signInNoticeEnabled = () => process.env.REACT_APP_SIGN_IN_NOTICE === 'true';

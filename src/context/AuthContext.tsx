@@ -27,6 +27,7 @@ import { useUIManager } from './UIManagerContext';
 import type { TurnkeySessionData } from '../services/turnkeyService';
 import {
   clearWalletSession,
+  getRememberedAccounts,
   getWalletSession,
   setWalletSession,
   type RememberedAccount,
@@ -39,6 +40,8 @@ import { useSignUpFlow, type SignUp, type SignUpDraft } from '../hooks/useSignUp
 import type { AccountRequest } from '../utils/loginPrompt';
 import { PasskeyOffer } from '../screens';
 import { base64UrlToBytes } from '../utils/base64url';
+import { signInNoticeEnabled } from '../utils/featureFlags';
+import { sendSignInNotice } from '../services/signInNotice';
 
 /** The passkey "Sign in with a passkey" found, for the account it belongs to. */
 export type PasskeyHint = { credentialId: string; subOrganizationId: string };
@@ -185,7 +188,7 @@ export const AuthProvider = ({
   /**
    * Signs this app in as the account once authenticate has succeeded, then
    * goes where the sign-in was going, or hands that step to `holdFor` (the
-   * passkey offer) to run later.
+   * passkey offer) to run later. `resumed`: a silent resume from the chooser.
    */
   const completeLogin = (
     account: UserObject,
@@ -196,7 +199,10 @@ export const AuthProvider = ({
       turnkeySessionExpiration,
     }: Awaited<ReturnType<typeof authenticate>>,
     turnkeySessionData: TurnkeySessionData,
-    holdFor?: (proceed: () => void) => void,
+    {
+      holdFor,
+      resumed = false,
+    }: { holdFor?: (proceed: () => void) => void; resumed?: boolean } = {},
   ) => {
     const updatedUserObject: UserObject = {
       ...account,
@@ -205,6 +211,16 @@ export const AuthProvider = ({
     };
     // The account's credential IDs stay in memory.
     const { credentialIds, ...storedUser } = updatedUserObject;
+
+    // Read before createSession remembers the account: a first sign-in on this
+    // browser (never a silent resume) tells the accounts API, which decides
+    // whether to email the account.
+    const firstHere =
+      !resumed &&
+      signInNoticeEnabled() &&
+      !getRememberedAccounts(null).some(
+        (remembered) => remembered.email === account.email.trim().toLowerCase(),
+      );
 
     afterSignInRef.current = null;
     setJwt(accessToken);
@@ -216,6 +232,7 @@ export const AuthProvider = ({
       user: storedUser,
       turnkeySessionData: { ...turnkeySessionData, expiresAt: turnkeySessionExpiration },
     });
+    if (firstHere) sendSignInNotice(accessToken);
 
     const proceed = () =>
       handlePostAuthUIState({
@@ -308,7 +325,7 @@ export const AuthProvider = ({
       user,
       result,
       { embeddedKey: keyPair.privateKey, credentialBundle, sessionType: 'api_key' },
-      offer ? holdForPasskeyOffer : undefined,
+      { holdFor: offer ? holdForPasskeyOffer : undefined },
     );
   };
 
@@ -405,7 +422,7 @@ export const AuthProvider = ({
       return false;
     }
     // Past this point the person is signed in: a failure here is not a failed resume.
-    completeLogin(resumed, result, turnkeySessionData);
+    completeLogin(resumed, result, turnkeySessionData, { resumed: true });
     return true;
   };
 

@@ -10,6 +10,7 @@ import { signInStepsWithSigner, type SignInSteps } from '../../services/walletLo
 import { verifyOtp } from '../../services/accountsService';
 import { PasskeyOffer } from '../../screens';
 import { shouldOfferPasskey } from '../../services/passkeyOffer';
+import { sendSignInNotice } from '../../services/signInNotice';
 import { UiStates } from '../../enums';
 
 vi.mock('@sentry/react', () => ({ captureException: vi.fn() }));
@@ -26,6 +27,7 @@ vi.mock('../../services/accountsService', async (importOriginal) => ({
 // The passkey offer's screen, which a code sign-in loads before showing it.
 vi.mock('../../screens', () => ({ PasskeyOffer: { preload: vi.fn() } }));
 vi.mock('../../services/passkeyOffer', () => ({ shouldOfferPasskey: vi.fn() }));
+vi.mock('../../services/signInNotice', () => ({ sendSignInNotice: vi.fn() }));
 
 const deferred = <T,>() => {
   let resolve!: (value: T) => void;
@@ -783,5 +785,105 @@ describe('AuthContext passkey hint', () => {
     signer.resolve(steps);
     await act(() => auth.completePasskeyLogin());
     expect(pinnedWhenUsed).toEqual([[]]);
+  });
+});
+
+describe('AuthContext sign-in notice', () => {
+  const FLAG = 'REACT_APP_SIGN_IN_NOTICE';
+  const ALICE = {
+    email: 'Alice@x.co',
+    subOrganizationId: 'sub-a',
+    hasPasskey: true,
+    walletAddress: null,
+    smartContractAddress: null,
+    emailVerified: true,
+  };
+  const codeSteps = () =>
+    stepsWith(
+      {},
+      {
+        generateP256KeyPair: () => ({ publicKeyUncompressed: 'pub', privateKey: 'priv' }),
+      },
+    );
+  const remember = (email: string) =>
+    localStorage.setItem(
+      'dimo_accounts',
+      JSON.stringify([{ email, subOrganizationId: 'sub-a', lastUsedAt: 1 }]),
+    );
+
+  beforeEach(() => {
+    process.env[FLAG] = 'true';
+    vi.mocked(verifyOtp).mockResolvedValue({ credentialBundle: 'bundle' } as never);
+    vi.mocked(shouldOfferPasskey).mockResolvedValue(false);
+  });
+  afterEach(() => {
+    delete process.env[FLAG];
+  });
+
+  const signInByPasskey = async () => {
+    renderProvider();
+    act(() => auth.setUser(ALICE));
+    signer.resolve(codeSteps());
+    await act(() => auth.completePasskeyLogin());
+  };
+
+  it('tells the accounts API once about an account new to this browser, with the new token', async () => {
+    await signInByPasskey();
+    await vi.waitFor(() => expect(sendSignInNotice).toHaveBeenCalledTimes(1));
+    expect(sendSignInNotice).toHaveBeenCalledWith(JWT);
+  });
+
+  it('does so after an email-code sign-in too', async () => {
+    renderProvider();
+    act(() => auth.setUser(ALICE));
+    signer.resolve(codeSteps());
+    await act(() => auth.completeOTPLogin({ otpId: 'otp', otpCode: '123456' }));
+    await vi.waitFor(() => expect(sendSignInNotice).toHaveBeenCalledTimes(1));
+  });
+
+  it('says nothing for an account this browser already knows, whatever its case', async () => {
+    remember('alice@x.co');
+    await signInByPasskey();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(sendSignInNotice).not.toHaveBeenCalled();
+  });
+
+  it('says nothing on the next sign-in, now the account is known', async () => {
+    await signInByPasskey();
+    await vi.waitFor(() => expect(sendSignInNotice).toHaveBeenCalledTimes(1));
+    await act(() => auth.completePasskeyLogin());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(sendSignInNotice).toHaveBeenCalledTimes(1);
+  });
+
+  it('never on a silent resume', async () => {
+    localStorage.setItem(
+      'turnkey_session_sub-a',
+      JSON.stringify({
+        sessionType: 'api_key',
+        embeddedKey: 'k',
+        credentialBundle: 'b',
+        expiresAt: Date.now() + 60_000,
+      }),
+    );
+    renderProvider();
+    signer.resolve(codeSteps());
+    await act(async () => {
+      await auth.resumeAccount({
+        email: 'alice@x.co',
+        subOrganizationId: 'sub-a',
+        lastUsedAt: 1,
+      });
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(sendSignInNotice).not.toHaveBeenCalled();
+  });
+
+  it.each([undefined, 'false', 'TRUE'])('never with the flag %s', async (flag) => {
+    if (flag === undefined) delete process.env[FLAG];
+    else process.env[FLAG] = flag;
+    await signInByPasskey();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(sendSignInNotice).not.toHaveBeenCalled();
   });
 });
