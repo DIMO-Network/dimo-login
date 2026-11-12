@@ -38,6 +38,10 @@ import { signInStepsWithSigner, type SignInSteps } from '../services/walletLoade
 import { useSignUpFlow, type SignUp, type SignUpDraft } from '../hooks/useSignUpFlow';
 import type { AccountRequest } from '../utils/loginPrompt';
 import { PasskeyOffer } from '../screens';
+import { base64UrlToBytes } from '../utils/base64url';
+
+/** The passkey "Sign in with a passkey" found, for the account it belongs to. */
+export type PasskeyHint = { credentialId: string; subOrganizationId: string };
 
 interface AuthContextProps {
   completePasskeyLogin: () => Promise<void>;
@@ -69,6 +73,12 @@ interface AuthContextProps {
    * Runs that once; later calls do nothing.
    */
   continueAfterSignIn: () => void;
+  /**
+   * Pins the next passkey sign-in, for that account only, to the passkey that
+   * "Sign in with a passkey" found, so its prompt goes straight to that
+   * passkey. Used once; dropped by resetUser and switchAccount.
+   */
+  setPasskeyHint: (hint: PasskeyHint | null) => void;
   /**
    * What the app asked of the sign-in (prompt, loginHint), until someone signs
    * in on this page; empty from then on, switchAccount included. Read it here,
@@ -130,11 +140,16 @@ export const AuthProvider = ({
 
   // Where an email-code sign-in goes once the passkey offer is answered.
   const afterSignInRef = useRef<(() => void) | null>(null);
+  const passkeyHintRef = useRef<PasskeyHint | null>(null);
+  const setPasskeyHint = (hint: PasskeyHint | null) => {
+    passkeyHintRef.current = hint;
+  };
 
   const resetUser = () => {
     setUser(defaultUser);
     clearDraft();
     afterSignInRef.current = null;
+    passkeyHintRef.current = null;
   };
 
   const [emailFormIntent, setEmailFormIntent] = useState(false);
@@ -249,11 +264,25 @@ export const AuthProvider = ({
 
   const completePasskeyLogin = async () => {
     const steps = await signInStepsWithSigner();
-    await loginToDIMO({
-      steps,
-      stamper: steps.passkeyStamper,
-      turnkeySessionData: { sessionType: 'passkey' },
-    });
+    // The page's one passkey stamper is pinned only for this sign-in, and only
+    // to this account's hinted passkey: a pin never outlives the call, so it
+    // can't steer another account's prompt. The hint is used up either way.
+    const hint = passkeyHintRef.current;
+    passkeyHintRef.current = null;
+    const { passkeyStamper } = steps;
+    passkeyStamper.allowCredentials =
+      hint && hint.subOrganizationId === user.subOrganizationId
+        ? [{ id: base64UrlToBytes(hint.credentialId), type: 'public-key' }]
+        : [];
+    try {
+      await loginToDIMO({
+        steps,
+        stamper: passkeyStamper,
+        turnkeySessionData: { sessionType: 'passkey' },
+      });
+    } finally {
+      passkeyStamper.allowCredentials = [];
+    }
   };
 
   const completeOTPLogin = async (args: OTPAuthArgs) => {
@@ -405,6 +434,7 @@ export const AuthProvider = ({
         emailFormIntent,
         clearEmailFormIntent,
         continueAfterSignIn,
+        setPasskeyHint,
         accountRequest,
         signUpDraft,
         signUp,

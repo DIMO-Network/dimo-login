@@ -135,6 +135,7 @@ const ja: LocaleResources = {
   'signin.or': 'または',
   'signin.google': 'Googleで続行',
   'signin.apple': 'Appleで続行',
+  'signin.passkey': 'パスキーでサインイン',
   'signin.signing_in': 'サインインしています…',
   'signin.error.details':
     'アカウント情報を取得できませんでした。もう一度お試しください。',
@@ -144,6 +145,10 @@ const ja: LocaleResources = {
     'このブラウザはサイトデータの保存をブロックしています。この手順には保存が必要です。許可してから、もう一度お試しください。',
   'signin.error.no_email':
     'このアカウントはDIMOにメールアドレスを共有していません。別の方法でサインインしてください。',
+  'signin.error.passkey_unknown':
+    'そのパスキーに対応するアカウントが見つかりませんでした。メールアドレスを入力してサインインしてください。',
+  'signin.error.passkey':
+    'パスキーを使用できませんでした。もう一度お試しいただくか、メールアドレスを入力してください。',
   'signin.error.email_unverified':
     'このアカウントのメールアドレスは確認されていません。GoogleまたはAppleで確認するか、別の方法でサインインしてください。',
 

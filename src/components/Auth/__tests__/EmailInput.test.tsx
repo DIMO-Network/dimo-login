@@ -34,13 +34,22 @@ const mockResume = vi.fn();
 const mockRequest: { prompt?: string; loginHint?: string } = {};
 // "Use my email instead" (the relay notice) asks for the email form once.
 const mockEmailForm = { intent: false, clear: vi.fn() };
+const mockSetUser = vi.fn();
+const mockSetPasskeyHint = vi.fn();
 vi.mock('../../../context/AuthContext', () => ({
   useAuthContext: () => ({
     resumeAccount: mockResume,
     accountRequest: mockRequest,
     emailFormIntent: mockEmailForm.intent,
     clearEmailFormIntent: mockEmailForm.clear,
+    setUser: mockSetUser,
+    setPasskeyHint: mockSetPasskeyHint,
   }),
+}));
+vi.mock('../../../services/passkeyLookup', () => ({
+  fetchPasskeyChallenge: vi.fn(),
+  getPasskeyAssertion: vi.fn(),
+  findAccountByPasskey: vi.fn(),
 }));
 const mockUi = {
   error: null,
@@ -66,6 +75,11 @@ vi.mock('../../../utils/errorUtils', () => ({
 }));
 
 import { CHOOSER_ARM_MS, EmailInput } from '../EmailInput';
+import {
+  fetchPasskeyChallenge,
+  findAccountByPasskey,
+  getPasskeyAssertion,
+} from '../../../services/passkeyLookup';
 import { setForceEmail } from '../../../stores/AuthStateStore';
 import { getEmailChoice } from '../../../services/storageService';
 
@@ -460,4 +474,161 @@ it('offers every account, and an empty field, once the app’s request is spent'
   ).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Use another account' }));
   expect(screen.getByLabelText('Email')).toHaveValue('');
+});
+
+describe('Sign in with a passkey', () => {
+  const FLAG = 'REACT_APP_PASSKEY_FIRST';
+  const CHALLENGE = {
+    challenge: 'AQID',
+    expiresAt: new Date(Date.now() + 120_000).toISOString(),
+  };
+  const ASSERTION = {
+    id: 'cred-1',
+    response: { clientDataJSON: 'cd', authenticatorData: 'ad', signature: 'sig' },
+  };
+  const ACCOUNT = {
+    email: 'jun@example.com',
+    subOrganizationId: 'sub-jun',
+    hasPasskey: true,
+    emailVerified: true,
+    smartContractAddress: null,
+    walletAddress: null,
+  };
+  const passkeyButton = () =>
+    screen.queryByRole('button', { name: 'Sign in with a passkey' });
+
+  beforeEach(() => {
+    process.env[FLAG] = 'true';
+    Object.defineProperty(window, 'PublicKeyCredential', {
+      configurable: true,
+      value: function PublicKeyCredential() {},
+    });
+    vi.mocked(fetchPasskeyChallenge).mockResolvedValue(CHALLENGE);
+    vi.mocked(getPasskeyAssertion).mockResolvedValue(ASSERTION);
+    vi.mocked(findAccountByPasskey).mockResolvedValue(ACCOUNT);
+  });
+  afterEach(() => {
+    delete process.env[FLAG];
+    Reflect.deleteProperty(window, 'PublicKeyCredential');
+  });
+
+  it.each([undefined, 'false', 'TRUE'])('is hidden with the flag %s', (flag) => {
+    if (flag === undefined) delete process.env[FLAG];
+    else process.env[FLAG] = flag;
+    render(<EmailInput onSubmit={onSubmit} />);
+    expect(passkeyButton()).toBeNull();
+    expect(fetchPasskeyChallenge).not.toHaveBeenCalled();
+  });
+
+  it('is hidden in a browser without WebAuthn', () => {
+    Reflect.deleteProperty(window, 'PublicKeyCredential');
+    render(<EmailInput onSubmit={onSubmit} />);
+    expect(passkeyButton()).toBeNull();
+  });
+
+  it('shows on the email form, after Apple, and fetches a challenge for it', async () => {
+    render(<EmailInput onSubmit={onSubmit} />);
+    const buttons = screen.getAllByRole('button').map((b) => b.textContent);
+    expect(buttons.indexOf('Sign in with a passkey')).toBe(
+      buttons.indexOf('Continue with Apple') + 1,
+    );
+    await waitFor(() => expect(fetchPasskeyChallenge).toHaveBeenCalledTimes(1));
+  });
+
+  it('is not on the chooser', () => {
+    seed('alice@x.co');
+    render(<EmailInput onSubmit={onSubmit} />);
+    expect(passkeyButton()).toBeNull();
+    expect(fetchPasskeyChallenge).not.toHaveBeenCalled();
+  });
+
+  it('signs in as the account the passkey proves, pinned to that passkey', async () => {
+    render(<EmailInput onSubmit={onSubmit} />);
+    await waitFor(() => expect(fetchPasskeyChallenge).toHaveBeenCalled());
+    fireEvent.click(passkeyButton()!);
+
+    await waitFor(() => expect(mockUi.setUiState).toHaveBeenCalledWith('PASSKEY_LOGIN'));
+    expect(getPasskeyAssertion).toHaveBeenCalledWith('AQID');
+    expect(findAccountByPasskey).toHaveBeenCalledWith('AQID', ASSERTION);
+    expect(mockSetUser).toHaveBeenCalledWith(ACCOUNT);
+    expect(mockSetPasskeyHint).toHaveBeenCalledWith({
+      credentialId: 'cred-1',
+      subOrganizationId: 'sub-jun',
+    });
+    expect(onSubmit).toHaveBeenCalledWith('jun@example.com');
+    expect(mockGo).not.toHaveBeenCalled();
+  });
+
+  it('says so when the passkey has no account it can find, and leaves the form', async () => {
+    vi.mocked(findAccountByPasskey).mockResolvedValue(null);
+    render(<EmailInput onSubmit={onSubmit} />);
+    fireEvent.click(passkeyButton()!);
+    await waitFor(() =>
+      expect(mockUi.setError).toHaveBeenCalledWith(
+        expect.objectContaining({ key: 'signin.error.passkey_unknown' }),
+      ),
+    );
+    expect(mockSetUser).not.toHaveBeenCalled();
+    expect(mockSetPasskeyHint).not.toHaveBeenCalled();
+    expect(mockUi.setUiState).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('Email')).toBeInTheDocument();
+  });
+
+  it.each(['NotAllowedError', 'AbortError'])(
+    'says nothing when the prompt ends with %s, and leaves the form usable',
+    async (name) => {
+      vi.mocked(getPasskeyAssertion).mockRejectedValue(new DOMException('closed', name));
+      render(<EmailInput onSubmit={onSubmit} />);
+      fireEvent.click(passkeyButton()!);
+      await waitFor(() => expect(getPasskeyAssertion).toHaveBeenCalled());
+      await waitFor(() => expect(mockUi.setLoadingState).toHaveBeenLastCalledWith(false));
+      expect(mockUi.setError).not.toHaveBeenCalledWith(
+        expect.objectContaining({ key: expect.any(String) }),
+      );
+      expect(findAccountByPasskey).not.toHaveBeenCalled();
+      expect(mockSetPasskeyHint).not.toHaveBeenCalled();
+      expect(passkeyButton()).toBeInTheDocument();
+      fireEvent.change(screen.getByLabelText('Email'), {
+        target: { value: 'jun@example.com' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+      await waitFor(() =>
+        expect(mockGo).toHaveBeenCalledWith('jun@example.com', undefined),
+      );
+    },
+  );
+
+  it('says the passkey couldn’t be used when anything else fails', async () => {
+    vi.mocked(findAccountByPasskey).mockRejectedValue(new Error('Challenge expired'));
+    render(<EmailInput onSubmit={onSubmit} />);
+    fireEvent.click(passkeyButton()!);
+    await waitFor(() =>
+      expect(mockUi.setError).toHaveBeenCalledWith(
+        expect.objectContaining({ key: 'signin.error.passkey' }),
+      ),
+    );
+    expect(mockUi.setUiState).not.toHaveBeenCalled();
+  });
+
+  it('fetches a challenge on the click when none came in advance', async () => {
+    vi.mocked(fetchPasskeyChallenge)
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValue(CHALLENGE);
+    render(<EmailInput onSubmit={onSubmit} />);
+    await waitFor(() => expect(fetchPasskeyChallenge).toHaveBeenCalledTimes(1));
+    fireEvent.click(passkeyButton()!);
+    await waitFor(() => expect(getPasskeyAssertion).toHaveBeenCalledWith('AQID'));
+    expect(fetchPasskeyChallenge).toHaveBeenCalledTimes(2);
+  });
+
+  it('never uses a challenge twice', async () => {
+    vi.mocked(getPasskeyAssertion).mockRejectedValue(
+      new DOMException('closed', 'NotAllowedError'),
+    );
+    render(<EmailInput onSubmit={onSubmit} />);
+    await waitFor(() => expect(fetchPasskeyChallenge).toHaveBeenCalledTimes(1));
+    fireEvent.click(passkeyButton()!);
+    await waitFor(() => expect(getPasskeyAssertion).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(fetchPasskeyChallenge).toHaveBeenCalledTimes(2));
+  });
 });

@@ -154,6 +154,7 @@ const es: PluralLocaleResources = {
   'signin.or': 'o',
   'signin.google': 'Continuar con Google',
   'signin.apple': 'Continuar con Apple',
+  'signin.passkey': 'Iniciar sesión con una clave de acceso',
   'signin.signing_in': 'Iniciando sesión…',
   'signin.error.details':
     'No se pudieron obtener los datos de tu cuenta. Inténtalo de nuevo.',
@@ -163,6 +164,10 @@ const es: PluralLocaleResources = {
     'Este navegador está bloqueando el almacenamiento del sitio, que este paso necesita. Permítelo e inténtalo de nuevo.',
   'signin.error.no_email':
     'Esa cuenta no compartió una dirección de correo electrónico con DIMO. Prueba otra forma de iniciar sesión.',
+  'signin.error.passkey_unknown':
+    'No encontramos una cuenta para esa clave de acceso. Escribe tu correo para iniciar sesión.',
+  'signin.error.passkey':
+    'No se pudo usar tu clave de acceso. Inténtalo de nuevo o escribe tu correo.',
   'signin.error.email_unverified':
     'El correo de esa cuenta no está verificado. Verifícalo con el proveedor o inicia sesión de otra forma.',
 

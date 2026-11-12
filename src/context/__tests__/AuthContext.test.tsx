@@ -695,3 +695,93 @@ describe('AuthContext passkey offer', () => {
     expect(localStorage.getItem('dimo_accounts')).not.toContain('cred-1');
   });
 });
+
+describe('AuthContext passkey hint', () => {
+  // The credential the "Sign in with a passkey" button found, base64url.
+  const HINT = { credentialId: 'AQID', subOrganizationId: 'sub-a' };
+  const pinOf = (stamper: { allowCredentials?: { id: Uint8Array }[] }) =>
+    stamper.allowCredentials?.map(({ id }) => [...id]);
+
+  /** Steps whose passkey stamper records what it is pinned to when it is used. */
+  const recordingSteps = () => {
+    const pinnedWhenUsed: (number[][] | undefined)[] = [];
+    const passkeyStamper: { allowCredentials?: { id: Uint8Array }[] } = {
+      allowCredentials: [],
+    };
+    const steps = stepsWith(
+      {},
+      {
+        passkeyStamper,
+        authenticateUser: vi.fn(async () => {
+          pinnedWhenUsed.push(pinOf(passkeyStamper));
+          return {
+            accessToken: JWT,
+            walletAddress: '0xw',
+            smartContractAddress: '0xs',
+            turnkeySessionExpiration: Date.now() + 60_000,
+          };
+        }),
+      },
+    );
+    return { steps, passkeyStamper, pinnedWhenUsed };
+  };
+
+  it('pins the passkey sign-in to the hinted passkey, then unpins it', async () => {
+    const { steps, passkeyStamper, pinnedWhenUsed } = recordingSteps();
+    renderProvider();
+    signInAs('sub-a');
+    act(() => auth.setPasskeyHint(HINT));
+    signer.resolve(steps);
+    await act(() => auth.completePasskeyLogin());
+    expect(pinnedWhenUsed).toEqual([[[1, 2, 3]]]);
+    expect(passkeyStamper.allowCredentials).toEqual([]);
+
+    // Used once: a second sign-in isn't pinned.
+    await act(() => auth.completePasskeyLogin());
+    expect(pinnedWhenUsed[1]).toEqual([]);
+  });
+
+  it('unpins even when the sign-in fails', async () => {
+    const { steps, passkeyStamper } = recordingSteps();
+    vi.mocked(steps.authenticateUser).mockRejectedValue(new Error('NotAllowedError'));
+    renderProvider();
+    signInAs('sub-a');
+    act(() => auth.setPasskeyHint(HINT));
+    signer.resolve(steps);
+    await act(async () => {
+      await expect(auth.completePasskeyLogin()).rejects.toThrow();
+    });
+    expect(passkeyStamper.allowCredentials).toEqual([]);
+  });
+
+  it('never pins another account’s sign-in to the hint', async () => {
+    const { steps, pinnedWhenUsed } = recordingSteps();
+    renderProvider();
+    signInAs('sub-b');
+    act(() => auth.setPasskeyHint(HINT));
+    signer.resolve(steps);
+    await act(() => auth.completePasskeyLogin());
+    expect(pinnedWhenUsed).toEqual([[]]);
+  });
+
+  it('clears a stale pin left on the stamper', async () => {
+    const { steps, passkeyStamper, pinnedWhenUsed } = recordingSteps();
+    passkeyStamper.allowCredentials = [{ id: new Uint8Array([9]) }];
+    renderProvider();
+    signInAs('sub-a');
+    signer.resolve(steps);
+    await act(() => auth.completePasskeyLogin());
+    expect(pinnedWhenUsed).toEqual([[]]);
+  });
+
+  it.each(['resetUser', 'switchAccount'] as const)('%s drops the hint', async (drop) => {
+    const { steps, pinnedWhenUsed } = recordingSteps();
+    renderProvider();
+    act(() => auth.setPasskeyHint(HINT));
+    act(() => auth[drop]());
+    signInAs('sub-a');
+    signer.resolve(steps);
+    await act(() => auth.completePasskeyLogin());
+    expect(pinnedWhenUsed).toEqual([[]]);
+  });
+});

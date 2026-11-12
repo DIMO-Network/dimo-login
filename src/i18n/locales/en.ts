@@ -152,6 +152,7 @@ const en = {
   'signin.or': 'or',
   'signin.google': 'Continue with Google',
   'signin.apple': 'Continue with Apple',
+  'signin.passkey': 'Sign in with a passkey',
   'signin.signing_in': 'Signing you in…',
   'signin.error.details': 'Couldn’t get your account details. Try again.',
   'signin.error.oauth': 'Couldn’t finish signing in with Google or Apple. Try again.',
@@ -159,6 +160,9 @@ const en = {
     'This browser is blocking site storage, which this step needs. Allow it and try again.',
   'signin.error.no_email':
     'That account didn’t share an email address with DIMO. Try another way to sign in.',
+  'signin.error.passkey_unknown':
+    'We couldn’t find an account for that passkey. Enter your email to sign in.',
+  'signin.error.passkey': 'Couldn’t use your passkey. Try again or enter your email.',
   'signin.error.email_unverified':
     'That account’s email isn’t verified. Verify it with the provider, or sign in another way.',
 
