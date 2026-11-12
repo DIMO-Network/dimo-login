@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { captureException } from '@sentry/react';
 
 import { useDevCredentials } from '../context/DevCredentialsContext';
@@ -15,6 +15,7 @@ import {
   verifyAccountEmail,
 } from '../services/accountsService';
 import { loadSignInSteps } from '../services/walletLoader';
+import { isAppleRelayEmail } from '../utils/emailUtils';
 
 /** A sign-up in progress. `passkey` ([attestation, challenge]) is kept so a retry reuses it. */
 export type SignUpDraft =
@@ -44,6 +45,8 @@ export interface SignUp {
   resend: () => Promise<void>;
   /** Keeps the typed code and moves on to the passkey; the server checks it in finish. */
   submitCode: (otpCode: string) => void;
+  /** Goes on with a sign-up from an Apple relay address, past its notice, to the passkey. */
+  confirmRelay: () => void;
   /**
    * Makes the passkey (once) and creates or verifies the account, then moves on
    * to sign-in. A rejected code goes back to the code screen with an error and
@@ -60,7 +63,7 @@ export interface SignUp {
  * path.
  */
 export const useSignUpFlow = ({ setUser }: { setUser: (user: UserObject) => void }) => {
-  const { setUiState, setError } = useUIManager();
+  const { setUiState, setError, uiState } = useUIManager();
   const { apiKey } = useDevCredentials();
   const [draft, setDraftState] = useState<SignUpDraft | null>(null);
   // The latest draft, so a call right after another one sees its write, which
@@ -70,6 +73,8 @@ export const useSignUpFlow = ({ setUser }: { setUser: (user: UserObject) => void
   const attemptRef = useRef(0);
   // The running finish(), so a double tap cannot make two passkeys or submit twice.
   const finishingRef = useRef<{ attempt: number; promise: Promise<void> } | null>(null);
+  // A sign-up from an Apple relay address waits on its notice until confirmRelay.
+  const relayPendingRef = useRef(false);
 
   const setDraft = (next: SignUpDraft | null) => {
     draftRef.current = next;
@@ -86,8 +91,16 @@ export const useSignUpFlow = ({ setUser }: { setUser: (user: UserObject) => void
 
   const start = async (email: string, proofToken?: string): Promise<void> => {
     const attempt = ++attemptRef.current;
+    relayPendingRef.current = false;
     if (proofToken) {
       setDraft({ kind: 'proof', email, proofToken });
+      // A brand-new account from a relay address is a second account for
+      // someone who has one under their own email: say so first.
+      if (isAppleRelayEmail(email)) {
+        relayPendingRef.current = true;
+        setUiState(UiStates.SIGNUP_RELAY_NOTICE, { setBack: true });
+        return;
+      }
       setUiState(UiStates.PASSKEY_GENERATOR, { setBack: true });
       return;
     }
@@ -112,6 +125,14 @@ export const useSignUpFlow = ({ setUser }: { setUser: (user: UserObject) => void
   const submitCode = (otpCode: string): void => {
     setDraft({ ...codeDraft(), otpCode });
     setUiState(UiStates.PASSKEY_GENERATOR, { setBack: true });
+  };
+
+  // The notice leaves the Back history, so Back from the passkey leads out of
+  // sign-up, as it does for any provider sign-up.
+  const confirmRelay = (): void => {
+    if (draftRef.current?.kind !== 'proof') return;
+    relayPendingRef.current = false;
+    setUiState(UiStates.PASSKEY_GENERATOR, { setBack: true, removeCurrent: true });
   };
 
   /** The account, if it is verified and has its passkey; null when not, or when it can't be read. */
@@ -216,9 +237,20 @@ export const useSignUpFlow = ({ setUser }: { setUser: (user: UserObject) => void
   // Ends the sign-up in progress: anything still running for it is dropped.
   const clearDraft = () => {
     attemptRef.current += 1;
+    relayPendingRef.current = false;
     setDraft(null);
   };
 
-  const signUp: SignUp = { start, resend, submitCode, finish };
+  // Leaving the notice any other way (Back included) ends that sign-up, so its
+  // provider token isn't kept for a step the person turned away from.
+  useEffect(() => {
+    if (relayPendingRef.current && uiState !== UiStates.SIGNUP_RELAY_NOTICE) {
+      clearDraft();
+    }
+    // clearDraft only touches refs and state setters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uiState]);
+
+  const signUp: SignUp = { start, resend, submitCode, confirmRelay, finish };
   return { draft, clearDraft, signUp };
 };

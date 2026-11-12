@@ -172,6 +172,13 @@ const ja: LocaleResources = {
     '{{email}} に6桁のコードを送信しました。コードを入力してアカウントを作成してください。',
   'signup.error.code':
     'コードが正しくありません。確認するか、新しいコードを送信してください。',
+  'signup.relay.title': 'Appleがメールアドレスを非公開にしています',
+  'signup.relay.body':
+    '{{email}} でサインインしようとしています。これはAppleがあなたのアドレスを隠すために作成したアドレスです。ご自身のメールアドレスのアカウントとは別の、新しいDIMOアカウントが作成されます。車両や共有の設定は元のアカウントに残ります。',
+  'signup.relay.create': '新しいアカウントを作成',
+  'signup.relay.use_email': '自分のメールアドレスを使う',
+  'signup.relay.hint':
+    'Apple経由でご自身のメールアドレスを共有するには、Appleアカウントの設定でDIMOの「Appleでサインイン」の使用を停止してから、もう一度お試しください。',
   'create.title': 'パスキーを作成',
   'create.body': 'DIMOアカウントには、パスワードの代わりにパスキーでサインインします。',
   'create.benefit_biometric': '指紋、顔認証、または端末のPINでサインイン',

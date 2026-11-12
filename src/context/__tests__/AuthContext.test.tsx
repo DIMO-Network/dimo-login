@@ -416,7 +416,11 @@ describe('AuthContext per-account wallet sessions', () => {
     signer.resolve(
       stepsWith(
         {},
-        { authenticateUser: vi.fn().mockRejectedValue(new Error('invalid hex string: "deadbeef-secret"')) },
+        {
+          authenticateUser: vi
+            .fn()
+            .mockRejectedValue(new Error('invalid hex string: "deadbeef-secret"')),
+        },
       ),
     );
     await expect(
@@ -530,5 +534,19 @@ describe('AuthContext sign-up', () => {
     await act(() => auth.signUp.start('a@b.co', 'tok'));
     act(() => auth.resetUser());
     expect(auth.signUpDraft).toBeNull();
+  });
+
+  it('openEmailForm drops the relay sign-up and opens the email form once', async () => {
+    renderProvider();
+    await act(() => auth.signUp.start('x7k2@privaterelay.appleid.com', 'tok'));
+    expect(auth.emailFormIntent).toBe(false);
+    act(() => auth.openEmailForm());
+    expect(auth.signUpDraft).toBeNull();
+    expect(auth.user.email).toBe('');
+    expect(setError).toHaveBeenCalledWith(null);
+    expect(setUiState).toHaveBeenLastCalledWith(UiStates.EMAIL_INPUT);
+    expect(auth.emailFormIntent).toBe(true);
+    act(() => auth.clearEmailFormIntent());
+    expect(auth.emailFormIntent).toBe(false);
   });
 });

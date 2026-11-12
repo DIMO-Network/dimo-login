@@ -109,6 +109,11 @@ const screens = {
       default: m.PasskeyGeneration,
     })),
   ),
+  [UiStates.SIGNUP_RELAY_NOTICE]: lazyScreen(() =>
+    import('./components/Auth/RelayEmailNotice').then((m) => ({
+      default: m.RelayEmailNotice,
+    })),
+  ),
   [UiStates.VEHICLE_MANAGER]: lazyScreen(() =>
     import('./components/Vehicles/VehicleManager').then((m) => ({
       default: m.VehicleManager,
@@ -196,6 +201,7 @@ export const OtpInput = screens[UiStates.OTP_INPUT];
 export const SignUpCode = screens[UiStates.SIGNUP_VERIFY_EMAIL];
 export const PasskeyLoginFail = screens[UiStates.PASSKEY_LOGIN_FAIL];
 export const PasskeyGeneration = screens[UiStates.PASSKEY_GENERATOR];
+export const RelayEmailNotice = screens[UiStates.SIGNUP_RELAY_NOTICE];
 export const VehicleManager = screens[UiStates.VEHICLE_MANAGER];
 export const ManageVehicle = screens[UiStates.MANAGE_VEHICLE];
 export const AdvancedTransaction = screens[UiStates.ADVANCED_TRANSACTION];
@@ -222,6 +228,7 @@ export const SIGN_IN_STATES: UiStates[] = [
   UiStates.SIGNUP_VERIFY_EMAIL,
   UiStates.PASSKEY_LOGIN_FAIL,
   UiStates.PASSKEY_GENERATOR,
+  UiStates.SIGNUP_RELAY_NOTICE,
   UiStates.EMAIL_CONSENT,
   UiStates.SUCCESS,
 ];

@@ -32,8 +32,15 @@ vi.mock('../../../context/DevCredentialsContext', () => ({
 const mockResume = vi.fn();
 // What the app asked for, as AuthContext holds it until someone signs in here.
 const mockRequest: { prompt?: string; loginHint?: string } = {};
+// "Use my email instead" (the relay notice) asks for the email form once.
+const mockEmailForm = { intent: false, clear: vi.fn() };
 vi.mock('../../../context/AuthContext', () => ({
-  useAuthContext: () => ({ resumeAccount: mockResume, accountRequest: mockRequest }),
+  useAuthContext: () => ({
+    resumeAccount: mockResume,
+    accountRequest: mockRequest,
+    emailFormIntent: mockEmailForm.intent,
+    clearEmailFormIntent: mockEmailForm.clear,
+  }),
 }));
 const mockUi = {
   error: null,
@@ -86,6 +93,7 @@ beforeEach(() => {
   delete mockRequest.prompt;
   delete mockRequest.loginHint;
   mockExchanging = false;
+  mockEmailForm.intent = false;
   setForceEmail(false);
   mockGo.mockResolvedValue(undefined);
   mockOAuthUrl = 'https://accounts.example/oauth';
@@ -252,6 +260,25 @@ it('“Use another account” shows the email field and forgets nothing', () => 
   expect(
     screen.getByRole('button', { name: 'Continue as alice@x.co' }),
   ).toBeInTheDocument();
+});
+
+it('opens on the email form, once, when asked to (Use my email instead)', () => {
+  seed('alice@x.co');
+  mockEmailForm.intent = true;
+  render(<EmailInput onSubmit={onSubmit} />);
+  expect(screen.getByLabelText('Email')).toHaveValue('');
+  expect(screen.queryByRole('button', { name: 'Continue as alice@x.co' })).toBeNull();
+  expect(screen.getByRole('button', { name: 'Back to accounts' })).toBeInTheDocument();
+  expect(mockEmailForm.clear).toHaveBeenCalled();
+});
+
+it('opens on the chooser when nothing asked for the form', () => {
+  seed('alice@x.co');
+  render(<EmailInput onSubmit={onSubmit} />);
+  expect(
+    screen.getByRole('button', { name: 'Continue as alice@x.co' }),
+  ).toBeInTheDocument();
+  expect(mockEmailForm.clear).not.toHaveBeenCalled();
 });
 
 it('removes an account from this device', () => {

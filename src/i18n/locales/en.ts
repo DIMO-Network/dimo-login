@@ -185,6 +185,13 @@ const en = {
   'signup.code_body':
     'We sent a 6-digit code to {{email}}. Enter it to create your account.',
   'signup.error.code': 'That code didn’t work. Check it or send a new one.',
+  'signup.relay.title': 'Apple is hiding your email',
+  'signup.relay.body':
+    'You’re signing in with {{email}}, an address Apple made to hide yours. This creates a new DIMO account, separate from any account you have under your own email. Vehicles and shares stay with the account they’re in.',
+  'signup.relay.create': 'Create a new account',
+  'signup.relay.use_email': 'Use my email instead',
+  'signup.relay.hint':
+    'To share your own email through Apple, stop using Sign in with Apple for DIMO in your Apple Account settings, then try again.',
   'create.title': 'Create a passkey',
   'create.body': 'Your DIMO account signs in with a passkey instead of a password.',
   'create.benefit_biometric': 'Sign in with your fingerprint, face or device PIN',

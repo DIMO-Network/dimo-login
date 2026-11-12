@@ -191,6 +191,13 @@ const es: PluralLocaleResources = {
   'signup.code_body':
     'Enviamos un código de 6 dígitos a {{email}}. Ingrésalo para crear tu cuenta.',
   'signup.error.code': 'Ese código no funcionó. Revísalo o pide uno nuevo.',
+  'signup.relay.title': 'Apple está ocultando tu correo',
+  'signup.relay.body':
+    'Estás iniciando sesión con {{email}}, una dirección que Apple creó para ocultar la tuya. Esto crea una cuenta de DIMO nueva, separada de cualquier cuenta que tengas con tu propio correo. Los vehículos y lo que compartes se quedan en la cuenta donde están.',
+  'signup.relay.create': 'Crear una cuenta nueva',
+  'signup.relay.use_email': 'Usar mi correo',
+  'signup.relay.hint':
+    'Para compartir tu propio correo a través de Apple, deja de usar Iniciar sesión con Apple para DIMO en los ajustes de tu cuenta de Apple y vuelve a intentarlo.',
   'create.title': 'Crea una clave de acceso',
   'create.body':
     'Tu cuenta DIMO inicia sesión con una clave de acceso en lugar de una contraseña.',

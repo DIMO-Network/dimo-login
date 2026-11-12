@@ -59,6 +59,8 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
   const {
     resumeAccount,
     accountRequest: { loginHint },
+    emailFormIntent,
+    clearEmailFormIntent,
   } = useAuthContext();
   const [accounts, setAccounts] = useState<RememberedAccount[]>(() =>
     getRememberedAccounts(clientId),
@@ -71,7 +73,10 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     ? accounts.find((account) => account.email === loginHint)
     : undefined;
   const [email, setEmail] = useState(loginHint && !hintedAccount ? loginHint : '');
-  const [otherAccount, setOtherAccount] = useState(Boolean(loginHint) && !hintedAccount);
+  // "Use my email instead" opens the email form rather than the chooser, once.
+  const [otherAccount, setOtherAccount] = useState(
+    emailFormIntent || (Boolean(loginHint) && !hintedAccount),
+  );
   const armed = useRef(false);
   const constructOAuthUrl = useConstructOAuthUrl();
   const goToLoginOrSignUp = useGoToLoginOrSignUp();
@@ -82,6 +87,10 @@ export const EmailInput: React.FC<EmailInputProps> = ({ onSubmit }) => {
     }, CHOOSER_ARM_MS);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (emailFormIntent) clearEmailFormIntent();
+  }, [emailFormIntent, clearEmailFormIntent]);
 
   const handleSuccessfulEmailSubmission = async (email: string, proofToken?: string) => {
     try {

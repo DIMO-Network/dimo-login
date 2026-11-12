@@ -42,8 +42,10 @@ vi.mock('../../services/walletLoader', () => ({
     createPasskey: mockCreatePasskey,
   }),
 }));
+// The screen showing; a test changes it and re-renders to move the flow on.
+let mockUiState: UiStates = UiStates.EMAIL_INPUT;
 vi.mock('../../context/UIManagerContext', () => ({
-  useUIManager: () => ({ setUiState, setError }),
+  useUIManager: () => ({ setUiState, setError, uiState: mockUiState }),
 }));
 vi.mock('../../context/DevCredentialsContext', () => ({
   useDevCredentials: () => ({ apiKey: 'api-key' }),
@@ -72,10 +74,18 @@ const startedWithCode = async (code: string) => {
   act(() => signUp.submitCode(code));
 };
 
+let rerender!: (ui: React.ReactElement) => void;
+/** The flow, re-rendered on the given screen (as the shell's Back would show it). */
+const showScreen = (state: UiStates) => {
+  mockUiState = state;
+  act(() => rerender(<Probe />));
+};
+
 beforeEach(async () => {
   vi.clearAllMocks();
+  mockUiState = UiStates.EMAIL_INPUT;
   mockCreatePasskey.mockResolvedValue([ATTESTATION, 'ch']);
-  render(<Probe />);
+  ({ rerender } = render(<Probe />));
 });
 
 const run = async <T,>(fn: () => Promise<T>) => {
@@ -113,6 +123,88 @@ it('start with a provider token skips the code', async () => {
   expect(mockRegister).not.toHaveBeenCalled();
   expect(draft()).toEqual({ kind: 'proof', email: 'a@b.co', proofToken: 'tok' });
   expect(setUiState).toHaveBeenCalledWith(UiStates.PASSKEY_GENERATOR, { setBack: true });
+});
+
+describe('an Apple private relay address', () => {
+  const RELAY = 'x7k2@privaterelay.appleid.com';
+
+  it('with a provider token, explains the address before the passkey', async () => {
+    await run(() => signUp.start(RELAY, 'tok'));
+    expect(draft()).toEqual({ kind: 'proof', email: RELAY, proofToken: 'tok' });
+    expect(setUiState).toHaveBeenCalledWith(UiStates.SIGNUP_RELAY_NOTICE, {
+      setBack: true,
+    });
+    expect(setUiState).not.toHaveBeenCalledWith(
+      UiStates.PASSKEY_GENERATOR,
+      expect.anything(),
+    );
+  });
+
+  it('is recognised whatever its case', async () => {
+    await run(() => signUp.start('X7K2@PrivateRelay.AppleID.com', 'tok'));
+    expect(setUiState).toHaveBeenCalledWith(UiStates.SIGNUP_RELAY_NOTICE, {
+      setBack: true,
+    });
+  });
+
+  it('confirmRelay goes on to the passkey with the token kept', async () => {
+    await run(() => signUp.start(RELAY, 'tok'));
+    showScreen(UiStates.SIGNUP_RELAY_NOTICE);
+    act(() => signUp.confirmRelay());
+    // The notice leaves the Back history: Back from the passkey leads out of sign-up.
+    expect(setUiState).toHaveBeenLastCalledWith(UiStates.PASSKEY_GENERATOR, {
+      setBack: true,
+      removeCurrent: true,
+    });
+    showScreen(UiStates.PASSKEY_GENERATOR);
+    expect(draft()).toEqual({ kind: 'proof', email: RELAY, proofToken: 'tok' });
+
+    mockCreateAccount.mockResolvedValue(USER);
+    await run(() => signUp.finish());
+    expect(mockCreateAccount).toHaveBeenCalledWith(
+      expect.objectContaining({ email: RELAY, proofToken: 'tok' }),
+    );
+  });
+
+  it('Back from the notice drops the draft and its token', async () => {
+    await run(() => signUp.start(RELAY, 'tok'));
+    showScreen(UiStates.SIGNUP_RELAY_NOTICE);
+    expect(draft()).not.toBeNull();
+    showScreen(UiStates.EMAIL_INPUT);
+    expect(draft()).toBeNull();
+  });
+
+  it('Back after confirming keeps the draft, as for any provider sign-up', async () => {
+    await run(() => signUp.start(RELAY, 'tok'));
+    showScreen(UiStates.SIGNUP_RELAY_NOTICE);
+    act(() => signUp.confirmRelay());
+    showScreen(UiStates.PASSKEY_GENERATOR);
+    showScreen(UiStates.EMAIL_INPUT);
+    expect(draft()).toMatchObject({ email: RELAY, proofToken: 'tok' });
+  });
+
+  it('without a token (the email-code path), sends a code as before', async () => {
+    mockRegister.mockResolvedValue({ otpId: 'otp-1' });
+    await run(() => signUp.start(RELAY));
+    expect(setUiState).toHaveBeenCalledWith(UiStates.SIGNUP_VERIFY_EMAIL, {
+      setBack: true,
+    });
+    expect(setUiState).not.toHaveBeenCalledWith(
+      UiStates.SIGNUP_RELAY_NOTICE,
+      expect.anything(),
+    );
+  });
+
+  it('another address with a token goes straight to the passkey', async () => {
+    await run(() => signUp.start('jun@icloud.com', 'tok'));
+    showScreen(UiStates.PASSKEY_GENERATOR);
+    showScreen(UiStates.EMAIL_INPUT);
+    expect(setUiState).toHaveBeenCalledWith(UiStates.PASSKEY_GENERATOR, {
+      setBack: true,
+    });
+    // Unchanged: Back keeps a provider sign-up's draft.
+    expect(draft()).toMatchObject({ email: 'jun@icloud.com' });
+  });
 });
 
 it('a second start discards the first email’s draft', async () => {

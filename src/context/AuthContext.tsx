@@ -55,6 +55,14 @@ interface AuthContextProps {
   /** Sign this app out and open sign-in; the account's wallet session stays. */
   switchAccount: () => void;
   /**
+   * Drop the user and any sign-up in progress and open the email screen on its
+   * email form, not the chooser ("Use my email instead").
+   */
+  openEmailForm: () => void;
+  /** Set by openEmailForm until the email screen has read it (clearEmailFormIntent). */
+  emailFormIntent: boolean;
+  clearEmailFormIntent: () => void;
+  /**
    * What the app asked of the sign-in (prompt, loginHint), until someone signs
    * in on this page; empty from then on, switchAccount included. Read it here,
    * not from the app's parameters.
@@ -117,6 +125,15 @@ export const AuthProvider = ({
     setUser(defaultUser);
     clearDraft();
   };
+
+  const [emailFormIntent, setEmailFormIntent] = useState(false);
+  const openEmailForm = () => {
+    resetUser();
+    setError(null);
+    setEmailFormIntent(true);
+    setUiState(UiStates.EMAIL_INPUT);
+  };
+  const clearEmailFormIntent = () => setEmailFormIntent(false);
 
   /** Proves the stamper's key works and mints this app's token. */
   const authenticate = async (
@@ -340,6 +357,9 @@ export const AuthProvider = ({
         resetUser,
         resumeAccount,
         switchAccount,
+        openEmailForm,
+        emailFormIntent,
+        clearEmailFormIntent,
         accountRequest,
         signUpDraft,
         signUp,
