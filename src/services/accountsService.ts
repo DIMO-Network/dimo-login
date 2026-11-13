@@ -1,9 +1,9 @@
 import { CreateAccountParams } from '../models/account';
 import { CredentialResult, OtpResult } from '../models/resultTypes';
 import { UserObject } from '../models/user';
-
-const DIMO_ACCOUNTS_BASE_URL =
-  process.env.REACT_APP_DIMO_ACCOUNTS_URL || 'https://accounts.dev.dimo.org/api';
+import { fetchWithTimeout } from '../utils/withTimeout';
+import { DIMO_ACCOUNTS_BASE_URL } from './accountsBaseUrl';
+import { signUpProofEnabled } from '../utils/featureFlags';
 
 // Example: Send OTP using Accounts API
 export const sendOtp = async (email: string): Promise<OtpResult> => {
@@ -74,6 +74,73 @@ export const verifyOtp = async ({
   return data;
 };
 
+// Starts sign-up: registers the account without deploying it and emails a code.
+export const registerAccount = async (
+  email: string,
+  key: string,
+): Promise<{ otpId: string }> => {
+  const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account/email`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, key, origin: 'DIMO', deployAccount: false }),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data?.error ?? 'Failed to register account');
+  }
+
+  const { otpId } = await response.json();
+  return { otpId };
+};
+
+export class AccountVerifyError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AccountVerifyError';
+  }
+}
+
+// Proves the email with the code and attaches the passkey in one call.
+export const verifyAccountEmail = async ({
+  email,
+  otpId,
+  otpCode,
+  key,
+  attestation,
+  challenge,
+}: {
+  email: string;
+  otpId: string;
+  otpCode: string;
+  key: string;
+  attestation: object;
+  challenge: string;
+}): Promise<void> => {
+  const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account/verify-email`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      email,
+      otpId,
+      otpCode,
+      key,
+      attestation,
+      encodedChallenge: challenge,
+      deployAccount: true,
+    }),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new AccountVerifyError(data?.error ?? 'Could not verify email');
+  }
+};
+
 // Function to create an account
 export const createAccount = async ({
   email,
@@ -81,12 +148,17 @@ export const createAccount = async ({
   attestation,
   challenge,
   deployAccount,
+  proofToken,
 }: CreateAccountParams): Promise<UserObject> => {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  // Only with the flag on: an accounts API that doesn't list Authorization in
+  // its CORS headers refuses the whole request (see signUpProofEnabled).
+  if (proofToken && signUpProofEnabled()) {
+    headers.Authorization = `Bearer ${proofToken}`;
+  }
   const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
     body: JSON.stringify({
       email,
       key: apiKey,
@@ -113,7 +185,7 @@ export const createAccount = async ({
 };
 
 export const fetchUserDetails = async (email: string): Promise<null | UserObject> => {
-  const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account/${email}`, {
+  const response = await fetch(`${DIMO_ACCOUNTS_BASE_URL}/account/${encodeURIComponent(email)}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -126,13 +198,55 @@ export const fetchUserDetails = async (email: string): Promise<null | UserObject
     const data = await response.json();
     throw new Error(data.message ?? 'Failed to fetch user details');
   }
-  const { subOrganizationId, hasPasskey } = await response.json();
+  const { subOrganizationId, hasPasskey, emailVerified, authenticators } =
+    await response.json();
   return {
     email,
     subOrganizationId,
     hasPasskey,
     smartContractAddress: null,
     walletAddress: null,
-    emailVerified: true,
+    // Older API builds omit the field; treat those as verified.
+    emailVerified: emailVerified !== false,
+    ...(Array.isArray(authenticators) && {
+      credentialIds: authenticators.map(
+        (authenticator: { credentialId: string }) => authenticator.credentialId,
+      ),
+    }),
   };
+};
+
+/** A Turnkey request the browser stamped, for the accounts API to forward. */
+export type StampedRequest = {
+  url: string;
+  body: string;
+  stamp: { stampHeaderName: string; stampHeaderValue: string };
+};
+
+// The passkey offer waits this long for the accounts API before saying it couldn't.
+const ADD_AUTHENTICATOR_TIMEOUT_MS = 30_000;
+
+/**
+ * Has the accounts API forward a stamped CREATE_AUTHENTICATORS_V2 request (a
+ * passkey added with the account's own email-code session) and record the
+ * passkey. The signed request is the proof: no token is sent. Aborted after
+ * ADD_AUTHENTICATOR_TIMEOUT_MS.
+ */
+export const addAuthenticator = async (
+  email: string,
+  signedCreateAuthenticatorsRequest: StampedRequest,
+): Promise<void> => {
+  const response = await fetchWithTimeout(
+    `${DIMO_ACCOUNTS_BASE_URL}/account/authenticator`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, signedCreateAuthenticatorsRequest }),
+    },
+    ADD_AUTHENTICATOR_TIMEOUT_MS,
+  );
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data?.error ?? 'Could not add the passkey');
+  }
 };

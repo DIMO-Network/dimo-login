@@ -45,7 +45,20 @@ REACT_APP_TESLA_CLIENT_ID=194119ca43c7-4528-9415-3116fb5868cd
 REACT_APP_TESLA_REDIRECT_URI=http://localhost:3000/v1
 REACT_APP_TESLA_VIRTUAL_KEY_URL=https://www.tesla.com/_ak/auth.dev.drivedimo.com
 REACT_APP_RPCID_URL=localhost
+REACT_APP_CONNECTED_APPS=false
+REACT_APP_PASSKEY_OFFER=false
+REACT_APP_PASSKEY_FIRST=false
+REACT_APP_SIGN_IN_NOTICE=false
+REACT_APP_SIGN_UP_PROOF=false
 ```
+
+Features that ship dark are off unless their variable is exactly `true` at build time (`src/utils/featureFlags.ts`):
+
+- `REACT_APP_CONNECTED_APPS`: the connected-apps page, `entryState=CONNECTED_APPS` (see `docs/flows.md`).
+- `REACT_APP_PASSKEY_OFFER`: the offer to add a passkey after an email-code sign-in (`PASSKEY_OFFER`). Needs the accounts API's `POST /account/authenticator`.
+- `REACT_APP_PASSKEY_FIRST`: "Sign in with a passkey" on the email form, without typing an email. Needs the accounts API's `GET /account/passkey-challenge` and `POST /account/by-passkey`.
+- `REACT_APP_SIGN_IN_NOTICE`: tell the accounts API about an account's first sign-in on this browser (`POST /account/sign-in-notice`), which may email the account.
+- `REACT_APP_SIGN_UP_PROOF`: when Google or Apple sign-up creates an account, send the provider's token to `POST /account` as `Authorization: Bearer`, the proof the accounts API asks for once its `ACCOUNT_CREATE_REQUIRE_PROOF` is on. Turn it on only after the accounts API that allows the `Authorization` header (CORS) is live: before that the browser refuses the request and Google/Apple sign-up fails. Turn it on before the accounts API starts requiring proof.
 
 🗂️ Folder Structure Overview
 

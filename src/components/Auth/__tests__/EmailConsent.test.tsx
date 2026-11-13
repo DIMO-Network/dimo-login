@@ -4,8 +4,9 @@ import { fireEvent, render, screen } from '@testing-library/react';
 
 const mockClientId = '0x2222222222222222222222222222222222222222';
 const mockUser = { email: 'jun@example.com', smartContractAddress: '0xabc' };
+const mockSwitch = vi.fn();
 vi.mock('../../../context/AuthContext', () => ({
-  useAuthContext: () => ({ user: mockUser, jwt: 'jwt' }),
+  useAuthContext: () => ({ user: mockUser, jwt: 'jwt', switchAccount: mockSwitch }),
 }));
 const mockCreds: Record<string, unknown> = {};
 vi.mock('../../../context/DevCredentialsContext', () => ({
@@ -20,7 +21,8 @@ vi.mock('../../../context/DevCredentialsContext', () => ({
 const mockUi = { setUiState: vi.fn() };
 vi.mock('../../../context/UIManagerContext', () => ({ useUIManager: () => mockUi }));
 const mockSendLogin = vi.fn();
-vi.mock('../../../utils/authUtils', () => ({
+vi.mock('../../../utils/authUtils', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../utils/authUtils')>()),
   sendLoginToApp: (...args: unknown[]) => mockSendLogin(...args),
 }));
 const mockSendError = vi.fn();
@@ -30,6 +32,7 @@ vi.mock('../../../utils/errorUtils', () => ({
 
 import { EmailConsent } from '../EmailConsent';
 import { getEmailChoice } from '../../../services/storageService';
+import { TOKEN_EXPIRED_ERROR } from '../../../utils/authUtils';
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -83,4 +86,14 @@ it('a required email is shared by continuing, or the login is cancelled', () => 
   fireEvent.click(screen.getByRole('button', { name: 'Share and continue' }));
   expect(getEmailChoice(mockClientId, 'jun@example.com')).toBe(true);
   expect(mockSendLogin).toHaveBeenCalled();
+});
+
+it('signs in again instead of sending a token that has run out', () => {
+  mockSendLogin.mockImplementation(() => {
+    throw new Error(TOKEN_EXPIRED_ERROR);
+  });
+  render(<EmailConsent />);
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+  expect(mockSwitch).toHaveBeenCalledTimes(1);
 });

@@ -59,4 +59,16 @@ describe('filterMessageParams', () => {
       'language',
     ].forEach((key) => expect(ALLOWED_MESSAGE_PARAM_KEYS.has(key)).toBe(true));
   });
+
+  it('lets prompt and loginHint through', () => {
+    expect(
+      filterMessageParams({ prompt: 'login', loginHint: 'a@x.co', evil: 1 }),
+    ).toEqual({ prompt: 'login', loginHint: 'a@x.co' });
+  });
+
+  it('lets responseMode through', () => {
+    expect(filterMessageParams({ responseMode: 'fragment', evil: 1 })).toEqual({
+      responseMode: 'fragment',
+    });
+  });
 });

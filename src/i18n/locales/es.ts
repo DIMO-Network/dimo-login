@@ -143,8 +143,9 @@ const es: PluralLocaleResources = {
 
   // Signing in
   'signin.subtitle': 'para continuar en {{appName}}',
-  'signin.returning_title': 'Hola de nuevo',
-  'signin.returning_desc': 'Ya iniciaste sesión en este dispositivo',
+  'signin.choose_title': 'Elige una cuenta',
+  'signin.remove_account': 'Quitar {{email}} de este dispositivo',
+  'signin.back_to_accounts': 'Volver a las cuentas',
   'signin.email_label': 'Correo electrónico',
   'signin.email_placeholder': 'tu@example.com',
   'signin.continue': 'Continuar',
@@ -153,6 +154,7 @@ const es: PluralLocaleResources = {
   'signin.or': 'o',
   'signin.google': 'Continuar con Google',
   'signin.apple': 'Continuar con Apple',
+  'signin.passkey': 'Iniciar sesión con una clave de acceso',
   'signin.signing_in': 'Iniciando sesión…',
   'signin.error.details':
     'No se pudieron obtener los datos de tu cuenta. Inténtalo de nuevo.',
@@ -162,6 +164,12 @@ const es: PluralLocaleResources = {
     'Este navegador está bloqueando el almacenamiento del sitio, que este paso necesita. Permítelo e inténtalo de nuevo.',
   'signin.error.no_email':
     'Esa cuenta no compartió una dirección de correo electrónico con DIMO. Prueba otra forma de iniciar sesión.',
+  'signin.error.passkey_unknown':
+    'No encontramos una cuenta para esa clave de acceso. Escribe tu correo para iniciar sesión.',
+  'signin.error.passkey':
+    'No se pudo usar tu clave de acceso. Inténtalo de nuevo o escribe tu correo.',
+  'signin.error.email_unverified':
+    'El correo de esa cuenta no está verificado. Verifícalo con el proveedor o inicia sesión de otra forma.',
 
   // Passkeys and email codes
   'passkey.title': 'Confirma que eres tú',
@@ -184,6 +192,17 @@ const es: PluralLocaleResources = {
   'otp.resent': 'Te enviamos un código nuevo.',
   'otp.error.send': 'No se pudo enviar el código. Inténtalo de nuevo.',
   'otp.error.verify': 'Ese código no funcionó. Revísalo e inténtalo de nuevo.',
+  'signup.code_title': 'Revisa tu correo',
+  'signup.code_body':
+    'Enviamos un código de 6 dígitos a {{email}}. Ingrésalo para crear tu cuenta.',
+  'signup.error.code': 'Ese código no funcionó. Revísalo o pide uno nuevo.',
+  'signup.relay.title': 'Apple está ocultando tu correo',
+  'signup.relay.body':
+    'Estás iniciando sesión con {{email}}, una dirección que Apple creó para ocultar la tuya. Esto crea una cuenta de DIMO nueva, separada de cualquier cuenta que tengas con tu propio correo. Los vehículos y lo que compartes se quedan en la cuenta donde están.',
+  'signup.relay.create': 'Crear una cuenta nueva',
+  'signup.relay.use_email': 'Usar mi correo',
+  'signup.relay.hint':
+    'Para compartir tu propio correo a través de Apple, deja de usar Iniciar sesión con Apple para DIMO en los ajustes de tu cuenta de Apple y vuelve a intentarlo.',
   'create.title': 'Crea una clave de acceso',
   'create.body':
     'Tu cuenta DIMO inicia sesión con una clave de acceso en lugar de una contraseña.',
@@ -195,10 +214,20 @@ const es: PluralLocaleResources = {
   'create.cta': 'Crear clave de acceso',
   'create.creating': 'Creando tu cuenta. Puede tardar un minuto.',
   'create.error': 'No se pudo crear tu cuenta. Inténtalo de nuevo.',
+  'passkey_offer.title': 'Inicia sesión más rápido la próxima vez',
+  'passkey_offer.body':
+    'Agrega una clave de acceso para {{email}} en este dispositivo. La próxima vez, inicia sesión con tu huella digital, tu rostro o el PIN del dispositivo en lugar de un código.',
+  'passkey_offer.add': 'Agregar clave de acceso',
+  'passkey_offer.adding': 'Agregando tu clave de acceso…',
+  'passkey_offer.not_now': 'Ahora no',
+  'passkey_offer.added': 'Clave de acceso agregada.',
+  'passkey_offer.exists': 'Este dispositivo ya tiene una clave de acceso para {{email}}.',
+  'passkey_offer.error':
+    'No se pudo agregar la clave de acceso. Puedes seguir usando códigos por correo.',
 
   // Plain sign-in done, and signing out
   'login_done.title': 'Iniciaste sesión',
-  'login_done.body': 'Sesión iniciada como {{email}}.',
+  'account.signed_in_as': 'Sesión iniciada como {{email}}',
   'logout.signing_out': 'Cerrando sesión…',
 
   // The email as part of the app's request
@@ -541,6 +570,36 @@ const es: PluralLocaleResources = {
   'contract.permission.GetRawData': 'RAW_DATA: acceso a los datos sin procesar.',
   'contract.permission.GetApproximateLocation':
     'APPROXIMATE_LOCATION: acceso a la ubicación aproximada del vehículo.',
+
+  'apps.title': 'Apps conectadas',
+  'apps.subtitle':
+    'Apps que pueden usar tus datos de DIMO y apps con la sesión iniciada en este navegador.',
+  'apps.section_data': 'Pueden acceder a tus datos',
+  'apps.section_browser': 'Con la sesión iniciada en este navegador',
+  'apps.vehicles_one': '{{count}} vehículo',
+  'apps.vehicles_many': '{{count}} de vehículos',
+  'apps.vehicles_other': '{{count}} vehículos',
+  'apps.documents': 'Tus documentos',
+  'apps.until': 'Hasta el {{date}}',
+  'apps.stop': 'Dejar de compartir',
+  'apps.stopping': 'Dejando de compartir…',
+  'apps.keep': 'Seguir compartiendo',
+  'apps.stop_title': '¿Dejar de compartir con {{appName}}?',
+  'apps.stop_body':
+    '{{appName}} pierde el acceso a partir de ahora. Conserva los datos que ya tenga.',
+  'apps.sign_out_here': 'Cerrar sesión aquí',
+  'apps.sign_out_note':
+    'Cierra la sesión de {{appName}} en el inicio de sesión de DIMO de este navegador. Es posible que la app siga con la sesión iniciada hasta que termine su sesión.',
+  'apps.unknown_app': 'Cuenta {{address}}',
+  'apps.empty': 'Ninguna app puede acceder a tus datos.',
+  'apps.embedded': 'Abre esta página en su propia ventana.',
+  'apps.error.load': 'No se pudieron cargar tus apps. Inténtalo de nuevo.',
+  'apps.error.stop':
+    'No se pudo dejar de compartir con {{appName}}. Revisa la lista e inténtalo de nuevo.',
+  'apps.stop_waiting': 'Dejando de compartir… esto puede tardar un minuto.',
+  'apps.stop_slow':
+    'Esto está tardando más de lo normal. Vuelve a revisar en unos minutos.',
+  'apps.check_again': 'Revisar de nuevo',
 };
 
 export default es;

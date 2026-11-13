@@ -1,16 +1,19 @@
 import type { TurnkeySessionDataWithExpiry } from '../services/turnkeyService';
 import {
   clearSessionData,
-  getJWTFromCookies,
-  getUserFromLocalStorage,
   isEmailGranted,
-  saveToLocalStorage,
   setLoggedEmail,
   storeJWTInCookies,
   storeUserInLocalStorage,
-  TurnkeySessionKey,
 } from '../services/storageService';
+import { isTokenExpired } from '../services/tokenService';
 import { UserObject } from '../models/user';
+import {
+  endWalletSession,
+  getLastSignedInSubOrganizationId,
+  rememberAccount,
+  setWalletSession,
+} from '../services/accountStore';
 import { backToThirdParty, sendMessageToReferrer } from './messageHandler';
 import { UiStates } from '../enums';
 import { getEmailRequest } from '../stores/AuthStateStore';
@@ -20,18 +23,28 @@ import type { TurnkeyClient } from '@turnkey/http';
 /** What signs Turnkey requests: the passkey or the session's API key. */
 export type TStamper = ConstructorParameters<typeof TurnkeyClient>[1];
 
+/** A token with less than this left is never handed to an app. */
+const MIN_SENT_TOKEN_LIFETIME_S = 60;
+export const TOKEN_EXPIRED_ERROR = 'Token expired';
+export const isTokenExpiredError = (err: unknown) =>
+  err instanceof Error && err.message === TOKEN_EXPIRED_ERROR;
+
+/**
+ * The login to hand the app: this tab's token and account, as the caller
+ * passes them, never the stored ones. Another tab of the same app may have
+ * stored someone else's, and under the app's prompt this tab leaves the stored
+ * session unused. Throws TOKEN_EXPIRED_ERROR for a token about to run out (the
+ * caller signs in again; see useSendOrSignInAgain).
+ */
 export function buildAuthPayload(
   clientId: `0x${string}` | null,
-  jwt: string,
-  userObj: UserObject,
+  token: string,
+  user: UserObject,
 ): {
   token: string;
   email?: string;
   walletAddress: string;
 } {
-  //Won't send to SDK until these are set in cookies/storage (may not work in incognito though?)
-  const token = getJWTFromCookies(clientId) || jwt;
-  const user = getUserFromLocalStorage(clientId) || userObj;
   // An app that asked for no email never gets one, whatever was granted.
   const emailGranted =
     getEmailRequest() !== 'none' && isEmailGranted(clientId, user?.email);
@@ -40,8 +53,12 @@ export function buildAuthPayload(
     throw new Error('JWT is missing. Ensure the user is authenticated.');
   }
 
+  if (isTokenExpired(token, MIN_SENT_TOKEN_LIFETIME_S)) {
+    throw new Error(TOKEN_EXPIRED_ERROR);
+  }
+
   if (!user || !user.smartContractAddress) {
-    throw new Error('User object or walletAddress is missing in local storage.');
+    throw new Error('User object or walletAddress is missing.');
   }
 
   return {
@@ -87,6 +104,9 @@ export function logout(
   utm: string,
   setUiState: (step: UiStates) => void,
 ) {
+  // An explicit logout also ends the wallet session, so on a shared device the
+  // next person cannot resume this account silently. The account stays remembered.
+  endWalletSession(getLastSignedInSubOrganizationId(clientId));
   clearSessionData(clientId);
   sendMessageToReferrer({ eventType: 'logout' });
 
@@ -111,12 +131,9 @@ export function createSession({
   storeJWTInCookies(clientId, jwt);
   storeUserInLocalStorage(clientId, user);
   setLoggedEmail(clientId, user.email);
-  updateTurnkeySession(turnkeySessionData);
+  setWalletSession(user.subOrganizationId, turnkeySessionData);
+  rememberAccount(user);
 }
-
-export const updateTurnkeySession = (sessionData: TurnkeySessionDataWithExpiry) => {
-  return saveToLocalStorage(TurnkeySessionKey, sessionData);
-};
 
 /** Plain login: hand the token (and the email, if shared) to the app. */
 export function sendLoginToApp({
@@ -178,6 +195,9 @@ export function handlePostAuthUIState({
     setUiState(UiStates.SIGN_MESSAGE);
   } else if (entryState === UiStates.PROVISION_DEVELOPER_LICENSE) {
     setUiState(UiStates.PROVISION_DEVELOPER_LICENSE);
+  } else if (entryState === UiStates.CONNECTED_APPS) {
+    // The app that opened it gets nothing: no token, no list.
+    setUiState(UiStates.CONNECTED_APPS);
   }
 }
 

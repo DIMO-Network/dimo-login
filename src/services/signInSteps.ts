@@ -23,12 +23,18 @@ import type { TStamper } from '../utils/authUtils';
 
 export {
   createKernelSigner,
+  createPasskey,
   getApiKeyStamper,
   getKernelSigner,
   initializePasskey,
   passkeyStamper,
 } from './turnkeyService';
 export { generateP256KeyPair } from '@turnkey/crypto';
+export {
+  enrollPasskey,
+  prepareEnrollment,
+  type PreparedEnrollment,
+} from './passkeyEnrollment';
 
 async function initializeKernelClient(
   subOrganizationId: string,

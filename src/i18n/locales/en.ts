@@ -141,8 +141,9 @@ const en = {
 
   // Signing in
   'signin.subtitle': 'to continue to {{appName}}',
-  'signin.returning_title': 'Welcome back',
-  'signin.returning_desc': 'Signed in on this device before',
+  'signin.choose_title': 'Choose an account',
+  'signin.remove_account': 'Remove {{email}} from this device',
+  'signin.back_to_accounts': 'Back to accounts',
   'signin.email_label': 'Email',
   'signin.email_placeholder': 'you@example.com',
   'signin.continue': 'Continue',
@@ -151,6 +152,7 @@ const en = {
   'signin.or': 'or',
   'signin.google': 'Continue with Google',
   'signin.apple': 'Continue with Apple',
+  'signin.passkey': 'Sign in with a passkey',
   'signin.signing_in': 'Signing you in…',
   'signin.error.details': 'Couldn’t get your account details. Try again.',
   'signin.error.oauth': 'Couldn’t finish signing in with Google or Apple. Try again.',
@@ -158,6 +160,11 @@ const en = {
     'This browser is blocking site storage, which this step needs. Allow it and try again.',
   'signin.error.no_email':
     'That account didn’t share an email address with DIMO. Try another way to sign in.',
+  'signin.error.passkey_unknown':
+    'We couldn’t find an account for that passkey. Enter your email to sign in.',
+  'signin.error.passkey': 'Couldn’t use your passkey. Try again or enter your email.',
+  'signin.error.email_unverified':
+    'That account’s email isn’t verified. Verify it with the provider, or sign in another way.',
 
   // Passkeys and email codes
   'passkey.title': 'Confirm it’s you',
@@ -178,6 +185,17 @@ const en = {
   'otp.resent': 'A new code is on its way.',
   'otp.error.send': 'Couldn’t send a code. Try again.',
   'otp.error.verify': 'That code didn’t work. Check it and try again.',
+  'signup.code_title': 'Check your email',
+  'signup.code_body':
+    'We sent a 6-digit code to {{email}}. Enter it to create your account.',
+  'signup.error.code': 'That code didn’t work. Check it or send a new one.',
+  'signup.relay.title': 'Apple is hiding your email',
+  'signup.relay.body':
+    'You’re signing in with {{email}}, an address Apple made to hide yours. This creates a new DIMO account, separate from any account you have under your own email. Vehicles and shares stay with the account they’re in.',
+  'signup.relay.create': 'Create a new account',
+  'signup.relay.use_email': 'Use my email instead',
+  'signup.relay.hint':
+    'To share your own email through Apple, stop using Sign in with Apple for DIMO in your Apple Account settings, then try again.',
   'create.title': 'Create a passkey',
   'create.body': 'Your DIMO account signs in with a passkey instead of a password.',
   'create.benefit_biometric': 'Sign in with your fingerprint, face or device PIN',
@@ -186,10 +204,19 @@ const en = {
   'create.cta': 'Create passkey',
   'create.creating': 'Creating your account. This can take a minute.',
   'create.error': 'Couldn’t create your account. Try again.',
+  'passkey_offer.title': 'Sign in faster next time',
+  'passkey_offer.body':
+    'Add a passkey for {{email}} on this device. Next time, sign in with your fingerprint, face or device PIN instead of a code.',
+  'passkey_offer.add': 'Add a passkey',
+  'passkey_offer.adding': 'Adding your passkey…',
+  'passkey_offer.not_now': 'Not now',
+  'passkey_offer.added': 'Passkey added.',
+  'passkey_offer.exists': 'This device already has a passkey for {{email}}.',
+  'passkey_offer.error': 'Couldn’t add a passkey. You can keep using email codes.',
 
   // Plain sign-in done, and signing out
   'login_done.title': 'You’re signed in',
-  'login_done.body': 'Signed in as {{email}}.',
+  'account.signed_in_as': 'Signed in as {{email}}',
   'logout.signing_out': 'Signing out…',
 
   // Email sharing, as a switch row
@@ -509,6 +536,35 @@ const en = {
   'contract.permission.GetRawData': 'RAW_DATA: access to raw payload data.',
   'contract.permission.GetApproximateLocation':
     'APPROXIMATE_LOCATION: access to approximate vehicle location.',
+
+  // Connected apps (entryState=CONNECTED_APPS)
+  'apps.title': 'Connected apps',
+  'apps.subtitle':
+    'Apps that can use your DIMO data, and apps signed in on this browser.',
+  'apps.section_data': 'Can access your data',
+  'apps.section_browser': 'Signed in on this browser',
+  'apps.vehicles_one': '{{count}} vehicle',
+  'apps.vehicles_other': '{{count}} vehicles',
+  'apps.documents': 'Your documents',
+  'apps.until': 'Until {{date}}',
+  'apps.stop': 'Stop sharing',
+  'apps.stopping': 'Stopping…',
+  'apps.keep': 'Keep sharing',
+  'apps.stop_title': 'Stop sharing with {{appName}}?',
+  'apps.stop_body':
+    '{{appName}} loses access from now on. It keeps any data it already has.',
+  'apps.sign_out_here': 'Sign out here',
+  'apps.sign_out_note':
+    'Signs {{appName}} out of DIMO login on this browser. The app itself may stay signed in until its session ends.',
+  'apps.unknown_app': 'Account {{address}}',
+  'apps.empty': 'No apps can access your data.',
+  'apps.embedded': 'Open this page in its own window.',
+  'apps.error.load': 'Couldn’t load your apps. Try again.',
+  'apps.error.stop':
+    'Couldn’t stop sharing with {{appName}}. Check the list and try again.',
+  'apps.stop_waiting': 'Stopping… this can take a minute.',
+  'apps.stop_slow': 'This is taking longer than usual. Check again in a few minutes.',
+  'apps.check_again': 'Check again',
 } as const;
 
 export default en;

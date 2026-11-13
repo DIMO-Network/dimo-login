@@ -57,6 +57,26 @@ export const setAppState = (value: string | undefined) => {
   appState = value;
 };
 
+/**
+ * Where a redirect back puts the session (SDK `responseMode`): the query (the
+ * default), or the fragment, which isn't sent to the app's server.
+ */
+export type ResponseMode = 'query' | 'fragment';
+
+/** `query` or `fragment`, exactly; anything else is dropped. */
+export const normalizeResponseMode = (value: unknown): ResponseMode | undefined =>
+  value === 'query' || value === 'fragment' ? value : undefined;
+
+let responseMode: ResponseMode = 'query';
+export const setResponseMode = (value: ResponseMode) => {
+  responseMode = value;
+};
+
+// What the SDK reads from a redirect back. In fragment mode these, and
+// dimoState, go in the fragment; what the app reads itself (error,
+// transactionHash, sharedVehicles…) stays in the query.
+const SESSION_KEYS = new Set(['token', 'walletAddress', 'email', 'logout']);
+
 export function backToThirdParty(
   payload: Record<string, string | number | boolean | undefined | null>,
   redirectUri: string,
@@ -64,14 +84,34 @@ export function backToThirdParty(
   handleEmbed?: () => void,
 ) {
   if (isStandalone()) {
-    // Redirect with payload in query params. Missing values are left out:
-    // String(undefined) used to send `email=undefined` when email wasn't shared.
+    // Redirect with the payload in the query (or the session in the fragment).
+    // Missing values are left out: String(undefined) used to send
+    // `email=undefined` when email wasn't shared.
     const redirectUriWithUtm = getRedirectUriWithUtm(redirectUri, utm || '');
+    // The app's own fragment (a hash route) can't carry ours as well.
+    const useFragment = responseMode === 'fragment' && !redirectUri.includes('#');
+    if (responseMode === 'fragment' && !useFragment) {
+      console.warn(
+        'responseMode=fragment needs a redirect URI without a #: answering in the query',
+      );
+    }
+    const fragment = new URLSearchParams();
     Object.entries(payload).forEach(([key, value]) => {
       if (value === undefined || value === null) return;
-      redirectUriWithUtm.searchParams.set(key, String(value));
+      const target =
+        useFragment && SESSION_KEYS.has(key) ? fragment : redirectUriWithUtm.searchParams;
+      target.set(key, String(value));
     });
-    if (appState) redirectUriWithUtm.searchParams.set('dimoState', appState);
+    // URLSearchParams.size is too recent for every browser the login supports.
+    const hasFragment = fragment.toString() !== '';
+    if (appState) {
+      // With the session it belongs to; an error alone keeps it in the query.
+      (hasFragment ? fragment : redirectUriWithUtm.searchParams).set(
+        'dimoState',
+        appState,
+      );
+    }
+    if (hasFragment) redirectUriWithUtm.hash = fragment.toString();
 
     window.location.href = redirectUriWithUtm.toString();
     return;

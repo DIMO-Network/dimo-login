@@ -7,17 +7,22 @@ vi.mock('../../../services/accountsService', () => ({
   sendOtp: (...args: unknown[]) => mockSendOtp(...args),
 }));
 const mockComplete = vi.fn();
+const mockResetUser = vi.fn();
+const mockSetUiState = vi.fn();
 vi.mock('../../../context/AuthContext', () => ({
   useAuthContext: () => ({
     user: { email: 'jun@example.com' },
     completeOTPLogin: mockComplete,
+    resetUser: mockResetUser,
   }),
 }));
 vi.mock('../../../context/UIManagerContext', () => ({
-  useUIManager: () => ({ setError: vi.fn() }),
+  useUIManager: () => ({ setError: vi.fn(), setUiState: mockSetUiState }),
 }));
 
-import { OtpInput, toDigits } from '../OtpInput';
+import { OtpInput } from '../OtpInput';
+import { UiStates } from '../../../enums';
+import { hasNewDigit, toDigits } from '../CodeBoxes';
 
 const boxes = () => screen.getAllByRole('textbox') as HTMLInputElement[];
 
@@ -44,8 +49,23 @@ it('turns full-width digits from a Japanese keyboard into the code', () => {
   expect(toDigits('12-34 56')).toBe('123456');
 });
 
+it('tells a typed digit from a deleted one', () => {
+  expect(hasNewDigit(['1', '', ''], ['1', '2', ''])).toBe(true);
+  expect(hasNewDigit(['1', '2', ''], ['1', '3', ''])).toBe(true);
+  expect(hasNewDigit(['1', '2', ''], ['1', '', ''])).toBe(false);
+  expect(hasNewDigit(['1', '2', ''], ['1', '2', ''])).toBe(false);
+});
+
 it('names the account even when the sign-in step was skipped', async () => {
   await renderSent();
+  expect(
+    screen.getByText(/We sent a 6-digit code to jun@example.com/),
+  ).toBeInTheDocument();
+});
+
+it('names the account the code is sent to, not an email typed earlier', async () => {
+  // Typed bob@x.co, then chose jun's account, whose resume later fell through.
+  await renderSent('bob@x.co');
   expect(
     screen.getByText(/We sent a 6-digit code to jun@example.com/),
   ).toBeInTheDocument();
@@ -96,4 +116,11 @@ it('leaves the boxes valid when the code could not be sent', async () => {
   const alert = await screen.findByRole('alert');
   expect(alert).toHaveTextContent('Details: User not found');
   boxes().forEach((box) => expect(box).not.toHaveAttribute('aria-invalid'));
+});
+
+it('lets someone who typed the wrong email leave the code screen', async () => {
+  await renderSent();
+  fireEvent.click(screen.getByRole('button', { name: 'Use another account' }));
+  expect(mockResetUser).toHaveBeenCalled();
+  expect(mockSetUiState).toHaveBeenCalledWith(UiStates.EMAIL_INPUT);
 });
