@@ -18,7 +18,8 @@
  * Verified against the login-with-dimo SDK (sdk/src/utils/eventHandler.ts):
  *   AUTH_INIT message → clientId, redirectUri, apiKey, entryState, forceEmail,
  *                       emailRequest, brandName, altTitle, tosUrl,
- *                       privacyPolicyUrl, language
+ *                       privacyPolicyUrl, language, prompt, loginHint
+ *   redirect query      → the same, plus dimoState and responseMode
  *   action message    → DimoActionPayload: permissionTemplateId, vehicles,
  *                       vehicleMakes, onboarding, expirationDate, utm,
  *                       powertrainTypes, permissions, cloudEvent (documents),
@@ -38,13 +39,15 @@ export const ALLOWED_MESSAGE_PARAM_KEYS = new Set<string>([
   'configCID',
   'entryState',
   'brandName',
-  // UI behavior  (SDK AUTH_INIT: altTitle, forceEmail, emailRequest, tosUrl, privacyPolicyUrl, language)
+  // UI behavior  (SDK AUTH_INIT: altTitle, forceEmail, emailRequest, tosUrl, privacyPolicyUrl, language, prompt, loginHint)
   'altTitle',
   'forceEmail',
   'emailRequest',
   'tosUrl',
   'privacyPolicyUrl',
   'language',
+  'prompt',
+  'loginHint',
   'newVehicleSectionDescription',
   'shareVehiclesSectionDescription',
   // Vehicle sharing flow  (SDK action payload)
@@ -64,8 +67,10 @@ export const ALLOWED_MESSAGE_PARAM_KEYS = new Set<string>([
   // Developer license provisioning flow (key rotation)
   'existingTokenId',
   'existingClientId',
-  // Redirect mode: the SDK's nonce, echoed on the way back (backToThirdParty)
+  // Redirect mode: the SDK's nonce, echoed on the way back (backToThirdParty),
+  // and where the session goes on the way back (query or fragment)
   'dimoState',
+  'responseMode',
 ]);
 
 /**

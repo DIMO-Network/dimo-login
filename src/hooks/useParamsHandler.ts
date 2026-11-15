@@ -11,12 +11,27 @@ import { useOracles } from '../context/OraclesContext';
 import { UiStates } from '../enums';
 import { setEmailRequest, setForceEmail } from '../stores/AuthStateStore';
 import { normalizeEmailRequest } from '../utils/emailRequest';
+import { normalizeLoginHint, normalizeLoginPrompt } from '../utils/loginPrompt';
 import { parseBooleanParam } from '../utils/parseBooleanParam';
+import { connectedAppsEnabled } from '../utils/featureFlags';
 import { normalizeLanguage } from '../i18n/language';
 import { parseExpirationDate, getDefaultExpirationDate } from '../utils/dateUtils';
-import { toCloudEventAgreements } from '../services/vehicleDocumentAgreements';
 import { DOCUMENT_EVENT_TYPES } from '../enums/documentEventTypes';
-import { setAppState } from '../utils/messageHandler';
+import {
+  normalizeResponseMode,
+  setAppState,
+  setResponseMode,
+} from '../utils/messageHandler';
+
+/**
+ * Screens a sign-in leads to and goes on from, never a flow of their own: the
+ * passkey offer (after an email-code sign-in) and the relay notice (during a
+ * sign-up). As an app's entry state they'd lead nowhere after sign-in.
+ */
+const SIGN_IN_ONLY_STATES: ReadonlySet<UiStates> = new Set([
+  UiStates.PASSKEY_OFFER,
+  UiStates.SIGNUP_RELAY_NOTICE,
+]);
 
 // The SDK makes it from 16 random bytes; anything else isn't echoed back.
 const DIMO_STATE_PATTERN = /^[A-Za-z0-9_-]{16,128}$/;
@@ -43,7 +58,11 @@ const parseCloudEvent = (
 
 // Only document requests the consent screen can name are signed (see
 // toCloudEventAgreements). Say so, so an app doesn't assume it got the rest.
-const warnAboutUnsupportedCloudEvents = (cloudEvent: unknown) => {
+// Its module is loaded here, on demand: the sharing screens need it, the first
+// screen doesn't.
+const warnAboutUnsupportedCloudEvents = async (cloudEvent: unknown) => {
+  const { toCloudEventAgreements } =
+    await import('../services/vehicleDocumentAgreements');
   const requested = Array.isArray(cloudEvent) ? cloudEvent.length : 1;
   const dropped = requested - toCloudEventAgreements(cloudEvent).length;
   if (dropped > 0) {
@@ -64,6 +83,10 @@ export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
   const specialSetters = {
     entryState: (value: unknown) => {
       if (typeof value !== 'string' || !(value in UiStates)) return;
+      // Dropped like any unknown state: a screen only a sign-in leads to, and
+      // the connected-apps page while its flag is off.
+      if (SIGN_IN_ONLY_STATES.has(value as UiStates)) return;
+      if (value === UiStates.CONNECTED_APPS && !connectedAppsEnabled()) return;
       setUiState(value as UiStates);
       setEntryState(value as UiStates);
       setDevCredentialsState((prev) => ({
@@ -84,6 +107,17 @@ export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
       const emailRequest = normalizeEmailRequest(value);
       setEmailRequest(emailRequest);
       setDevCredentialsState((prev) => ({ ...prev, emailRequest }));
+    },
+    // Invalid values are ignored, keeping any earlier valid one.
+    prompt: (value: unknown) => {
+      const prompt = normalizeLoginPrompt(value);
+      if (prompt === undefined) return;
+      setDevCredentialsState((prev) => ({ ...prev, prompt }));
+    },
+    loginHint: (value: unknown) => {
+      const loginHint = normalizeLoginHint(value);
+      if (loginHint === undefined) return;
+      setDevCredentialsState((prev) => ({ ...prev, loginHint }));
     },
     altTitle: (value: unknown) => {
       const altTitle = parseBooleanParam(value);
@@ -146,10 +180,17 @@ export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
       setAppState(value);
       setDevCredentialsState((prev) => ({ ...prev, dimoState: value }));
     },
+    // Only `query` and `fragment`; anything else keeps an earlier valid value.
+    responseMode: (value: unknown) => {
+      const responseMode = normalizeResponseMode(value);
+      if (responseMode === undefined) return;
+      setResponseMode(responseMode);
+      setDevCredentialsState((prev) => ({ ...prev, responseMode }));
+    },
     cloudEvent: (value: unknown) => {
       const cloudEvent = parseCloudEvent(value);
       if (!cloudEvent) return;
-      warnAboutUnsupportedCloudEvents(cloudEvent);
+      warnAboutUnsupportedCloudEvents(cloudEvent).catch(() => {});
       setDevCredentialsState((prev) => ({ ...prev, cloudEvent }));
     },
   };
@@ -161,10 +202,7 @@ export const useParamsHandler = (DEFAULT_CONTEXT: AllParams) => {
       // expirationDate would overwrite the 100-year default with undefined, which
       // the account SACD builder then feeds to `new Date()` → "Invalid Date".)
       if (value === undefined) return;
-      if (
-        key in specialSetters &&
-        specialSetters[key as keyof typeof specialSetters]
-      ) {
+      if (key in specialSetters && specialSetters[key as keyof typeof specialSetters]) {
         specialSetters[key as keyof typeof specialSetters](value);
       } else {
         // Bail out when the value is unchanged so a re-delivered AUTH_INIT (or a

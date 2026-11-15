@@ -65,3 +65,42 @@ export const getRedirectUriWithUtm = (redirectUri: string, utm: string) => {
     return new URL(redirectUri);
   }
 };
+
+/** This history entry's state, when it's an object. */
+const historyStateObject = (): Record<string, unknown> | null => {
+  const state: unknown = window.history.state;
+  return state && typeof state === 'object' ? (state as Record<string, unknown>) : null;
+};
+
+/**
+ * Takes one query parameter out of the address bar (history.replaceState, so no
+ * new entry), keeping the other parameters as they are and the hash. For a
+ * value that shouldn't stay in the URL, where page URLs get logged or reported.
+ * The value moves to this history entry's state, beside what is there, which a
+ * reload of the entry keeps: read it back with readHistoryState.
+ */
+export const removeQueryParam = (name: string): void => {
+  // The other parameters are kept byte for byte, so the query is split by hand:
+  // URLSearchParams would re-encode them.
+  const params = window.location.search.slice(1).split('&');
+  const kept = params.filter((pair) => {
+    const key = pair.split('=')[0];
+    try {
+      return decodeURIComponent(key.replace(/\+/g, ' ')) !== name;
+    } catch {
+      return true;
+    }
+  });
+  if (kept.length === params.length) return;
+  // As parseUrlParams read it: one value, or every value of a repeated one.
+  const values = new URLSearchParams(window.location.search).getAll(name);
+  const search = kept.length ? `?${kept.join('&')}` : '';
+  window.history.replaceState(
+    { ...historyStateObject(), [name]: values.length === 1 ? values[0] : values },
+    '',
+    `${window.location.pathname}${search}${window.location.hash}`,
+  );
+};
+
+/** A value removeQueryParam kept in this history entry's state, unchecked. */
+export const readHistoryState = (name: string): unknown => historyStateObject()?.[name];

@@ -11,6 +11,7 @@ import { isEmbed } from '../../utils/isEmbed';
 import { backToThirdParty } from '../../utils/messageHandler';
 import { ActionBar, Button, DoneHeader, Screen } from '../ui';
 import { useAppName } from '../../hooks/useAppName';
+import { useSendOrSignInAgain } from '../../hooks/useSendOrSignInAgain';
 
 // Account-grant success screen. Mirrors SuccessfulPermissions but with
 // document-oriented copy and no vehicle list (componentData carries no vehicles
@@ -22,11 +23,13 @@ export const AccountPermissionsSuccess: React.FC = () => {
   const appName = useAppName();
   const { jwt, user } = useAuthContext();
   const end = shareEndOf(expirationDate ?? getDefaultExpirationDate());
+  const sendOrSignInAgain = useSendOrSignInAgain();
 
-  const handleBackToThirdParty = () => {
-    const authPayload = buildAuthPayload(clientId, jwt, user);
-    backToThirdParty({ ...authPayload, accountGranted: true }, redirectUri, utm);
-  };
+  const handleBackToThirdParty = () =>
+    sendOrSignInAgain(() => {
+      const authPayload = buildAuthPayload(clientId, jwt, user);
+      backToThirdParty({ ...authPayload, accountGranted: true }, redirectUri, utm);
+    });
 
   const actions = isEmbed() ? undefined : (
     <ActionBar>

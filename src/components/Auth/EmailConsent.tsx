@@ -4,6 +4,7 @@ import { useAuthContext } from '../../context/AuthContext';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
 import { useUIManager } from '../../context/UIManagerContext';
 import { useEmailRequest } from '../../hooks/useEmailRequest';
+import { useSendOrSignInAgain } from '../../hooks/useSendOrSignInAgain';
 import { useT } from '../../i18n';
 import { sendLoginToApp } from '../../utils/authUtils';
 import { sendErrorToParent } from '../../utils/errorUtils';
@@ -26,10 +27,13 @@ export const EmailConsent: React.FC = () => {
   const { setUiState } = useUIManager();
   const emailRequest = useEmailRequest();
   const { required } = emailRequest;
+  const sendOrSignInAgain = useSendOrSignInAgain();
 
   const handleContinue = () => {
     emailRequest.commit();
-    sendLoginToApp({ clientId, jwt, user, redirectUri, utm, setUiState });
+    sendOrSignInAgain(() =>
+      sendLoginToApp({ clientId, jwt, user, redirectUri, utm, setUiState }),
+    );
   };
 
   const handleCancel = () => {

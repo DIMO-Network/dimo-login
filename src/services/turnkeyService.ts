@@ -20,6 +20,7 @@ import { buildDriverDocAgreements } from './accountDocumentAgreements';
 import { getWebAuthnAttestation } from '@turnkey/http';
 import { WebauthnStamper } from '@turnkey/webauthn-stamper';
 import { base64UrlEncode, generateRandomBuffer } from '../utils/cryptoUtils';
+import { base64UrlToBytes } from '../utils/base64url';
 import { VehiclePermissionDescription } from '@dimo-network/transactions/dist/core/types/args';
 import { PasskeyCreationResult } from '../models/resultTypes';
 import { ApiKeyStamper } from '@turnkey/api-key-stamper';
@@ -93,7 +94,15 @@ export const getWalletAddress = (): `0x${string}` | undefined => {
   return kernelSigner.walletAddress;
 };
 
-export const createPasskey = async (email: string): Promise<PasskeyCreationResult> => {
+/**
+ * Makes a passkey on this device. `excludeCredentialIds` (base64url) are the
+ * account's passkeys already: a device that holds one of them refuses with an
+ * InvalidStateError instead of making a second.
+ */
+export const createPasskey = async (
+  email: string,
+  { excludeCredentialIds = [] }: { excludeCredentialIds?: string[] } = {},
+): Promise<PasskeyCreationResult> => {
   const challenge = generateRandomBuffer();
   const authenticatorUserId = generateRandomBuffer();
 
@@ -128,6 +137,13 @@ export const createPasskey = async (email: string): Promise<PasskeyCreationResul
         residentKey: 'required',
         userVerification: 'preferred',
       },
+      // The vendored WebAuthn call passes options through: IDs must be bytes.
+      ...(excludeCredentialIds.length > 0 && {
+        excludeCredentials: excludeCredentialIds.map((id) => ({
+          id: base64UrlToBytes(id),
+          type: 'public-key' as const,
+        })),
+      }),
     },
   });
 

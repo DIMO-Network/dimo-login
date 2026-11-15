@@ -25,6 +25,7 @@ import {
   CancelledTransaction,
   CompatibilityCheck,
   ConnectDevice,
+  ConnectedApps,
   ConnectTesla,
   EmailConsent,
   Logout,
@@ -34,10 +35,13 @@ import {
   PasskeyGeneration,
   PasskeyLogin,
   PasskeyLoginFail,
+  PasskeyOffer,
   preloadScreens,
   ProvisionDeveloperLicense,
+  RelayEmailNotice,
   SIGN_IN_STATES,
   SignMessage,
+  SignUpCode,
   SuccessfulPermissions,
   SuccessfulTransaction,
   SuccessPage,
@@ -48,7 +52,7 @@ import { useInitialLanguagePending, useLanguage, useT } from './i18n';
 import { useLanguageSync } from './i18n/useLanguageSync';
 
 const App = () => {
-  const { setJwt, setUser } = useAuthContext();
+  const { setJwt, setUser, accountRequest } = useAuthContext();
   const {
     clientId,
     devLicenseAlias,
@@ -112,14 +116,18 @@ const App = () => {
         uiState,
         setUiState,
         entryState: incomingEntryState as UiStates,
+        // Spent once someone has signed in on this page, so a re-run (a
+        // changed entry state, say) keeps that sign-in rather than ask again.
+        prompt: accountRequest.prompt,
+        loginHint: accountRequest.loginHint,
         // Embedded, the done screen has no Back to send the login with, so a
         // returning session goes on as a fresh sign-in does.
         onReturningLogin: isEmbed()
-          ? (jwt, user) =>
+          ? (token, user) =>
               handlePostAuthUIState({
                 entryState: UiStates.EMAIL_INPUT,
                 clientId,
-                jwt,
+                jwt: token,
                 user,
                 redirectUri: params.redirectUri,
                 utm: params.utm,
@@ -181,7 +189,10 @@ const App = () => {
     [UiStates.PASSKEY_LOGIN]: <PasskeyLogin email={email} />,
     [UiStates.OTP_INPUT]: <OtpInput email={email} />,
     [UiStates.PASSKEY_LOGIN_FAIL]: <PasskeyLoginFail email={email} />,
-    [UiStates.PASSKEY_GENERATOR]: <PasskeyGeneration email={email} />,
+    [UiStates.PASSKEY_GENERATOR]: <PasskeyGeneration />,
+    [UiStates.SIGNUP_VERIFY_EMAIL]: <SignUpCode />,
+    [UiStates.SIGNUP_RELAY_NOTICE]: <RelayEmailNotice />,
+    [UiStates.PASSKEY_OFFER]: <PasskeyOffer />,
     [UiStates.VEHICLE_MANAGER]: <VehicleManager />,
     [UiStates.MANAGE_VEHICLE]: <ManageVehicle />,
     [UiStates.ADVANCED_TRANSACTION]: <AdvancedTransaction />,
@@ -200,6 +211,7 @@ const App = () => {
     [UiStates.EMAIL_CONSENT]: <EmailConsent />,
     [UiStates.LOGOUT]: <Logout />,
     [UiStates.PROVISION_DEVELOPER_LICENSE]: <ProvisionDeveloperLicense />,
+    [UiStates.CONNECTED_APPS]: <ConnectedApps />,
   };
 
   return (

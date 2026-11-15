@@ -33,6 +33,12 @@ const getAuthCodeFromSearchParams = () => {
   return urlParams.get('code');
 };
 
+/** This page has a code to exchange: unused, from a return this tab started. */
+const hasCodeToExchange = () => {
+  const code = getAuthCodeFromSearchParams();
+  return Boolean(code && !isCodeUsed(code) && readTrustedOAuthReturn());
+};
+
 export const useOAuthCodeExchange = ({
   clientId,
   redirectUri,
@@ -45,12 +51,15 @@ export const useOAuthCodeExchange = ({
   onFailure: (reason: string) => void;
 }) => {
   const [code, setCode] = useState<string | null>(null);
-  const [isExchanging, setIsExchanging] = useState(false);
+  // Pending from the first render when there's a code to exchange, so the
+  // sign-in screen shows its loader, not a form whose click would race the
+  // exchange. Every way the exchange ends or is skipped clears it.
+  const [isExchanging, setIsExchanging] = useState(hasCodeToExchange);
 
   useEffect(() => {
     const callback = debounce(() => {
       const authCode = getAuthCodeFromSearchParams();
-      if (!authCode) return;
+      if (!authCode) return setIsExchanging(false);
       setCode(authCode);
     }, 500);
     callback();
@@ -69,12 +78,16 @@ export const useOAuthCodeExchange = ({
 
   useEffect(() => {
     const handleCodeExchange = async () => {
-      if (!code || isCodeUsed(code)) {
+      // No code read yet: the wait above is still running.
+      if (!code) return;
+      if (isCodeUsed(code)) {
+        setIsExchanging(false);
         return;
       }
       // Someone else's sign-in link: its code would sign this visitor in to
       // the linker's account (see readTrustedOAuthReturn).
       if (!readTrustedOAuthReturn()) {
+        setIsExchanging(false);
         handleFailure(new Error('OAuth return was not started in this tab'));
         return;
       }

@@ -19,6 +19,11 @@ const mockApp = vi.hoisted(() => {
     waitingForParams: false,
     waitingForDevLicense: false,
     language: 'en' as string | undefined,
+    prompt: undefined as string | undefined,
+    loginHint: undefined as string | undefined,
+    accountRequest: {} as { prompt?: string; loginHint?: string },
+    incomingEntryState: undefined as string | undefined,
+    initializeSession: vi.fn(),
     idleCallbacks: [] as (() => void)[],
     preloadScreens: vi.fn(),
     loadSignInSteps: vi.fn(),
@@ -48,13 +53,25 @@ vi.mock('../context/DevCredentialsContext', () => ({
     waitingForDevLicense: mockApp.waitingForDevLicense,
     invalidCredentials: false,
     language: mockApp.language,
+    entryState: mockApp.incomingEntryState,
+    prompt: mockApp.prompt,
+    loginHint: mockApp.loginHint,
   }),
 }));
 vi.mock('../context/AuthContext', () => ({
-  useAuthContext: () => ({ setJwt: () => {}, setUser: () => {} }),
+  useAuthContext: () => ({
+    setJwt: () => {},
+    setUser: () => {},
+    jwt: 'jwt',
+    accountRequest: mockApp.accountRequest,
+    user: { email: 'alice@x.co' },
+    switchAccount: () => {},
+  }),
 }));
 vi.mock('../hooks/useErrorHandler', () => ({ useErrorHandler: () => ({ error: null }) }));
-vi.mock('../services/sessionService', () => ({ initializeSession: () => {} }));
+vi.mock('../services/sessionService', () => ({
+  initializeSession: (...args: unknown[]) => mockApp.initializeSession(...args),
+}));
 vi.mock('../services/walletLoader', () => ({
   loadSignInSteps: () => mockApp.loadSignInSteps(),
 }));
@@ -115,6 +132,11 @@ beforeEach(async () => {
   mockApp.waitingForParams = false;
   mockApp.waitingForDevLicense = false;
   mockApp.language = 'en';
+  mockApp.prompt = undefined;
+  mockApp.loginHint = undefined;
+  mockApp.accountRequest = {};
+  mockApp.incomingEntryState = undefined;
+  mockApp.initializeSession.mockClear();
   mockApp.idleCallbacks = [];
   mockApp.loadSignInSteps.mockResolvedValue(undefined);
   vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -244,4 +266,25 @@ it('shows the screen in the current language when the app’s language fails to 
     'Could not load the "es" translations',
     expect.anything(),
   );
+});
+
+it('checks the session against what the app asked for, until AuthContext says it is spent', () => {
+  mockApp.prompt = 'select_account';
+  mockApp.loginHint = 'jun@example.com';
+  mockApp.accountRequest = { prompt: 'select_account', loginHint: 'jun@example.com' };
+  const { rerender } = render(<App />);
+  expect(mockApp.initializeSession).toHaveBeenLastCalledWith(
+    expect.objectContaining({ prompt: 'select_account', loginHint: 'jun@example.com' }),
+  );
+
+  // Someone signed in on this page, then picked "Use another account" (no
+  // token in this tab again), and the app's entry state changes, which re-runs
+  // the session check: the app's parameters are still there, but spent.
+  mockApp.accountRequest = {};
+  mockApp.incomingEntryState = 'VEHICLE_MANAGER';
+  rerender(<App />);
+  expect(mockApp.initializeSession).toHaveBeenCalledTimes(2);
+  const lastCall = mockApp.initializeSession.mock.calls[1][0];
+  expect(lastCall.prompt).toBeUndefined();
+  expect(lastCall.loginHint).toBeUndefined();
 });

@@ -96,6 +96,9 @@ const screens = {
   [UiStates.OTP_INPUT]: lazyScreen(() =>
     import('./components/Auth/OtpInput').then((m) => ({ default: m.OtpInput })),
   ),
+  [UiStates.SIGNUP_VERIFY_EMAIL]: lazyScreen(() =>
+    import('./components/Auth/SignUpCode').then((m) => ({ default: m.SignUpCode })),
+  ),
   [UiStates.PASSKEY_LOGIN_FAIL]: lazyScreen(() =>
     import('./components/Auth/PasskeyLoginFail').then((m) => ({
       default: m.PasskeyLoginFail,
@@ -104,6 +107,16 @@ const screens = {
   [UiStates.PASSKEY_GENERATOR]: lazyScreen(() =>
     import('./components/Auth/PasskeyGeneration').then((m) => ({
       default: m.PasskeyGeneration,
+    })),
+  ),
+  [UiStates.SIGNUP_RELAY_NOTICE]: lazyScreen(() =>
+    import('./components/Auth/RelayEmailNotice').then((m) => ({
+      default: m.RelayEmailNotice,
+    })),
+  ),
+  [UiStates.PASSKEY_OFFER]: lazyScreen(() =>
+    import('./components/Auth/PasskeyOffer').then((m) => ({
+      default: m.PasskeyOffer,
     })),
   ),
   [UiStates.VEHICLE_MANAGER]: lazyScreen(() =>
@@ -186,12 +199,20 @@ const screens = {
       (m) => ({ default: m.ProvisionDeveloperLicense }),
     ),
   ),
+  [UiStates.CONNECTED_APPS]: lazyScreen(() =>
+    import('./components/ConnectedApps/ConnectedApps').then((m) => ({
+      default: m.ConnectedApps,
+    })),
+  ),
 };
 
 export const PasskeyLogin = screens[UiStates.PASSKEY_LOGIN];
 export const OtpInput = screens[UiStates.OTP_INPUT];
+export const SignUpCode = screens[UiStates.SIGNUP_VERIFY_EMAIL];
 export const PasskeyLoginFail = screens[UiStates.PASSKEY_LOGIN_FAIL];
 export const PasskeyGeneration = screens[UiStates.PASSKEY_GENERATOR];
+export const RelayEmailNotice = screens[UiStates.SIGNUP_RELAY_NOTICE];
+export const PasskeyOffer = screens[UiStates.PASSKEY_OFFER];
 export const VehicleManager = screens[UiStates.VEHICLE_MANAGER];
 export const ManageVehicle = screens[UiStates.MANAGE_VEHICLE];
 export const AdvancedTransaction = screens[UiStates.ADVANCED_TRANSACTION];
@@ -210,13 +231,16 @@ export const SuccessPage = screens[UiStates.SUCCESS];
 export const EmailConsent = screens[UiStates.EMAIL_CONSENT];
 export const Logout = screens[UiStates.LOGOUT];
 export const ProvisionDeveloperLicense = screens[UiStates.PROVISION_DEVELOPER_LICENSE];
+export const ConnectedApps = screens[UiStates.CONNECTED_APPS];
 
 /** The screens a sign-in can pass through after the email screen. */
 export const SIGN_IN_STATES: UiStates[] = [
   UiStates.PASSKEY_LOGIN,
   UiStates.OTP_INPUT,
+  UiStates.SIGNUP_VERIFY_EMAIL,
   UiStates.PASSKEY_LOGIN_FAIL,
   UiStates.PASSKEY_GENERATOR,
+  UiStates.SIGNUP_RELAY_NOTICE,
   UiStates.EMAIL_CONSENT,
   UiStates.SUCCESS,
 ];

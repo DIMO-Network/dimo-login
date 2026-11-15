@@ -8,6 +8,8 @@ export const storeJWTInCookies = (clientId: `0x${string}` | null, jwt: string): 
   document.cookie = createCookieString(`auth_token_${clientId}`, jwt);
 };
 
+// The single wallet session an older build stored: a legacy key, only ever
+// removed. Also the prefix of the per-account keys (turnkey_session_<subOrganizationId>).
 export const TurnkeySessionKey = 'turnkey_session';
 
 const getExpiration = (jwt: string) => {
@@ -21,13 +23,13 @@ const getExpiration = (jwt: string) => {
   return expirationDate;
 };
 
+// Off localhost the cookie is cross-site, so the login works embedded in an app's iframe.
+const crossSiteAttributes = () =>
+  window.location.hostname === 'localhost' ? '' : '; SameSite=None; Secure';
+
 const createCookieString = (name: string, jwt: string): string => {
   const expires = getExpiration(jwt);
-  let cookieString = `${name}=${jwt}; expires=${expires.toUTCString()}; path=/`;
-  if (window.location.hostname !== 'localhost') {
-    cookieString += '; SameSite=None; Secure';
-  }
-  return cookieString;
+  return `${name}=${jwt}; expires=${expires.toUTCString()}; path=/${crossSiteAttributes()}`;
 };
 
 export const storeUserInLocalStorage = (
@@ -130,9 +132,10 @@ export const clearLoggedEmail = (clientId: `0x${string}` | null): void => {
 
 export const clearSessionData = (clientId: `0x${string}` | null): void => {
   if (!clientId) return;
-  document.cookie = `auth_token_${clientId}=; Max-Age=0`;
+  // Only a write with the path=/ the cookie was set with replaces it; in a
+  // cross-site iframe it also needs SameSite=None; Secure, or it is ignored.
+  document.cookie = `auth_token_${clientId}=; Max-Age=0; path=/${crossSiteAttributes()}`;
   localStorage.removeItem(`user_data_${clientId}`);
-  localStorage.removeItem(TurnkeySessionKey);
 };
 
 export const saveToLocalStorage = <T>(key: string, value: T): void => {

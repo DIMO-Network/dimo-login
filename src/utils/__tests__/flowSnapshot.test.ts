@@ -73,6 +73,20 @@ describe('flow snapshot for the OAuth round-trip', () => {
     });
   });
 
+  it('keeps the response mode across the round-trip', () => {
+    const ref = saveFlowSnapshot(
+      buildFlowSnapshot({
+        devCredentials: { responseMode: 'fragment', dimoState: 'abcdefABCDEF0123456789' },
+        entryState: 'EMAIL_INPUT',
+        onboardingEnabled: false,
+      }),
+    );
+    expect(readFlowSnapshot(ref)).toMatchObject({
+      responseMode: 'fragment',
+      dimoState: 'abcdefABCDEF0123456789',
+    });
+  });
+
   it('ignores a missing, unknown or malformed reference', () => {
     expect(readFlowSnapshot(undefined)).toBeNull();
     expect(readFlowSnapshot('0123456789abcdef0123456789abcdef')).toBeNull();

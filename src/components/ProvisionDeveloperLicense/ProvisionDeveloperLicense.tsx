@@ -121,7 +121,7 @@ export const ProvisionDeveloperLicense: React.FC = () => {
   const t = useT();
   const { redirectUri, utm, devLicenseAlias, existingTokenId, existingClientId } = useDevCredentials();
   const { user, validateSession } = useAuthContext();
-  const { setUiState } = useUIManager();
+  const { setUiState, setBusy } = useUIManager();
   // Who gets the key: the redirect URI's host, which the key is posted to.
   const host = getRedirectHost(redirectUri);
   const rotating = existingTokenId != null && !!existingClientId;
@@ -153,6 +153,17 @@ export const ProvisionDeveloperLicense: React.FC = () => {
     void prepare();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Signing can't be abandoned: busy hides Back and the account switch until
+  // it settles, so a finished run never reports to an app the user has left.
+  const withBusy = async (work: () => Promise<void>) => {
+    setBusy(true);
+    try {
+      await work();
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const alias = buildAlias(user.email, devLicenseAlias);
   const { privateKey, address: signerAddress } = keyRef.current!;
@@ -193,48 +204,50 @@ export const ProvisionDeveloperLicense: React.FC = () => {
   // User already has a license and confirms they have their API key.
   // Register the redirectUri if it isn't already on-chain, then send back
   // clientId only so the calling app can pre-fill it and the user pastes their key.
-  const handleHasExistingKey = async () => {
-    if (tokenId == null || clientId == null) return;
-    setError('');
-    const validSession = await validateSession();
-    if (!validSession) return;
-    try {
-      if (needsRedirectUri(registeredUris)) {
-        setStep('step2');
-        await executeBatchTransactions([{
-          address: DEV_LICENSE_ADDRESS,
-          abi: DEV_LICENSE_ABI,
-          functionName: 'setRedirectUri',
-          args: [BigInt(tokenId), true, redirectUri],
-        }]);
+  const handleHasExistingKey = () =>
+    withBusy(async () => {
+      if (tokenId == null || clientId == null) return;
+      setError('');
+      const validSession = await validateSession();
+      if (!validSession) return;
+      try {
+        if (needsRedirectUri(registeredUris)) {
+          setStep('step2');
+          await executeBatchTransactions([{
+            address: DEV_LICENSE_ADDRESS,
+            abi: DEV_LICENSE_ABI,
+            functionName: 'setRedirectUri',
+            args: [BigInt(tokenId), true, redirectUri],
+          }]);
+        }
+        sendMessageToReferrer({ eventType: 'provisionResponse', tokenId, clientId }, redirectUri);
+        backToThirdParty({ tokenId, clientId }, redirectUri, utm);
+        setStep('done');
+        setUiState(UiStates.SUCCESS);
+      } catch (e) {
+        console.error('[ProvisionDeveloperLicense] handleHasExistingKey failed:', e);
+        captureException(e);
+        setStep('error');
+        setError(e instanceof Error ? e.message : String(e));
       }
-      sendMessageToReferrer({ eventType: 'provisionResponse', tokenId, clientId }, redirectUri);
-      backToThirdParty({ tokenId, clientId }, redirectUri, utm);
-      setStep('done');
-      setUiState(UiStates.SUCCESS);
-    } catch (e) {
-      console.error('[ProvisionDeveloperLicense] handleHasExistingKey failed:', e);
-      captureException(e);
-      setStep('error');
-      setError(e instanceof Error ? e.message : String(e));
-    }
-  };
+    });
 
   // User already has a license but no API key — generate a new one and register it.
-  const handleGenerateNewKey = async () => {
-    if (tokenId == null || clientId == null) return;
-    setError('');
-    const validSession = await validateSession();
-    if (!validSession) return;
-    try {
-      await runStep2(tokenId, clientId, registeredUris);
-    } catch (e) {
-      console.error('[ProvisionDeveloperLicense] handleGenerateNewKey failed:', e);
-      captureException(e);
-      setStep('error');
-      setError(e instanceof Error ? e.message : String(e));
-    }
-  };
+  const handleGenerateNewKey = () =>
+    withBusy(async () => {
+      if (tokenId == null || clientId == null) return;
+      setError('');
+      const validSession = await validateSession();
+      if (!validSession) return;
+      try {
+        await runStep2(tokenId, clientId, registeredUris);
+      } catch (e) {
+        console.error('[ProvisionDeveloperLicense] handleGenerateNewKey failed:', e);
+        captureException(e);
+        setStep('error');
+        setError(e instanceof Error ? e.message : String(e));
+      }
+    });
 
   // Works out what Continue would do, without signing anything.
   const prepare = async () => {
@@ -291,50 +304,52 @@ export const ProvisionDeveloperLicense: React.FC = () => {
       setUiState,
     );
 
-  const runProvision = async () => {
-    try {
-      const validSession = await validateSession();
-      if (!validSession) return;
+  const runProvision = () =>
+    withBusy(async () => {
+      try {
+        const validSession = await validateSession();
+        if (!validSession) return;
 
-      if (rotating) {
-        await runStep2(existingTokenId!, existingClientId!, registeredUris);
-        return;
+        if (rotating) {
+          await runStep2(existingTokenId!, existingClientId!, registeredUris);
+          return;
+        }
+
+        setStep('step1');
+        const { logs } = await executeTransactionWithReceipt(
+          DEV_LICENSE_ADDRESS,
+          DEV_LICENSE_ABI,
+          'issueInDimo',
+          [alias],
+        );
+
+        const parsed = parseIssuedEvent(logs);
+        if (!parsed) throw new Error('Issued event not found in transaction receipt');
+
+        setTokenId(parsed.tokenId);
+        setClientId(parsed.clientId);
+        await runStep2(parsed.tokenId, parsed.clientId, []);
+      } catch (e) {
+        console.error('[ProvisionDeveloperLicense] runProvision failed:', e);
+        captureException(e);
+        setStep('error');
+        setError(e instanceof Error ? e.message : String(e));
       }
+    });
 
-      setStep('step1');
-      const { logs } = await executeTransactionWithReceipt(
-        DEV_LICENSE_ADDRESS,
-        DEV_LICENSE_ABI,
-        'issueInDimo',
-        [alias],
-      );
-
-      const parsed = parseIssuedEvent(logs);
-      if (!parsed) throw new Error('Issued event not found in transaction receipt');
-
-      setTokenId(parsed.tokenId);
-      setClientId(parsed.clientId);
-      await runStep2(parsed.tokenId, parsed.clientId, []);
-    } catch (e) {
-      console.error('[ProvisionDeveloperLicense] runProvision failed:', e);
-      captureException(e);
-      setStep('error');
-      setError(e instanceof Error ? e.message : String(e));
-    }
-  };
-
-  const retryStep2 = async () => {
-    if (tokenId == null || clientId == null) return;
-    setError('');
-    try {
-      await runStep2(tokenId, clientId, registeredUris);
-    } catch (e) {
-      console.error('[ProvisionDeveloperLicense] retryStep2 failed:', e);
-      captureException(e);
-      setStep('error');
-      setError(e instanceof Error ? e.message : String(e));
-    }
-  };
+  const retryStep2 = () =>
+    withBusy(async () => {
+      if (tokenId == null || clientId == null) return;
+      setError('');
+      try {
+        await runStep2(tokenId, clientId, registeredUris);
+      } catch (e) {
+        console.error('[ProvisionDeveloperLicense] retryStep2 failed:', e);
+        captureException(e);
+        setStep('error');
+        setError(e instanceof Error ? e.message : String(e));
+      }
+    });
 
   const errorBox = step === 'error' && (
     <ErrorBox title={t('license.error')}>

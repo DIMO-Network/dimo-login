@@ -124,8 +124,9 @@ const ja: LocaleResources = {
   'share_end.no_end': '無期限',
 
   'signin.subtitle': '{{appName}}に移動します',
-  'signin.returning_title': 'おかえりなさい',
-  'signin.returning_desc': 'このデバイスでサインインしたことがあります',
+  'signin.choose_title': 'アカウントを選択',
+  'signin.remove_account': '{{email}}をこのデバイスから削除',
+  'signin.back_to_accounts': 'アカウント一覧に戻る',
   'signin.email_label': 'メールアドレス',
   'signin.email_placeholder': 'you@example.com',
   'signin.continue': '続行',
@@ -134,6 +135,7 @@ const ja: LocaleResources = {
   'signin.or': 'または',
   'signin.google': 'Googleで続行',
   'signin.apple': 'Appleで続行',
+  'signin.passkey': 'パスキーでサインイン',
   'signin.signing_in': 'サインインしています…',
   'signin.error.details':
     'アカウント情報を取得できませんでした。もう一度お試しください。',
@@ -143,6 +145,12 @@ const ja: LocaleResources = {
     'このブラウザはサイトデータの保存をブロックしています。この手順には保存が必要です。許可してから、もう一度お試しください。',
   'signin.error.no_email':
     'このアカウントはDIMOにメールアドレスを共有していません。別の方法でサインインしてください。',
+  'signin.error.passkey_unknown':
+    'そのパスキーに対応するアカウントが見つかりませんでした。メールアドレスを入力してサインインしてください。',
+  'signin.error.passkey':
+    'パスキーを使用できませんでした。もう一度お試しいただくか、メールアドレスを入力してください。',
+  'signin.error.email_unverified':
+    'このアカウントのメールアドレスは確認されていません。GoogleまたはAppleで確認するか、別の方法でサインインしてください。',
 
   'passkey.title': '本人確認',
   'passkey.body':
@@ -164,6 +172,18 @@ const ja: LocaleResources = {
   'otp.resent': '新しいコードを送信しました。',
   'otp.error.send': 'コードを送信できませんでした。もう一度お試しください。',
   'otp.error.verify': 'コードが正しくありません。確認して、もう一度お試しください。',
+  'signup.code_title': 'メールをご確認ください',
+  'signup.code_body':
+    '{{email}} に6桁のコードを送信しました。コードを入力してアカウントを作成してください。',
+  'signup.error.code':
+    'コードが正しくありません。確認するか、新しいコードを送信してください。',
+  'signup.relay.title': 'Appleがメールアドレスを非公開にしています',
+  'signup.relay.body':
+    '{{email}} でサインインしようとしています。これはAppleがあなたのアドレスを隠すために作成したアドレスです。ご自身のメールアドレスのアカウントとは別の、新しいDIMOアカウントが作成されます。車両や共有の設定は元のアカウントに残ります。',
+  'signup.relay.create': '新しいアカウントを作成',
+  'signup.relay.use_email': '自分のメールアドレスを使う',
+  'signup.relay.hint':
+    'Apple経由でご自身のメールアドレスを共有するには、Appleアカウントの設定でDIMOの「Appleでサインイン」の使用を停止してから、もう一度お試しください。',
   'create.title': 'パスキーを作成',
   'create.body': 'DIMOアカウントには、パスワードの代わりにパスキーでサインインします。',
   'create.benefit_biometric': '指紋、顔認証、または端末のPINでサインイン',
@@ -173,9 +193,19 @@ const ja: LocaleResources = {
   'create.cta': 'パスキーを作成',
   'create.creating': 'アカウントを作成しています。少し時間がかかることがあります。',
   'create.error': 'アカウントを作成できませんでした。もう一度お試しください。',
+  'passkey_offer.title': '次回はもっと簡単にサインイン',
+  'passkey_offer.body':
+    'このデバイスに {{email}} のパスキーを追加しましょう。次回からは、コードの代わりに指紋、顔認証、または端末のPINでサインインできます。',
+  'passkey_offer.add': 'パスキーを追加',
+  'passkey_offer.adding': 'パスキーを追加しています…',
+  'passkey_offer.not_now': '今はしない',
+  'passkey_offer.added': 'パスキーを追加しました。',
+  'passkey_offer.exists': 'このデバイスには {{email}} のパスキーがすでにあります。',
+  'passkey_offer.error':
+    'パスキーを追加できませんでした。引き続きメールのコードでサインインできます。',
 
   'login_done.title': 'サインインしました',
-  'login_done.body': '{{email}}でサインインしています。',
+  'account.signed_in_as': '{{email}}でサインイン中',
   'logout.signing_out': 'サインアウトしています…',
 
   'email.item': 'メールアドレス',
@@ -472,6 +502,33 @@ const ja: LocaleResources = {
   'contract.permission.GetRawData': '生データ：未加工のペイロードデータへのアクセス。',
   'contract.permission.GetApproximateLocation':
     'おおよその位置：車両のおおよその位置へのアクセス。',
+
+  'apps.title': '連携中のアプリ',
+  'apps.subtitle':
+    'DIMOのデータを利用できるアプリと、このブラウザでサインインしているアプリです。',
+  'apps.section_data': 'データにアクセスできるアプリ',
+  'apps.section_browser': 'このブラウザでサインイン中',
+  'apps.vehicles_other': '{{count}}台の車両',
+  'apps.documents': 'あなたの書類',
+  'apps.until': '{{date}}まで',
+  'apps.stop': '共有を停止',
+  'apps.stopping': '停止しています…',
+  'apps.keep': '共有を続ける',
+  'apps.stop_title': '{{appName}}との共有を停止しますか？',
+  'apps.stop_body':
+    '{{appName}}は今後アクセスできなくなります。すでに取得したデータはそのまま残ります。',
+  'apps.sign_out_here': 'ここでサインアウト',
+  'apps.sign_out_note':
+    'このブラウザのDIMOログインから{{appName}}をサインアウトします。アプリ自体は、そのセッションが終わるまでサインインしたままの場合があります。',
+  'apps.unknown_app': 'アカウント {{address}}',
+  'apps.empty': 'データにアクセスできるアプリはありません。',
+  'apps.embedded': 'このページは別のウィンドウで開いてください。',
+  'apps.error.load': 'アプリを読み込めませんでした。もう一度お試しください。',
+  'apps.error.stop':
+    '{{appName}}との共有を停止できませんでした。一覧を確認して、もう一度お試しください。',
+  'apps.stop_waiting': '共有を停止しています…1分ほどかかる場合があります。',
+  'apps.stop_slow': '通常より時間がかかっています。数分後にもう一度ご確認ください。',
+  'apps.check_again': 'もう一度確認',
 };
 
 export default ja;

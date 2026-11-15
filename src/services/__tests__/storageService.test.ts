@@ -1,5 +1,7 @@
+import { setWalletSession } from '../accountStore';
 import {
   clearLoggedEmail,
+  clearSessionData,
   getEmailChoice,
   isEmailGranted,
   setEmailGranted,
@@ -79,5 +81,13 @@ describe('email sharing choice', () => {
     legacyGrant('jun@example.com', 'true');
 
     expect(getEmailChoice(CLIENT_ID, 'jun@example.com')).toBe(false);
+  });
+});
+
+describe('clearSessionData', () => {
+  it('signing out of an app leaves the wallet sessions alone', () => {
+    setWalletSession('sub-a', { sessionType: 'passkey', expiresAt: 9 });
+    clearSessionData(CLIENT_ID);
+    expect(localStorage.getItem('turnkey_session_sub-a')).not.toBeNull();
   });
 });

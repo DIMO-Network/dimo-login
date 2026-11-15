@@ -37,7 +37,8 @@ import { getDefaultExpirationDate } from '../utils/dateUtils';
 import { sendMessageToReferrer } from '../utils/messageHandler';
 import { isStandalone } from '../utils/isStandalone';
 import { getEmbedderOrigin, isEmbed } from '../utils/isEmbed';
-import { originOf } from '../utils/urlHelpers';
+import { originOf, readHistoryState, removeQueryParam } from '../utils/urlHelpers';
+import { normalizeLoginHint } from '../utils/loginPrompt';
 import { getConfigurationById } from '../services/configurationService';
 import { CALLER_PARAM_KEYS, filterMessageParams } from '../utils/messageParams';
 
@@ -86,18 +87,21 @@ const CID_PATTERN = /^b[a-z2-7]{20,100}$/;
 /**
  * The flow to resume after an OAuth provider sends the user back, from the
  * snapshot saved before leaving (flowSnapshot.ts). Google/Apple resume the
- * original flow; Tesla resumes on CONNECT_TESLA, which its state names.
+ * original flow, the app's prompt and loginHint included: that sign-in is
+ * still in progress. Tesla resumes on CONNECT_TESLA, which its state names,
+ * without them: Tesla is connected after sign-in, so the session made then is
+ * used, not asked for again.
  * Null for a `state` this tab didn't send: nothing from it is applied.
  */
 const readOAuthReturnConfig = () => {
   const trusted = readTrustedOAuthReturn();
   if (!trusted) return null;
   const { state, snapshot } = trusted;
-  const isTesla = state.provider === AuthProvider.TESLA;
-  return {
-    ...snapshot,
-    entryState: isTesla ? state.entryState : (snapshot.entryState ?? state.entryState),
-  };
+  if (state.provider === AuthProvider.TESLA) {
+    const { prompt, loginHint, ...flow } = snapshot;
+    return { ...flow, entryState: state.entryState };
+  }
+  return { ...snapshot, entryState: snapshot.entryState ?? state.entryState };
 };
 
 const DevCredentialsContext = createContext<AllParams & { loadingState: LoadingState }>({
@@ -161,10 +165,18 @@ export const DevCredentialsProvider = ({
         parsedUrlParams[key] = value;
       }
     }
+    // A reload of this page (or Back to it, when the browser doesn't keep it
+    // in memory) after the hint left the address bar: this entry kept it.
+    if (!urlParams.has('loginHint')) {
+      parsedUrlParams.loginHint = normalizeLoginHint(readHistoryState('loginHint'));
+    }
     applyDevCredentialsConfig({
       ...filterMessageParams(parsedUrlParams),
       waitingForParams: false,
     });
+    // The hint is an email: once read it leaves the address bar, where page
+    // URLs get logged, and stays in this history entry's state for a reload.
+    removeQueryParam('loginHint');
 
     return true;
   };

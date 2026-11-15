@@ -12,8 +12,9 @@ vi.mock('../../../context/AuthContext', () => ({
     validateSession: async () => true,
   }),
 }));
+const mockSetBusy = vi.fn();
 vi.mock('../../../context/UIManagerContext', () => ({
-  useUIManager: () => ({ setUiState: vi.fn() }),
+  useUIManager: () => ({ setUiState: vi.fn(), setBusy: mockSetBusy }),
 }));
 const mockMint = vi.fn();
 const mockBatch = vi.fn();
@@ -141,4 +142,40 @@ it('tells the app when the user cancels', async () => {
     message: 'User cancelled developer license setup',
   });
   expect(mockMint).not.toHaveBeenCalled();
+});
+
+describe('while it signs', () => {
+  const order = () => {
+    const calls: string[] = [];
+    mockSetBusy.mockImplementation((busy: boolean) => calls.push(`busy:${busy}`));
+    mockMint.mockImplementation(async () => {
+      calls.push('mint');
+      return { logs: [] };
+    });
+    return calls;
+  };
+
+  it('marks the screen busy from before the first transaction until it fails', async () => {
+    setCredentials({});
+    const calls = order();
+    render(<ProvisionDeveloperLicense />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Continue' }));
+
+    await waitFor(() => expect(calls).toEqual(['busy:true', 'mint', 'busy:false']));
+  });
+
+  it('marks the screen busy until it succeeds', async () => {
+    setCredentials({ existingTokenId: 7, existingClientId: '0xC11E' });
+    mockGetLicense.mockResolvedValue({ owner: '0xaaaa', redirectURIs: { nodes: [] } });
+    const calls: string[] = [];
+    mockSetBusy.mockImplementation((busy: boolean) => calls.push(`busy:${busy}`));
+    mockBatch.mockImplementation(async () => {
+      calls.push('batch');
+    });
+    render(<ProvisionDeveloperLicense />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Continue' }));
+
+    await waitFor(() => expect(calls).toEqual(['busy:true', 'batch', 'busy:false']));
+    expect(mockSend).toHaveBeenCalled();
+  });
 });

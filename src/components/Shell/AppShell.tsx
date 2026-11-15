@@ -7,6 +7,7 @@ import { useT } from '../../i18n';
 import { readableTextOn } from '../../utils/colorContrast';
 import { Logo } from '../Shared/Logo';
 import { Button } from '../ui/Button';
+import { AccountBar } from './AccountBar';
 import { LanguageSwitcher } from './LanguageSwitcher';
 
 /**
@@ -71,6 +72,8 @@ export const AppShell = ({
           </div>
           {!languageLoading && <LanguageSwitcher />}
         </header>
+        {/* Outside the scroller, so a short screen doesn't start to scroll. */}
+        {!loading && <AccountBar />}
         <main ref={mainRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5">
           {children}
         </main>

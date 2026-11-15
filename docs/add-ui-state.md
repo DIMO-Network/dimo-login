@@ -49,7 +49,7 @@ export const MyNewVehicleComponent = () => {
 - `ScreenHeader` (or `DoneHeader` for a result) renders the `h1` (marked `data-screen-heading`) that `FocusScreenHeading` focuses once the screen has loaded. Use one per screen.
 - `ActionBar` stays pinned at the bottom of the popup. A disabled button says why with `disabledReasonId` pointing at the bar's `hint`.
 - While the screen signs or sends something, show it on the button (`loading`, `loadingLabel`) and call `setBusy(true)` from `useUIManager` so Back hides until it's done.
-- Every string goes in `src/i18n/locales/en.ts` and `ja.ts` (see `i18n.md`). The locales test fails if Japanese is missing a key.
+- Every string goes in `src/i18n/locales/en.ts`, `ja.ts` and `es.ts` (see `i18n.md`). The locales test fails if Japanese or Spanish is missing a key.
 
 ## 🧩 Step 3 — Render It in App.tsx
 

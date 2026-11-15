@@ -1,5 +1,10 @@
 import { sendAuthPayloadToParent } from '../authUtils';
-import { backToThirdParty, sendMessageToReferrer, setAppState } from '../messageHandler';
+import {
+  backToThirdParty,
+  sendMessageToReferrer,
+  setAppState,
+  setResponseMode,
+} from '../messageHandler';
 import { saveFlowSnapshot } from '../flowSnapshot';
 import { sendSignatureResponseToParent, sendTxnResponseToParent } from '../txnUtils';
 
@@ -159,5 +164,84 @@ describe('redirect back to the app', () => {
       '',
     );
     expect(new URL(assigned).searchParams.get('email')).toBe('jun@example.com');
+  });
+
+  describe('with responseMode=fragment', () => {
+    const DIMO_STATE = 'abcdefABCDEF0123456789';
+    const fragmentOf = (url: URL) => new URLSearchParams(url.hash.replace(/^#/, ''));
+
+    beforeEach(() => {
+      setResponseMode('fragment');
+      setAppState(DIMO_STATE);
+    });
+
+    afterEach(() => {
+      setResponseMode('query');
+      setAppState(undefined);
+    });
+
+    it('puts the session and dimoState in the fragment and the rest in the query', () => {
+      backToThirdParty(
+        {
+          token: 'jwt',
+          walletAddress: '0xabc',
+          email: 'jun@example.com',
+          sharedVehicles: '12,34',
+          transactionHash: '0xhash',
+        },
+        `${REGISTERED}?app=1`,
+        '',
+      );
+      const url = new URL(assigned);
+      expect(Object.fromEntries(fragmentOf(url))).toEqual({
+        token: 'jwt',
+        walletAddress: '0xabc',
+        email: 'jun@example.com',
+        dimoState: DIMO_STATE,
+      });
+      expect(Object.fromEntries(url.searchParams)).toEqual({
+        app: '1',
+        sharedVehicles: '12,34',
+        transactionHash: '0xhash',
+      });
+    });
+
+    it('sends a logout in the fragment', () => {
+      backToThirdParty({ logout: 'true' }, REGISTERED, '');
+      const url = new URL(assigned);
+      expect(fragmentOf(url).get('logout')).toBe('true');
+      expect(url.searchParams.has('logout')).toBe(false);
+    });
+
+    it('leaves missing values out of the fragment too', () => {
+      backToThirdParty({ token: 'jwt', email: undefined }, REGISTERED, '');
+      expect(fragmentOf(new URL(assigned)).has('email')).toBe(false);
+    });
+
+    it('works for an app scheme', () => {
+      backToThirdParty({ token: 'jwt' }, 'myapp://callback', '');
+      expect(assigned.startsWith('myapp://callback')).toBe(true);
+      const url = new URL(assigned);
+      expect(fragmentOf(url).get('token')).toBe('jwt');
+      expect(url.searchParams.has('token')).toBe(false);
+    });
+
+    it('answers in the query when the redirect URI already has a fragment', () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      backToThirdParty({ token: 'jwt' }, `${REGISTERED}#/done`, '');
+      const url = new URL(assigned);
+      expect(url.hash).toBe('#/done');
+      expect(url.searchParams.get('token')).toBe('jwt');
+      expect(url.searchParams.get('dimoState')).toBe(DIMO_STATE);
+      expect(warn).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps an error, and its dimoState, in the query', () => {
+      backToThirdParty({ error: 'User cancelled sign-in' }, REGISTERED, '');
+      const url = new URL(assigned);
+      expect(url.hash).toBe('');
+      expect(url.searchParams.get('error')).toBe('User cancelled sign-in');
+      expect(url.searchParams.get('dimoState')).toBe(DIMO_STATE);
+    });
   });
 });

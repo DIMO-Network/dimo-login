@@ -15,6 +15,7 @@ import { backToThirdParty } from '../../utils/messageHandler';
 import { ActionBar, Button, DoneHeader, Notice, Screen, StatusChip } from '../ui';
 import { useVehicleName, VehicleRow } from './VehicleRow';
 import { useAppName } from '../../hooks/useAppName';
+import { useSendOrSignInAgain } from '../../hooks/useSendOrSignInAgain';
 
 type Translate = ReturnType<typeof useT>;
 
@@ -129,16 +130,18 @@ export const SuccessfulPermissions: React.FC = () => {
   } = useUIManager();
   const { title, body } = useSummary(results, appName);
   const stopped = results[0]?.outcome === 'revoked';
+  const sendOrSignInAgain = useSendOrSignInAgain();
 
-  const handleBackToThirdParty = () => {
-    const authPayload = buildAuthPayload(clientId, jwt, user);
-    const tokenIds = results.map((r: SharingResult) => r.vehicle.tokenId).join(',');
-    backToThirdParty(
-      { ...authPayload, [`${action}Vehicles`]: tokenIds },
-      redirectUri,
-      utm,
-    );
-  };
+  const handleBackToThirdParty = () =>
+    sendOrSignInAgain(() => {
+      const authPayload = buildAuthPayload(clientId, jwt, user);
+      const tokenIds = results.map((r: SharingResult) => r.vehicle.tokenId).join(',');
+      backToThirdParty(
+        { ...authPayload, [`${action}Vehicles`]: tokenIds },
+        redirectUri,
+        utm,
+      );
+    });
 
   const actions = isEmbed() ? undefined : (
     <ActionBar>
