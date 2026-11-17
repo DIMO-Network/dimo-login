@@ -1,6 +1,8 @@
 import en from '../locales/en';
 import es from '../locales/es';
 import ja from '../locales/ja';
+import zhHans from '../locales/zh-Hans';
+import zhHant from '../locales/zh-Hant';
 import { formatDate, formatList } from '../format';
 import { normalizeLanguage, resolveLanguage, storeLanguage } from '../language';
 
@@ -18,6 +20,8 @@ const englishFor = (key: string): string =>
 const TRANSLATIONS = [
   ['ja', ja],
   ['es', es],
+  ['zh-Hans', zhHans],
+  ['zh-Hant', zhHant],
 ] as const;
 
 describe('locales', () => {
