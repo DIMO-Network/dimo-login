@@ -110,8 +110,10 @@ export const Trans = ({
 
 // English is bundled; the others are separate chunks fetched when chosen.
 const LOADERS: Partial<Record<Language, () => Promise<{ default: object }>>> = {
-  es: () => import('./locales/es'),
-  ja: () => import('./locales/ja'),
+  'es': () => import('./locales/es'),
+  'ja': () => import('./locales/ja'),
+  'zh-Hans': () => import('./locales/zh-Hans'),
+  'zh-Hant': () => import('./locales/zh-Hant'),
 };
 
 // When each language's download started, while it's running.

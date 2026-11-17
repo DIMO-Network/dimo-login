@@ -15,9 +15,11 @@ import { cn } from '../ui/cn';
 
 // Each language is named in itself, so a reader can find their own.
 const NATIVE_NAMES: Record<Language, string> = {
-  en: 'English',
-  ja: '日本語',
-  es: 'Español',
+  'en': 'English',
+  'ja': '日本語',
+  'es': 'Español',
+  'zh-Hans': '简体中文',
+  'zh-Hant': '繁體中文',
 };
 
 /** The in-card language picker. The choice is remembered for this app. */

@@ -5,7 +5,13 @@ import type { Language } from './language';
  * Dates, lists and numbers in the language on screen. Display only: never
  * parse these strings back (dates for logic stay ISO or unix seconds).
  */
-const INTL_LOCALES: Record<Language, string> = { en: 'en-US', ja: 'ja-JP', es: 'es' };
+const INTL_LOCALES: Record<Language, string> = {
+  'en': 'en-US',
+  'ja': 'ja-JP',
+  'es': 'es',
+  'zh-Hans': 'zh-Hans-CN',
+  'zh-Hant': 'zh-Hant-TW',
+};
 
 const locale = (lng?: string) => {
   const language = lng ?? i18n.resolvedLanguage ?? i18n.language ?? 'en';

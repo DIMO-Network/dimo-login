@@ -10,7 +10,7 @@ export type TranslationKey = EnglishKey extends infer K
     : K
   : never;
 
-/** Every English key except the `_one` forms, which Japanese doesn't use. */
+/** Every English key except the `_one` forms, which Japanese and Chinese don't use. */
 export type LocaleResources = {
   [K in EnglishKey as K extends `${string}_one` ? never : K]: string;
 };

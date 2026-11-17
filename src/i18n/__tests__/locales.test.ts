@@ -1,6 +1,8 @@
 import en from '../locales/en';
 import es from '../locales/es';
 import ja from '../locales/ja';
+import zhHans from '../locales/zh-Hans';
+import zhHant from '../locales/zh-Hant';
 import { formatDate, formatList } from '../format';
 import { normalizeLanguage, resolveLanguage, storeLanguage } from '../language';
 
@@ -18,6 +20,8 @@ const englishFor = (key: string): string =>
 const TRANSLATIONS = [
   ['ja', ja],
   ['es', es],
+  ['zh-Hans', zhHans],
+  ['zh-Hant', zhHant],
 ] as const;
 
 describe('locales', () => {
@@ -98,6 +102,27 @@ describe('language', () => {
     // No time zone means Spanish: only the browser's languages do.
     setBrowser(['en-US'], 'Europe/Madrid');
     expect(resolveLanguage({})).toBe('en');
+  });
+
+  it('reads Chinese tags by script and region', () => {
+    for (const tag of ['zh', 'zh-CN', 'zh_sg', 'zh-Hans', 'zh-Hans-CN']) {
+      expect(normalizeLanguage(tag)).toBe('zh-Hans');
+    }
+    for (const tag of ['zh-TW', 'zh-hk', 'ZH_MO', 'zh-Hant', 'zh-Hant-TW']) {
+      expect(normalizeLanguage(tag)).toBe('zh-Hant');
+    }
+  });
+
+  it('shows Chinese by browser, then by time zone', () => {
+    setBrowser(['zh-TW', 'en-US'], 'America/Los_Angeles');
+    expect(resolveLanguage({})).toBe('zh-Hant');
+    setBrowser(['en-US'], 'Asia/Shanghai');
+    expect(resolveLanguage({})).toBe('zh-Hans');
+    setBrowser(['en-US'], 'Asia/Taipei');
+    expect(resolveLanguage({})).toBe('zh-Hant');
+    setBrowser(['en-US'], 'Asia/Hong_Kong');
+    expect(resolveLanguage({})).toBe('zh-Hant');
+    expect(resolveLanguage({ configured: 'zh-TW' })).toBe('zh-Hant');
   });
 
   it('lets the app choose, and the user’s own pick win, per app', () => {
