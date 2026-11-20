@@ -294,6 +294,7 @@ const en = {
   'vehicle.shared_no_end': 'Shared, no end date',
   'vehicle.needs_update': 'Needs update',
   'vehicle.adds': 'Adds {{list}}',
+  'vehicle.removes': 'Removes {{list}}',
   'vehicle.unsupported': 'Not supported by this app',
   'vehicle.checking': 'Checking sharing terms…',
   'vehicle.manage': 'Manage',
@@ -318,6 +319,10 @@ const en = {
   'manage.access_heading': 'What {{appName}} can access',
   'manage.update_title': '{{appName}} is asking for more access',
   'manage.update_body': 'Updating adds {{list}}. Everything else stays the same.',
+  'manage.update_remove_body':
+    'Updating adds {{added}} and removes {{removed}}. Everything else stays the same.',
+  'manage.remove_title': 'Some access is switched off',
+  'manage.remove_body': 'Updating removes {{list}}. Everything else stays the same.',
   'manage.update_note': 'After the update it stays shared until {{date}}.',
   'manage.update_note_no_end': 'After the update it stays shared with no end date.',
   'manage.extend_note': 'Extending keeps this vehicle shared until {{date}}.',

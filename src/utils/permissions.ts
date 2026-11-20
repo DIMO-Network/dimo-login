@@ -1,25 +1,63 @@
 import { getPermissionsArray, Permission } from '@dimo-network/transactions';
-import { createPermissionsFromParams } from '../services/permissionsService';
+import {
+  createPermissionsFromParams,
+  permissionsToString,
+} from '../services/permissionsService';
 import { GrantUnreadableError } from '../services/vehicleDocumentAgreements';
 import { PermissionKey } from '../types/permissions';
 import { t, type TranslationKey } from '../i18n';
 
 /**
  * A vehicle needs an update when it's already shared with this grantee but is
- * missing something the app is requesting now: a permission, or file access.
- * A grant that already covers the request is left alone, even if it grants
- * more. Sharing again writes a new SACD record over the old one, so no revoke
- * is needed first, and updates keep what the grant already has (see
- * mergePermissions). If the permissions can't be compared, don't prompt.
+ * missing something the app is requesting now (a permission, or file access),
+ * or has a permission the user switched off on the request card. A grant that
+ * already covers the request is otherwise left alone, even if it grants more.
+ * Sharing again writes a new SACD record over the old one, so no revoke is
+ * needed first, and updates keep what the grant already has except what was
+ * switched off (see mergePermissions). If the permissions can't be compared,
+ * don't prompt.
  */
 export const needsPermissionUpdate = (
   vehicle: { shared: boolean; permissions: string; documentAccess?: boolean },
   permissions: string,
   permissionTemplateId?: string,
+  declined: Permission[] = [],
 ) =>
   vehicle.shared &&
   (getAddedPermissions([vehicle], permissions, permissionTemplateId).length > 0 ||
+    getRemovedPermissions(vehicle, declined).length > 0 ||
     vehicle.documentAccess === false);
+
+/** Switched-off permissions the vehicle's grant has, which an update removes. */
+export const getRemovedPermissions = (
+  vehicle: { permissions: string },
+  declined: Permission[],
+): Permission[] => {
+  if (!declined.length) return [];
+  try {
+    const granted = getPermissionsArray(BigInt(vehicle.permissions || '0'));
+    return declined.filter((p) => granted.includes(p)).sort((a, b) => a - b);
+  } catch (error) {
+    console.error('Error reading granted permissions:', error);
+    return [];
+  }
+};
+
+/**
+ * The app's request without what the user switched off, in the form the
+ * request arrives in. Nothing switched off: the request exactly as sent.
+ */
+export const narrowRequest = (
+  permissions: string,
+  permissionTemplateId: string | undefined,
+  declined: Permission[],
+): { permissions: string; permissionTemplateId?: string } => {
+  if (!declined.length) return { permissions, permissionTemplateId };
+  const kept = createPermissionsFromParams(permissions, permissionTemplateId).filter(
+    (p) => !declined.includes(p),
+  );
+  return { permissions: permissionsToString(kept), permissionTemplateId: undefined };
+};
 
 /** Permissions the app is requesting that the vehicle hasn't granted yet. */
 export const getAddedPermissions = (
@@ -55,20 +93,24 @@ const isFullyKnown = (value: bigint) => {
 
 /**
  * What an updated grant should carry: everything the vehicle already grants
- * this app plus what it's requesting now. Only "Stop sharing" removes access.
- * A grant using permission bits this SDK can't encode is refused rather than
- * re-signed without them.
+ * this app plus what it's requesting now, less what the user switched off on
+ * the request card (`declined`), even when the old grant had it. Nothing else
+ * is ever dropped; "Stop sharing" removes the rest. A grant using permission
+ * bits this SDK can't encode is refused rather than re-signed without them.
  */
 export const mergePermissions = (
   vehicle: { permissions: string; tokenId: number; make?: string; model?: string },
   requested: Permission[],
+  declined: Permission[] = [],
 ): Permission[] => {
   const value = BigInt(vehicle.permissions || '0');
   if (!isFullyKnown(value)) {
     throw new GrantUnreadableError(vehicle, 'unknown_permissions');
   }
   const granted = getPermissionsArray(value);
-  return Array.from(new Set([...granted, ...requested])).sort((a, b) => a - b);
+  return Array.from(new Set([...granted, ...requested]))
+    .filter((p) => !declined.includes(p))
+    .sort((a, b) => a - b);
 };
 
 export const permissionKey = (permission: Permission) =>

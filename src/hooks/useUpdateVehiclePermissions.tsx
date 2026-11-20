@@ -7,7 +7,7 @@ import {
   generateAttachments,
 } from '../services/permissionsService';
 import { generateIpfsSources, setVehiclePermissions } from '../services/turnkeyService';
-import { SetVehiclePermissions } from '@dimo-network/transactions';
+import { Permission, SetVehiclePermissions } from '@dimo-network/transactions';
 import {
   getVehicleAsset,
   mergeAgreements,
@@ -24,6 +24,8 @@ type UpdateVehiclePermissionsParams = {
   expiration: bigint;
   vehicle: Vehicle;
   action: VehiclePermissionsAction;
+  /** Switched off on the request card: left out, and removed if granted. */
+  declined?: Permission[];
 };
 
 export const useUpdateVehiclePermissions = () => {
@@ -37,17 +39,22 @@ export const useUpdateVehiclePermissions = () => {
     expiration,
     vehicle,
     action,
+    declined = [],
   }: UpdateVehiclePermissionsParams) => {
     const hasValidSession = await validateSession();
     if (!hasValidSession) {
       throw new Error(INVALID_SESSION_ERROR);
     }
-    const requested = createPermissionsFromParams(permissions, permissionTemplateId);
+    const requested = createPermissionsFromParams(
+      permissions,
+      permissionTemplateId,
+    ).filter((p) => !declined.includes(p));
 
     // Stop sharing expires the grant; there's nothing to carry over. Extend and
-    // Update keep everything the current grant gives this app, and Update adds
-    // what's being requested (the manage screen lists it first). If the current
-    // grant can't be read, readGrantAgreements throws and nothing is sent.
+    // Update keep everything the current grant gives this app except what was
+    // switched off on the request card, and Update adds what's being requested
+    // (the manage screen lists it first). If the current grant can't be read,
+    // readGrantAgreements throws and nothing is sent.
     let perms = requested;
     let cloudEventAgreements: ReturnType<typeof toCloudEventAgreements> = [];
     if (action !== 'revoke') {
@@ -55,7 +62,11 @@ export const useUpdateVehiclePermissions = () => {
         grantor: user?.smartContractAddress,
         grantee: clientId,
       });
-      perms = mergePermissions(vehicle, requested);
+      perms = mergePermissions(vehicle, requested, declined);
+      // Switching everything off would sign a grant with no permissions.
+      if (declined.length && !perms.length) {
+        throw new Error('No permissions provided');
+      }
       cloudEventAgreements =
         action === 'update'
           ? mergeAgreements(

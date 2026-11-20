@@ -31,9 +31,11 @@ export const useShareEndLabel = () => {
 const ItemChips = ({
   items,
   onToggle,
+  disabled = false,
 }: {
   items: AccessItem[];
   onToggle?: (item: AccessItem) => void;
+  disabled?: boolean;
 }) => {
   const t = useT();
   return (
@@ -48,7 +50,7 @@ const ItemChips = ({
             className={cn(
               'font-medium',
               off &&
-                'bg-transparent text-muted line-through outline-1 -outline-offset-1 outline-control-border outline-dashed',
+                'bg-transparent text-muted outline-1 -outline-offset-1 outline-control-border outline-dashed',
             )}
             icon={
               <Icon
@@ -60,10 +62,10 @@ const ItemChips = ({
               />
             }
           >
-            {label}
+            <span className={cn(off && 'line-through')}>{label}</span>
             {caution && <span className="sr-only">, {caution}</span>}
             {isNew && (
-              <Chip tone="new" className="ml-0.5 px-1.5 py-0 no-underline">
+              <Chip tone="new" className="ml-0.5 px-1.5 py-0">
                 {t('chip.new')}
               </Chip>
             )}
@@ -78,8 +80,9 @@ const ItemChips = ({
               <button
                 type="button"
                 aria-pressed={!off}
+                disabled={disabled}
                 onClick={() => onToggle(item)}
-                className="flex rounded-chip focus-visible:outline-hidden focus-visible:ring-[3px] focus-visible:ring-accent-soft"
+                className="flex rounded-chip focus-visible:outline-hidden focus-visible:ring-[3px] focus-visible:ring-accent-soft disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {chip}
               </button>
@@ -120,12 +123,15 @@ export const AccessSummary = ({
   end,
   onDetails,
   onTogglePermission,
+  togglesDisabled = false,
 }: {
   items: AccessItem[];
   email?: EmailRequestItem;
   end: ShareEnd;
   onDetails: () => void;
   onTogglePermission?: (item: AccessItem) => void;
+  /** While a share is being sent. */
+  togglesDisabled?: boolean;
 }) => {
   const t = useT();
   const endLabel = useShareEndLabel();
@@ -167,7 +173,11 @@ export const AccessSummary = ({
       {vehicles.length > 0 && (
         <div className="flex flex-col gap-1.5">
           {labelled && <GroupLabel>{t('request.about_vehicles')}</GroupLabel>}
-          <ItemChips items={vehicles} onToggle={onTogglePermission} />
+          <ItemChips
+            items={vehicles}
+            onToggle={onTogglePermission}
+            disabled={togglesDisabled}
+          />
           {togglable && (
             <p className="px-0.5 text-label text-muted">{t('share.permissions_hint')}</p>
           )}

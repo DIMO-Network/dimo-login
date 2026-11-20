@@ -24,7 +24,6 @@ import { SharingResult, Vehicle } from '../../models/vehicle';
 import {
   createPermissionsFromParams,
   getTemplateDescription,
-  permissionsToString,
 } from '../../services/permissionsService';
 import {
   getMissingFileLabels,
@@ -36,8 +35,16 @@ import { isInvalidSessionError } from '../../utils/authUtils';
 import { sendErrorToParent } from '../../utils/errorUtils';
 import { shareEndOf } from '../../utils/dateUtils';
 import {
+  clearDeclined,
+  loadDeclined,
+  requestKey,
+  saveDeclined,
+} from '../../utils/declinedPermissions';
+import {
   getAddedPermissions,
   getPermissionLabel,
+  getRemovedPermissions,
+  narrowRequest,
   needsPermissionUpdate,
 } from '../../utils/permissions';
 import { getRedirectHost } from '../../utils/urlHelpers';
@@ -98,6 +105,7 @@ export const SelectVehicles: React.FC = () => {
   const { user } = useAuthContext();
   const credentials = useDevCredentials<VehicleManagerMandatoryParams>();
   const {
+    clientId,
     redirectUri,
     utm,
 
@@ -120,8 +128,16 @@ export const SelectVehicles: React.FC = () => {
   const [sharing, setSharing] = useState(false);
   const [shareError, setShareError] = useState<Text | null | undefined>(undefined);
   const [termsOpen, setTermsOpen] = useState(false);
-  // Requested permissions the user switched off on the request card.
-  const [declined, setDeclined] = useState<Permission[]>([]);
+  // Requested permissions the user switched off on the request card, kept
+  // while they visit Manage or Add vehicle.
+  const declinedKey = requestKey(clientId, permissions, permissionTemplateId);
+  const [declined, setDeclinedState] = useState<Permission[]>(() =>
+    loadDeclined(declinedKey),
+  );
+  const setDeclined = (next: Permission[]) => {
+    setDeclinedState(next);
+    saveDeclined(declinedKey, next);
+  };
 
   // What the app asks for, and what's new compared with the shares it has.
   const requestedPermissions = useMemo(() => {
@@ -135,19 +151,20 @@ export const SelectVehicles: React.FC = () => {
   // What this share grants: the request less what was switched off. Until
   // something is, it's the app's request exactly as sent.
   const chosenPermissions = requestedPermissions.filter((p) => !declined.includes(p));
-  const request = declined.length
-    ? {
-        permissions: permissionsToString(chosenPermissions),
-        permissionTemplateId: undefined,
-      }
-    : { permissions, permissionTemplateId };
+  const request = narrowRequest(permissions, permissionTemplateId, declined);
   const noPermissions = requestedPermissions.length > 0 && !chosenPermissions.length;
 
   // A share made with older terms can be shared again: the new grant replaces
-  // the old one and keeps what it had (see useShareVehicles). Judged by what's
-  // switched on, so a share missing only what the user leaves out is current.
+  // the old one and keeps what it had, less what's switched off (see
+  // useShareVehicles). So a share needs an update when it lacks something
+  // switched on, or has something switched off.
   const needsUpdate = (vehicle: Vehicle) =>
-    needsPermissionUpdate(vehicle, request.permissions, request.permissionTemplateId);
+    needsPermissionUpdate(
+      vehicle,
+      request.permissions,
+      request.permissionTemplateId,
+      declined,
+    );
   const isSelectable = (vehicle: Vehicle) => !vehicle.shared || needsUpdate(vehicle);
   const outdated = vehicles.filter(needsUpdate);
   const {
@@ -203,10 +220,10 @@ export const SelectVehicles: React.FC = () => {
   const togglePermission = ({ permission }: AccessItem) => {
     if (permission === undefined || sharing) return;
     setShareError(undefined);
-    setDeclined((current) =>
-      current.includes(permission)
-        ? current.filter((p) => p !== permission)
-        : [...current, permission],
+    setDeclined(
+      declined.includes(permission)
+        ? declined.filter((p) => p !== permission)
+        : [...declined, permission],
     );
   };
   const end = shareEndOf(expirationDate);
@@ -219,6 +236,8 @@ export const SelectVehicles: React.FC = () => {
     ).map(getPermissionLabel),
     ...getMissingFileLabels([vehicle], requestedFiles),
   ];
+  const removedFor = (vehicle: Vehicle) =>
+    getRemovedPermissions(vehicle, declined).map(getPermissionLabel);
 
   const ready = vehicles.filter((v) => !v.shared);
   const shared = vehicles.filter((v) => v.shared);
@@ -240,10 +259,7 @@ export const SelectVehicles: React.FC = () => {
     setSharing(true);
     setBusy(true);
     try {
-      const { shared: done, skipped } = await shareVehicles(
-        selectedVehicles,
-        declined.length ? chosenPermissions : undefined,
-      );
+      const { shared: done, skipped } = await shareVehicles(selectedVehicles, declined);
       const results: SharingResult[] = done.map((vehicle) => ({
         vehicle,
         outcome: vehicle.shared ? 'updated' : 'shared',
@@ -252,6 +268,7 @@ export const SelectVehicles: React.FC = () => {
           : BigInt(expirationDate.toString()),
       }));
       clearSelectedVehicles();
+      clearDeclined();
       // Approving the request approves its email item too.
       emailRequest.commit();
       finishShareVehicles(results, skipped);
@@ -274,6 +291,7 @@ export const SelectVehicles: React.FC = () => {
   const handleCancel = () => {
     const declinedEmail =
       emailRequest.asked && emailRequest.required && !emailRequest.granted;
+    clearDeclined();
     sendErrorToParent(
       declinedEmail
         ? 'User declined to share their email'
@@ -284,18 +302,15 @@ export const SelectVehicles: React.FC = () => {
     );
   };
   const handleContinue = () => {
+    clearDeclined();
     emailRequest.commit();
     finishShareVehicles([]);
   };
 
   const handleManage = (vehicle: Vehicle) => {
-    // The request VehicleManager put in componentData, less what's switched
-    // off here, so Update on the next screen grants the same.
-    setComponentData({
-      ...componentData,
-      ...(declined.length ? request : {}),
-      vehicle,
-    });
+    // Keeps the requested permissions VehicleManager put in componentData;
+    // ManageVehicle reads what's switched off here from the same store.
+    setComponentData({ ...componentData, vehicle });
     setUiState(UiStates.MANAGE_VEHICLE, { setBack: true });
   };
 
@@ -371,6 +386,7 @@ export const SelectVehicles: React.FC = () => {
         end={end}
         onDetails={() => setTermsOpen(true)}
         onTogglePermission={togglePermission}
+        togglesDisabled={sharing}
       />
 
       {noVehicles ? (
@@ -447,6 +463,7 @@ export const SelectVehicles: React.FC = () => {
                       vehicle={vehicle}
                       needsUpdate={needsUpdate(vehicle)}
                       added={addedFor(vehicle)}
+                      removed={removedFor(vehicle)}
                       selected={checkIfSelected(vehicle)}
                       onToggle={() => !sharing && handleVehicleSelect(vehicle)}
                       onManage={() => !sharing && handleManage(vehicle)}

@@ -259,6 +259,7 @@ const zhHant: LocaleResources = {
   'vehicle.shared_no_end': '共享中，無期限',
   'vehicle.needs_update': '需要更新',
   'vehicle.adds': '新增{{list}}',
+  'vehicle.removes': '移除{{list}}',
   'vehicle.unsupported': '此應用程式不支援',
   'vehicle.checking': '正在檢查共享條款…',
   'vehicle.manage': '管理',
@@ -280,6 +281,10 @@ const zhHant: LocaleResources = {
   'manage.access_heading': '{{appName}}可存取的內容',
   'manage.update_title': '{{appName}}要求更多存取權限',
   'manage.update_body': '更新後將新增{{list}}。其他內容維持不變。',
+  'manage.update_remove_body':
+    '更新後將新增{{added}}並移除{{removed}}。其他內容維持不變。',
+  'manage.remove_title': '部分存取權限已關閉',
+  'manage.remove_body': '更新後將移除{{list}}。其他內容維持不變。',
   'manage.update_note': '更新後，將持續共享至{{date}}。',
   'manage.update_note_no_end': '更新後，將持續無期限共享。',
   'manage.extend_note': '延長後，此車輛將持續共享至{{date}}。',

@@ -72,6 +72,12 @@ vi.mock('@sentry/react', () => ({ captureException: vi.fn() }));
 
 import { ManageVehicle } from '../ManageVehicle';
 import { getEmailChoice } from '../../../services/storageService';
+import {
+  clearDeclined,
+  loadDeclined,
+  requestKey,
+  saveDeclined,
+} from '../../../utils/declinedPermissions';
 
 // The grant has non-location history only (permission 1 at bits 2..3).
 const sharedVehicle = () => ({
@@ -95,6 +101,7 @@ const renderManage = (requestedPermissions: string) => {
 beforeEach(() => {
   vi.clearAllMocks();
   localStorage.clear();
+  clearDeclined();
   Object.keys(mockCreds).forEach((key) => delete mockCreds[key]);
   delete mockUser.email;
   mockUpdate.mockResolvedValue(undefined);
@@ -273,4 +280,65 @@ it('offers no Extend and still shows the screen when the end date is unknown', (
     expect(screen.getByRole('button', { name: 'Stop sharing' })).toBeInTheDocument();
     unmount();
   }
+});
+
+describe('with part of the request switched off', () => {
+  const VEHICLE_DATA = 1;
+  const COMMANDS = 2;
+
+  // The share has vehicle data and commands.
+  const fullyShared = () => ({
+    ...sharedVehicle(),
+    permissions: (BigInt(15) << BigInt(2)).toString(),
+  });
+
+  it('offers to remove a switched-off permission the share has', async () => {
+    // The app asks for vehicle data and commands; the user switched commands off.
+    saveDeclined(requestKey(mockClientId, '11'), [COMMANDS]);
+    mockUi.componentData = { vehicle: fullyShared(), permissions: '11' };
+    render(<ManageVehicle />);
+
+    expect(screen.getByText('Some access is switched off')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Updating removes Lock and unlock. Everything else stays the same.',
+      ),
+    ).toBeInTheDocument();
+    // What the app can access once updated.
+    expect(screen.queryByText('Lock and unlock')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Update permissions' }));
+
+    await waitFor(() => expect(mockFinishShare).toHaveBeenCalled());
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'update',
+        permissions: '10000000',
+        declined: [COMMANDS],
+      }),
+    );
+    expect(loadDeclined(requestKey(mockClientId, '11'))).toEqual([]);
+  });
+
+  it('offers no Update that would leave the share with nothing', async () => {
+    // Everything the app asks for is switched off.
+    saveDeclined(requestKey(mockClientId, '11'), [VEHICLE_DATA, COMMANDS]);
+    renderManage('11');
+
+    expect(screen.queryByRole('button', { name: 'Update permissions' })).toBeNull();
+    // Extend keeps the share exactly as it is.
+    fireEvent.click(screen.getByRole('button', { name: 'Extend 1 year' }));
+    await waitFor(() => expect(mockFinish).toHaveBeenCalled());
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'extend', declined: [] }),
+    );
+  });
+
+  it('does not ask for what was switched off', () => {
+    // The app asks for commands too, but the user switched it off.
+    saveDeclined(requestKey(mockClientId, '11'), [COMMANDS]);
+    renderManage('11');
+
+    expect(screen.queryByText('Acme is asking for more access')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Extend 1 year' })).toBeInTheDocument();
+  });
 });

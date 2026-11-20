@@ -109,12 +109,18 @@ vi.mock('@sentry/react', () => ({ captureException: vi.fn() }));
 
 import { SelectVehicles } from '../SelectVehicles';
 import { getEmailChoice } from '../../../services/storageService';
+import {
+  clearDeclined,
+  loadDeclined,
+  requestKey,
+} from '../../../utils/declinedPermissions';
 
 const cta = () => screen.getAllByRole('button').at(-1) as HTMLElement;
 
 beforeEach(() => {
   vi.clearAllMocks();
   localStorage.clear();
+  clearDeclined();
   Object.keys(mockCreds).forEach((key) => delete mockCreds[key]);
   mockIncompatible.length = 0;
   mockVehicles = [mockRav4, mockTesla];
@@ -312,7 +318,7 @@ it('still shows a share with the app on a vehicle outside its filters', async ()
 
 describe('switching off part of the request', () => {
   // The mocked Permission enum numbers them as the SDK does.
-  const VEHICLE_DATA = 1;
+  const COMMANDS = 2;
   const chip = (name: RegExp) => screen.getByRole('button', { name });
 
   it('leaves a switched-off permission out of the share and the terms', async () => {
@@ -338,7 +344,8 @@ describe('switching off part of the request', () => {
     fireEvent.click(screen.getByLabelText(/2022 Toyota RAV4/));
     fireEvent.click(cta());
     await waitFor(() => expect(mockShare).toHaveBeenCalled());
-    expect(mockShare).toHaveBeenCalledWith([mockRav4], [VEHICLE_DATA]);
+    // Shared with what was switched off, so it's left out.
+    expect(mockShare).toHaveBeenCalledWith([mockRav4], [COMMANDS]);
   });
 
   it('brings a picked update back when its permission is switched on again', async () => {
@@ -354,7 +361,7 @@ describe('switching off part of the request', () => {
     fireEvent.click(cta());
     await waitFor(() => expect(mockShare).toHaveBeenCalled());
     // Nothing switched off: the app's request as sent.
-    expect(mockShare).toHaveBeenCalledWith([mockTesla], undefined);
+    expect(mockShare).toHaveBeenCalledWith([mockTesla], []);
   });
 
   it("won't share with every permission switched off", async () => {
@@ -370,16 +377,54 @@ describe('switching off part of the request', () => {
     expect(mockShare).not.toHaveBeenCalled();
   });
 
-  it('hands Manage the request without what was switched off', async () => {
-    render(<SelectVehicles />);
+  it('keeps what was switched off through Manage and back', async () => {
+    const { unmount } = render(<SelectVehicles />);
     await screen.findByText('Needs update');
     fireEvent.click(chip(/Lock and unlock/));
     fireEvent.click(screen.getByRole('button', { name: /Manage sharing for .*Tesla/ }));
 
-    expect(mockUi.setComponentData).toHaveBeenCalledWith({
-      permissions: '10000000',
-      permissionTemplateId: undefined,
-      vehicle: mockTesla,
-    });
+    expect(mockUi.setComponentData).toHaveBeenCalledWith({ vehicle: mockTesla });
+    // Manage reads it from here.
+    expect(loadDeclined(requestKey(mockClientId, '11'))).toEqual([COMMANDS]);
+
+    // Going back mounts the screen again.
+    unmount();
+    render(<SelectVehicles />);
+    await screen.findByText('Select a vehicle');
+    expect(chip(/Lock and unlock/)).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('takes a switched-off permission off a share that has it', async () => {
+    // The Tesla's share has vehicle data and commands; the app asks for both.
+    mockVehicles = [{ ...mockTesla, permissions: (BigInt(15) << BigInt(2)).toString() }];
+    render(<SelectVehicles />);
+    expect(await screen.findByText('All your vehicles are already shared')).toBeVisible();
+
+    fireEvent.click(chip(/Lock and unlock/));
+    expect(await screen.findByText('Needs update')).toBeInTheDocument();
+    expect(screen.getByText('Removes Lock and unlock')).toBeInTheDocument();
+    await waitFor(() => expect(cta()).toHaveTextContent('Update 1 vehicle'));
+    fireEvent.click(cta());
+
+    await waitFor(() => expect(mockShare).toHaveBeenCalled());
+    expect(mockShare.mock.calls[0][1]).toEqual([COMMANDS]);
+    expect(loadDeclined(requestKey(mockClientId, '11'))).toEqual([]);
+  });
+
+  it('locks the switches while sharing', async () => {
+    let finishShare: () => void = () => {};
+    mockShare.mockImplementation(
+      (vehicles) =>
+        new Promise((resolve) => {
+          finishShare = () => resolve({ shared: vehicles, skipped: [] });
+        }),
+    );
+    render(<SelectVehicles />);
+    await waitFor(() => expect(cta()).toHaveTextContent('Update 1 vehicle'));
+    fireEvent.click(cta());
+
+    await waitFor(() => expect(chip(/Lock and unlock/)).toBeDisabled());
+    finishShare();
+    await waitFor(() => expect(mockFinish).toHaveBeenCalled());
   });
 });

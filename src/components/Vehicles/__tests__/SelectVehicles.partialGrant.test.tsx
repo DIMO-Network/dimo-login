@@ -125,6 +125,7 @@ vi.mock('../../../context/UIManagerContext', () => ({
 vi.mock('@sentry/react', () => ({ captureException: vi.fn() }));
 
 import { SelectVehicles } from '../SelectVehicles';
+import { clearDeclined } from '../../../utils/declinedPermissions';
 import {
   generateIpfsSources,
   setVehiclePermissions,
@@ -143,6 +144,7 @@ const signed = () => (generateIpfsSources as Mock).mock.calls.map((call) => call
 beforeEach(() => {
   vi.clearAllMocks();
   localStorage.clear();
+  clearDeclined();
 });
 
 it('shares a new vehicle with only what was left on, and finishes as usual', async () => {
@@ -227,4 +229,50 @@ it('adds location to that share when it is asked for again and left on', async (
   expect((setVehiclePermissions as Mock).mock.calls[0][0].permissions).toEqual(
     everything,
   );
+});
+
+it('takes location off a share that already has it when it is switched off', async () => {
+  // Shared earlier with everything the app asks for, location included.
+  const everything = [
+    VEHICLE_DATA,
+    CURRENT_LOCATION,
+    LOCATION_HISTORY,
+    VIN,
+    LIVE_DATA,
+    APPROXIMATE,
+  ];
+  mockVehicles = [{ ...sharedCar, permissions: grantOf(...everything) }];
+  render(<SelectVehicles />);
+  expect(await screen.findByText('All your vehicles are already shared')).toBeVisible();
+
+  switchOffLocation();
+  expect(
+    await screen.findByText(
+      'Removes Current location, Location history, and Approximate location',
+    ),
+  ).toBeInTheDocument();
+  await waitFor(() => expect(cta()).toHaveTextContent('Update 1 vehicle'));
+  fireEvent.click(cta());
+
+  await waitFor(() => expect(mockFinish).toHaveBeenCalled());
+  const kept = [VEHICLE_DATA, VIN, LIVE_DATA];
+  expect(signed()).toEqual([kept]);
+  expect((setVehiclePermissions as Mock).mock.calls[0][0].permissions).toEqual(kept);
+  expect(mockFinish.mock.calls[0][0][0].outcome).toBe('updated');
+});
+
+it('keeps a permission the app no longer asks for, since it was never switched off', async () => {
+  // Shared earlier with raw data too, which this request doesn't mention.
+  const RAW_DATA = 7;
+  mockVehicles = [
+    { ...sharedCar, permissions: grantOf(VEHICLE_DATA, LOCATION_HISTORY, RAW_DATA) },
+  ];
+  render(<SelectVehicles />);
+  await screen.findByText('Needs update');
+  switchOffLocation();
+  await waitFor(() => expect(cta()).toHaveTextContent('Update 1 vehicle'));
+  fireEvent.click(cta());
+
+  await waitFor(() => expect(mockFinish).toHaveBeenCalled());
+  expect(signed()).toEqual([[VEHICLE_DATA, VIN, LIVE_DATA, RAW_DATA]]);
 });

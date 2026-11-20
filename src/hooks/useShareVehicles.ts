@@ -67,21 +67,24 @@ export const useShareVehicles = () => {
   };
 
   /**
-   * `requested` is what the user kept of the app's request, when they
-   * switched something off; it defaults to the whole request.
+   * `declined` is what the user switched off on the request card: left out of
+   * new shares, and taken off vehicles already shared that have it.
    */
-  return async (vehicles: Vehicle[], requested?: Permission[]): Promise<ShareResult> => {
+  return async (
+    vehicles: Vehicle[],
+    declined: Permission[] = [],
+  ): Promise<ShareResult> => {
     if (!vehicles.length) {
       throw new Error('No vehicles shared');
     }
-    if (requested && !requested.length) {
+    const perms = createPermissionsFromParams(permissions, permissionTemplateId).filter(
+      (p) => !declined.includes(p),
+    );
+    if (declined.length && !perms.length) {
       throw new Error('No permissions provided');
     }
     const isValid = await validate();
     if (!isValid) throw new Error(INVALID_SESSION_ERROR);
-
-    const perms =
-      requested ?? createPermissionsFromParams(permissions, permissionTemplateId);
     const attachments = generateAttachments(region?.toUpperCase());
     const requestedAgreements = withSource(
       toCloudEventAgreements(cloudEvent),
@@ -89,15 +92,16 @@ export const useShareVehicles = () => {
     );
 
     // A vehicle already shared with this app gets its current grant plus the
-    // request, so an update never drops access (only "Stop sharing" does):
-    // same or more permissions and files, and the later expiry. Every current
+    // request, so an update drops nothing but what the user switched off
+    // (only "Stop sharing" removes the rest): the same files or more, and
+    // the later expiry. Every current
     // grant is read and checked before anything is signed. One that can't be
     // carried over is left as it is and skipped, so it never blocks sharing
     // the other vehicles.
     const planGrant = async (vehicle: Vehicle) => {
       const plan = vehicle.shared
         ? {
-            permissions: mergePermissions(vehicle, perms),
+            permissions: mergePermissions(vehicle, perms, declined),
             agreements: mergeAgreements(
               await readGrantAgreements(vehicle, {
                 grantor: user?.smartContractAddress,

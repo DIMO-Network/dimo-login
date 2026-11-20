@@ -33,7 +33,13 @@ import {
 } from '../../types';
 import { isInvalidSessionError } from '../../utils/authUtils';
 import { grantEndOf, shareEndOf } from '../../utils/dateUtils';
-import { getAddedPermissions, needsPermissionUpdate } from '../../utils/permissions';
+import { clearDeclined, loadDeclined, requestKey } from '../../utils/declinedPermissions';
+import {
+  getAddedPermissions,
+  getRemovedPermissions,
+  narrowRequest,
+  needsPermissionUpdate,
+} from '../../utils/permissions';
 import { getNewExpirationDate } from '../../utils/vehicles';
 import {
   ActionBar,
@@ -66,8 +72,9 @@ const grantedPermissions = (vehicle: Vehicle): Permission[] => {
 
 /**
  * One shared vehicle: what the app can access and until when, then Update
- * (when the app asks for more), Extend 1 year (when the share has an end
- * date), or Stop sharing after a confirmation.
+ * (when the app asks for more, or the user switched off something the share
+ * has on the request card), Extend 1 year (when the share has an end date),
+ * or Stop sharing after a confirmation.
  */
 export const ManageVehicle: React.FC = () => {
   const t = useT();
@@ -135,15 +142,31 @@ export const ManageVehicle: React.FC = () => {
   const [error, setError] = useState<Text | null | undefined>(undefined);
   const [confirmStop, setConfirmStop] = useState(false);
 
+  // What was switched off on the request card: left out, and removed from
+  // this share if it has it.
+  const declined = loadDeclined(requestKey(clientId, permissions, permissionTemplateId));
+  const request = narrowRequest(permissions, permissionTemplateId, declined);
   const currentVehicle: Vehicle = { ...vehicle, documentAccess };
-  const needsUpdate = needsPermissionUpdate(
+  const wantsUpdate = needsPermissionUpdate(
     currentVehicle,
-    permissions,
-    permissionTemplateId,
+    request.permissions,
+    request.permissionTemplateId,
+    declined,
   );
-  const added = needsUpdate
-    ? getAddedPermissions([currentVehicle], permissions, permissionTemplateId)
+  const added = wantsUpdate
+    ? getAddedPermissions(
+        [currentVehicle],
+        request.permissions,
+        request.permissionTemplateId,
+      )
     : [];
+  const removed = getRemovedPermissions(currentVehicle, declined);
+  // With everything switched off, an update would leave the share with no
+  // permissions at all. That's Stop sharing, so Update isn't offered.
+  const needsUpdate =
+    wantsUpdate &&
+    (added.length > 0 ||
+      grantedPermissions(currentVehicle).some((p) => !removed.includes(p)));
   const grantEnd = grantEndOf(vehicle.grantExpiresAt);
   const noEnd = !!grantEnd?.noEnd;
   // Extend needs a known end date to count from; "no end" has nothing to extend.
@@ -169,8 +192,11 @@ export const ManageVehicle: React.FC = () => {
         true,
       )
     : [];
+  // What the app can access once updated: what was switched off is gone.
   const items = [
-    ...grantedPermissions(currentVehicle).map((p) => permissionItem(p, t)),
+    ...grantedPermissions(currentVehicle)
+      .filter((p) => !removed.includes(p))
+      .map((p) => permissionItem(p, t)),
     ...added.map((p) => permissionItem(p, t, true)),
     ...fileItems(keptFiles, t).filter(
       (kept) => !newFileItems.some((item) => item.id === kept.id),
@@ -181,6 +207,7 @@ export const ManageVehicle: React.FC = () => {
       : []),
   ];
   const addedLabels = items.filter((item) => item.isNew).map((item) => item.label);
+  const removedLabels = removed.map((p) => permissionItem(p, t).label);
 
   const nextEnd = primary
     ? shareEndOf(getNewExpirationDate(vehicle, primary, expirationDate))
@@ -206,13 +233,17 @@ export const ManageVehicle: React.FC = () => {
     setBusy(true);
     const expiration = getNewExpirationDate(vehicle, action, expirationDate);
     try {
+      // The request less what was switched off. Only Update takes switched-off
+      // permissions off the share; Extend keeps it exactly as it is.
       await updateVehiclePermissions({
-        permissionTemplateId,
-        permissions,
+        permissionTemplateId: request.permissionTemplateId,
+        permissions: request.permissions,
         expiration,
         vehicle: currentVehicle,
         action,
+        declined: action === 'update' ? declined : [],
       });
+      clearDeclined();
       if (emailNew && action !== 'revoke') emailRequest.commit();
       report(action, expiration);
     } catch (err) {
@@ -291,10 +322,21 @@ export const ManageVehicle: React.FC = () => {
 
       {needsUpdate && (
         <Notice
-          title={t('manage.update_title', { appName })}
+          title={
+            addedLabels.length || !removedLabels.length
+              ? t('manage.update_title', { appName })
+              : t('manage.remove_title')
+          }
           icon={<SparklesIcon className="size-[18px]" />}
         >
-          {t('manage.update_body', { list: formatList(addedLabels) })}
+          {removedLabels.length
+            ? addedLabels.length
+              ? t('manage.update_remove_body', {
+                  added: formatList(addedLabels),
+                  removed: formatList(removedLabels),
+                })
+              : t('manage.remove_body', { list: formatList(removedLabels) })
+            : t('manage.update_body', { list: formatList(addedLabels) })}
         </Notice>
       )}
 

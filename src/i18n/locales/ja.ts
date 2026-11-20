@@ -275,6 +275,7 @@ const ja: LocaleResources = {
   'vehicle.shared_no_end': '無期限で共有中',
   'vehicle.needs_update': '更新が必要',
   'vehicle.adds': '{{list}}を追加',
+  'vehicle.removes': '{{list}}を削除',
   'vehicle.unsupported': 'このアプリでは利用できません',
   'vehicle.checking': '共有条件を確認中…',
   'vehicle.manage': '管理',
@@ -298,6 +299,11 @@ const ja: LocaleResources = {
   'manage.update_title': '{{appName}}が追加のアクセスを求めています',
   'manage.update_body':
     '更新すると「{{list}}」が追加されます。その他の内容は変わりません。',
+  'manage.update_remove_body':
+    '更新すると「{{added}}」が追加され、「{{removed}}」が削除されます。その他の内容は変わりません。',
+  'manage.remove_title': '一部のアクセスがオフになっています',
+  'manage.remove_body':
+    '更新すると「{{list}}」が削除されます。その他の内容は変わりません。',
   'manage.update_note': '更新後は{{date}}まで共有が続きます。',
   'manage.update_note_no_end': '更新後も無期限で共有が続きます。',
   'manage.extend_note': '延長すると、{{date}}まで共有が続きます。',

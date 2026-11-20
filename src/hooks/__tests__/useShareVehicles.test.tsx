@@ -94,7 +94,7 @@ beforeEach(() => {
   (setVehiclePermissionsBatch as Mock).mockResolvedValue(undefined);
 });
 
-const share = async (vehicles: Vehicle[], requested?: number[]) => {
+const share = async (vehicles: Vehicle[], declined?: number[]) => {
   let run: ReturnType<typeof useShareVehicles> | undefined;
   const Probe = () => {
     run = useShareVehicles();
@@ -103,7 +103,7 @@ const share = async (vehicles: Vehicle[], requested?: number[]) => {
   render(<Probe />);
   let result: Awaited<ReturnType<ReturnType<typeof useShareVehicles>>> | undefined;
   await act(async () => {
-    result = await run!(vehicles, requested);
+    result = await run!(vehicles, declined);
   });
   return result!;
 };
@@ -266,20 +266,7 @@ it("keeps a shared vehicle's later expiry when the app asks for less", async () 
 });
 
 describe('with part of the request switched off', () => {
-  it('signs only the permissions the user kept', async () => {
-    (createPermissionsFromParams as Mock).mockReturnValue([1, 3, 4]);
-    await share([vehicle(1)], [1]);
-
-    expect(generateIpfsSources).toHaveBeenCalledWith(
-      [1],
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-    );
-    expect((setVehiclePermissions as Mock).mock.calls[0][0].permissions).toEqual([1]);
-  });
-
-  it('keeps what an updated share already grants, adding only what was kept', async () => {
+  const grantDocument = () => {
     global.fetch = vi.fn(async () => ({
       ok: true,
       json: async () => ({
@@ -290,14 +277,46 @@ describe('with part of the request switched off', () => {
         },
       }),
     })) as any;
-    await share([sharedVehicle(1)], [1]);
+  };
 
-    // Commands (2) was already granted; vehicle data (1) is added.
+  it('signs a new share without what was switched off', async () => {
+    (createPermissionsFromParams as Mock).mockReturnValue([1, 3, 4]);
+    await share([vehicle(1)], [3, 4]);
+
+    expect((generateIpfsSources as Mock).mock.calls[0][0]).toEqual([1]);
+    expect((setVehiclePermissions as Mock).mock.calls[0][0].permissions).toEqual([1]);
+  });
+
+  it('takes what was switched off off an updated share that had it', async () => {
+    grantDocument();
+    (createPermissionsFromParams as Mock).mockReturnValue([1, 2, 3]);
+    // The share has commands (2); the user switched off commands and 3.
+    await share([sharedVehicle(1)], [2, 3]);
+
+    expect((generateIpfsSources as Mock).mock.calls[0][0]).toEqual([1]);
+    expect((setVehiclePermissions as Mock).mock.calls[0][0].permissions).toEqual([1]);
+  });
+
+  it('keeps what an updated share has that was not switched off', async () => {
+    grantDocument();
+    (createPermissionsFromParams as Mock).mockReturnValue([1, 3]);
+    await share([sharedVehicle(1)], [3]);
+
+    // Commands (2) was already granted and isn't part of this request.
     expect((setVehiclePermissions as Mock).mock.calls[0][0].permissions).toEqual([1, 2]);
   });
 
+  it('narrows a bulk share of new vehicles too', async () => {
+    (createPermissionsFromParams as Mock).mockReturnValue([1, 3, 4]);
+    await share([vehicle(1), vehicle(2)], [4]);
+
+    expect((setVehiclePermissionsBulk as Mock).mock.calls[0][0].permissions).toEqual([
+      1, 3,
+    ]);
+  });
+
   it('refuses to share nothing', async () => {
-    await expect(share([vehicle(1)], [])).rejects.toThrow('No permissions provided');
+    await expect(share([vehicle(1)], [7])).rejects.toThrow('No permissions provided');
     expect(setVehiclePermissions).not.toHaveBeenCalled();
   });
 });

@@ -102,13 +102,15 @@ export const SharedStatus = ({ vehicle }: { vehicle: Vehicle }) => {
 
 /**
  * A vehicle already shared with this app. Up to date: its status and Manage.
- * Behind the request: selectable, with what an update adds. While its file
+ * Behind the request: selectable, with what an update adds and, for what the
+ * user switched off, what it removes. While its file
  * access is being checked it says so, so it doesn't jump groups later.
  */
 export const SharedVehicleRow = ({
   vehicle,
   needsUpdate,
   added,
+  removed = [],
   selected,
   onToggle,
   onManage,
@@ -117,6 +119,8 @@ export const SharedVehicleRow = ({
   needsUpdate: boolean;
   /** Labels of what an update adds. */
   added: string[];
+  /** Labels of what an update removes: switched off on the request card. */
+  removed?: string[];
   selected: boolean;
   onToggle: () => void;
   onManage: () => void;
@@ -133,6 +137,9 @@ export const SharedVehicleRow = ({
       <>
         <StatusChip tone="pending">{t('vehicle.needs_update')}</StatusChip>
         {!!added.length && <span>{t('vehicle.adds', { list: formatList(added) })}</span>}
+        {!!removed.length && (
+          <span>{t('vehicle.removes', { list: formatList(removed) })}</span>
+        )}
       </>
     );
   } else {
