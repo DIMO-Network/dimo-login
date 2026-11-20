@@ -1,0 +1,230 @@
+/* eslint-disable import/first -- vi.mock calls must precede the imports they mock */
+// The consent screen and the real share hook together: switching items off on
+// the request card must only make the grant smaller. The flow still finishes
+// and reports the vehicles to the app as usual. Only the wallet calls are
+// mocked, so this checks what would be signed and sent on-chain.
+import type { Mock } from 'vitest';
+import React from 'react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+
+// The package ships ESM only; mirror its Permission enum and 2-bit encoding.
+vi.mock('@dimo-network/transactions', () => {
+  const names = [
+    'GetNonLocationHistory',
+    'ExecuteCommands',
+    'GetCurrentLocation',
+    'GetLocationHistory',
+    'GetVINCredential',
+    'GetLiveData',
+    'GetRawData',
+    'GetApproximateLocation',
+  ];
+  const Permission: Record<string | number, string | number> = {};
+  names.forEach((name, i) => {
+    Permission[name] = i + 1;
+    Permission[i + 1] = name;
+  });
+  return {
+    Permission,
+    getPermissionsArray: (value: bigint) =>
+      names
+        .map((_, i) => i + 1)
+        .filter((p) => ((value >> BigInt(p * 2)) & BigInt(3)) === BigInt(3)),
+  };
+});
+vi.mock('../../../services/turnkeyService', () => ({
+  generateIpfsSources: vi.fn(async () => 'ipfs://signed'),
+  setVehiclePermissions: vi.fn(async () => undefined),
+  setVehiclePermissionsBulk: vi.fn(async () => undefined),
+  setVehiclePermissionsBatch: vi.fn(async () => undefined),
+  VEHICLE_PERMISSIONS_BATCH_LIMIT: 24,
+}));
+
+// What the SDK sends for a typical request: vehicle data, current location,
+// location history, VIN credential, live data and approximate location.
+const REQUEST = '10111101';
+const [VEHICLE_DATA, CURRENT_LOCATION, LOCATION_HISTORY, VIN, LIVE_DATA, APPROXIMATE] = [
+  1, 3, 4, 5, 6, 8,
+];
+const grantOf = (...permissions: number[]) =>
+  permissions
+    .reduce((acc, p) => acc | (BigInt(3) << BigInt(p * 2)), BigInt(0))
+    .toString();
+
+const mockClientId = '0x2222222222222222222222222222222222222222';
+const mockExpiration = BigInt(Date.parse('2027-10-27T12:00:00Z') / 1000);
+const newCar = {
+  tokenId: 2,
+  tokenDID: 'did:erc721:137:0xvehicles:2',
+  imageURI: '',
+  make: 'Toyota',
+  model: 'RAV4',
+  year: 2022,
+  shared: false,
+  grantExpiresAt: '',
+  permissions: '0',
+  source: '',
+};
+const secondCar = { ...newCar, tokenId: 3, make: 'Ford', model: 'F-150' };
+// Shared earlier with vehicle data only.
+const sharedCar = {
+  ...newCar,
+  tokenId: 1,
+  make: 'Tesla',
+  model: 'Model 3',
+  year: 2021,
+  shared: true,
+  grantExpiresAt: '2027-01-01T00:00:00Z',
+  permissions: grantOf(VEHICLE_DATA),
+};
+
+let mockVehicles: unknown[] = [];
+vi.mock('../../../hooks/useFetchVehicles', () => ({
+  useFetchVehicles: () => ({
+    fetchVehicles: () => Promise.resolve(),
+    vehicles: mockVehicles,
+    incompatibleVehicles: [],
+    hasNextPage: false,
+    hasPreviousPage: false,
+  }),
+}));
+const mockFinish = vi.fn();
+vi.mock('../../../hooks/useFinishShareVehicles', () => ({
+  useFinishShareVehicles: () => mockFinish,
+}));
+vi.mock('../../../context/DevCredentialsContext', () => ({
+  useDevCredentials: () => ({
+    clientId: mockClientId,
+    devLicenseAlias: 'DIMO AI',
+    redirectUri: 'https://ai.example/callback',
+    permissions: REQUEST,
+    expirationDate: mockExpiration,
+    emailRequest: 'none',
+  }),
+}));
+vi.mock('../../../context/AuthContext', () => ({
+  useAuthContext: () => ({
+    user: {
+      email: 'jun@example.com',
+      smartContractAddress: '0x1111111111111111111111111111111111111111',
+    },
+    validateSession: async () => true,
+  }),
+}));
+vi.mock('../../../context/OraclesContext', () => ({
+  useOracles: () => ({ onboardingEnabled: false }),
+}));
+vi.mock('../../../context/UIManagerContext', () => ({
+  useUIManager: () => ({
+    componentData: {},
+    setComponentData: vi.fn(),
+    setUiState: vi.fn(),
+    setBusy: vi.fn(),
+  }),
+}));
+vi.mock('@sentry/react', () => ({ captureException: vi.fn() }));
+
+import { SelectVehicles } from '../SelectVehicles';
+import {
+  generateIpfsSources,
+  setVehiclePermissions,
+  setVehiclePermissionsBatch,
+  setVehiclePermissionsBulk,
+} from '../../../services/turnkeyService';
+
+const cta = () => screen.getAllByRole('button').at(-1) as HTMLElement;
+const switchOff = (...names: RegExp[]) =>
+  names.forEach((name) => fireEvent.click(screen.getByRole('button', { name })));
+const switchOffLocation = () =>
+  switchOff(/Current location/, /Location history/, /Approximate location/);
+// The permissions in each signed grant document.
+const signed = () => (generateIpfsSources as Mock).mock.calls.map((call) => call[0]);
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  localStorage.clear();
+});
+
+it('shares a new vehicle with only what was left on, and finishes as usual', async () => {
+  mockVehicles = [newCar];
+  render(<SelectVehicles />);
+  fireEvent.click(await screen.findByLabelText(/2022 Toyota RAV4/));
+  switchOffLocation();
+  fireEvent.click(cta());
+
+  await waitFor(() => expect(mockFinish).toHaveBeenCalled());
+  const kept = [VEHICLE_DATA, VIN, LIVE_DATA];
+  expect(signed()).toEqual([kept]);
+  const grant = (setVehiclePermissions as Mock).mock.calls[0][0];
+  expect(grant.permissions).toEqual(kept);
+  expect(grant.grantee).toBe(mockClientId);
+  expect(grant.tokenId).toBe(BigInt(2));
+  expect(grant.expiration).toBe(mockExpiration);
+  // The app hears about the vehicle exactly as it would for a full grant.
+  expect(mockFinish).toHaveBeenCalledWith(
+    [{ vehicle: newCar, outcome: 'shared', expiration: mockExpiration }],
+    [],
+  );
+});
+
+it('narrows a several-vehicle share in one bulk grant too', async () => {
+  mockVehicles = [newCar, secondCar];
+  render(<SelectVehicles />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Select all' }));
+  switchOffLocation();
+  fireEvent.click(cta());
+
+  await waitFor(() => expect(mockFinish).toHaveBeenCalled());
+  const kept = [VEHICLE_DATA, VIN, LIVE_DATA];
+  expect(signed()).toEqual([kept]);
+  expect((setVehiclePermissionsBulk as Mock).mock.calls[0][0].permissions).toEqual(kept);
+  expect(setVehiclePermissions).not.toHaveBeenCalled();
+  expect(setVehiclePermissionsBatch).not.toHaveBeenCalled();
+});
+
+it('updates an earlier share with what was left on, keeping what it had', async () => {
+  mockVehicles = [sharedCar];
+  render(<SelectVehicles />);
+  expect(
+    await screen.findByText(
+      'Adds Current location, Location history, Credentials, Live data, and Approximate location',
+    ),
+  ).toBeInTheDocument();
+  switchOffLocation();
+  expect(screen.getByText('Adds Credentials and Live data')).toBeInTheDocument();
+  await waitFor(() => expect(cta()).toHaveTextContent('Update 1 vehicle'));
+  fireEvent.click(cta());
+
+  await waitFor(() => expect(mockFinish).toHaveBeenCalled());
+  const kept = [VEHICLE_DATA, VIN, LIVE_DATA];
+  expect(signed()).toEqual([kept]);
+  expect((setVehiclePermissions as Mock).mock.calls[0][0].permissions).toEqual(kept);
+  expect(mockFinish.mock.calls[0][0][0].outcome).toBe('updated');
+});
+
+it('adds location to that share when it is asked for again and left on', async () => {
+  // Shared earlier without location.
+  mockVehicles = [{ ...sharedCar, permissions: grantOf(VEHICLE_DATA, VIN, LIVE_DATA) }];
+  render(<SelectVehicles />);
+  expect(
+    await screen.findByText(
+      'Adds Current location, Location history, and Approximate location',
+    ),
+  ).toBeInTheDocument();
+  await waitFor(() => expect(cta()).toHaveTextContent('Update 1 vehicle'));
+  fireEvent.click(cta());
+
+  await waitFor(() => expect(mockFinish).toHaveBeenCalled());
+  const everything = [
+    VEHICLE_DATA,
+    CURRENT_LOCATION,
+    LOCATION_HISTORY,
+    VIN,
+    LIVE_DATA,
+    APPROXIMATE,
+  ];
+  expect(signed()).toEqual([everything]);
+  expect((setVehiclePermissions as Mock).mock.calls[0][0].permissions).toEqual(
+    everything,
+  );
+});
