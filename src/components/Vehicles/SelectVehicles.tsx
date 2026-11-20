@@ -210,8 +210,12 @@ export const SelectVehicles: React.FC = () => {
     checkIfSelected,
   } = useSelectVehicles(vehicles.filter(isSelectable), outdated);
   // A picked share that switching items off made current drops out, and comes
-  // back still picked if they're switched on again.
-  const selectedVehicles = picked.filter(isSelectable);
+  // back still picked if they're switched on again. Each is judged by its
+  // current copy in the list, which has the file check's result; the one kept
+  // when it was picked may predate it. Picks on other pages keep theirs.
+  const selectedVehicles = picked
+    .map((pick) => vehicles.find((v) => v.tokenId === pick.tokenId) ?? pick)
+    .filter(isSelectable);
   const shareVehicles = useShareVehicles();
   const finishShareVehicles = useFinishShareVehicles();
 

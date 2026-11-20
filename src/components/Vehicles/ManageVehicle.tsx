@@ -215,13 +215,16 @@ export const ManageVehicle: React.FC = () => {
         true,
       )
     : [];
-  // What the app can access once updated: what was switched off is gone.
+  // What the app can access once updated: what was switched off is gone. With
+  // no Update offered, nothing is taken off, so the grant is listed as it is.
+  const takenOff = needsUpdate ? removed : [];
+  const filesTakenOff = needsUpdate ? declined.files : [];
   const items = [
     ...grantedPermissions(currentVehicle)
-      .filter((p) => !removed.includes(p))
+      .filter((p) => !takenOff.includes(p))
       .map((p) => permissionItem(p, t)),
     ...added.map((p) => permissionItem(p, t, true)),
-    ...fileItems(withoutKinds(keptFiles, declined.files), t).filter(
+    ...fileItems(withoutKinds(keptFiles, filesTakenOff), t).filter(
       (kept) => !newFileItems.some((item) => item.id === kept.id),
     ),
     ...newFileItems,
@@ -260,10 +263,13 @@ export const ManageVehicle: React.FC = () => {
     const expiration = getNewExpirationDate(vehicle, action, expirationDate);
     try {
       // The request less what was switched off. Only Update takes switched-off
-      // permissions off the share; Extend keeps it exactly as it is.
+      // permissions off the share; Extend keeps it exactly as it is. Stop
+      // sharing is signed with the app's request, as it always was.
+      const signed =
+        action === 'revoke' ? { permissions, permissionTemplateId } : request;
       await updateVehiclePermissions({
-        permissionTemplateId: request.permissionTemplateId,
-        permissions: request.permissions,
+        permissionTemplateId: signed.permissionTemplateId,
+        permissions: signed.permissions,
         expiration,
         vehicle: currentVehicle,
         action,

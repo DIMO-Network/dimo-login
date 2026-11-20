@@ -329,6 +329,8 @@ describe('with part of the request switched off', () => {
     renderManage('11');
 
     expect(screen.queryByRole('button', { name: 'Update permissions' })).toBeNull();
+    // Nothing will be taken off, so the access is listed as it is.
+    expect(screen.getByText('Vehicle data')).toBeInTheDocument();
     // Extend keeps the share exactly as it is.
     fireEvent.click(screen.getByRole('button', { name: 'Extend 1 year' }));
     await waitFor(() => expect(mockFinish).toHaveBeenCalled());
@@ -393,4 +395,17 @@ describe('with a kind of document switched off', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/asking for more access/)).toBeNull();
   });
+});
+
+it("signs Stop sharing with the app's request, whatever was switched off", async () => {
+  saveDeclined(requestKey(mockClientId, '11'), { permissions: [1, 2], files: [] });
+  renderManage('11');
+  fireEvent.click(screen.getByRole('button', { name: 'Stop sharing' }));
+  const dialog = screen.getByRole('alertdialog', { name: 'Stop sharing this vehicle?' });
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Stop sharing' }));
+
+  await waitFor(() => expect(mockFinish).toHaveBeenCalled());
+  expect(mockUpdate).toHaveBeenCalledWith(
+    expect.objectContaining({ action: 'revoke', permissions: '11', declined: [] }),
+  );
 });

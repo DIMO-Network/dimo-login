@@ -479,3 +479,25 @@ describe('switching off a kind of document', () => {
     await waitFor(() => expect(cta()).toHaveTextContent('Update 1 vehicle'));
   });
 });
+
+it('judges a picked share by the list as it is now, not as it was when picked', async () => {
+  // The app asks for vehicle data, commands and vehicle documents. The Tesla's
+  // share has vehicle data only; its file check hasn't returned yet.
+  mockCreds.cloudEvent = { eventType: 'dimo.document.vehicle.*' };
+  mockVehicles = [{ ...mockTesla, checkingAccess: true }];
+  const { rerender } = render(<SelectVehicles />);
+  // Picked for the missing commands.
+  await waitFor(() => expect(cta()).toHaveTextContent('Update 1 vehicle'));
+
+  // The check returns: the share has no documents either.
+  const checked = { ...mockTesla, documentAccess: false, grantedFiles: [] };
+  mockVehicles = [checked];
+  rerender(<SelectVehicles />);
+  // Without commands, it still needs the documents.
+  fireEvent.click(screen.getByRole('button', { name: /Lock and unlock/ }));
+  expect(cta()).toHaveTextContent('Update 1 vehicle');
+  fireEvent.click(cta());
+
+  await waitFor(() => expect(mockShare).toHaveBeenCalled());
+  expect(mockShare.mock.calls[0][0]).toEqual([checked]);
+});
