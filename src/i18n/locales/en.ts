@@ -235,6 +235,7 @@ const en = {
   'share.title': '{{appName}} wants access to your vehicles',
   'share.access_label': 'Access requested',
   'share.also_asks': 'Now also asks for {{list}}',
+  'share.permissions_hint': 'Tap an item to leave it out of this share.',
   'share.details': 'Details',
   'share.details_label': 'What’s included and full terms',
   'share.vehicles_heading': 'Your vehicles',
@@ -258,6 +259,9 @@ const en = {
   'share.cta.update_other': 'Update {{count}} vehicles',
   'share.cta.mixed': 'Share {{share}} · Update {{update}}',
   'share.hint.select': 'Choose at least one vehicle to share.',
+  'share.hint.permissions': 'Turn on at least one item to share.',
+  'share.hint.not_only_documents':
+    'Documents can’t be shared on their own. Turn on at least one other item.',
   'share.sharing': 'Sharing…',
   'share.keep_open':
     'Keep this window open until sharing is done. It takes a few seconds per vehicle.',
@@ -292,6 +296,7 @@ const en = {
   'vehicle.shared_no_end': 'Shared, no end date',
   'vehicle.needs_update': 'Needs update',
   'vehicle.adds': 'Adds {{list}}',
+  'vehicle.removes': 'Removes {{list}}',
   'vehicle.unsupported': 'Not supported by this app',
   'vehicle.checking': 'Checking sharing terms…',
   'vehicle.manage': 'Manage',
@@ -316,6 +321,10 @@ const en = {
   'manage.access_heading': 'What {{appName}} can access',
   'manage.update_title': '{{appName}} is asking for more access',
   'manage.update_body': 'Updating adds {{list}}. Everything else stays the same.',
+  'manage.update_remove_body':
+    'Updating adds {{added}} and removes {{removed}}. Everything else stays the same.',
+  'manage.remove_title': 'Some access is switched off',
+  'manage.remove_body': 'Updating removes {{list}}. Everything else stays the same.',
   'manage.update_note': 'After the update it stays shared until {{date}}.',
   'manage.update_note_no_end': 'After the update it stays shared with no end date.',
   'manage.extend_note': 'Extending keeps this vehicle shared until {{date}}.',

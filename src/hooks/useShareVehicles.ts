@@ -1,3 +1,5 @@
+import type { Permission } from '@dimo-network/transactions';
+
 import { Vehicle } from '../models/vehicle';
 import {
   createPermissionsFromParams,
@@ -20,6 +22,7 @@ import {
   getVehicleAsset,
   GrantUnreadableError,
   mergeAgreements,
+  withoutKinds,
   readGrantAgreements,
   toCloudEventAgreements,
   withSource,
@@ -64,35 +67,55 @@ export const useShareVehicles = () => {
     return !!(await validateSession());
   };
 
-  return async (vehicles: Vehicle[]): Promise<ShareResult> => {
+  /**
+   * `declined` and `declinedFiles` (kinds of document, by label key) are what
+   * the user switched off on the request card: left out of new shares, and
+   * taken off vehicles already shared that have them.
+   */
+  return async (
+    vehicles: Vehicle[],
+    declined: Permission[] = [],
+    declinedFiles: string[] = [],
+  ): Promise<ShareResult> => {
     if (!vehicles.length) {
       throw new Error('No vehicles shared');
     }
+    const perms = createPermissionsFromParams(permissions, permissionTemplateId).filter(
+      (p) => !declined.includes(p),
+    );
+    if (declined.length && !perms.length) {
+      throw new Error('No permissions provided');
+    }
     const isValid = await validate();
     if (!isValid) throw new Error(INVALID_SESSION_ERROR);
-
-    const perms = createPermissionsFromParams(permissions, permissionTemplateId);
     const attachments = generateAttachments(region?.toUpperCase());
     const requestedAgreements = withSource(
-      toCloudEventAgreements(cloudEvent),
+      withoutKinds(toCloudEventAgreements(cloudEvent), declinedFiles),
       user?.smartContractAddress,
     );
+    // A request for files only, all switched off: nothing left to share.
+    if (declinedFiles.length && !perms.length && !requestedAgreements.length) {
+      throw new Error('No permissions provided');
+    }
 
     // A vehicle already shared with this app gets its current grant plus the
-    // request, so an update never drops access (only "Stop sharing" does):
-    // same or more permissions and files, and the later expiry. Every current
-    // grant is read and checked before anything is signed. One that can't be
+    // request, so an update drops nothing but what the user switched off
+    // (only "Stop sharing" removes the rest), and the later expiry. Every
+    // current grant is read and checked before anything is signed. One that can't be
     // carried over is left as it is and skipped, so it never blocks sharing
     // the other vehicles.
     const planGrant = async (vehicle: Vehicle) => {
       const plan = vehicle.shared
         ? {
-            permissions: mergePermissions(vehicle, perms),
+            permissions: mergePermissions(vehicle, perms, declined),
             agreements: mergeAgreements(
-              await readGrantAgreements(vehicle, {
-                grantor: user?.smartContractAddress,
-                grantee: clientId,
-              }),
+              withoutKinds(
+                await readGrantAgreements(vehicle, {
+                  grantor: user?.smartContractAddress,
+                  grantee: clientId,
+                }),
+                declinedFiles,
+              ),
               requestedAgreements,
             ),
             expiration: keepLaterExpiration(vehicle, expirationDate),

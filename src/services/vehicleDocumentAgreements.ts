@@ -62,6 +62,22 @@ export const getAgreementLabelKey = (agreement: CloudEventAgreement): Translatio
     eventTypeOf(agreement) as keyof typeof DOCUMENT_EVENT_TYPE_LABEL_KEYS
   ] ?? 'document.other';
 
+/** The agreements not of these kinds (label keys): what's left once they're switched off. */
+export const withoutKinds = (
+  agreements: CloudEventAgreement[],
+  kinds: string[],
+): CloudEventAgreement[] =>
+  kinds.length
+    ? agreements.filter((a) => !kinds.includes(getAgreementLabelKey(a)))
+    : agreements;
+
+/** Which of these kinds (label keys) the agreements include. */
+export const kindsAmong = (
+  agreements: CloudEventAgreement[],
+  kinds: string[],
+): string[] =>
+  kinds.filter((kind) => agreements.some((a) => getAgreementLabelKey(a) === kind));
+
 export const getAgreementLabel = (agreement: CloudEventAgreement): string =>
   t(getAgreementLabelKey(agreement));
 

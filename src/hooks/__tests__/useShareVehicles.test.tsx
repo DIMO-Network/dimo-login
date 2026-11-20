@@ -94,7 +94,11 @@ beforeEach(() => {
   (setVehiclePermissionsBatch as Mock).mockResolvedValue(undefined);
 });
 
-const share = async (vehicles: Vehicle[]) => {
+const share = async (
+  vehicles: Vehicle[],
+  declined?: number[],
+  declinedFiles?: string[],
+) => {
   let run: ReturnType<typeof useShareVehicles> | undefined;
   const Probe = () => {
     run = useShareVehicles();
@@ -103,7 +107,7 @@ const share = async (vehicles: Vehicle[]) => {
   render(<Probe />);
   let result: Awaited<ReturnType<ReturnType<typeof useShareVehicles>>> | undefined;
   await act(async () => {
-    result = await run!(vehicles);
+    result = await run!(vehicles, declined, declinedFiles);
   });
   return result!;
 };
@@ -263,4 +267,116 @@ it("keeps a shared vehicle's later expiry when the app asks for less", async () 
 
   const grant = (setVehiclePermissions as Mock).mock.calls[0][0];
   expect(grant.expiration).toBe(BigInt(Date.parse('2099-01-01T00:00:00Z') / 1000));
+});
+
+describe('with part of the request switched off', () => {
+  const grantDocument = () => {
+    global.fetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        data: {
+          grantor: { address: GRANTOR },
+          grantee: { address: '0xgrantee000000000000000000000000000000000' },
+          agreements: [],
+        },
+      }),
+    })) as any;
+  };
+
+  it('signs a new share without what was switched off', async () => {
+    (createPermissionsFromParams as Mock).mockReturnValue([1, 3, 4]);
+    await share([vehicle(1)], [3, 4]);
+
+    expect((generateIpfsSources as Mock).mock.calls[0][0]).toEqual([1]);
+    expect((setVehiclePermissions as Mock).mock.calls[0][0].permissions).toEqual([1]);
+  });
+
+  it('takes what was switched off off an updated share that had it', async () => {
+    grantDocument();
+    (createPermissionsFromParams as Mock).mockReturnValue([1, 2, 3]);
+    // The share has commands (2); the user switched off commands and 3.
+    await share([sharedVehicle(1)], [2, 3]);
+
+    expect((generateIpfsSources as Mock).mock.calls[0][0]).toEqual([1]);
+    expect((setVehiclePermissions as Mock).mock.calls[0][0].permissions).toEqual([1]);
+  });
+
+  it('keeps what an updated share has that was not switched off', async () => {
+    grantDocument();
+    (createPermissionsFromParams as Mock).mockReturnValue([1, 3]);
+    await share([sharedVehicle(1)], [3]);
+
+    // Commands (2) was already granted and isn't part of this request.
+    expect((setVehiclePermissions as Mock).mock.calls[0][0].permissions).toEqual([1, 2]);
+  });
+
+  it('narrows a bulk share of new vehicles too', async () => {
+    (createPermissionsFromParams as Mock).mockReturnValue([1, 3, 4]);
+    await share([vehicle(1), vehicle(2)], [4]);
+
+    expect((setVehiclePermissionsBulk as Mock).mock.calls[0][0].permissions).toEqual([
+      1, 3,
+    ]);
+  });
+
+  it('refuses to share nothing', async () => {
+    await expect(share([vehicle(1)], [7])).rejects.toThrow('No permissions provided');
+    expect(setVehiclePermissions).not.toHaveBeenCalled();
+  });
+});
+
+describe('with a kind of document switched off', () => {
+  const RAW_FILES = { eventType: 'dimo.raw.vehicle.*', tags: [] };
+
+  it('leaves it out of a new share', async () => {
+    mockCredentials.cloudEvent = [CLOUD_EVENT, RAW_FILES];
+    await share([vehicle(1)], [], ['document.vehicle']);
+
+    const opts = (generateIpfsSources as Mock).mock.calls[0][3];
+    expect(opts.cloudEventAgreements.map((a: any) => a.eventType)).toEqual([
+      'dimo.raw.vehicle.*',
+    ]);
+  });
+
+  it('takes it off an updated share that has it, keeping the rest', async () => {
+    mockCredentials.cloudEvent = [CLOUD_EVENT];
+    const did = vehicle(5).tokenDID;
+    global.fetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        data: {
+          grantor: { address: GRANTOR },
+          grantee: { address: '0xgrantee000000000000000000000000000000000' },
+          agreements: [
+            {
+              type: 'cloudevent',
+              eventType: 'dimo.raw.vehicle.*',
+              asset: did,
+              source: GRANTOR,
+            },
+            {
+              type: 'cloudevent',
+              eventType: 'dimo.document.vehicle.*',
+              asset: did,
+              source: GRANTOR,
+            },
+          ],
+        },
+      }),
+    })) as any;
+    await share([sharedVehicle(5)], [], ['document.vehicle']);
+
+    const opts = (generateIpfsSources as Mock).mock.calls[0][3];
+    expect(opts.cloudEventAgreements.map((a: any) => a.eventType)).toEqual([
+      'dimo.raw.vehicle.*',
+    ]);
+  });
+
+  it('refuses a documents-only request with every document switched off', async () => {
+    (createPermissionsFromParams as Mock).mockReturnValue([]);
+    mockCredentials.cloudEvent = [CLOUD_EVENT];
+    await expect(share([vehicle(1)], [], ['document.vehicle'])).rejects.toThrow(
+      'No permissions provided',
+    );
+  });
 });

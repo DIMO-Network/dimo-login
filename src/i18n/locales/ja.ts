@@ -222,6 +222,7 @@ const ja: LocaleResources = {
   'share.title': '{{appName}}が車両へのアクセスを求めています',
   'share.access_label': '要求されているアクセス',
   'share.also_asks': '新たに「{{list}}」を求めています',
+  'share.permissions_hint': '共有しない項目はタップして外せます。',
   'share.details': '詳細',
   'share.details_label': '内容と利用条件を確認',
   'share.vehicles_heading': 'あなたの車両',
@@ -242,6 +243,9 @@ const ja: LocaleResources = {
   'share.cta.update_other': '{{count}}台を更新',
   'share.cta.mixed': '{{share}}台を共有・{{update}}台を更新',
   'share.hint.select': '共有する車両を1台以上選んでください。',
+  'share.hint.permissions': '共有する項目を1つ以上オンにしてください。',
+  'share.hint.not_only_documents':
+    '書類だけを共有することはできません。ほかの項目を1つ以上オンにしてください。',
   'share.sharing': '共有しています…',
   'share.keep_open':
     '共有が完了するまで、このウィンドウを閉じないでください。車両1台につき数秒かかります。',
@@ -273,6 +277,7 @@ const ja: LocaleResources = {
   'vehicle.shared_no_end': '無期限で共有中',
   'vehicle.needs_update': '更新が必要',
   'vehicle.adds': '{{list}}を追加',
+  'vehicle.removes': '{{list}}を削除',
   'vehicle.unsupported': 'このアプリでは利用できません',
   'vehicle.checking': '共有条件を確認中…',
   'vehicle.manage': '管理',
@@ -296,6 +301,11 @@ const ja: LocaleResources = {
   'manage.update_title': '{{appName}}が追加のアクセスを求めています',
   'manage.update_body':
     '更新すると「{{list}}」が追加されます。その他の内容は変わりません。',
+  'manage.update_remove_body':
+    '更新すると「{{added}}」が追加され、「{{removed}}」が削除されます。その他の内容は変わりません。',
+  'manage.remove_title': '一部のアクセスがオフになっています',
+  'manage.remove_body':
+    '更新すると「{{list}}」が削除されます。その他の内容は変わりません。',
   'manage.update_note': '更新後は{{date}}まで共有が続きます。',
   'manage.update_note_no_end': '更新後も無期限で共有が続きます。',
   'manage.extend_note': '延長すると、{{date}}まで共有が続きます。',

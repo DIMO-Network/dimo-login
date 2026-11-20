@@ -4,8 +4,10 @@ import { useDevCredentials } from '../context/DevCredentialsContext';
 import { Vehicle } from '../models/vehicle';
 import { fetchVehiclesWithTransformation } from '../services/vehicleService';
 import {
-  checkDocumentAccess,
+  coversAll,
+  readGrantAgreements,
   toCloudEventAgreements,
+  withSource,
 } from '../services/vehicleDocumentAgreements';
 import { VehicleManagerMandatoryParams } from '../types';
 
@@ -34,15 +36,21 @@ export const useFetchVehicles = () => {
       .filter((vehicle) => vehicle.shared)
       .forEach(async (vehicle) => {
         // Reads are cached by grant source, so paging back doesn't refetch.
-        const documentAccess = await checkDocumentAccess(vehicle, requested, {
-          grantor: user?.smartContractAddress,
+        // A grant that can't be read leaves both undefined, so nothing is
+        // offered on a guess (as checkDocumentAccess does).
+        const grantor = user?.smartContractAddress;
+        const grantedFiles = await readGrantAgreements(vehicle, {
+          grantor,
           grantee: clientId,
-        });
+        }).catch(() => undefined);
+        const documentAccess = grantedFiles
+          ? coversAll(grantedFiles, withSource(requested, grantor))
+          : undefined;
         // Only touch the vehicle if it's still in the list shown.
         setVehicles((current) =>
           current.map((v) =>
             v.tokenId === vehicle.tokenId && v.source === vehicle.source
-              ? { ...v, documentAccess, checkingAccess: false }
+              ? { ...v, documentAccess, grantedFiles, checkingAccess: false }
               : v,
           ),
         );

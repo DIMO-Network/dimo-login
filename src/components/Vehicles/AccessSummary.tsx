@@ -2,7 +2,9 @@ import React from 'react';
 import {
   CalendarIcon,
   ChevronRightIcon,
+  PlusIcon,
   SparklesIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 
 import { Chip } from '../ui';
@@ -22,35 +24,79 @@ export const useShareEndLabel = () => {
       : t('share_end.until', { date: formatDate(end.date) });
 };
 
-const ItemChips = ({ items }: { items: AccessItem[] }) => {
+/** An item the request card can switch off: a permission or a kind of document. */
+const isSwitchable = (item: AccessItem) =>
+  item.permission !== undefined || item.fileKind !== undefined;
+
+/**
+ * The items as chips. With onToggle, each permission and kind of document is
+ * a toggle button: pressed while it's part of the share, struck through once
+ * switched off.
+ */
+const ItemChips = ({
+  items,
+  onToggle,
+  disabled = false,
+}: {
+  items: AccessItem[];
+  onToggle?: (item: AccessItem) => void;
+  disabled?: boolean;
+}) => {
   const t = useT();
   return (
     <ul className="flex flex-wrap gap-1.5">
-      {items.map(({ id, label, Icon, caution, isNew }) => (
-        <li key={id}>
+      {items.map((item) => {
+        const { id, label, Icon, caution, isNew, off } = item;
+        const toggles = !!onToggle && isSwitchable(item);
+        const ToggleIcon = off ? PlusIcon : XMarkIcon;
+        const chip = (
           <Chip
             tone="on-sheet"
-            className="font-medium"
+            className={cn(
+              'font-medium',
+              off &&
+                'bg-transparent text-muted outline-1 -outline-offset-1 outline-control-border outline-dashed',
+            )}
             icon={
               <Icon
                 aria-hidden="true"
                 className={cn(
                   'size-3.5 shrink-0',
-                  caution ? 'text-warning' : 'text-muted',
+                  caution && !off ? 'text-warning' : 'text-muted',
                 )}
               />
             }
           >
-            {label}
+            <span className={cn(off && 'line-through')}>{label}</span>
             {caution && <span className="sr-only">, {caution}</span>}
             {isNew && (
               <Chip tone="new" className="ml-0.5 px-1.5 py-0">
                 {t('chip.new')}
               </Chip>
             )}
+            {toggles && (
+              <ToggleIcon aria-hidden="true" className="-mr-0.5 size-3.5 text-muted" />
+            )}
           </Chip>
-        </li>
-      ))}
+        );
+        return (
+          <li key={id}>
+            {toggles ? (
+              <button
+                type="button"
+                aria-pressed={!off}
+                disabled={disabled}
+                onClick={() => onToggle(item)}
+                className="flex rounded-chip focus-visible:outline-hidden focus-visible:ring-[3px] focus-visible:ring-accent-soft disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {chip}
+              </button>
+            ) : (
+              chip
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 };
@@ -73,18 +119,24 @@ export interface EmailRequestItem {
  * (email, driver documents) and about their vehicles, anything new compared
  * with current shares, how long, and a way into the full terms. The screen
  * title already says who is asking. Group labels show only when both groups
- * are there.
+ * are there. With onToggleItem, each requested permission and kind of
+ * document can be switched off, leaving it out of the share.
  */
 export const AccessSummary = ({
   items,
   email,
   end,
   onDetails,
+  onToggleItem,
+  togglesDisabled = false,
 }: {
   items: AccessItem[];
   email?: EmailRequestItem;
   end: ShareEnd;
   onDetails: () => void;
+  onToggleItem?: (item: AccessItem) => void;
+  /** While a share is being sent. */
+  togglesDisabled?: boolean;
 }) => {
   const t = useT();
   const endLabel = useShareEndLabel();
@@ -93,6 +145,7 @@ export const AccessSummary = ({
   const vehicles = inGroup(items, 'vehicles');
   const hasYou = aboutYou.length > 0 || !!email;
   const labelled = hasYou && vehicles.length > 0;
+  const togglable = !!onToggleItem && items.some(isSwitchable);
 
   return (
     <section
@@ -108,7 +161,13 @@ export const AccessSummary = ({
       {hasYou && (
         <div className="flex flex-col gap-1.5">
           {labelled && <GroupLabel>{t('request.about_you')}</GroupLabel>}
-          {aboutYou.length > 0 && <ItemChips items={aboutYou} />}
+          {aboutYou.length > 0 && (
+            <ItemChips
+              items={aboutYou}
+              onToggle={onToggleItem}
+              disabled={togglesDisabled}
+            />
+          )}
           {email && (
             <EmailShareRow
               compact
@@ -124,8 +183,15 @@ export const AccessSummary = ({
       {vehicles.length > 0 && (
         <div className="flex flex-col gap-1.5">
           {labelled && <GroupLabel>{t('request.about_vehicles')}</GroupLabel>}
-          <ItemChips items={vehicles} />
+          <ItemChips
+            items={vehicles}
+            onToggle={onToggleItem}
+            disabled={togglesDisabled}
+          />
         </div>
+      )}
+      {togglable && (
+        <p className="px-0.5 text-label text-muted">{t('share.permissions_hint')}</p>
       )}
       <div className="flex items-start gap-2 text-body-sm text-fg">
         <CalendarIcon

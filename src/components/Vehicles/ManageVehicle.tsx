@@ -16,15 +16,19 @@ import {
 } from '../../hooks/useFinishShareVehicles';
 import { useUpdateVehiclePermissions } from '../../hooks/useUpdateVehiclePermissions';
 import { useEmailRequest } from '../../hooks/useEmailRequest';
-import { translateText, useT, type Text } from '../../i18n';
+import { translateText, useT, type Text, type TranslationKey } from '../../i18n';
 import { formatDate, formatList } from '../../i18n/format';
 import { SharingResult, Vehicle } from '../../models/vehicle';
 import {
   checkDocumentAccess,
   covers,
+  coversAll,
   GrantUnreadableError,
+  kindsAmong,
   readGrantAgreements,
   toCloudEventAgreements,
+  withoutKinds,
+  withSource,
 } from '../../services/vehicleDocumentAgreements';
 import {
   CloudEventAgreement,
@@ -33,7 +37,13 @@ import {
 } from '../../types';
 import { isInvalidSessionError } from '../../utils/authUtils';
 import { grantEndOf, shareEndOf } from '../../utils/dateUtils';
-import { getAddedPermissions, needsPermissionUpdate } from '../../utils/permissions';
+import { clearDeclined, loadDeclined, requestKey } from '../../utils/declinedPermissions';
+import {
+  getAddedPermissions,
+  getRemovedPermissions,
+  narrowRequest,
+  needsPermissionUpdate,
+} from '../../utils/permissions';
 import { getNewExpirationDate } from '../../utils/vehicles';
 import {
   ActionBar,
@@ -66,8 +76,9 @@ const grantedPermissions = (vehicle: Vehicle): Permission[] => {
 
 /**
  * One shared vehicle: what the app can access and until when, then Update
- * (when the app asks for more), Extend 1 year (when the share has an end
- * date), or Stop sharing after a confirmation.
+ * (when the app asks for more, or the user switched off something the share
+ * has on the request card), Extend 1 year (when the share has an end date),
+ * or Stop sharing after a confirmation.
  */
 export const ManageVehicle: React.FC = () => {
   const t = useT();
@@ -93,7 +104,7 @@ export const ManageVehicle: React.FC = () => {
     vehicle.shared && requestedFiles.length > 0 && vehicle.documentAccess === undefined;
   const [documentAccess, setDocumentAccess] = useState(vehicle.documentAccess);
   // Starts true when a check is due, so no frame offers Extend before it runs.
-  const [checking, setChecking] = useState(mustCheck);
+  const [checkingAccess, setChecking] = useState(mustCheck);
   useEffect(() => {
     if (!mustCheck) return;
     let cancelled = false;
@@ -113,6 +124,8 @@ export const ManageVehicle: React.FC = () => {
   // The files the current grant already shares. Update and Extend carry them
   // over, so they're listed rather than re-signed unseen.
   const [keptFiles, setKeptFiles] = useState<CloudEventAgreement[]>([]);
+  // undefined while reading; false when the grant couldn't be read.
+  const [grantRead, setGrantRead] = useState<boolean | undefined>(undefined);
   useEffect(() => {
     if (!vehicle.shared) return;
     let cancelled = false;
@@ -121,10 +134,14 @@ export const ManageVehicle: React.FC = () => {
       grantee: clientId,
     })
       .then((agreements) => {
-        if (!cancelled) setKeptFiles(agreements);
+        if (cancelled) return;
+        setKeptFiles(agreements);
+        setGrantRead(true);
       })
       // Unreadable grants surface their error when an action is attempted.
-      .catch(() => {});
+      .catch(() => {
+        if (!cancelled) setGrantRead(false);
+      });
     return () => {
       cancelled = true;
     };
@@ -135,15 +152,46 @@ export const ManageVehicle: React.FC = () => {
   const [error, setError] = useState<Text | null | undefined>(undefined);
   const [confirmStop, setConfirmStop] = useState(false);
 
-  const currentVehicle: Vehicle = { ...vehicle, documentAccess };
-  const needsUpdate = needsPermissionUpdate(
-    currentVehicle,
-    permissions,
-    permissionTemplateId,
-  );
-  const added = needsUpdate
-    ? getAddedPermissions([currentVehicle], permissions, permissionTemplateId)
+  // What was switched off on the request card: left out, and removed from
+  // this share if it has it.
+  const declined = loadDeclined(requestKey(clientId, permissions, permissionTemplateId));
+  const request = narrowRequest(permissions, permissionTemplateId, declined.permissions);
+  const wantedFiles = withoutKinds(requestedFiles, declined.files);
+  // With documents switched off, file access is judged by those left on, from
+  // the grant read above; until it's read, the screen says it's checking.
+  const judgingFiles = declined.files.length > 0 && vehicle.shared;
+  let fileAccess = documentAccess;
+  if (judgingFiles) {
+    fileAccess =
+      wantedFiles.length && grantRead
+        ? coversAll(keptFiles, withSource(wantedFiles, user?.smartContractAddress))
+        : undefined;
+  }
+  const checking = checkingAccess || (judgingFiles && grantRead === undefined);
+  const removedFiles = grantRead ? kindsAmong(keptFiles, declined.files) : [];
+  const currentVehicle: Vehicle = { ...vehicle, documentAccess: fileAccess };
+  const wantsUpdate =
+    needsPermissionUpdate(
+      currentVehicle,
+      request.permissions,
+      request.permissionTemplateId,
+      declined.permissions,
+    ) || removedFiles.length > 0;
+  const added = wantsUpdate
+    ? getAddedPermissions(
+        [currentVehicle],
+        request.permissions,
+        request.permissionTemplateId,
+      )
     : [];
+  const removed = getRemovedPermissions(currentVehicle, declined.permissions);
+  // With every permission switched off, an update would leave the share with
+  // none at all. That's Stop sharing, so Update isn't offered.
+  const leavesNoPermissions =
+    declined.permissions.length > 0 &&
+    !added.length &&
+    !grantedPermissions(currentVehicle).some((p) => !removed.includes(p));
+  const needsUpdate = wantsUpdate && !leavesNoPermissions;
   const grantEnd = grantEndOf(vehicle.grantExpiresAt);
   const noEnd = !!grantEnd?.noEnd;
   // Extend needs a known end date to count from; "no end" has nothing to extend.
@@ -156,23 +204,27 @@ export const ManageVehicle: React.FC = () => {
     emailRequest.required &&
     !emailRequest.granted;
 
-  const filesMissing = needsUpdate && documentAccess === false;
+  const filesMissing = needsUpdate && fileAccess === false;
   // Requested files the grant doesn't cover yet, judged as Update merges them
   // (all of a document type is wider than some ids of it). One that widens a
   // kept file is listed as New in its place.
   const newFileItems = filesMissing
     ? fileItems(
-        requestedFiles.filter(
-          (wanted) => !keptFiles.some((kept) => covers(kept, wanted)),
-        ),
+        wantedFiles.filter((wanted) => !keptFiles.some((kept) => covers(kept, wanted))),
         t,
         true,
       )
     : [];
+  // What the app can access once updated: what was switched off is gone. With
+  // no Update offered, nothing is taken off, so the grant is listed as it is.
+  const takenOff = needsUpdate ? removed : [];
+  const filesTakenOff = needsUpdate ? declined.files : [];
   const items = [
-    ...grantedPermissions(currentVehicle).map((p) => permissionItem(p, t)),
+    ...grantedPermissions(currentVehicle)
+      .filter((p) => !takenOff.includes(p))
+      .map((p) => permissionItem(p, t)),
     ...added.map((p) => permissionItem(p, t, true)),
-    ...fileItems(keptFiles, t).filter(
+    ...fileItems(withoutKinds(keptFiles, filesTakenOff), t).filter(
       (kept) => !newFileItems.some((item) => item.id === kept.id),
     ),
     ...newFileItems,
@@ -181,6 +233,10 @@ export const ManageVehicle: React.FC = () => {
       : []),
   ];
   const addedLabels = items.filter((item) => item.isNew).map((item) => item.label);
+  const removedLabels = [
+    ...removed.map((p) => permissionItem(p, t).label),
+    ...removedFiles.map((kind) => t(kind as TranslationKey)),
+  ];
 
   const nextEnd = primary
     ? shareEndOf(getNewExpirationDate(vehicle, primary, expirationDate))
@@ -206,13 +262,21 @@ export const ManageVehicle: React.FC = () => {
     setBusy(true);
     const expiration = getNewExpirationDate(vehicle, action, expirationDate);
     try {
+      // The request less what was switched off. Only Update takes switched-off
+      // permissions off the share; Extend keeps it exactly as it is. Stop
+      // sharing is signed with the app's request, as it always was.
+      const signed =
+        action === 'revoke' ? { permissions, permissionTemplateId } : request;
       await updateVehiclePermissions({
-        permissionTemplateId,
-        permissions,
+        permissionTemplateId: signed.permissionTemplateId,
+        permissions: signed.permissions,
         expiration,
         vehicle: currentVehicle,
         action,
+        declined: action === 'update' ? declined.permissions : [],
+        declinedFiles: action === 'update' ? declined.files : [],
       });
+      clearDeclined();
       if (emailNew && action !== 'revoke') emailRequest.commit();
       report(action, expiration);
     } catch (err) {
@@ -291,10 +355,21 @@ export const ManageVehicle: React.FC = () => {
 
       {needsUpdate && (
         <Notice
-          title={t('manage.update_title', { appName })}
+          title={
+            addedLabels.length || !removedLabels.length
+              ? t('manage.update_title', { appName })
+              : t('manage.remove_title')
+          }
           icon={<SparklesIcon className="size-[18px]" />}
         >
-          {t('manage.update_body', { list: formatList(addedLabels) })}
+          {removedLabels.length
+            ? addedLabels.length
+              ? t('manage.update_remove_body', {
+                  added: formatList(addedLabels),
+                  removed: formatList(removedLabels),
+                })
+              : t('manage.remove_body', { list: formatList(removedLabels) })
+            : t('manage.update_body', { list: formatList(addedLabels) })}
         </Notice>
       )}
 

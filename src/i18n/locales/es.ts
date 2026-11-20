@@ -247,6 +247,7 @@ const es: PluralLocaleResources = {
   'share.title': '{{appName}} quiere acceder a tus vehículos',
   'share.access_label': 'Acceso solicitado',
   'share.also_asks': 'Ahora también pide {{list}}',
+  'share.permissions_hint': 'Toca un elemento para no compartirlo.',
   'share.details': 'Detalles',
   'share.details_label': 'Qué incluye y condiciones completas',
   'share.vehicles_heading': 'Tus vehículos',
@@ -272,6 +273,9 @@ const es: PluralLocaleResources = {
   'share.cta.update_other': 'Actualizar {{count}} vehículos',
   'share.cta.mixed': 'Compartir {{share}} · Actualizar {{update}}',
   'share.hint.select': 'Elige al menos un vehículo para compartir.',
+  'share.hint.permissions': 'Activa al menos un elemento para compartir.',
+  'share.hint.not_only_documents':
+    'Los documentos no se pueden compartir solos. Activa al menos otro elemento.',
   'share.sharing': 'Compartiendo…',
   'share.keep_open':
     'Mantén esta ventana abierta hasta que termine. Tarda unos segundos por vehículo.',
@@ -307,6 +311,7 @@ const es: PluralLocaleResources = {
   'vehicle.shared_no_end': 'Sin vencimiento',
   'vehicle.needs_update': 'Requiere actualización',
   'vehicle.adds': 'Agrega {{list}}',
+  'vehicle.removes': 'Quita {{list}}',
   'vehicle.unsupported': 'Esta app no lo admite',
   'vehicle.checking': 'Revisando las condiciones…',
   'vehicle.manage': 'Administrar',
@@ -331,6 +336,10 @@ const es: PluralLocaleResources = {
   'manage.access_heading': 'A qué puede acceder {{appName}}',
   'manage.update_title': '{{appName}} pide más acceso',
   'manage.update_body': 'Actualizar agrega {{list}}. Todo lo demás queda igual.',
+  'manage.update_remove_body':
+    'Actualizar agrega {{added}} y quita {{removed}}. Todo lo demás queda igual.',
+  'manage.remove_title': 'Desactivaste parte del acceso',
+  'manage.remove_body': 'Actualizar quita {{list}}. Todo lo demás queda igual.',
   'manage.update_note': 'Después de actualizar, seguirá compartido hasta el {{date}}.',
   'manage.update_note_no_end':
     'Después de actualizar, seguirá compartido sin fecha de vencimiento.',

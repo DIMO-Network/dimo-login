@@ -37,6 +37,12 @@ export interface AccessItem {
   caution?: string;
   /** Requested now but not in the vehicle's current grant. */
   isNew?: boolean;
+  /** The permission this item is, so the request card can switch it off. */
+  permission?: Permission;
+  /** The kind of document this item is (its label key), likewise. */
+  fileKind?: string;
+  /** Switched off: left out of this share. */
+  off?: boolean;
   /** About the person (email, driver documents) or their vehicles. */
   group: AccessGroup;
 }
@@ -80,6 +86,7 @@ export const permissionItem = (
       description: '',
       Icon: ShieldCheckIcon,
       isNew,
+      permission,
       group: 'vehicles',
     };
   }
@@ -91,6 +98,7 @@ export const permissionItem = (
     caution:
       key === 'ExecuteCommands' ? t('permission.ExecuteCommands.caution') : undefined,
     isNew,
+    permission,
     group: 'vehicles',
   };
 };
@@ -108,6 +116,7 @@ export const fileItems = (
       labelKey === 'document.other' ? '' : t(`${labelKey}.description` as TranslationKey),
     Icon: DOCUMENT_ICONS[labelKey] ?? DocumentTextIcon,
     isNew,
+    fileKind: labelKey,
     group: PERSONAL_DOCUMENTS.includes(labelKey) ? 'you' : 'vehicles',
   }));
 

@@ -70,7 +70,11 @@ afterEach(() => {
   global.fetch = originalFetch;
 });
 
-const run = async (action: VehiclePermissionsAction) => {
+const run = async (
+  action: VehiclePermissionsAction,
+  declined?: number[],
+  declinedFiles?: string[],
+) => {
   let update: ReturnType<typeof useUpdateVehiclePermissions> | undefined;
   const Probe = () => {
     update = useUpdateVehiclePermissions();
@@ -85,7 +89,14 @@ const run = async (action: VehiclePermissionsAction) => {
     source: 'ipfs://old',
   } as Vehicle;
   await act(async () => {
-    await update!({ permissions: '11111111', expiration: BigInt(0), vehicle, action });
+    await update!({
+      permissions: '11111111',
+      expiration: BigInt(0),
+      vehicle,
+      action,
+      declined,
+      declinedFiles,
+    });
   });
   const [perms, , , opts] = (generateIpfsSources as Mock).mock.calls[0];
   return {
@@ -117,4 +128,29 @@ it("sends nothing when the current grant can't be read", async () => {
   global.fetch = vi.fn().mockRejectedValue(new Error('gateway down')) as any;
   await expect(run('extend')).rejects.toThrow("Couldn't read the current sharing terms");
   expect(setVehiclePermissions).not.toHaveBeenCalled();
+});
+
+it('update takes off what was switched off on the request card, even if granted', async () => {
+  (createPermissionsFromParams as Mock).mockReturnValue([1, 2, 7]);
+  // The grant has commands (2); the user switched off commands.
+  const signed = await run('update', [2]);
+  expect(signed.perms).toEqual([1, 7]);
+  expect((setVehiclePermissions as Mock).mock.calls[0][0].permissions).toEqual([1, 7]);
+});
+
+it('refuses an update that would leave no permissions', async () => {
+  (createPermissionsFromParams as Mock).mockReturnValue([2]);
+  await expect(run('update', [2])).rejects.toThrow('No permissions provided');
+  expect(setVehiclePermissions).not.toHaveBeenCalled();
+});
+
+it('update takes a switched-off kind of document off the share', async () => {
+  // The grant has original vehicle files; the app asks for vehicle documents.
+  const signed = await run('update', [], ['document.raw_vehicle']);
+  expect(signed.eventTypes).toEqual(['dimo.document.vehicle.*']);
+});
+
+it("update doesn't add a requested kind that's switched off", async () => {
+  const signed = await run('update', [], ['document.vehicle']);
+  expect(signed.eventTypes).toEqual(['dimo.raw.vehicle.*']);
 });

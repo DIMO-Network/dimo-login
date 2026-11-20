@@ -1,6 +1,7 @@
 import { Permission } from '@dimo-network/transactions';
 
 import { VehicleNode } from '../services/identityService';
+import type { CloudEventAgreement } from '../types';
 
 export interface Vehicle {
   tokenId: number;
@@ -19,6 +20,10 @@ export interface Vehicle {
   // Whether the grant already includes the requested file agreements;
   // undefined when no files are requested or it couldn't be determined.
   documentAccess?: boolean;
+  // The file agreements the grant shares now, read with that check; undefined
+  // until read or when the grant can't be read. Lets the list judge file
+  // access by what the user leaves switched on, and see what an update removes.
+  grantedFiles?: CloudEventAgreement[];
   // True while that file check is running, so the list can say so instead of
   // showing the share as up to date and then flipping it to "Needs update".
   checkingAccess?: boolean;

@@ -41,6 +41,13 @@ export const createPermissionsByString = (permissionString: string): Permission[
     .map(([permission]) => permission);
 };
 
+/** The inverse of createPermissionsByString: one '1' or '0' per permission. */
+export const permissionsToString = (permissions: Permission[]): string =>
+  Object.entries(PERMISSIONS)
+    .filter(([key]) => isNaN(Number(key)))
+    .map(([, value]) => (permissions.includes(Permission[value]) ? '1' : '0'))
+    .join('');
+
 export const createPermissionsFromParams = (
   permissionString: string = '',
   permissionTemplateId?: string,
