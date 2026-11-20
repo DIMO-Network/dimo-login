@@ -94,7 +94,7 @@ beforeEach(() => {
   (setVehiclePermissionsBatch as Mock).mockResolvedValue(undefined);
 });
 
-const share = async (vehicles: Vehicle[]) => {
+const share = async (vehicles: Vehicle[], requested?: number[]) => {
   let run: ReturnType<typeof useShareVehicles> | undefined;
   const Probe = () => {
     run = useShareVehicles();
@@ -103,7 +103,7 @@ const share = async (vehicles: Vehicle[]) => {
   render(<Probe />);
   let result: Awaited<ReturnType<ReturnType<typeof useShareVehicles>>> | undefined;
   await act(async () => {
-    result = await run!(vehicles);
+    result = await run!(vehicles, requested);
   });
   return result!;
 };
@@ -263,4 +263,41 @@ it("keeps a shared vehicle's later expiry when the app asks for less", async () 
 
   const grant = (setVehiclePermissions as Mock).mock.calls[0][0];
   expect(grant.expiration).toBe(BigInt(Date.parse('2099-01-01T00:00:00Z') / 1000));
+});
+
+describe('with part of the request switched off', () => {
+  it('signs only the permissions the user kept', async () => {
+    (createPermissionsFromParams as Mock).mockReturnValue([1, 3, 4]);
+    await share([vehicle(1)], [1]);
+
+    expect(generateIpfsSources).toHaveBeenCalledWith(
+      [1],
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+    );
+    expect((setVehiclePermissions as Mock).mock.calls[0][0].permissions).toEqual([1]);
+  });
+
+  it('keeps what an updated share already grants, adding only what was kept', async () => {
+    global.fetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        data: {
+          grantor: { address: GRANTOR },
+          grantee: { address: '0xgrantee000000000000000000000000000000000' },
+          agreements: [],
+        },
+      }),
+    })) as any;
+    await share([sharedVehicle(1)], [1]);
+
+    // Commands (2) was already granted; vehicle data (1) is added.
+    expect((setVehiclePermissions as Mock).mock.calls[0][0].permissions).toEqual([1, 2]);
+  });
+
+  it('refuses to share nothing', async () => {
+    await expect(share([vehicle(1)], [])).rejects.toThrow('No permissions provided');
+    expect(setVehiclePermissions).not.toHaveBeenCalled();
+  });
 });

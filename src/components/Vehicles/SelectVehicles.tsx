@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useMemo, useState } from 'react';
 import { captureException } from '@sentry/react';
+import type { Permission } from '@dimo-network/transactions';
 
 import { useAuthContext } from '../../context/AuthContext';
 import { useDevCredentials } from '../../context/DevCredentialsContext';
@@ -23,6 +24,7 @@ import { SharingResult, Vehicle } from '../../models/vehicle';
 import {
   createPermissionsFromParams,
   getTemplateDescription,
+  permissionsToString,
 } from '../../services/permissionsService';
 import {
   getMissingFileLabels,
@@ -42,7 +44,7 @@ import { getRedirectHost } from '../../utils/urlHelpers';
 import { keepLaterExpiration } from '../../utils/vehicles';
 import { LegalNotice } from '../Shared/LegalNotice';
 import { ActionBar, Button, ErrorBox, Notice, Screen, ScreenHeader } from '../ui';
-import { emailItem, fileItems, permissionItem } from './access';
+import { AccessItem, emailItem, fileItems, permissionItem } from './access';
 import { getShareButtonLabel } from './shareButtonLabel';
 import { AccessSummary } from './AccessSummary';
 import { EmptyState } from './EmptyState';
@@ -118,21 +120,47 @@ export const SelectVehicles: React.FC = () => {
   const [sharing, setSharing] = useState(false);
   const [shareError, setShareError] = useState<Text | null | undefined>(undefined);
   const [termsOpen, setTermsOpen] = useState(false);
+  // Requested permissions the user switched off on the request card.
+  const [declined, setDeclined] = useState<Permission[]>([]);
+
+  // What the app asks for, and what's new compared with the shares it has.
+  const requestedPermissions = useMemo(() => {
+    try {
+      return createPermissionsFromParams(permissions, permissionTemplateId);
+    } catch (error) {
+      console.error('Could not read the requested permissions:', error);
+      return [];
+    }
+  }, [permissions, permissionTemplateId]);
+  // What this share grants: the request less what was switched off. Until
+  // something is, it's the app's request exactly as sent.
+  const chosenPermissions = requestedPermissions.filter((p) => !declined.includes(p));
+  const request = declined.length
+    ? {
+        permissions: permissionsToString(chosenPermissions),
+        permissionTemplateId: undefined,
+      }
+    : { permissions, permissionTemplateId };
+  const noPermissions = requestedPermissions.length > 0 && !chosenPermissions.length;
 
   // A share made with older terms can be shared again: the new grant replaces
-  // the old one and keeps what it had (see useShareVehicles).
+  // the old one and keeps what it had (see useShareVehicles). Judged by what's
+  // switched on, so a share missing only what the user leaves out is current.
   const needsUpdate = (vehicle: Vehicle) =>
-    needsPermissionUpdate(vehicle, permissions, permissionTemplateId);
+    needsPermissionUpdate(vehicle, request.permissions, request.permissionTemplateId);
   const isSelectable = (vehicle: Vehicle) => !vehicle.shared || needsUpdate(vehicle);
   const outdated = vehicles.filter(needsUpdate);
   const {
-    selectedVehicles,
+    selectedVehicles: picked,
     handleVehicleSelect,
     handleToggleSelectAll,
     clearSelectedVehicles,
     allSelected,
     checkIfSelected,
   } = useSelectVehicles(vehicles.filter(isSelectable), outdated);
+  // A picked share that switching items off made current drops out, and comes
+  // back still picked if they're switched on again.
+  const selectedVehicles = picked.filter(isSelectable);
   const shareVehicles = useShareVehicles();
   const finishShareVehicles = useFinishShareVehicles();
 
@@ -152,34 +180,43 @@ export const SelectVehicles: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // What the app asks for, and what's new compared with the shares it has.
-  const requestedPermissions = useMemo(() => {
-    try {
-      return createPermissionsFromParams(permissions, permissionTemplateId);
-    } catch (error) {
-      console.error('Could not read the requested permissions:', error);
-      return [];
-    }
-  }, [permissions, permissionTemplateId]);
+  // "New" marks what the app asks for beyond its current shares, whether or
+  // not it's switched on.
   const requestedFiles = toCloudEventAgreements(cloudEvent);
+  const appOutdated = vehicles.filter((v) =>
+    needsPermissionUpdate(v, permissions, permissionTemplateId),
+  );
   const addedPermissions = getAddedPermissions(
-    outdated,
+    appOutdated,
     permissions,
     permissionTemplateId,
   );
-  const filesMissing = outdated.some((v) => v.documentAccess === false);
-  const items = [
-    ...requestedPermissions.map((p) =>
-      permissionItem(p, t, addedPermissions.includes(p)),
-    ),
+  const filesMissing = appOutdated.some((v) => v.documentAccess === false);
+  const items: AccessItem[] = [
+    ...requestedPermissions.map((p) => ({
+      ...permissionItem(p, t, addedPermissions.includes(p)),
+      off: declined.includes(p),
+    })),
     ...fileItems(requestedFiles, t, filesMissing),
   ];
+  const sharedItems = items.filter((item) => !item.off);
+  const togglePermission = ({ permission }: AccessItem) => {
+    if (permission === undefined || sharing) return;
+    setShareError(undefined);
+    setDeclined((current) =>
+      current.includes(permission)
+        ? current.filter((p) => p !== permission)
+        : [...current, permission],
+    );
+  };
   const end = shareEndOf(expirationDate);
 
   const addedFor = (vehicle: Vehicle) => [
-    ...getAddedPermissions([vehicle], permissions, permissionTemplateId).map(
-      getPermissionLabel,
-    ),
+    ...getAddedPermissions(
+      [vehicle],
+      request.permissions,
+      request.permissionTemplateId,
+    ).map(getPermissionLabel),
     ...getMissingFileLabels([vehicle], requestedFiles),
   ];
 
@@ -203,7 +240,10 @@ export const SelectVehicles: React.FC = () => {
     setSharing(true);
     setBusy(true);
     try {
-      const { shared: done, skipped } = await shareVehicles(selectedVehicles);
+      const { shared: done, skipped } = await shareVehicles(
+        selectedVehicles,
+        declined.length ? chosenPermissions : undefined,
+      );
       const results: SharingResult[] = done.map((vehicle) => ({
         vehicle,
         outcome: vehicle.shared ? 'updated' : 'shared',
@@ -249,8 +289,13 @@ export const SelectVehicles: React.FC = () => {
   };
 
   const handleManage = (vehicle: Vehicle) => {
-    // Keeps the requested permissions VehicleManager put in componentData.
-    setComponentData({ ...componentData, vehicle });
+    // The request VehicleManager put in componentData, less what's switched
+    // off here, so Update on the next screen grants the same.
+    setComponentData({
+      ...componentData,
+      ...(declined.length ? request : {}),
+      vehicle,
+    });
     setUiState(UiStates.MANAGE_VEHICLE, { setBack: true });
   };
 
@@ -263,8 +308,8 @@ export const SelectVehicles: React.FC = () => {
     getTemplateDescription({
       email: user?.email ?? '',
       devLicenseAlias: appName,
-      permissions,
-      permissionTemplateId,
+      permissions: request.permissions,
+      permissionTemplateId: request.permissionTemplateId,
       fileAgreements: requestedFiles,
       expirationDate,
       region: region?.toUpperCase(),
@@ -274,6 +319,7 @@ export const SelectVehicles: React.FC = () => {
   // The action bar explains a disabled button, or asks to keep the window open.
   let hint: string | undefined;
   if (sharing) hint = t('share.keep_open');
+  else if (!nothingToShare && noPermissions) hint = t('share.hint.permissions');
   else if (!nothingToShare && loaded && !selectedVehicles.length)
     hint = t('share.hint.select');
 
@@ -289,7 +335,7 @@ export const SelectVehicles: React.FC = () => {
           onClick={handleShare}
           loading={sharing}
           loadingLabel={t('share.sharing')}
-          disabled={!loaded || !selectedVehicles.length}
+          disabled={!loaded || !selectedVehicles.length || noPermissions}
           disabledReasonId={hintId}
         >
           {shareError !== undefined ? t('common.try_again') : ctaLabel}
@@ -324,6 +370,7 @@ export const SelectVehicles: React.FC = () => {
         }
         end={end}
         onDetails={() => setTermsOpen(true)}
+        onTogglePermission={togglePermission}
       />
 
       {noVehicles ? (
@@ -439,8 +486,8 @@ export const SelectVehicles: React.FC = () => {
         onClose={() => setTermsOpen(false)}
         items={
           emailRequest.asked && emailRequest.shared && emailRequest.email
-            ? [emailItem(emailRequest.email, t), ...items]
-            : items
+            ? [emailItem(emailRequest.email, t), ...sharedItems]
+            : sharedItems
         }
         end={end}
         contract={contract}

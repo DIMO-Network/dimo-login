@@ -222,6 +222,7 @@ const ja: LocaleResources = {
   'share.title': '{{appName}}が車両へのアクセスを求めています',
   'share.access_label': '要求されているアクセス',
   'share.also_asks': '新たに「{{list}}」を求めています',
+  'share.permissions_hint': '共有しない項目はタップして外せます。',
   'share.details': '詳細',
   'share.details_label': '内容と利用条件を確認',
   'share.vehicles_heading': 'あなたの車両',
@@ -242,6 +243,7 @@ const ja: LocaleResources = {
   'share.cta.update_other': '{{count}}台を更新',
   'share.cta.mixed': '{{share}}台を共有・{{update}}台を更新',
   'share.hint.select': '共有する車両を1台以上選んでください。',
+  'share.hint.permissions': '共有する項目を1つ以上オンにしてください。',
   'share.sharing': '共有しています…',
   'share.keep_open':
     '共有が完了するまで、このウィンドウを閉じないでください。車両1台につき数秒かかります。',

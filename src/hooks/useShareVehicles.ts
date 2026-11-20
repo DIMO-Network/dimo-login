@@ -1,3 +1,5 @@
+import type { Permission } from '@dimo-network/transactions';
+
 import { Vehicle } from '../models/vehicle';
 import {
   createPermissionsFromParams,
@@ -64,14 +66,22 @@ export const useShareVehicles = () => {
     return !!(await validateSession());
   };
 
-  return async (vehicles: Vehicle[]): Promise<ShareResult> => {
+  /**
+   * `requested` is what the user kept of the app's request, when they
+   * switched something off; it defaults to the whole request.
+   */
+  return async (vehicles: Vehicle[], requested?: Permission[]): Promise<ShareResult> => {
     if (!vehicles.length) {
       throw new Error('No vehicles shared');
+    }
+    if (requested && !requested.length) {
+      throw new Error('No permissions provided');
     }
     const isValid = await validate();
     if (!isValid) throw new Error(INVALID_SESSION_ERROR);
 
-    const perms = createPermissionsFromParams(permissions, permissionTemplateId);
+    const perms =
+      requested ?? createPermissionsFromParams(permissions, permissionTemplateId);
     const attachments = generateAttachments(region?.toUpperCase());
     const requestedAgreements = withSource(
       toCloudEventAgreements(cloudEvent),

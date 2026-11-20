@@ -1,6 +1,6 @@
 /* eslint-disable import/first -- vi.mock calls must precede the imports they mock */
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 // The package ships ESM only; mirror its Permission enum and 2-bit encoding.
 vi.mock('@dimo-network/transactions', () => {
@@ -308,4 +308,78 @@ it('still shows a share with the app on a vehicle outside its filters', async ()
   expect(
     screen.getByRole('button', { name: /Manage sharing for .*Tesla/ }),
   ).toBeInTheDocument();
+});
+
+describe('switching off part of the request', () => {
+  // The mocked Permission enum numbers them as the SDK does.
+  const VEHICLE_DATA = 1;
+  const chip = (name: RegExp) => screen.getByRole('button', { name });
+
+  it('leaves a switched-off permission out of the share and the terms', async () => {
+    render(<SelectVehicles />);
+    await screen.findByText('Needs update');
+    expect(screen.getByText('Tap an item to leave it out of this share.')).toBeVisible();
+    expect(chip(/Lock and unlock/)).toHaveAttribute('aria-pressed', 'true');
+
+    fireEvent.click(chip(/Lock and unlock/));
+    expect(chip(/Lock and unlock/)).toHaveAttribute('aria-pressed', 'false');
+    // The Tesla lacked only commands, so its share is current without them.
+    expect(screen.queryByText('Needs update')).toBeNull();
+    expect(cta()).toHaveTextContent('Select a vehicle');
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'What’s included and full terms' }),
+    );
+    const terms = screen.getByRole('dialog');
+    expect(within(terms).getByText('Vehicle data')).toBeInTheDocument();
+    expect(within(terms).queryByText('Lock and unlock')).toBeNull();
+    fireEvent.click(within(terms).getAllByRole('button').at(-1) as HTMLElement);
+
+    fireEvent.click(screen.getByLabelText(/2022 Toyota RAV4/));
+    fireEvent.click(cta());
+    await waitFor(() => expect(mockShare).toHaveBeenCalled());
+    expect(mockShare).toHaveBeenCalledWith([mockRav4], [VEHICLE_DATA]);
+  });
+
+  it('brings a picked update back when its permission is switched on again', async () => {
+    render(<SelectVehicles />);
+    await waitFor(() => expect(cta()).toHaveTextContent('Update 1 vehicle'));
+
+    fireEvent.click(chip(/Lock and unlock/));
+    expect(cta()).toHaveTextContent('Select a vehicle');
+    fireEvent.click(chip(/Lock and unlock/));
+    expect(await screen.findByText('Needs update')).toBeInTheDocument();
+    expect(cta()).toHaveTextContent('Update 1 vehicle');
+
+    fireEvent.click(cta());
+    await waitFor(() => expect(mockShare).toHaveBeenCalled());
+    // Nothing switched off: the app's request as sent.
+    expect(mockShare).toHaveBeenCalledWith([mockTesla], undefined);
+  });
+
+  it("won't share with every permission switched off", async () => {
+    render(<SelectVehicles />);
+    await screen.findByText('Needs update');
+    fireEvent.click(screen.getByLabelText(/2022 Toyota RAV4/));
+    fireEvent.click(chip(/Vehicle data/));
+    fireEvent.click(chip(/Lock and unlock/));
+
+    expect(screen.getByText('Turn on at least one item to share.')).toBeInTheDocument();
+    expect(cta()).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(cta());
+    expect(mockShare).not.toHaveBeenCalled();
+  });
+
+  it('hands Manage the request without what was switched off', async () => {
+    render(<SelectVehicles />);
+    await screen.findByText('Needs update');
+    fireEvent.click(chip(/Lock and unlock/));
+    fireEvent.click(screen.getByRole('button', { name: /Manage sharing for .*Tesla/ }));
+
+    expect(mockUi.setComponentData).toHaveBeenCalledWith({
+      permissions: '10000000',
+      permissionTemplateId: undefined,
+      vehicle: mockTesla,
+    });
+  });
 });

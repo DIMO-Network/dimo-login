@@ -247,6 +247,7 @@ const es: PluralLocaleResources = {
   'share.title': '{{appName}} quiere acceder a tus vehículos',
   'share.access_label': 'Acceso solicitado',
   'share.also_asks': 'Ahora también pide {{list}}',
+  'share.permissions_hint': 'Toca un elemento para no compartirlo.',
   'share.details': 'Detalles',
   'share.details_label': 'Qué incluye y condiciones completas',
   'share.vehicles_heading': 'Tus vehículos',
@@ -272,6 +273,7 @@ const es: PluralLocaleResources = {
   'share.cta.update_other': 'Actualizar {{count}} vehículos',
   'share.cta.mixed': 'Compartir {{share}} · Actualizar {{update}}',
   'share.hint.select': 'Elige al menos un vehículo para compartir.',
+  'share.hint.permissions': 'Activa al menos un elemento para compartir.',
   'share.sharing': 'Compartiendo…',
   'share.keep_open':
     'Mantén esta ventana abierta hasta que termine. Tarda unos segundos por vehículo.',

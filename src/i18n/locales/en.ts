@@ -235,6 +235,7 @@ const en = {
   'share.title': '{{appName}} wants access to your vehicles',
   'share.access_label': 'Access requested',
   'share.also_asks': 'Now also asks for {{list}}',
+  'share.permissions_hint': 'Tap an item to leave it out of this share.',
   'share.details': 'Details',
   'share.details_label': 'What’s included and full terms',
   'share.vehicles_heading': 'Your vehicles',
@@ -258,6 +259,7 @@ const en = {
   'share.cta.update_other': 'Update {{count}} vehicles',
   'share.cta.mixed': 'Share {{share}} · Update {{update}}',
   'share.hint.select': 'Choose at least one vehicle to share.',
+  'share.hint.permissions': 'Turn on at least one item to share.',
   'share.sharing': 'Sharing…',
   'share.keep_open':
     'Keep this window open until sharing is done. It takes a few seconds per vehicle.',
