@@ -75,6 +75,7 @@ import { getEmailChoice } from '../../../services/storageService';
 import {
   clearDeclined,
   loadDeclined,
+  NOTHING_DECLINED,
   requestKey,
   saveDeclined,
 } from '../../../utils/declinedPermissions';
@@ -294,7 +295,7 @@ describe('with part of the request switched off', () => {
 
   it('offers to remove a switched-off permission the share has', async () => {
     // The app asks for vehicle data and commands; the user switched commands off.
-    saveDeclined(requestKey(mockClientId, '11'), [COMMANDS]);
+    saveDeclined(requestKey(mockClientId, '11'), { permissions: [COMMANDS], files: [] });
     mockUi.componentData = { vehicle: fullyShared(), permissions: '11' };
     render(<ManageVehicle />);
 
@@ -316,12 +317,15 @@ describe('with part of the request switched off', () => {
         declined: [COMMANDS],
       }),
     );
-    expect(loadDeclined(requestKey(mockClientId, '11'))).toEqual([]);
+    expect(loadDeclined(requestKey(mockClientId, '11'))).toEqual(NOTHING_DECLINED);
   });
 
   it('offers no Update that would leave the share with nothing', async () => {
     // Everything the app asks for is switched off.
-    saveDeclined(requestKey(mockClientId, '11'), [VEHICLE_DATA, COMMANDS]);
+    saveDeclined(requestKey(mockClientId, '11'), {
+      permissions: [VEHICLE_DATA, COMMANDS],
+      files: [],
+    });
     renderManage('11');
 
     expect(screen.queryByRole('button', { name: 'Update permissions' })).toBeNull();
@@ -335,10 +339,58 @@ describe('with part of the request switched off', () => {
 
   it('does not ask for what was switched off', () => {
     // The app asks for commands too, but the user switched it off.
-    saveDeclined(requestKey(mockClientId, '11'), [COMMANDS]);
+    saveDeclined(requestKey(mockClientId, '11'), { permissions: [COMMANDS], files: [] });
     renderManage('11');
 
     expect(screen.queryByText('Acme is asking for more access')).toBeNull();
     expect(screen.getByRole('button', { name: 'Extend 1 year' })).toBeInTheDocument();
+  });
+});
+
+describe('with a kind of document switched off', () => {
+  const RAW = { eventType: 'dimo.raw.vehicle.*', ids: [], tags: [] };
+  const DOCS = { eventType: 'dimo.document.vehicle.*', ids: [], tags: [] };
+
+  it('offers to remove it from a share that has it, and passes it to Update', async () => {
+    // The share has vehicle data and original files; the app asks for both
+    // kinds of document, and the user switched original files off.
+    mockCreds.cloudEvent = [DOCS, RAW];
+    mockReadGrant.mockResolvedValue([{ ...RAW, source: mockUser.smartContractAddress }]);
+    saveDeclined(requestKey(mockClientId, '1'), {
+      permissions: [],
+      files: ['document.raw_vehicle'],
+    });
+    renderManage('1');
+
+    expect(
+      await screen.findByText(
+        'Updating adds Vehicle documents and removes Original vehicle document files. Everything else stays the same.',
+      ),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Update permissions' }));
+
+    await waitFor(() => expect(mockFinishShare).toHaveBeenCalled());
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'update',
+        declined: [],
+        declinedFiles: ['document.raw_vehicle'],
+      }),
+    );
+  });
+
+  it("doesn't ask for a kind that's switched off", async () => {
+    mockCreds.cloudEvent = [RAW];
+    // The share has no files; the app asks for original files, switched off.
+    saveDeclined(requestKey(mockClientId, '1'), {
+      permissions: [],
+      files: ['document.raw_vehicle'],
+    });
+    renderManage('1');
+
+    expect(
+      await screen.findByRole('button', { name: 'Extend 1 year' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/asking for more access/)).toBeNull();
   });
 });

@@ -22,6 +22,7 @@ import {
   getVehicleAsset,
   GrantUnreadableError,
   mergeAgreements,
+  withoutKinds,
   readGrantAgreements,
   toCloudEventAgreements,
   withSource,
@@ -67,12 +68,14 @@ export const useShareVehicles = () => {
   };
 
   /**
-   * `declined` is what the user switched off on the request card: left out of
-   * new shares, and taken off vehicles already shared that have it.
+   * `declined` and `declinedFiles` (kinds of document, by label key) are what
+   * the user switched off on the request card: left out of new shares, and
+   * taken off vehicles already shared that have them.
    */
   return async (
     vehicles: Vehicle[],
     declined: Permission[] = [],
+    declinedFiles: string[] = [],
   ): Promise<ShareResult> => {
     if (!vehicles.length) {
       throw new Error('No vehicles shared');
@@ -87,15 +90,18 @@ export const useShareVehicles = () => {
     if (!isValid) throw new Error(INVALID_SESSION_ERROR);
     const attachments = generateAttachments(region?.toUpperCase());
     const requestedAgreements = withSource(
-      toCloudEventAgreements(cloudEvent),
+      withoutKinds(toCloudEventAgreements(cloudEvent), declinedFiles),
       user?.smartContractAddress,
     );
+    // A request for files only, all switched off: nothing left to share.
+    if (declinedFiles.length && !perms.length && !requestedAgreements.length) {
+      throw new Error('No permissions provided');
+    }
 
     // A vehicle already shared with this app gets its current grant plus the
     // request, so an update drops nothing but what the user switched off
-    // (only "Stop sharing" removes the rest): the same files or more, and
-    // the later expiry. Every current
-    // grant is read and checked before anything is signed. One that can't be
+    // (only "Stop sharing" removes the rest), and the later expiry. Every
+    // current grant is read and checked before anything is signed. One that can't be
     // carried over is left as it is and skipped, so it never blocks sharing
     // the other vehicles.
     const planGrant = async (vehicle: Vehicle) => {
@@ -103,10 +109,13 @@ export const useShareVehicles = () => {
         ? {
             permissions: mergePermissions(vehicle, perms, declined),
             agreements: mergeAgreements(
-              await readGrantAgreements(vehicle, {
-                grantor: user?.smartContractAddress,
-                grantee: clientId,
-              }),
+              withoutKinds(
+                await readGrantAgreements(vehicle, {
+                  grantor: user?.smartContractAddress,
+                  grantee: clientId,
+                }),
+                declinedFiles,
+              ),
               requestedAgreements,
             ),
             expiration: keepLaterExpiration(vehicle, expirationDate),

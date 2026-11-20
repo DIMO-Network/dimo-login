@@ -225,6 +225,7 @@ const zhHans: LocaleResources = {
   'share.cta.mixed': '共享{{share}}辆 · 更新{{update}}辆',
   'share.hint.select': '请至少选择一辆要共享的车辆。',
   'share.hint.permissions': '请至少开启一项要共享的内容。',
+  'share.hint.not_only_documents': '不能只共享文件。请至少再开启一项其他内容。',
   'share.sharing': '正在共享…',
   'share.keep_open': '共享完成前请勿关闭此窗口。每辆车需要几秒钟。',
   'share.error.title': '无法共享你的车辆',

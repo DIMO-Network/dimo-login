@@ -70,7 +70,11 @@ afterEach(() => {
   global.fetch = originalFetch;
 });
 
-const run = async (action: VehiclePermissionsAction, declined?: number[]) => {
+const run = async (
+  action: VehiclePermissionsAction,
+  declined?: number[],
+  declinedFiles?: string[],
+) => {
   let update: ReturnType<typeof useUpdateVehiclePermissions> | undefined;
   const Probe = () => {
     update = useUpdateVehiclePermissions();
@@ -91,6 +95,7 @@ const run = async (action: VehiclePermissionsAction, declined?: number[]) => {
       vehicle,
       action,
       declined,
+      declinedFiles,
     });
   });
   const [perms, , , opts] = (generateIpfsSources as Mock).mock.calls[0];
@@ -137,4 +142,15 @@ it('refuses an update that would leave no permissions', async () => {
   (createPermissionsFromParams as Mock).mockReturnValue([2]);
   await expect(run('update', [2])).rejects.toThrow('No permissions provided');
   expect(setVehiclePermissions).not.toHaveBeenCalled();
+});
+
+it('update takes a switched-off kind of document off the share', async () => {
+  // The grant has original vehicle files; the app asks for vehicle documents.
+  const signed = await run('update', [], ['document.raw_vehicle']);
+  expect(signed.eventTypes).toEqual(['dimo.document.vehicle.*']);
+});
+
+it("update doesn't add a requested kind that's switched off", async () => {
+  const signed = await run('update', [], ['document.vehicle']);
+  expect(signed.eventTypes).toEqual(['dimo.raw.vehicle.*']);
 });

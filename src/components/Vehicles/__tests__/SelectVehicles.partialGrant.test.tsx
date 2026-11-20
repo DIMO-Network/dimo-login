@@ -92,6 +92,7 @@ const mockFinish = vi.fn();
 vi.mock('../../../hooks/useFinishShareVehicles', () => ({
   useFinishShareVehicles: () => mockFinish,
 }));
+const mockCreds: Record<string, unknown> = {};
 vi.mock('../../../context/DevCredentialsContext', () => ({
   useDevCredentials: () => ({
     clientId: mockClientId,
@@ -100,6 +101,7 @@ vi.mock('../../../context/DevCredentialsContext', () => ({
     permissions: REQUEST,
     expirationDate: mockExpiration,
     emailRequest: 'none',
+    ...mockCreds,
   }),
 }));
 vi.mock('../../../context/AuthContext', () => ({
@@ -126,6 +128,7 @@ vi.mock('@sentry/react', () => ({ captureException: vi.fn() }));
 
 import { SelectVehicles } from '../SelectVehicles';
 import { clearDeclined } from '../../../utils/declinedPermissions';
+import { clearGrantReadCache } from '../../../services/vehicleDocumentAgreements';
 import {
   generateIpfsSources,
   setVehiclePermissions,
@@ -141,10 +144,16 @@ const switchOffLocation = () =>
 // The permissions in each signed grant document.
 const signed = () => (generateIpfsSources as Mock).mock.calls.map((call) => call[0]);
 
+const originalFetch = global.fetch;
 beforeEach(() => {
   vi.clearAllMocks();
   localStorage.clear();
   clearDeclined();
+  clearGrantReadCache();
+  Object.keys(mockCreds).forEach((key) => delete mockCreds[key]);
+});
+afterEach(() => {
+  global.fetch = originalFetch;
 });
 
 it('shares a new vehicle with only what was left on, and finishes as usual', async () => {
@@ -275,4 +284,171 @@ it('keeps a permission the app no longer asks for, since it was never switched o
 
   await waitFor(() => expect(mockFinish).toHaveBeenCalled());
   expect(signed()).toEqual([[VEHICLE_DATA, VIN, LIVE_DATA, RAW_DATA]]);
+});
+
+describe('every permission', () => {
+  // Labels as the request card shows them, by permission number.
+  const LABELS: [number, RegExp][] = [
+    [1, /Vehicle data/],
+    [2, /Lock and unlock/],
+    [3, /Current location/],
+    [4, /Location history/],
+    [5, /Credentials/],
+    [6, /Live data/],
+    [7, /Raw data/],
+    [8, /Approximate location/],
+  ];
+  const ALL = LABELS.map(([p]) => p);
+
+  it.each(LABELS)(
+    'permission %i comes off a share that has it when switched off later',
+    async (permission, label) => {
+      mockCreds.permissions = '11111111';
+      mockVehicles = [{ ...sharedCar, permissions: grantOf(...ALL) }];
+      render(<SelectVehicles />);
+      expect(
+        await screen.findByText('All your vehicles are already shared'),
+      ).toBeVisible();
+
+      switchOff(label);
+      await waitFor(() => expect(cta()).toHaveTextContent('Update 1 vehicle'));
+      fireEvent.click(cta());
+
+      await waitFor(() => expect(mockFinish).toHaveBeenCalled());
+      const rest = ALL.filter((p) => p !== permission);
+      expect(signed()).toEqual([rest]);
+      expect((setVehiclePermissions as Mock).mock.calls[0][0].permissions).toEqual(rest);
+    },
+  );
+
+  it.each(LABELS)(
+    'permission %i is left out of a new share when switched off',
+    async (permission, label) => {
+      mockCreds.permissions = '11111111';
+      mockVehicles = [newCar];
+      render(<SelectVehicles />);
+      fireEvent.click(await screen.findByLabelText(/2022 Toyota RAV4/));
+      switchOff(label);
+      fireEvent.click(cta());
+
+      await waitFor(() => expect(mockFinish).toHaveBeenCalled());
+      expect(signed()).toEqual([ALL.filter((p) => p !== permission)]);
+    },
+  );
+});
+
+describe('documents', () => {
+  const GRANTOR = '0x1111111111111111111111111111111111111111';
+  const VEHICLE_DOCS = 'dimo.document.vehicle.*';
+  const RAW_FILES = 'dimo.raw.vehicle.*';
+  // The car's grant document: vehicle data plus the given kinds of file.
+  const shareWithFiles = (...eventTypes: string[]) => {
+    global.fetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        data: {
+          grantor: { address: GRANTOR },
+          grantee: { address: mockClientId },
+          agreements: eventTypes.map((eventType) => ({
+            type: 'cloudevent',
+            eventType,
+            asset: sharedCar.tokenDID,
+            source: GRANTOR,
+          })),
+        },
+      }),
+    })) as any;
+    return {
+      ...sharedCar,
+      permissions: grantOf(VEHICLE_DATA),
+      source: 'ipfs://grant',
+      // What the list reads from that document.
+      grantedFiles: eventTypes.map((eventType) => ({
+        eventType,
+        source: GRANTOR,
+        ids: [],
+        tags: [],
+      })),
+      documentAccess: true,
+    };
+  };
+  // Event types in the one grant document signed.
+  const signedFiles = () =>
+    (generateIpfsSources as Mock).mock.calls[0][3].cloudEventAgreements?.map(
+      (a: { eventType: string }) => a.eventType,
+    ) ?? [];
+
+  beforeEach(() => {
+    // Vehicle data, vehicle documents and original vehicle files.
+    mockCreds.permissions = '1';
+    mockCreds.cloudEvent = [{ eventType: VEHICLE_DOCS }, { eventType: RAW_FILES }];
+  });
+
+  it('come off a share that has them when switched off later', async () => {
+    mockVehicles = [shareWithFiles(VEHICLE_DOCS, RAW_FILES)];
+    render(<SelectVehicles />);
+    expect(await screen.findByText('All your vehicles are already shared')).toBeVisible();
+
+    switchOff(/Vehicle documents/);
+    expect(await screen.findByText('Removes Vehicle documents')).toBeInTheDocument();
+    await waitFor(() => expect(cta()).toHaveTextContent('Update 1 vehicle'));
+    fireEvent.click(cta());
+
+    await waitFor(() => expect(mockFinish).toHaveBeenCalled());
+    expect(signedFiles()).toEqual([RAW_FILES]);
+    expect((setVehiclePermissions as Mock).mock.calls[0][0].permissions).toEqual([
+      VEHICLE_DATA,
+    ]);
+  });
+
+  it('come back when asked for again and left on', async () => {
+    // Shared earlier with original files only.
+    mockVehicles = [{ ...shareWithFiles(RAW_FILES), documentAccess: false }];
+    render(<SelectVehicles />);
+    expect(
+      await screen.findByText(
+        'Adds Vehicle documents and Original vehicle document files',
+      ),
+    ).toBeInTheDocument();
+    await waitFor(() => expect(cta()).toHaveTextContent('Update 1 vehicle'));
+    fireEvent.click(cta());
+
+    await waitFor(() => expect(mockFinish).toHaveBeenCalled());
+    expect(signedFiles()).toEqual([RAW_FILES, VEHICLE_DOCS]);
+  });
+
+  it('are left out of a new share when switched off', async () => {
+    mockVehicles = [newCar];
+    render(<SelectVehicles />);
+    fireEvent.click(await screen.findByLabelText(/2022 Toyota RAV4/));
+    switchOff(/Vehicle documents/);
+    fireEvent.click(cta());
+
+    await waitFor(() => expect(mockFinish).toHaveBeenCalled());
+    expect(signedFiles()).toEqual([RAW_FILES]);
+  });
+
+  it('switching off vehicle data takes it off and keeps the documents', async () => {
+    // Asked for: vehicle data and live data, plus both kinds of file.
+    mockCreds.permissions = '10000100';
+    mockVehicles = [
+      {
+        ...shareWithFiles(VEHICLE_DOCS, RAW_FILES),
+        permissions: grantOf(VEHICLE_DATA, LIVE_DATA),
+      },
+    ];
+    render(<SelectVehicles />);
+    expect(await screen.findByText('All your vehicles are already shared')).toBeVisible();
+
+    switchOff(/Vehicle data/);
+    expect(await screen.findByText('Removes Vehicle data')).toBeInTheDocument();
+    await waitFor(() => expect(cta()).toHaveTextContent('Update 1 vehicle'));
+    fireEvent.click(cta());
+
+    await waitFor(() => expect(mockFinish).toHaveBeenCalled());
+    expect((setVehiclePermissions as Mock).mock.calls[0][0].permissions).toEqual([
+      LIVE_DATA,
+    ]);
+    expect(signedFiles()).toEqual([VEHICLE_DOCS, RAW_FILES]);
+  });
 });

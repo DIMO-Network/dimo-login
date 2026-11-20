@@ -274,6 +274,8 @@ const es: PluralLocaleResources = {
   'share.cta.mixed': 'Compartir {{share}} · Actualizar {{update}}',
   'share.hint.select': 'Elige al menos un vehículo para compartir.',
   'share.hint.permissions': 'Activa al menos un elemento para compartir.',
+  'share.hint.not_only_documents':
+    'Los documentos no se pueden compartir solos. Activa al menos otro elemento.',
   'share.sharing': 'Compartiendo…',
   'share.keep_open':
     'Mantén esta ventana abierta hasta que termine. Tarda unos segundos por vehículo.',

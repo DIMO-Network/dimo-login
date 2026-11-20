@@ -229,6 +229,7 @@ const zhHant: LocaleResources = {
   'share.cta.mixed': '共享{{share}}輛 · 更新{{update}}輛',
   'share.hint.select': '請至少選擇一輛要共享的車輛。',
   'share.hint.permissions': '請至少開啟一項要共享的內容。',
+  'share.hint.not_only_documents': '無法只共享文件。請至少再開啟一項其他內容。',
   'share.sharing': '正在共享…',
   'share.keep_open': '共享完成前請勿關閉此視窗。每輛車需要幾秒鐘。',
   'share.error.title': '無法共享你的車輛',

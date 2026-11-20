@@ -39,6 +39,8 @@ export interface AccessItem {
   isNew?: boolean;
   /** The permission this item is, so the request card can switch it off. */
   permission?: Permission;
+  /** The kind of document this item is (its label key), likewise. */
+  fileKind?: string;
   /** Switched off: left out of this share. */
   off?: boolean;
   /** About the person (email, driver documents) or their vehicles. */
@@ -114,6 +116,7 @@ export const fileItems = (
       labelKey === 'document.other' ? '' : t(`${labelKey}.description` as TranslationKey),
     Icon: DOCUMENT_ICONS[labelKey] ?? DocumentTextIcon,
     isNew,
+    fileKind: labelKey,
     group: PERSONAL_DOCUMENTS.includes(labelKey) ? 'you' : 'vehicles',
   }));
 

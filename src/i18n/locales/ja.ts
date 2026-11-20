@@ -244,6 +244,8 @@ const ja: LocaleResources = {
   'share.cta.mixed': '{{share}}台を共有・{{update}}台を更新',
   'share.hint.select': '共有する車両を1台以上選んでください。',
   'share.hint.permissions': '共有する項目を1つ以上オンにしてください。',
+  'share.hint.not_only_documents':
+    '書類だけを共有することはできません。ほかの項目を1つ以上オンにしてください。',
   'share.sharing': '共有しています…',
   'share.keep_open':
     '共有が完了するまで、このウィンドウを閉じないでください。車両1台につき数秒かかります。',

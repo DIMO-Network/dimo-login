@@ -345,7 +345,7 @@ describe('switching off part of the request', () => {
     fireEvent.click(cta());
     await waitFor(() => expect(mockShare).toHaveBeenCalled());
     // Shared with what was switched off, so it's left out.
-    expect(mockShare).toHaveBeenCalledWith([mockRav4], [COMMANDS]);
+    expect(mockShare).toHaveBeenCalledWith([mockRav4], [COMMANDS], []);
   });
 
   it('brings a picked update back when its permission is switched on again', async () => {
@@ -361,7 +361,7 @@ describe('switching off part of the request', () => {
     fireEvent.click(cta());
     await waitFor(() => expect(mockShare).toHaveBeenCalled());
     // Nothing switched off: the app's request as sent.
-    expect(mockShare).toHaveBeenCalledWith([mockTesla], []);
+    expect(mockShare).toHaveBeenCalledWith([mockTesla], [], []);
   });
 
   it("won't share with every permission switched off", async () => {
@@ -385,7 +385,7 @@ describe('switching off part of the request', () => {
 
     expect(mockUi.setComponentData).toHaveBeenCalledWith({ vehicle: mockTesla });
     // Manage reads it from here.
-    expect(loadDeclined(requestKey(mockClientId, '11'))).toEqual([COMMANDS]);
+    expect(loadDeclined(requestKey(mockClientId, '11')).permissions).toEqual([COMMANDS]);
 
     // Going back mounts the screen again.
     unmount();
@@ -408,7 +408,7 @@ describe('switching off part of the request', () => {
 
     await waitFor(() => expect(mockShare).toHaveBeenCalled());
     expect(mockShare.mock.calls[0][1]).toEqual([COMMANDS]);
-    expect(loadDeclined(requestKey(mockClientId, '11'))).toEqual([]);
+    expect(loadDeclined(requestKey(mockClientId, '11')).permissions).toEqual([]);
   });
 
   it('locks the switches while sharing', async () => {
@@ -426,5 +426,56 @@ describe('switching off part of the request', () => {
     await waitFor(() => expect(chip(/Lock and unlock/)).toBeDisabled());
     finishShare();
     await waitFor(() => expect(mockFinish).toHaveBeenCalled());
+  });
+});
+
+describe('switching off a kind of document', () => {
+  const chip = (name: RegExp) => screen.getByRole('button', { name });
+
+  beforeEach(() => {
+    // Vehicle data and vehicle documents.
+    mockCreds.permissions = '1';
+    mockCreds.cloudEvent = { eventType: 'dimo.document.vehicle.*' };
+    mockVehicles = [mockRav4];
+  });
+
+  it('shares without it', async () => {
+    render(<SelectVehicles />);
+    fireEvent.click(await screen.findByLabelText(/2022 Toyota RAV4/));
+    fireEvent.click(chip(/Vehicle documents/));
+    expect(chip(/Vehicle documents/)).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(cta());
+
+    await waitFor(() => expect(mockShare).toHaveBeenCalled());
+    expect(mockShare).toHaveBeenCalledWith([mockRav4], [], ['document.vehicle']);
+  });
+
+  it("won't share documents on their own", async () => {
+    render(<SelectVehicles />);
+    fireEvent.click(await screen.findByLabelText(/2022 Toyota RAV4/));
+    fireEvent.click(chip(/Vehicle data/));
+
+    expect(
+      screen.getByText(
+        'Documents can’t be shared on their own. Turn on at least one other item.',
+      ),
+    ).toBeInTheDocument();
+    expect(cta()).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('takes it off a share that has it', async () => {
+    mockVehicles = [
+      {
+        ...mockTesla,
+        documentAccess: true,
+        grantedFiles: [{ eventType: 'dimo.document.vehicle.*', ids: [], tags: [] }],
+      },
+    ];
+    render(<SelectVehicles />);
+    expect(await screen.findByText('All your vehicles are already shared')).toBeVisible();
+
+    fireEvent.click(chip(/Vehicle documents/));
+    expect(await screen.findByText('Removes Vehicle documents')).toBeInTheDocument();
+    await waitFor(() => expect(cta()).toHaveTextContent('Update 1 vehicle'));
   });
 });

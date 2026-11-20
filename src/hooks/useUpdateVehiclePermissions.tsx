@@ -11,6 +11,7 @@ import { Permission, SetVehiclePermissions } from '@dimo-network/transactions';
 import {
   getVehicleAsset,
   mergeAgreements,
+  withoutKinds,
   readGrantAgreements,
   toCloudEventAgreements,
   withSource,
@@ -26,6 +27,8 @@ type UpdateVehiclePermissionsParams = {
   action: VehiclePermissionsAction;
   /** Switched off on the request card: left out, and removed if granted. */
   declined?: Permission[];
+  /** Kinds of document (label keys) switched off, likewise. */
+  declinedFiles?: string[];
 };
 
 export const useUpdateVehiclePermissions = () => {
@@ -40,6 +43,7 @@ export const useUpdateVehiclePermissions = () => {
     vehicle,
     action,
     declined = [],
+    declinedFiles = [],
   }: UpdateVehiclePermissionsParams) => {
     const hasValidSession = await validateSession();
     if (!hasValidSession) {
@@ -70,10 +74,13 @@ export const useUpdateVehiclePermissions = () => {
       cloudEventAgreements =
         action === 'update'
           ? mergeAgreements(
-              existing,
-              withSource(toCloudEventAgreements(cloudEvent), user?.smartContractAddress),
+              withoutKinds(existing, declinedFiles),
+              withSource(
+                withoutKinds(toCloudEventAgreements(cloudEvent), declinedFiles),
+                user?.smartContractAddress,
+              ),
             )
-          : existing;
+          : withoutKinds(existing, declinedFiles);
     }
 
     const attachments = generateAttachments(region?.toUpperCase());

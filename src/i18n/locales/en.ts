@@ -260,6 +260,8 @@ const en = {
   'share.cta.mixed': 'Share {{share}} · Update {{update}}',
   'share.hint.select': 'Choose at least one vehicle to share.',
   'share.hint.permissions': 'Turn on at least one item to share.',
+  'share.hint.not_only_documents':
+    'Documents can’t be shared on their own. Turn on at least one other item.',
   'share.sharing': 'Sharing…',
   'share.keep_open':
     'Keep this window open until sharing is done. It takes a few seconds per vehicle.',
