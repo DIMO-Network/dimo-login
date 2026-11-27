@@ -27,6 +27,7 @@ export {
   getApiKeyStamper,
   getKernelSigner,
   initializePasskey,
+  passkeySessionEndsSoon,
   passkeyStamper,
 } from './turnkeyService';
 export { generateP256KeyPair } from '@turnkey/crypto';

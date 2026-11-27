@@ -302,7 +302,7 @@ export const AuthProvider = ({
     );
   };
 
-  const validateSession = async () => {
+  const checkSession = async () => {
     const { subOrganizationId } = user;
     if (!subOrganizationId) {
       setUiState(UiStates.EMAIL_INPUT);
@@ -321,7 +321,15 @@ export const AuthProvider = ({
     if (signer.subOrganizationId !== subOrganizationId) {
       signer.resetClient();
     }
-    if (signer.hasActiveSession()) {
+    // A passkey session near its end (ACCOUNTS_V2_SENDS) is renewed below, now,
+    // rather than by a prompt once a transaction is under way.
+    if (
+      signer.hasActiveSession() &&
+      !(
+        turnkeySessionData.sessionType === 'passkey' &&
+        steps.passkeySessionEndsSoon(subOrganizationId)
+      )
+    ) {
       return true;
     }
     if (turnkeySessionData.sessionType === 'passkey') {
@@ -355,6 +363,21 @@ export const AuthProvider = ({
       return null;
     }
     return true;
+  };
+
+  // One check at a time for an account: callers that overlap (a reload's
+  // screens) share it, since a second would reset the signer under the first.
+  const pendingCheck = useRef<{ sub: string; check: Promise<null | boolean> } | null>(
+    null,
+  );
+  const validateSession = () => {
+    const sub = user.subOrganizationId;
+    if (pendingCheck.current?.sub === sub) return pendingCheck.current.check;
+    const check = checkSession().finally(() => {
+      if (pendingCheck.current?.check === check) pendingCheck.current = null;
+    });
+    pendingCheck.current = { sub, check };
+    return check;
   };
 
   const resumeAccount = async (account: RememberedAccount) => {

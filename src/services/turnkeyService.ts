@@ -45,6 +45,8 @@ import { accountsV2SendsEnabled } from '../utils/featureFlags';
 import {
   clearSessionStamper,
   getPasskeySessionSub,
+  getSessionStamperExpiry,
+  SEND_MARGIN_MS,
   sessionGeneration,
   setSessionStamper,
 } from './sessionStamper';
@@ -58,6 +60,23 @@ import { ensureV2Session, sendCallsV2, type V2Call } from './v2/accountsV2';
 // still land on-chain after the timeout; callers should treat expiry as "unknown,
 // retry/refresh" rather than "definitely failed".
 const KERNEL_OP_TIMEOUT_MS = 90_000;
+
+// Bounds the whole of a v2 send: signing, the send, the receipt wait and the
+// log read. The SDK bounds the send (30 s) and the receipt wait (120 s), but
+// Turnkey signing has no time limit of its own.
+const V2_SEND_TIMEOUT_MS = 240_000;
+
+/**
+ * A v2 send that had no answer within V2_SEND_TIMEOUT_MS, before the bundler
+ * named its UserOperation. Its outcome is unknown: it may still land, so it is
+ * never sent again.
+ */
+export class V2SendTimeoutError extends Error {
+  constructor() {
+    super(`The accounts v2 send had no answer within ${V2_SEND_TIMEOUT_MS} ms`);
+    this.name = 'V2SendTimeoutError';
+  }
+}
 
 export const passkeyStamper = new WebauthnStamper({
   rpId: process.env.REACT_APP_RPCID_URL as string,
@@ -73,6 +92,22 @@ let passkeyRefresh: Promise<void> | null = null;
  * one) is the current stamper, and a reset drops it. A flagged passkey session
  * that has lapsed is reopened with one passkey prompt at the next use, as the
  * unflagged signer does through its kept passkey client.
+ *
+ * Coupled to KernelSigner internals (transactions src/KernelSigner.ts, the same
+ * in 0.4.1 and 0.5.0); check these lines on every SDK bump:
+ * - getActiveClient (:201-230) is what every action calls, as
+ *   `this.getActiveClient()`, before the send and again for the receipt, so
+ *   this override sees both: executeTransaction :1286 and :1304,
+ *   setVehiclePermissions :590 and :604, setVehiclePermissionsBulk :620 and
+ *   :626, setAccountPermissions :697 and :711;
+ * - openSessionWithApiStamper (:436-462) sets walletAddress and
+ *   subOrganizationId (:450-451) and then `apiSessionClient.expires` (:458), as
+ *   now + 75% of sessionTimeoutSeconds (:438); smartContractAddress comes from
+ *   _createKernelAccount (:492);
+ * - resetClient (:158-180) clears those fields and every client;
+ * - hasActiveSession (:186-199) reads `apiSessionClient.expires` and, with
+ *   useWalletSession, `passkeySessionClient.expires` and `passkeyClient.valid`
+ *   (:115-126), which a flagged passkey session never sets.
  */
 class SessionKernelSigner extends KernelSigner {
   /** `passkeySub` marks a session a flagged passkey sign-in opened. */
@@ -225,6 +260,11 @@ export const createPasskey = async (
  * Opens a Turnkey read-write session with one passkey stamp, the way
  * KernelSigner.passkeyToSession does (same activity, key and expiry), and
  * hands back its API-key stamper. The session's key lives in memory only.
+ * Mirrors transactions src/KernelSigner.ts (0.4.1 and 0.5.0), passkeyToSession
+ * :325-381: the fresh P-256 key (:328-330), the expiry as now + 75% of
+ * `config.sessionTimeoutSeconds` (:331), the activity and its parameters
+ * (:338-346) and the bundle decryption (:348-354); and it reads
+ * `config.turnkeyApiBaseUrl` as the signer does. Check them on an SDK bump.
  */
 export const createPasskeySession = async (
   subOrganizationId: string,
@@ -282,6 +322,18 @@ export const initializePasskey = async (subOrganizationId: string): Promise<numb
   );
   return expiresAt;
 };
+
+/**
+ * With ACCOUNTS_V2_SENDS on: whether the account's passkey session has less
+ * than SEND_MARGIN_MS left. validateSession then renews it (initializePasskey,
+ * one prompt), so neither stack sends on a session that can end midway: the
+ * wallet signer reads its client again for the receipt, and a lapse there
+ * prompts for a passkey after the operation was sent.
+ */
+export const passkeySessionEndsSoon = (subOrganizationId: string): boolean =>
+  accountsV2SendsEnabled() &&
+  getPasskeySessionSub() === subOrganizationId &&
+  (getSessionStamperExpiry() ?? 0) - Date.now() < SEND_MARGIN_MS;
 
 export const getApiKeyStamper = (args: {
   credentialBundle: string;
@@ -400,19 +452,33 @@ const reportUserOperation = (error: unknown) => {
   ) {
     const { userOpHash, provider } = error;
     captureException(error, { contexts: { user_operation: { userOpHash, provider } } });
+  } else if (error instanceof V2SendTimeoutError) {
+    // Unknown too, before any operation was named.
+    captureException(error, {
+      contexts: { user_operation: { userOpHash: null, provider: null } },
+    });
   }
 };
 
 /**
  * Sends the calls through accounts v2 when it can serve the signed-in account
- * (ACCOUNTS_V2_SENDS), and returns the transaction hash. Null when it can't:
- * nothing was sent, and the caller sends through the wallet signer as before.
+ * (ACCOUNTS_V2_SENDS), then runs `finish` on the transaction hash and returns
+ * what it gives. Null when v2 can't: nothing was sent, and the caller sends
+ * through the wallet signer as before. With the flag on, the calls are built
+ * first, so a malformed request fails before any sign-in or claim; off, they
+ * aren't built at all.
  * Once sendCallsV2 has started, its errors propagate and nothing is sent
  * again, through v2 or the wallet signer: after a UserOperationUnknownError or
- * UserOperationPendingError the operation may still land. The SDK bounds the
- * send and the receipt wait itself, so they don't get KERNEL_OP_TIMEOUT_MS.
+ * UserOperationPendingError the operation may still land. The send and
+ * `finish` together get V2_SEND_TIMEOUT_MS, then fail as pending (as
+ * UserOperationPendingError once the operation is named, V2SendTimeoutError
+ * before), never falling back.
  */
-const sendThroughV2 = async (calls: () => V2Call[]): Promise<Hex | null> => {
+const sendThroughV2 = async <T>(
+  buildCalls: () => V2Call[],
+  finish: (transactionHash: Hex) => Promise<T>,
+): Promise<T | null> => {
+  const calls = accountsV2SendsEnabled() ? buildCalls() : [];
   const v2 = await ensureV2Session({
     // The account the wallet signer has a session for. Empty only without a
     // session, which ensureV2Session turns down.
@@ -429,13 +495,47 @@ const sendThroughV2 = async (calls: () => V2Call[]): Promise<Hex | null> => {
     }
     return null;
   }
+  let sent: { userOpHash: Hex; provider: string } | undefined;
+  const sending = (async () => {
+    const transactionHash = await sendCallsV2(v2, calls, (op) => {
+      sent = op;
+    });
+    // Its counterpart is the wallet signer line above; no Sentry event either.
+    console.info(
+      `Sent through accounts v2: UserOperation ${sent?.userOpHash} via ${sent?.provider}`,
+    );
+    return finish(transactionHash);
+  })();
+  // A send still running at the time limit goes on; its outcome is dropped.
+  sending.catch(() => {});
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timedOut = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(
+      () =>
+        reject(
+          sent
+            ? new UserOperationPendingError(
+                sent.userOpHash,
+                sent.provider,
+                `no answer within ${V2_SEND_TIMEOUT_MS} ms`,
+              )
+            : new V2SendTimeoutError(),
+        ),
+      V2_SEND_TIMEOUT_MS,
+    );
+  });
   try {
-    return await sendCallsV2(v2, calls());
+    return await Promise.race([sending, timedOut]);
   } catch (error) {
     reportUserOperation(error);
     throw error;
+  } finally {
+    clearTimeout(timer);
   }
 };
+
+/** For a wrapper whose caller needs only the transaction hash. */
+const hashOnly = async (transactionHash: Hex) => transactionHash;
 
 /** The wallet signer's environment, so v2 sends to the same SACD contracts. */
 const environment = () => kernelSigner.config.environment;
@@ -462,14 +562,35 @@ const transactionLogs = async (hash: Hex) =>
     })
   ).logs;
 
+/** The hash and its logs. Reading the logs fails the call: a caller needs them. */
+const withLogs = async (transactionHash: Hex) => ({
+  transactionHash,
+  logs: await transactionLogs(transactionHash),
+});
+
+/**
+ * The hash and its logs, or no logs when they can't be read: the operation has
+ * landed, and no batch caller reads them, so failing would only invite a resend.
+ */
+const withLogsIfReadable = async (transactionHash: Hex) => {
+  try {
+    return await withLogs(transactionHash);
+  } catch (error) {
+    // A breadcrumb in Sentry; no event of its own.
+    console.warn(`Could not read the logs of v2 transaction ${transactionHash}`, error);
+    return { transactionHash, logs: [] };
+  }
+};
+
 // Sets a different grant (and source document) per vehicle in one user
 // operation, so either every grant in the batch lands or none does.
 export async function setVehiclePermissionsBatch(
   grants: SetVehiclePermissions[],
 ): Promise<void> {
   try {
-    const v2Hash = await sendThroughV2(() =>
-      vehiclePermissionsCalls(grants, environment()),
+    const v2Hash = await sendThroughV2(
+      () => vehiclePermissionsCalls(grants, environment()),
+      hashOnly,
     );
     if (v2Hash === null) {
       await withTimeout(
@@ -495,8 +616,9 @@ export async function setVehiclePermissions({
 }: SetVehiclePermissions): Promise<void> {
   const grant = { tokenId, grantee, permissions, expiration, source };
   try {
-    const v2Hash = await sendThroughV2(() =>
-      vehiclePermissionsCalls(grant, environment()),
+    const v2Hash = await sendThroughV2(
+      () => vehiclePermissionsCalls(grant, environment()),
+      hashOnly,
     );
     if (v2Hash === null) {
       // Call the kernelClient's setVehiclePermissions with the prepared payload
@@ -522,8 +644,9 @@ export async function setVehiclePermissionsBulk({
 }: SetVehiclePermissionsBulk): Promise<void> {
   const grant = { tokenIds, grantee, permissions, expiration, source };
   try {
-    const v2Hash = await sendThroughV2(() =>
-      vehiclePermissionsBulkCalls(grant, environment()),
+    const v2Hash = await sendThroughV2(
+      () => vehiclePermissionsBulkCalls(grant, environment()),
+      hashOnly,
     );
     if (v2Hash === null) {
       // Call the kernelClient's setVehiclePermissionsBulk with the prepared payload
@@ -551,8 +674,9 @@ export async function setAccountPermissions({
 }: SetAccountPermissions): Promise<void> {
   const grant = { grantee, permissions, expiration, templateId, source };
   try {
-    const v2Hash = await sendThroughV2(() =>
-      accountPermissionsCalls(grant, environment()),
+    const v2Hash = await sendThroughV2(
+      () => accountPermissionsCalls(grant, environment()),
+      hashOnly,
     );
     if (v2Hash === null) {
       await withTimeout(
@@ -629,7 +753,7 @@ export async function executeAdvancedTransaction(
     functionName: functionName,
     args: parseParameters(args),
   };
-  const v2Hash = await sendThroughV2(() => [encodeCall(data)]);
+  const v2Hash = await sendThroughV2(() => [encodeCall(data)], hashOnly);
   if (v2Hash !== null) return v2Hash;
 
   const response = await withTimeout(
@@ -651,10 +775,9 @@ export async function executeTransactionWithReceipt(
   args: any[],
 ): Promise<{ transactionHash: `0x${string}`; logs: any[] }> {
   const data = { address, abi, functionName, args };
-  const v2Hash = await sendThroughV2(() => [encodeCall(data)]);
-  if (v2Hash !== null) {
-    return { transactionHash: v2Hash, logs: await transactionLogs(v2Hash) };
-  }
+  // ProvisionDeveloperLicense needs the logs (its Issued event): no logs fails it.
+  const v2 = await sendThroughV2(() => [encodeCall(data)], withLogs);
+  if (v2 !== null) return v2;
 
   const receipt = await withTimeout(
     kernelSigner.executeTransaction({
@@ -682,10 +805,8 @@ export async function executeBatchTransactions(
     args,
     ...(value !== undefined && { value }),
   }));
-  const v2Hash = await sendThroughV2(() => data.map(encodeCall));
-  if (v2Hash !== null) {
-    return { transactionHash: v2Hash, logs: await transactionLogs(v2Hash) };
-  }
+  const v2 = await sendThroughV2(() => data.map(encodeCall), withLogsIfReadable);
+  if (v2 !== null) return v2;
 
   const receipt = await withTimeout(
     kernelSigner.executeTransaction({

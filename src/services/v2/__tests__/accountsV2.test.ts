@@ -11,6 +11,7 @@ vi.mock('@dimo-network/transactions/accounts', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@dimo-network/transactions/accounts')>()),
   claimDid: vi.fn(),
   generateDpopKey: vi.fn(),
+  getMe: vi.fn(),
   lookupByWallet: vi.fn(),
   removePhone: vi.fn(),
   sendUserOperation: vi.fn(),
@@ -42,6 +43,7 @@ import {
   claimDid,
   DirectoryUnavailableError,
   generateDpopKey,
+  getMe,
   lookupByWallet,
   NetworkError,
   RemovePhoneFirstError,
@@ -57,6 +59,7 @@ import {
   UserOperationRevertedError,
   UserOperationUnknownError,
   waitForUserOperationReceipt,
+  type AccountView,
   type SdkConfig,
   type Session,
   type WebCryptoDpopKey,
@@ -100,6 +103,17 @@ const JUN = {
 };
 
 const walletAccount = { address: WALLET, type: 'local' } as unknown as LocalAccount;
+const CLAIMED_DID = 'did:dimo:claimedclaimedclaimedcla';
+/** The account accounts v2 records: its wallet, and its kernel as the smart account. */
+const accountView = (over: Partial<AccountView> = {}): AccountView => ({
+  did: DID,
+  email: 'jun@x.co',
+  emailVerified: true,
+  subOrganizationId: 'sub-jun',
+  walletAddress: WALLET,
+  smartAccount: { address: KERNEL.toLowerCase(), chain: 'POLYGON' },
+  ...over,
+});
 const dpopKey = { keyPair: {} } as unknown as WebCryptoDpopKey;
 const dauthSession = (did = DID): Session => ({
   did,
@@ -112,6 +126,7 @@ const dauthSession = (did = DID): Session => ({
 const sdkCalls = () => [
   claimDid,
   generateDpopKey,
+  getMe,
   lookupByWallet,
   removePhone,
   sendUserOperation,
@@ -162,10 +177,11 @@ beforeEach(() => {
   vi.mocked(generateDpopKey).mockResolvedValue(dpopKey);
   vi.mocked(lookupByWallet).mockResolvedValue(DID);
   vi.mocked(signIn).mockImplementation(async () => dauthSession());
+  vi.mocked(getMe).mockImplementation(async () => accountView());
   vi.mocked(claimDid).mockImplementation(async () => ({
-    did: 'did:dimo:claimedclaimedclaimedcla',
-    session: dauthSession('did:dimo:claimedclaimedclaimedcla'),
-    account: {} as never,
+    did: CLAIMED_DID,
+    session: dauthSession(CLAIMED_DID),
+    account: accountView({ did: CLAIMED_DID }),
   }));
 });
 afterEach(() => {
@@ -321,28 +337,25 @@ describe('ensureV2Session', () => {
     expect(args).toEqual({ wallet: expect.any(TurnkeyWalletSigner), dpopKey });
     expect(args).not.toHaveProperty('signingKey');
     expect(signIn).not.toHaveBeenCalled();
+    expect(removePhone).not.toHaveBeenCalled();
     expect(ready).toMatchObject({
       kind: 'ready',
       session: { did: 'did:dimo:claimedclaimedclaimedcla' },
     });
   });
 
-  it('removes the phone number and claims again when the claim asks for it', async () => {
+  it('is claim_refused when the claim asks for the phone number to go first, and leaves the phone', async () => {
     vi.mocked(lookupByWallet).mockResolvedValue(null);
-    vi.mocked(claimDid).mockRejectedValueOnce(
+    vi.mocked(claimDid).mockRejectedValue(
       new RemovePhoneFirstError(409, 'remove the phone number first'),
     );
 
-    const ready = await ensureV2Session(JUN);
-
-    expect(removePhone).toHaveBeenCalledWith(turnkey.clients[0], {
-      subOrganizationId: 'sub-jun',
+    expect(await ensureV2Session(JUN)).toEqual({
+      kind: 'unavailable',
+      reason: 'claim_refused',
     });
-    expect(claimDid).toHaveBeenCalledTimes(2);
-    expect(vi.mocked(removePhone).mock.invocationCallOrder[0]).toBeLessThan(
-      vi.mocked(claimDid).mock.invocationCallOrder[1],
-    );
-    expect(ready).toMatchObject({ kind: 'ready' });
+    expect(claimDid).toHaveBeenCalledTimes(1);
+    expect(removePhone).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -369,28 +382,6 @@ describe('ensureV2Session', () => {
     });
     expect(claimDid).toHaveBeenCalledTimes(1);
     expect(removePhone).not.toHaveBeenCalled();
-  });
-
-  it('is claim_refused when the claim still asks for the phone number after its removal', async () => {
-    vi.mocked(lookupByWallet).mockResolvedValue(null);
-    vi.mocked(claimDid).mockRejectedValue(
-      new RemovePhoneFirstError(409, 'remove the phone number first'),
-    );
-
-    expect(await ensureV2Session(JUN)).toMatchObject({ reason: 'claim_refused' });
-    expect(removePhone).toHaveBeenCalledTimes(1);
-    expect(claimDid).toHaveBeenCalledTimes(2);
-  });
-
-  it('is claim_refused when removing the phone number fails', async () => {
-    vi.mocked(lookupByWallet).mockResolvedValue(null);
-    vi.mocked(claimDid).mockRejectedValueOnce(
-      new RemovePhoneFirstError(409, 'remove the phone number first'),
-    );
-    vi.mocked(removePhone).mockRejectedValue(new Error('Turnkey refused'));
-
-    expect(await ensureV2Session(JUN)).toMatchObject({ reason: 'claim_refused' });
-    expect(claimDid).toHaveBeenCalledTimes(1);
   });
 
   it.each([
@@ -452,6 +443,135 @@ describe('ensureV2Session', () => {
       expect.stringContaining('v2_down'),
       failure,
     );
+  });
+
+  describe('the sender the gas proxy takes for the account', () => {
+    it('is ready when the account records the kernel on Polygon, read with the signed-in session', async () => {
+      const ready = await ensureV2Session(JUN);
+
+      expect(ready).toMatchObject({ kind: 'ready', session: { did: DID } });
+      expect(getMe).toHaveBeenCalledTimes(1);
+      const [cfg, args] = vi.mocked(getMe).mock.calls[0];
+      // The same bounded cfg as the sign-in: getMe counts in the 20 s budget.
+      expect(cfg).toBe(vi.mocked(signIn).mock.calls[0][0]);
+      expect(args).toEqual({ session: (ready as V2Ready).session });
+    });
+
+    it('is address_mismatch when the account records another smart account, and sends nothing', async () => {
+      vi.mocked(getMe).mockResolvedValue(
+        accountView({
+          smartAccount: {
+            address: '0x2222222222222222222222222222222222222222',
+            chain: 'POLYGON',
+          },
+        }),
+      );
+
+      expect(await ensureV2Session(JUN)).toEqual({
+        kind: 'unavailable',
+        reason: 'address_mismatch',
+      });
+      expect(sendUserOperation).not.toHaveBeenCalled();
+      expect(waitForUserOperationReceipt).not.toHaveBeenCalled();
+    });
+
+    it('is address_mismatch when accounts has no account for the DID', async () => {
+      vi.mocked(getMe).mockResolvedValue(null);
+
+      expect(await ensureV2Session(JUN)).toEqual({
+        kind: 'unavailable',
+        reason: 'address_mismatch',
+      });
+    });
+
+    it('keeps nothing after a mismatch: the next call reads the account again', async () => {
+      vi.mocked(getMe).mockResolvedValueOnce(null);
+      expect(await ensureV2Session(JUN)).toMatchObject({ reason: 'address_mismatch' });
+
+      expect(await ensureV2Session(JUN)).toMatchObject({ kind: 'ready' });
+      expect(getMe).toHaveBeenCalledTimes(2);
+    });
+
+    it.each([
+      ['no smart account', { smartAccount: null }],
+      [
+        'a smart account on another chain',
+        {
+          smartAccount: {
+            address: '0x2222222222222222222222222222222222222222',
+            chain: 'BASE' as const,
+          },
+        },
+      ],
+    ])(
+      'with %s recorded, takes the plain kernel of the recorded wallet, as the proxy does',
+      async (_name, over) => {
+        vi.mocked(getMe).mockResolvedValue(
+          accountView({
+            ...over,
+            walletAddress: WALLET.toUpperCase().replace('0X', '0x'),
+          }),
+        );
+        expect(await ensureV2Session(JUN)).toMatchObject({ kind: 'ready' });
+
+        vi.mocked(getMe).mockResolvedValue(
+          accountView({
+            ...over,
+            walletAddress: '0x3333333333333333333333333333333333333333',
+          }),
+        );
+        expect(
+          await ensureV2Session({ ...JUN, subOrganizationId: 'sub-jun-again' }),
+        ).toEqual({ kind: 'unavailable', reason: 'address_mismatch' });
+      },
+    );
+
+    it.each([
+      [401, 'unauthorized'],
+      [403, 'forbidden'],
+    ])('is v2_down when reading the account answers %i', async (status, code) => {
+      vi.mocked(getMe).mockRejectedValue(new AccountsError(code, status, 'no'));
+
+      expect(await ensureV2Session(JUN)).toEqual({
+        kind: 'unavailable',
+        reason: 'v2_down',
+      });
+    });
+
+    it('does not read the account again for a cached session', async () => {
+      await ensureV2Session(JUN);
+      await ensureV2Session(JUN);
+
+      expect(signIn).toHaveBeenCalledTimes(1);
+      expect(getMe).toHaveBeenCalledTimes(1);
+    });
+
+    it('takes the account a claim returns, without reading it again', async () => {
+      vi.mocked(lookupByWallet).mockResolvedValue(null);
+
+      expect(await ensureV2Session(JUN)).toMatchObject({ kind: 'ready' });
+      expect(getMe).not.toHaveBeenCalled();
+    });
+
+    it('is address_mismatch when the claimed account records another smart account', async () => {
+      vi.mocked(lookupByWallet).mockResolvedValue(null);
+      vi.mocked(claimDid).mockImplementation(async () => ({
+        did: CLAIMED_DID,
+        session: dauthSession(CLAIMED_DID),
+        account: accountView({
+          did: CLAIMED_DID,
+          smartAccount: {
+            address: '0x2222222222222222222222222222222222222222',
+            chain: 'POLYGON',
+          },
+        }),
+      }));
+
+      expect(await ensureV2Session(JUN)).toEqual({
+        kind: 'unavailable',
+        reason: 'address_mismatch',
+      });
+    });
   });
 
   it('keeps the session until 180 s before it expires, then signs in again', async () => {
@@ -567,7 +687,7 @@ describe('ensureV2Session', () => {
         vi.mocked(claimDid).mockImplementationOnce(async () => ({
           did: DID,
           session: { ...dauthSession(), scopes: ['read'] },
-          account: {} as never,
+          account: accountView(),
         }));
       },
     ],
@@ -702,6 +822,17 @@ describe('ensureV2Session time limits', () => {
     expect(signIn).not.toHaveBeenCalled();
   });
 
+  it('is v2_down at 20 s when reading the account never answers', async () => {
+    vi.mocked(getMe).mockImplementation(() => new Promise(() => {}));
+
+    const ensure = start();
+    await vi.advanceTimersByTimeAsync(19_999);
+    expect(ensure.result()).toBeUndefined();
+    await vi.advanceTimersByTimeAsync(1);
+
+    expect(ensure.result()).toEqual({ kind: 'unavailable', reason: 'v2_down' });
+  });
+
   it('keeps nothing from a sign-in that finishes after the budget', async () => {
     vi.mocked(signIn).mockImplementationOnce(
       () => new Promise((resolve) => setTimeout(() => resolve(dauthSession()), 25_000)),
@@ -752,6 +883,27 @@ describe('sendCallsV2', () => {
       provider: 'gelato',
       userOpHash: USER_OP_HASH,
     });
+  });
+
+  it('names the operation it sent to the caller before it waits for the receipt', async () => {
+    const order: string[] = [];
+    vi.mocked(sendUserOperation).mockResolvedValue({
+      userOpHash: USER_OP_HASH,
+      provider: 'pimlico',
+    });
+    vi.mocked(waitForUserOperationReceipt).mockImplementation(async () => {
+      order.push('wait');
+      return { transactionHash: TX_HASH };
+    });
+    const onSent = vi.fn(() => order.push('sent'));
+
+    expect(await sendCallsV2(ready(), calls, onSent)).toBe(TX_HASH);
+
+    expect(onSent).toHaveBeenCalledWith({
+      userOpHash: USER_OP_HASH,
+      provider: 'pimlico',
+    });
+    expect(order).toEqual(['sent', 'wait']);
   });
 
   it('throws a send with no definite answer as it is, and waits for nothing', async () => {

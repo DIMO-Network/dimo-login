@@ -80,6 +80,7 @@ const stepsWith = (
     }),
     getApiKeyStamper: vi.fn(() => ({ stamp: 'api' })),
     initializePasskey: vi.fn().mockResolvedValue(undefined),
+    passkeySessionEndsSoon: () => false,
     authenticateUser: vi.fn().mockResolvedValue({
       accessToken: JWT,
       walletAddress: '0xw',
@@ -134,7 +135,10 @@ describe('AuthContext validateSession', () => {
     expect(getKernelSigner).not.toHaveBeenCalled();
     expect(settled).toBe(false);
 
-    signer.resolve({ getKernelSigner } as unknown as SignInSteps);
+    signer.resolve({
+      getKernelSigner,
+      passkeySessionEndsSoon: () => false,
+    } as unknown as SignInSteps);
 
     await expect(validated).resolves.toBe(true);
     expect(getKernelSigner).toHaveBeenCalled();

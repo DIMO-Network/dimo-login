@@ -10,14 +10,15 @@
  */
 import {
   AccountsError,
+  type AccountView,
   claimDid,
   DirectoryUnavailableError,
   type DpopKey,
   generateDpopKey,
+  getMe,
+  type GasProvider,
   lookupByWallet,
   NetworkError,
-  RemovePhoneFirstError,
-  removePhone,
   type SdkConfig,
   sendUserOperation,
   type Session,
@@ -34,14 +35,17 @@ import { createAccount } from '@turnkey/viem';
 import type { Hex, LocalAccount } from 'viem';
 
 import { accountsV2SendsEnabled } from '../../utils/featureFlags';
-import { getSessionStamper, getSessionStamperExpiry } from '../sessionStamper';
+import {
+  getSessionStamper,
+  getSessionStamperExpiry,
+  SEND_MARGIN_MS,
+} from '../sessionStamper';
 import { getKernelSigner } from '../turnkeyService';
 
 const POLYGON = 137;
 const POLYGON_AMOY = 80002;
-// A send takes up to 30 s and its receipt wait up to 120 s, so a session (dauth
-// and Turnkey both) with less than this left isn't used for one.
-const SEND_MARGIN_MS = 180_000;
+// How accounts names both chains (137 in production, 80002 elsewhere).
+const ACCOUNT_CHAIN = 'POLYGON';
 // Signing in: each request to accounts, dauth, the directory or the RPC, and
 // the whole of it, past which the send goes as before.
 const REQUEST_TIMEOUT_MS = 10_000;
@@ -107,6 +111,26 @@ const unavailable = (reason: V2Unavailable['reason']): V2Unavailable => ({
 
 const sameAddress = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
+/**
+ * Whether the accounts gas proxy takes `kernel` (the wallet's plain kernel) as
+ * the account's sender, by the rule of accounts' GasProxyService.assertOwnKernel
+ * (src/services/v2/gas-proxy.service.ts): no account is refused; a smart account
+ * recorded on this chain is the sender (accounts treats a null chain as Polygon,
+ * and its account view already reports it as POLYGON); otherwise the plain
+ * kernel of the recorded wallet is, which is `kernel` only for that wallet.
+ */
+const proxyTakesSender = (
+  account: AccountView | null,
+  walletAddress: Hex,
+  kernel: Hex,
+): boolean => {
+  if (!account) return false;
+  if (account.smartAccount && account.smartAccount.chain === ACCOUNT_CHAIN) {
+    return sameAddress(account.smartAccount.address, kernel);
+  }
+  return !!account.walletAddress && sameAddress(account.walletAddress, walletAddress);
+};
+
 /** A service that couldn't be reached or answered 5xx: no answer either way. */
 const noAnswer = (error: unknown) =>
   error instanceof NetworkError ||
@@ -153,23 +177,13 @@ const withTimeouts = (cfg: SdkConfig, stop: AbortSignal): SdkConfig => ({
 /**
  * An existing v1 account's first v2 send: its DID, wallet-only (no signing
  * key), linked to the account. A sub-org that still holds the user's phone
- * number gives it up first.
+ * number refuses the claim (RemovePhoneFirstError), which is claim_refused:
+ * that user stays on v1. Removing the phone first (removePhone, then claimDid
+ * again) changes the account without telling the user, so it waits for
+ * approval (Decision 4).
  */
-const claimWalletDid = async (
-  cfg: SdkConfig,
-  client: TurnkeyClient,
-  wallet: TurnkeyWalletSigner,
-  dpopKey: DpopKey,
-  subOrganizationId: string,
-): Promise<Session> => {
-  try {
-    return (await claimDid(cfg, { wallet, dpopKey })).session;
-  } catch (error) {
-    if (!(error instanceof RemovePhoneFirstError)) throw error;
-    await removePhone(client, { subOrganizationId });
-    return (await claimDid(cfg, { wallet, dpopKey })).session;
-  }
-};
+const claimWalletDid = (cfg: SdkConfig, wallet: TurnkeyWalletSigner, dpopKey: DpopKey) =>
+  claimDid(cfg, { wallet, dpopKey });
 
 /** Signs the account's wallet in to dauth (claiming its DID first if need be). Never rejects. */
 const openSession = async (
@@ -206,6 +220,7 @@ const openSession = async (
     const dpopKey = await generateDpopKey();
     const did = await lookupByWallet(cfg, { address: walletAddress });
     let session: Session;
+    let claimed: AccountView | undefined;
     if (did) {
       session = await signIn(cfg, {
         did,
@@ -216,15 +231,21 @@ const openSession = async (
       });
     } else {
       claiming = true;
-      session = await claimWalletDid(cfg, client, wallet, dpopKey, subOrganizationId);
+      ({ session, account: claimed } = await claimWalletDid(cfg, wallet, dpopKey));
+      claiming = false;
     }
 
-    // Logged out (or signed in again) meanwhile: the session isn't this user's to use.
-    if (getSessionStamper() !== stamper) return unavailable('no_session');
     if (!session.scopes.includes('write')) {
       console.warn('Accounts v2 unavailable (v2_down): no write scope', session.scopes);
       return unavailable('v2_down');
     }
+    // The proxy refuses (403) a sender the account doesn't record: v1 sends instead.
+    const account = claimed ?? (await getMe(cfg, { session }));
+    if (!proxyTakesSender(account, walletAddress, kernel)) {
+      return unavailable('address_mismatch');
+    }
+    // Logged out (or signed in again) meanwhile: the session isn't this user's to use.
+    if (getSessionStamper() !== stamper) return unavailable('no_session');
     return { kind: 'ready', session, walletAccount, chainId: chain };
   } catch (error) {
     const reason = claiming && !noAnswer(error) ? 'claim_refused' : 'v2_down';
@@ -298,11 +319,16 @@ export const ensureV2Session = async (user: V2User): Promise<V2Ready | V2Unavail
 
 /**
  * Sends the calls as one UserOperation from the account's kernel and waits for
- * it to land. Returns the transaction hash. Throws what the SDK throws: after
- * a UserOperationUnknownError or UserOperationPendingError the operation may
- * still land, so it must not be sent again.
+ * it to land. Returns the transaction hash. `onSent` gets the operation's hash
+ * and provider once the bundler has it, before the receipt wait. Throws what
+ * the SDK throws: after a UserOperationUnknownError or UserOperationPendingError
+ * the operation may still land, so it must not be sent again.
  */
-export const sendCallsV2 = async (ready: V2Ready, calls: V2Call[]): Promise<Hex> => {
+export const sendCallsV2 = async (
+  ready: V2Ready,
+  calls: V2Call[],
+  onSent?: (sent: { userOpHash: Hex; provider: GasProvider }) => void,
+): Promise<Hex> => {
   const cfg = v2Config();
   const { session, walletAccount, chainId: chain } = ready;
   const { userOpHash, provider } = await sendUserOperation(cfg, {
@@ -311,6 +337,7 @@ export const sendCallsV2 = async (ready: V2Ready, calls: V2Call[]): Promise<Hex>
     chainId: chain,
     calls,
   });
+  onSent?.({ userOpHash, provider });
   const { transactionHash } = await waitForUserOperationReceipt(cfg, {
     session,
     chainId: chain,

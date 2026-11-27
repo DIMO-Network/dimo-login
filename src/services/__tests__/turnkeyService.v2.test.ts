@@ -121,6 +121,7 @@ import {
   setVehiclePermissions,
   setVehiclePermissionsBatch,
   setVehiclePermissionsBulk,
+  V2SendTimeoutError,
 } from '../turnkeyService';
 import {
   ensureV2Session,
@@ -478,12 +479,18 @@ beforeEach(() => {
     transactionHash: V2_HASH,
     logs: CHAIN_LOGS,
   });
-  vi.mocked(sendCallsV2).mockResolvedValue(V2_HASH);
+  // The operation is sent (and named) before its receipt gives the transaction hash.
+  vi.mocked(sendCallsV2).mockImplementation(async (_ready, _calls, onSent) => {
+    onSent?.({ userOpHash: OP_HASH, provider: 'alchemy' });
+    return V2_HASH;
+  });
   vi.spyOn(console, 'log').mockImplementation(() => {});
   vi.spyOn(console, 'info').mockImplementation(() => {});
+  vi.spyOn(console, 'warn').mockImplementation(() => {});
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 afterEach(() => {
+  vi.useRealTimers();
   clearSessionStamper();
   delete process.env.REACT_APP_ACCOUNTS_V2_SENDS;
   delete process.env.REACT_APP_ENVIRONMENT;
@@ -514,8 +521,81 @@ describe.each(wrappers)('$name', (wrapper) => {
         smartContractAddress: KERNEL,
       });
       expect(sendCallsV2).toHaveBeenCalledTimes(1);
-      expect(sendCallsV2).toHaveBeenCalledWith(READY, wrapper.v2Calls());
+      expect(sendCallsV2).toHaveBeenCalledWith(
+        READY,
+        wrapper.v2Calls(),
+        expect.any(Function),
+      );
       expect(wrapper.v1()).not.toHaveBeenCalled();
+    });
+
+    it('says it sent through accounts v2, naming the operation and its provider', async () => {
+      await wrapper.send();
+
+      expect(console.info).toHaveBeenCalledWith(
+        `Sent through accounts v2: UserOperation ${OP_HASH} via alchemy`,
+      );
+      expect(console.info).not.toHaveBeenCalledWith(
+        expect.stringContaining('Sent through the wallet signer'),
+      );
+      expect(captureException).not.toHaveBeenCalled();
+    });
+
+    describe('with no answer for 240 s', () => {
+      beforeEach(() => {
+        vi.useFakeTimers();
+      });
+
+      /** Starts the send; `outcome()` is how it settled, once it has. */
+      const start = () => {
+        let outcome: { error: unknown } | { value: unknown } | undefined;
+        wrapper.send().then(
+          (value) => (outcome = { value }),
+          (error) => (outcome = { error }),
+        );
+        return { outcome: () => outcome };
+      };
+
+      it('fails as unknown when no operation was named, reported, and sends nothing again', async () => {
+        vi.mocked(sendCallsV2).mockImplementation(() => new Promise(() => {}));
+
+        const send = start();
+        await vi.advanceTimersByTimeAsync(239_999);
+        expect(send.outcome()).toBeUndefined();
+        await vi.advanceTimersByTimeAsync(1);
+
+        const { error } = send.outcome() as { error: unknown };
+        expect(error).toBeInstanceOf(V2SendTimeoutError);
+        expect(wrapper.v1()).not.toHaveBeenCalled();
+        expect(sendCallsV2).toHaveBeenCalledTimes(1);
+        expect(captureException).toHaveBeenCalledWith(error, {
+          contexts: { user_operation: { userOpHash: null, provider: null } },
+        });
+      });
+
+      it('fails as pending once the operation is named, reported with it, and sends nothing again', async () => {
+        vi.mocked(sendCallsV2).mockImplementation((_ready, _calls, onSent) => {
+          onSent?.({ userOpHash: OP_HASH, provider: 'gelato' });
+          return new Promise(() => {});
+        });
+
+        const send = start();
+        await vi.advanceTimersByTimeAsync(239_999);
+        expect(send.outcome()).toBeUndefined();
+        await vi.advanceTimersByTimeAsync(1);
+
+        const { error } = send.outcome() as { error: unknown };
+        expect(error).toBeInstanceOf(UserOperationPendingError);
+        expect(error).toMatchObject({ userOpHash: OP_HASH, provider: 'gelato' });
+        expect(wrapper.v1()).not.toHaveBeenCalled();
+        expect(sendCallsV2).toHaveBeenCalledTimes(1);
+        expect(captureException).toHaveBeenCalledWith(error, {
+          contexts: { user_operation: { userOpHash: OP_HASH, provider: 'gelato' } },
+        });
+        expect(console.info).not.toHaveBeenCalledWith(
+          expect.stringContaining('Sent through accounts v2'),
+        );
+      });
     });
 
     it.each([
@@ -580,6 +660,9 @@ describe.each(wrappers)('$name', (wrapper) => {
     expect(sendCallsV2).not.toHaveBeenCalled();
     // Why, in the console (a breadcrumb in Sentry); no event of its own.
     expect(console.info).toHaveBeenCalledWith(expect.stringContaining('(v2_down)'));
+    expect(console.info).not.toHaveBeenCalledWith(
+      expect.stringContaining('Sent through accounts v2'),
+    );
     expect(captureException).not.toHaveBeenCalled();
   });
 
@@ -644,6 +727,101 @@ describe('a receipt after a v2 send', () => {
 
     expect(sendCallsV2).toHaveBeenCalledTimes(1);
     expect(kernel().executeTransaction).not.toHaveBeenCalled();
+  });
+
+  it('that can’t be read leaves a landed batch done, with no logs, and says so', async () => {
+    const error = new Error('receipt not found');
+    kernel().publicClient.waitForTransactionReceipt.mockRejectedValue(error);
+
+    expect(
+      await executeBatchTransactions([
+        {
+          address: LICENSE,
+          abi: LICENSE_ABI,
+          functionName: 'enableSigner',
+          args: [BigInt(7), WALLET],
+        },
+      ]),
+    ).toEqual({ transactionHash: V2_HASH, logs: [] });
+
+    // A breadcrumb in Sentry; no event of its own.
+    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining(V2_HASH), error);
+    expect(captureException).not.toHaveBeenCalled();
+    expect(sendCallsV2).toHaveBeenCalledTimes(1);
+    expect(kernel().executeTransaction).not.toHaveBeenCalled();
+  });
+
+  it('that never comes counts in the 240 s: pending, with the operation', async () => {
+    vi.useFakeTimers();
+    kernel().publicClient.waitForTransactionReceipt.mockImplementation(
+      () => new Promise(() => {}),
+    );
+    let outcome: unknown;
+    executeTransactionWithReceipt(LICENSE, LICENSE_ABI, 'issueInDimo', [
+      'jun@x.co',
+    ]).catch((error: unknown) => (outcome = error));
+
+    await vi.advanceTimersByTimeAsync(239_999);
+    expect(outcome).toBeUndefined();
+    await vi.advanceTimersByTimeAsync(1);
+
+    expect(outcome).toBeInstanceOf(UserOperationPendingError);
+    expect(outcome).toMatchObject({ userOpHash: OP_HASH, provider: 'alchemy' });
+    expect(kernel().executeTransaction).not.toHaveBeenCalled();
+  });
+});
+
+describe('a malformed request with ACCOUNTS_V2_SENDS on', () => {
+  beforeEach(() => {
+    process.env.REACT_APP_ACCOUNTS_V2_SENDS = 'true';
+    vi.mocked(ensureV2Session).mockResolvedValue(READY);
+  });
+
+  it.each([
+    [
+      'executeAdvancedTransaction',
+      () =>
+        executeAdvancedTransaction(TOKEN, TRANSFER_ABI, 'transferFrom', [RECIPIENT, '1']),
+    ],
+    [
+      'executeTransactionWithReceipt',
+      () => executeTransactionWithReceipt(LICENSE, LICENSE_ABI, 'issueInDimo', []),
+    ],
+    [
+      'executeBatchTransactions',
+      () =>
+        executeBatchTransactions([
+          {
+            address: LICENSE,
+            abi: LICENSE_ABI,
+            functionName: 'enableSigner',
+            args: [BigInt(7), 'not-an-address'],
+          },
+        ]),
+    ],
+    [
+      'setVehiclePermissions',
+      () => setVehiclePermissions({ ...vehicleGrant(11), grantee: '0xnot' as Hex }),
+    ],
+    [
+      'setAccountPermissions',
+      () =>
+        setAccountPermissions({
+          grantee: '0xnot' as Hex,
+          permissions,
+          expiration,
+          templateId: BigInt(0),
+          source,
+        }),
+    ],
+  ])('%s fails before any sign-in or claim, and sends nothing', async (_name, send) => {
+    await expect(send()).rejects.toThrow();
+
+    expect(ensureV2Session).not.toHaveBeenCalled();
+    expect(sendCallsV2).not.toHaveBeenCalled();
+    expect(kernel().executeTransaction).not.toHaveBeenCalled();
+    expect(kernel().setVehiclePermissions).not.toHaveBeenCalled();
+    expect(kernel().setAccountPermissions).not.toHaveBeenCalled();
   });
 });
 

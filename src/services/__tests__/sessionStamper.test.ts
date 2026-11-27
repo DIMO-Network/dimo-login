@@ -110,7 +110,7 @@ import {
   getSessionStamper,
   initializePasskey,
 } from '../turnkeyService';
-import { clearSessionStamper } from '../sessionStamper';
+import { clearSessionStamper, getPasskeySessionSub } from '../sessionStamper';
 import { logout } from '../../utils/authUtils';
 
 const SUB = 'sub-alice';
@@ -321,6 +321,31 @@ describe('a session that has lapsed', () => {
       expect(getSessionStamper()).toBeNull();
       expect(kernel().openedWith).toHaveLength(1);
     });
+
+    it.each([
+      ['logout', () => logout('0xc', 'https://app.example/cb', '', vi.fn())],
+      ['a reset', () => getKernelSigner().resetClient()],
+    ])(
+      'opens nothing when %s comes after the prompt, while the session is opening',
+      async (_name, end) => {
+        lapse();
+        let release!: () => void;
+        turnkey.state.openGate = new Promise((resolve) => (release = resolve));
+        const rejected = expect(getKernelSigner().getActiveClient()).rejects.toThrow(
+          'Session ended while it was opening',
+        );
+        // Past the passkey stamp and its check: the signer is opening the session.
+        await vi.waitFor(() => expect(turnkey.state.webauthnStamps).toBe(2));
+
+        end();
+        release();
+
+        await rejected;
+        expect(getSessionStamper()).toBeNull();
+        expect(getPasskeySessionSub()).toBeNull();
+        expect(kernel().apiSessionClient.expires).toBe(0);
+      },
+    );
 
     it('makes no new stamp before it expires', async () => {
       await getKernelSigner().getActiveClient();

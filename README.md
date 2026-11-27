@@ -67,6 +67,16 @@ Features that ship dark are off unless their variable is exactly `true` at build
 
 The accounts v2 sends (`src/services/v2/accountsV2.ts`) also need three settings: `REACT_APP_DAUTH_URL` (dauth, where the wallet signs in), `REACT_APP_DID_DIRECTORY_URL` (the DID directory) and `REACT_APP_TURNKEY_PARENT_ORG_ID` (DIMO's Turnkey parent organization). They use the origin of `REACT_APP_DIMO_ACCOUNTS_URL` (the SDK adds `/api/v2`) and `REACT_APP_POLYGON_RPC_URL`, on chain 137 when `REACT_APP_ENVIRONMENT=prod` and 80002 otherwise. With any of the five unset, v2 is unavailable (`config_missing`) even with the flag on, and transactions are sent as before.
 
+Before turning the flag on, check the services it talks to:
+
+- dauth's `SIGNIN_CORS_ORIGINS` includes the login's origin (for example `https://login.dev.dimo.org`). Without it the browser blocks the sign-in, v2 is `v2_down`, and every transaction quietly goes through the wallet signer.
+- dauth's `SIGNIN_ALLOWED_AUDIENCES` includes the accounts URL's origin (for example `https://accounts.dev.dimo.org`). Without it dauth refuses the sign-in, with the same quiet fallback.
+- accounts' `V2_GAS_SPONSORED_CHAIN_IDS`, when set, includes the chain (137 in prod, 80002 otherwise); unset, it covers every supported chain but Ethereum mainnet. Without the chain the gas proxy refuses the send itself, and the transaction fails outright: once a v2 send has started, its errors are never retried through the wallet signer.
+
+Which path sent a transaction shows in the browser console, and in Sentry as a breadcrumb (no event of its own): `Sent through accounts v2: UserOperation <userOpHash> via <provider>` after a v2 send lands, or `Sent through the wallet signer: accounts v2 unavailable (<reason>)` when v2 couldn't serve the account. With the flag off neither line is written. A v2 send with no answer after 240 s fails as pending and is never sent again. With the flag on, a signing screen renews a passkey session that has less than 3 minutes left (its one prompt comes then), so a send never runs past the end of its session.
+
+Users whose account still holds a phone number stay on the wallet signer: accounts refuses their DID claim until the phone is removed (`claim_refused`), and the login doesn't remove it until that step is approved.
+
 🗂️ Folder Structure Overview
 
 ```

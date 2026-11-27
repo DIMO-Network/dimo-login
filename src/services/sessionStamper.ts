@@ -8,6 +8,13 @@
  */
 import type { ApiKeyStamper } from '@turnkey/api-key-stamper';
 
+/**
+ * A v2 send takes up to 30 s and its receipt wait up to 120 s, so a session
+ * (dauth and Turnkey both) with less than this left isn't used for one; with
+ * ACCOUNTS_V2_SENDS on, validateSession renews a passkey session that has less.
+ */
+export const SEND_MARGIN_MS = 180_000;
+
 type Session = {
   stamper: ApiKeyStamper;
   expiresAt: number;
