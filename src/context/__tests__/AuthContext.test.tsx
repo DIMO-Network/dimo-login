@@ -80,6 +80,7 @@ const stepsWith = (
     }),
     getApiKeyStamper: vi.fn(() => ({ stamp: 'api' })),
     initializePasskey: vi.fn().mockResolvedValue(undefined),
+    passkeySessionEndsSoon: () => false,
     authenticateUser: vi.fn().mockResolvedValue({
       accessToken: JWT,
       walletAddress: '0xw',
@@ -134,7 +135,10 @@ describe('AuthContext validateSession', () => {
     expect(getKernelSigner).not.toHaveBeenCalled();
     expect(settled).toBe(false);
 
-    signer.resolve({ getKernelSigner } as unknown as SignInSteps);
+    signer.resolve({
+      getKernelSigner,
+      passkeySessionEndsSoon: () => false,
+    } as unknown as SignInSteps);
 
     await expect(validated).resolves.toBe(true);
     expect(getKernelSigner).toHaveBeenCalled();
@@ -143,6 +147,16 @@ describe('AuthContext validateSession', () => {
   it('validateSession sends a user with no session to the email screen without loading the wallet', async () => {
     renderProvider();
     signInAs('sub');
+
+    await expect(auth.validateSession()).resolves.toBeNull();
+
+    expect(setUiState).toHaveBeenCalledWith(UiStates.EMAIL_INPUT);
+    expect(signInStepsWithSigner).not.toHaveBeenCalled();
+  });
+
+  it('validateSession sends a user without a subOrganizationId to the email screen, without throwing', async () => {
+    renderProvider();
+    signInAs(undefined as unknown as string);
 
     await expect(auth.validateSession()).resolves.toBeNull();
 

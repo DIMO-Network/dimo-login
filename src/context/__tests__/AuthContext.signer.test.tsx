@@ -59,12 +59,24 @@ const wallet = vi.hoisted(() => {
       return { account: sub, expires: Date.now() + SESSION_MS };
     }
 
+    /** ACCOUNTS_V2_SENDS on: a passkey sign-in opens an API-key session instead. */
+    passkeyAsApiSession = false;
+    /** The expiry the last passkey sign-in opened, as initializePasskey returns it. */
+    lastPasskeyExpiry = 0;
+
     async passkeyToSession(sub: string) {
+      if (this.passkeyAsApiSession) {
+        this.passkeyPrompts.push(sub);
+        this.apiSessionClient = this.open(sub);
+        this.lastPasskeyExpiry = this.apiSessionClient.expires;
+        return;
+      }
       // The SDK returns at once while any passkey session is live.
       if (this.passkeySessionClient.expires > Date.now()) return;
       this.passkeyPrompts.push(sub);
       this.passkeyClient = { valid: true };
       this.passkeySessionClient = this.open(sub);
+      this.lastPasskeyExpiry = this.passkeySessionClient.expires;
     }
 
     async openSessionWithApiStamper(sub: string) {
@@ -132,7 +144,10 @@ vi.mock('../../services/turnkeyService', async () => {
     getKernelSigner: () => wallet.signer,
     getSmartContractAddress: () => wallet.signer.kernelAddress,
     getWalletAddress: () => wallet.signer.walletAddress,
-    initializePasskey: (sub: string) => wallet.signer.passkeyToSession(sub),
+    initializePasskey: async (sub: string) => {
+      await wallet.signer.passkeyToSession(sub);
+      return wallet.signer.lastPasskeyExpiry;
+    },
     signChallenge: (challenge: string) => wallet.signer.signChallenge(challenge),
     getApiKeyStamper: ({ embeddedKey }: { embeddedKey: string }) =>
       new ApiKeyStamper({ apiPublicKey: 'public', apiPrivateKey: embeddedKey }),
@@ -255,5 +270,42 @@ describe('every sign-in starts from a clean wallet signer', () => {
     await signInByPasskey(ALICE);
 
     expect(wallet.signer.passkeyPrompts).toEqual(['sub-alice', 'sub-alice']);
+  });
+});
+
+describe('the stored wallet session after a passkey sign-in with ACCOUNTS_V2_SENDS on', () => {
+  const stored = () =>
+    JSON.parse(localStorage.getItem('turnkey_session_sub-alice') ?? 'null');
+
+  beforeEach(() => {
+    wallet.signer.passkeyAsApiSession = true;
+  });
+
+  it('is the passkey marker and its expiry, with no key material', async () => {
+    await signInByPasskey(ALICE);
+
+    const expiresAt = wallet.signer.apiSessionClient.expires;
+    expect(expiresAt).toBeGreaterThan(Date.now());
+    expect(stored()).toEqual({ sessionType: 'passkey', expiresAt });
+    expect(wallet.signer.passkeySessionClient.expires).toBe(0);
+  });
+
+  it('is rewritten the same way when a reload’s validateSession prompts again', async () => {
+    localStorage.setItem(
+      'turnkey_session_sub-alice',
+      JSON.stringify({ sessionType: 'passkey', expiresAt: 1 }),
+    );
+    act(() => auth.setUser(ALICE));
+
+    await act(async () => {
+      await auth.validateSession();
+    });
+
+    expect(wallet.signer.passkeyPrompts).toEqual(['sub-alice']);
+    expect(stored()).toEqual({
+      sessionType: 'passkey',
+      expiresAt: wallet.signer.apiSessionClient.expires,
+    });
+    expect(stored().expiresAt).toBeGreaterThan(Date.now());
   });
 });

@@ -45,11 +45,15 @@ REACT_APP_TESLA_CLIENT_ID=194119ca43c7-4528-9415-3116fb5868cd
 REACT_APP_TESLA_REDIRECT_URI=http://localhost:3000/v1
 REACT_APP_TESLA_VIRTUAL_KEY_URL=https://www.tesla.com/_ak/auth.dev.drivedimo.com
 REACT_APP_RPCID_URL=localhost
+REACT_APP_DAUTH_URL=https://dauth.dev.dimo.zone
+REACT_APP_DID_DIRECTORY_URL=https://did.dev.dimo.zone
+REACT_APP_TURNKEY_PARENT_ORG_ID=<turnkey-parent-org-id>
 REACT_APP_CONNECTED_APPS=false
 REACT_APP_PASSKEY_OFFER=false
 REACT_APP_PASSKEY_FIRST=false
 REACT_APP_SIGN_IN_NOTICE=false
 REACT_APP_SIGN_UP_PROOF=false
+REACT_APP_ACCOUNTS_V2_SENDS=false
 ```
 
 Features that ship dark are off unless their variable is exactly `true` at build time (`src/utils/featureFlags.ts`):
@@ -59,6 +63,19 @@ Features that ship dark are off unless their variable is exactly `true` at build
 - `REACT_APP_PASSKEY_FIRST`: "Sign in with a passkey" on the email form, without typing an email. Needs the accounts API's `GET /account/passkey-challenge` and `POST /account/by-passkey`.
 - `REACT_APP_SIGN_IN_NOTICE`: tell the accounts API about an account's first sign-in on this browser (`POST /account/sign-in-notice`), which may email the account.
 - `REACT_APP_SIGN_UP_PROOF`: when Google or Apple sign-up creates an account, send the provider's token to `POST /account` as `Authorization: Bearer`, the proof the accounts API asks for once its `ACCOUNT_CREATE_REQUIRE_PROOF` is on. Turn it on only after the accounts API that allows the `Authorization` header (CORS) is live: before that the browser refuses the request and Google/Apple sign-up fails. Turn it on before the accounts API starts requiring proof.
+- `REACT_APP_ACCOUNTS_V2_SENDS`: send transactions through the accounts v2 API. This step only changes the session: a passkey sign-in opens its Turnkey session as an API-key session after one passkey prompt (the same prompt count as today), so one session stamper serves the wallet signer and the v2 sends. Nothing more is stored in the browser; the session key stays in memory.
+
+The accounts v2 sends (`src/services/v2/accountsV2.ts`) also need three settings: `REACT_APP_DAUTH_URL` (dauth, where the wallet signs in), `REACT_APP_DID_DIRECTORY_URL` (the DID directory) and `REACT_APP_TURNKEY_PARENT_ORG_ID` (DIMO's Turnkey parent organization). They use the origin of `REACT_APP_DIMO_ACCOUNTS_URL` (the SDK adds `/api/v2`) and `REACT_APP_POLYGON_RPC_URL`, on chain 137 when `REACT_APP_ENVIRONMENT=prod` and 80002 otherwise. With any of the five unset, v2 is unavailable (`config_missing`) even with the flag on, and transactions are sent as before.
+
+Before turning the flag on, check the services it talks to:
+
+- dauth's `SIGNIN_CORS_ORIGINS` includes the login's origin (for example `https://login.dev.dimo.org`). Without it the browser blocks the sign-in, v2 is `v2_down`, and every transaction quietly goes through the wallet signer.
+- dauth's `SIGNIN_ALLOWED_AUDIENCES` includes the accounts URL's origin (for example `https://accounts.dev.dimo.org`). Without it dauth refuses the sign-in, with the same quiet fallback.
+- accounts' `V2_GAS_SPONSORED_CHAIN_IDS`, when set, includes the chain (137 in prod, 80002 otherwise); unset, it covers every supported chain but Ethereum mainnet. Without the chain the gas proxy refuses the send itself, and the transaction fails outright: once a v2 send has started, its errors are never retried through the wallet signer.
+
+Which path sent a transaction shows in the browser console, and in Sentry as a breadcrumb (no event of its own): `Sent through accounts v2: UserOperation <userOpHash> via <provider>` after a v2 send lands, or `Sent through the wallet signer: accounts v2 unavailable (<reason>)` when v2 couldn't serve the account. With the flag off neither line is written. A v2 send with no answer after 240 s is reported as pending: an operation already being signed or sent may still land, so it is never retried automatically. With the flag on, a signing screen renews a passkey session that has less than 3 minutes left (its one prompt comes then), but a user who waits more than about 8 minutes on a signing screen before approving can still drop back to the wallet signer.
+
+Users whose account still holds a phone number stay on the wallet signer: accounts refuses their DID claim until the phone is removed (`claim_refused`), and the login doesn't remove it until that step is approved.
 
 🗂️ Folder Structure Overview
 

@@ -7,6 +7,7 @@ import {
   storeUserInLocalStorage,
 } from '../services/storageService';
 import { isTokenExpired } from '../services/tokenService';
+import { clearSessionStamper } from '../services/sessionStamper';
 import { UserObject } from '../models/user';
 import {
   endWalletSession,
@@ -107,6 +108,7 @@ export function logout(
   // An explicit logout also ends the wallet session, so on a shared device the
   // next person cannot resume this account silently. The account stays remembered.
   endWalletSession(getLastSignedInSubOrganizationId(clientId));
+  clearSessionStamper();
   clearSessionData(clientId);
   sendMessageToReferrer({ eventType: 'logout' });
 
