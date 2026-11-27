@@ -45,6 +45,9 @@ REACT_APP_TESLA_CLIENT_ID=194119ca43c7-4528-9415-3116fb5868cd
 REACT_APP_TESLA_REDIRECT_URI=http://localhost:3000/v1
 REACT_APP_TESLA_VIRTUAL_KEY_URL=https://www.tesla.com/_ak/auth.dev.drivedimo.com
 REACT_APP_RPCID_URL=localhost
+REACT_APP_DAUTH_URL=https://dauth.dev.dimo.zone
+REACT_APP_DID_DIRECTORY_URL=https://did.dev.dimo.zone
+REACT_APP_TURNKEY_PARENT_ORG_ID=<turnkey-parent-org-id>
 REACT_APP_CONNECTED_APPS=false
 REACT_APP_PASSKEY_OFFER=false
 REACT_APP_PASSKEY_FIRST=false
@@ -61,6 +64,8 @@ Features that ship dark are off unless their variable is exactly `true` at build
 - `REACT_APP_SIGN_IN_NOTICE`: tell the accounts API about an account's first sign-in on this browser (`POST /account/sign-in-notice`), which may email the account.
 - `REACT_APP_SIGN_UP_PROOF`: when Google or Apple sign-up creates an account, send the provider's token to `POST /account` as `Authorization: Bearer`, the proof the accounts API asks for once its `ACCOUNT_CREATE_REQUIRE_PROOF` is on. Turn it on only after the accounts API that allows the `Authorization` header (CORS) is live: before that the browser refuses the request and Google/Apple sign-up fails. Turn it on before the accounts API starts requiring proof.
 - `REACT_APP_ACCOUNTS_V2_SENDS`: send transactions through the accounts v2 API. This step only changes the session: a passkey sign-in opens its Turnkey session as an API-key session after one passkey prompt (the same prompt count as today), so one session stamper serves the wallet signer and the v2 sends. Nothing more is stored in the browser; the session key stays in memory.
+
+The accounts v2 sends (`src/services/v2/accountsV2.ts`) also need three settings: `REACT_APP_DAUTH_URL` (dauth, where the wallet signs in), `REACT_APP_DID_DIRECTORY_URL` (the DID directory) and `REACT_APP_TURNKEY_PARENT_ORG_ID` (DIMO's Turnkey parent organization). They use the origin of `REACT_APP_DIMO_ACCOUNTS_URL` (the SDK adds `/api/v2`) and `REACT_APP_POLYGON_RPC_URL`, on chain 137 when `REACT_APP_ENVIRONMENT=prod` and 80002 otherwise. With any of the five unset, v2 is unavailable (`config_missing`) even with the flag on, and transactions are sent as before.
 
 🗂️ Folder Structure Overview
 
