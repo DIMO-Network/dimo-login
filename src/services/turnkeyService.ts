@@ -49,19 +49,44 @@ export const passkeyStamper = new WebauthnStamper({
 export { getSessionStamper } from './sessionStamper';
 
 /**
- * KernelSigner that keeps sessionStamper in step with the session it holds:
+ * The account whose current session came from a flagged passkey sign-in
+ * (initializePasskey), or null: an email-code session, a resume, or none.
+ */
+let passkeySessionSub: string | null = null;
+let passkeyRefresh: Promise<void> | null = null;
+
+/**
+ * KernelSigner that keeps the session stamper in step with the session it holds:
  * any API-key session it opens (email code, resume, or a passkey sign-in made
- * one) is the current stamper, and a reset drops it.
+ * one) is the current stamper, and a reset drops it. A flagged passkey session
+ * that has lapsed is reopened with one passkey prompt at the next use, as the
+ * unflagged signer does through its kept passkey client.
  */
 class SessionKernelSigner extends KernelSigner {
   async openSessionWithApiStamper(subOrganizationId: string, apiStamper: ApiKeyStamper) {
+    passkeySessionSub = null;
     await super.openSessionWithApiStamper(subOrganizationId, apiStamper);
-    setSessionStamper(apiStamper);
+    setSessionStamper(apiStamper, this.apiSessionClient.expires);
   }
 
   resetClient() {
+    passkeySessionSub = null;
     clearSessionStamper();
     return super.resetClient();
+  }
+
+  async getActiveClient() {
+    const sub = passkeySessionSub;
+    if (sub && this.apiSessionClient.expires <= Date.now()) {
+      // Calls that overlap share one prompt.
+      passkeyRefresh ??= initializePasskey(sub)
+        .then(() => undefined)
+        .finally(() => {
+          passkeyRefresh = null;
+        });
+      await passkeyRefresh;
+    }
+    return super.getActiveClient();
   }
 }
 
@@ -225,6 +250,7 @@ export const initializePasskey = async (subOrganizationId: string): Promise<numb
   }
   const { stamper, expiresAt } = await createPasskeySession(subOrganizationId);
   await kernelSigner.openSessionWithApiStamper(subOrganizationId, stamper);
+  passkeySessionSub = subOrganizationId;
   return expiresAt;
 };
 

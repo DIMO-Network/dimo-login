@@ -28,6 +28,10 @@ const turnkey = vi.hoisted(() => {
       this.passkeySessionClient = { expires: 0 };
       return true;
     }
+    async getActiveClient() {
+      if (this.apiSessionClient.expires > Date.now()) return 'api-client';
+      throw new Error('No active client');
+    }
     async openSessionWithApiStamper(sub: string, stamper: unknown) {
       this.openedWith.push([sub, stamper]);
       this.apiSessionClient = { expires: Date.now() + 675_000 };
@@ -211,5 +215,72 @@ describe('ending the session', () => {
     await openSession();
     logout('0xc', 'https://app.example/cb', '', vi.fn());
     expect(getSessionStamper()).toBeNull();
+  });
+});
+
+describe('a session that has lapsed', () => {
+  const lapse = () => {
+    kernel().apiSessionClient = { expires: Date.now() - 1 };
+  };
+
+  describe('from a passkey sign-in with ACCOUNTS_V2_SENDS on', () => {
+    beforeEach(async () => {
+      process.env.REACT_APP_ACCOUNTS_V2_SENDS = 'true';
+      await initializePasskey(SUB);
+    });
+
+    it('is reopened with one new passkey stamp at the next signing call', async () => {
+      const first = getSessionStamper();
+      lapse();
+
+      await expect(getKernelSigner().getActiveClient()).resolves.toBe('api-client');
+
+      expect(turnkey.state.webauthnStamps).toBe(2);
+      expect(kernel().openedWith).toHaveLength(2);
+      expect(getSessionStamper()).not.toBeNull();
+      expect(getSessionStamper()).not.toBe(first);
+      expect(getSessionStamper()).toBe((kernel().openedWith[1] as unknown[])[1]);
+    });
+
+    it('makes one stamp for calls that overlap', async () => {
+      lapse();
+      await Promise.all([
+        getKernelSigner().getActiveClient(),
+        getKernelSigner().getActiveClient(),
+      ]);
+      expect(turnkey.state.webauthnStamps).toBe(2);
+    });
+
+    it('makes no new stamp before it expires', async () => {
+      await getKernelSigner().getActiveClient();
+      expect(turnkey.state.webauthnStamps).toBe(1);
+    });
+
+    it('has no session stamper once expired, until it is reopened', () => {
+      lapse();
+      // The stamper's own expiry is the one stored with it.
+      vi.useFakeTimers({ now: Date.now() + 676_000 });
+      try {
+        expect(getSessionStamper()).toBeNull();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
+  describe('from an email code', () => {
+    it('stays as it is today: no client, no prompt', async () => {
+      process.env.REACT_APP_ACCOUNTS_V2_SENDS = 'true';
+      await getKernelSigner().openSessionWithApiStamper(
+        SUB,
+        getApiKeyStamper({ credentialBundle: 'b', embeddedKey: 'k' }),
+      );
+      lapse();
+
+      await expect(getKernelSigner().getActiveClient()).rejects.toThrow(
+        'No active client',
+      );
+      expect(turnkey.state.webauthnStamps).toBe(0);
+    });
   });
 });

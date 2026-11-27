@@ -8,14 +8,16 @@
  */
 import type { ApiKeyStamper } from '@turnkey/api-key-stamper';
 
-let sessionStamper: ApiKeyStamper | null = null;
+let session: { stamper: ApiKeyStamper; expiresAt: number } | null = null;
 
-export const getSessionStamper = (): ApiKeyStamper | null => sessionStamper;
+/** The current session's stamper, or null when there is none or it has expired. */
+export const getSessionStamper = (): ApiKeyStamper | null =>
+  session && session.expiresAt > Date.now() ? session.stamper : null;
 
-export const setSessionStamper = (stamper: ApiKeyStamper): void => {
-  sessionStamper = stamper;
+export const setSessionStamper = (stamper: ApiKeyStamper, expiresAt: number): void => {
+  session = { stamper, expiresAt };
 };
 
 export const clearSessionStamper = (): void => {
-  sessionStamper = null;
+  session = null;
 };
