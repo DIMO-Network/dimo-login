@@ -8,16 +8,36 @@
  */
 import type { ApiKeyStamper } from '@turnkey/api-key-stamper';
 
-let session: { stamper: ApiKeyStamper; expiresAt: number } | null = null;
+type Session = {
+  stamper: ApiKeyStamper;
+  expiresAt: number;
+  /** The account, when a flagged passkey sign-in opened this session. */
+  passkeySub: string | null;
+};
+
+let session: Session | null = null;
+// Bumped whenever the session is cleared (reset, logout), so work that began
+// before then can tell it is stale and open nothing.
+let generation = 0;
 
 /** The current session's stamper, or null when there is none or it has expired. */
 export const getSessionStamper = (): ApiKeyStamper | null =>
   session && session.expiresAt > Date.now() ? session.stamper : null;
 
-export const setSessionStamper = (stamper: ApiKeyStamper, expiresAt: number): void => {
-  session = { stamper, expiresAt };
+/** The account of a flagged passkey session, live or lapsed; null otherwise. */
+export const getPasskeySessionSub = (): string | null => session?.passkeySub ?? null;
+
+export const sessionGeneration = (): number => generation;
+
+export const setSessionStamper = (
+  stamper: ApiKeyStamper,
+  expiresAt: number,
+  passkeySub: string | null = null,
+): void => {
+  session = { stamper, expiresAt, passkeySub };
 };
 
 export const clearSessionStamper = (): void => {
   session = null;
+  generation += 1;
 };

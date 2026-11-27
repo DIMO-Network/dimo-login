@@ -9,6 +9,9 @@ const turnkey = vi.hoisted(() => {
   const state = {
     webauthnStamps: 0,
     activities: [] as unknown[],
+    stampGate: undefined as Promise<void> | undefined,
+    openGate: undefined as Promise<void> | undefined,
+    failNextOpen: false,
     kernel: undefined as undefined | InstanceType<typeof FakeKernelSigner>,
   };
   class FakeKernelSigner {
@@ -33,6 +36,12 @@ const turnkey = vi.hoisted(() => {
       throw new Error('No active client');
     }
     async openSessionWithApiStamper(sub: string, stamper: unknown) {
+      // The real one makes three network calls before it sets the expiry.
+      await state.openGate;
+      if (state.failNextOpen) {
+        state.failNextOpen = false;
+        throw new Error('network');
+      }
       this.openedWith.push([sub, stamper]);
       this.apiSessionClient = { expires: Date.now() + 675_000 };
     }
@@ -48,6 +57,7 @@ vi.mock('@dimo-network/transactions/dist/core/types/args', () => ({}));
 vi.mock('@turnkey/webauthn-stamper', () => ({
   WebauthnStamper: class {
     stamp = async () => {
+      await turnkey.state.stampGate;
       turnkey.state.webauthnStamps += 1;
       return { stampHeaderName: 'X-Stamp-Webauthn', stampHeaderValue: 'stamp' };
     };
@@ -108,6 +118,9 @@ const SUB = 'sub-alice';
 beforeEach(() => {
   turnkey.state.webauthnStamps = 0;
   turnkey.state.activities = [];
+  turnkey.state.stampGate = undefined;
+  turnkey.state.openGate = undefined;
+  turnkey.state.failNextOpen = false;
   localStorage.clear();
   sessionStorage.clear();
   clearSessionStamper();
@@ -249,6 +262,64 @@ describe('a session that has lapsed', () => {
         getKernelSigner().getActiveClient(),
       ]);
       expect(turnkey.state.webauthnStamps).toBe(2);
+    });
+
+    it('lets a call that arrives while the session is opening wait for it', async () => {
+      lapse();
+      let release!: () => void;
+      turnkey.state.openGate = new Promise((resolve) => (release = resolve));
+
+      const first = getKernelSigner().getActiveClient();
+      await vi.waitFor(() => expect(turnkey.state.webauthnStamps).toBe(2));
+      const second = getKernelSigner().getActiveClient();
+      release();
+
+      await expect(Promise.all([first, second])).resolves.toEqual([
+        'api-client',
+        'api-client',
+      ]);
+      expect(turnkey.state.webauthnStamps).toBe(2);
+    });
+
+    it('prompts again at the next call after a failed reopen', async () => {
+      lapse();
+      turnkey.state.failNextOpen = true;
+      await expect(getKernelSigner().getActiveClient()).rejects.toThrow('network');
+
+      await expect(getKernelSigner().getActiveClient()).resolves.toBe('api-client');
+      expect(turnkey.state.webauthnStamps).toBe(3);
+    });
+
+    it('opens nothing when logout comes while the prompt is open', async () => {
+      lapse();
+      let release!: () => void;
+      turnkey.state.stampGate = new Promise((resolve) => (release = resolve));
+      const call = getKernelSigner().getActiveClient();
+      const rejected = expect(call).rejects.toThrow('Session ended');
+
+      logout('0xc', 'https://app.example/cb', '', vi.fn());
+      release();
+
+      await rejected;
+      expect(getSessionStamper()).toBeNull();
+      expect(kernel().openedWith).toHaveLength(1);
+      expect(kernel().apiSessionClient.expires).toBeLessThanOrEqual(Date.now());
+    });
+
+    it('opens nothing when the signer is reset while the prompt is open', async () => {
+      lapse();
+      let release!: () => void;
+      turnkey.state.stampGate = new Promise((resolve) => (release = resolve));
+      const rejected = expect(getKernelSigner().getActiveClient()).rejects.toThrow(
+        'Session ended',
+      );
+
+      getKernelSigner().resetClient();
+      release();
+
+      await rejected;
+      expect(getSessionStamper()).toBeNull();
+      expect(kernel().openedWith).toHaveLength(1);
     });
 
     it('makes no new stamp before it expires', async () => {

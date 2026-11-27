@@ -31,7 +31,12 @@ import {
   getPublicKey,
 } from '@turnkey/crypto';
 import { accountsV2SendsEnabled } from '../utils/featureFlags';
-import { clearSessionStamper, setSessionStamper } from './sessionStamper';
+import {
+  clearSessionStamper,
+  getPasskeySessionSub,
+  sessionGeneration,
+  setSessionStamper,
+} from './sessionStamper';
 import { Attachment, CloudEventAgreement } from '../types';
 import { withTimeout } from '../utils/withTimeout';
 
@@ -48,11 +53,6 @@ export const passkeyStamper = new WebauthnStamper({
 
 export { getSessionStamper } from './sessionStamper';
 
-/**
- * The account whose current session came from a flagged passkey sign-in
- * (initializePasskey), or null: an email-code session, a resume, or none.
- */
-let passkeySessionSub: string | null = null;
 let passkeyRefresh: Promise<void> | null = null;
 
 /**
@@ -63,29 +63,38 @@ let passkeyRefresh: Promise<void> | null = null;
  * unflagged signer does through its kept passkey client.
  */
 class SessionKernelSigner extends KernelSigner {
-  async openSessionWithApiStamper(subOrganizationId: string, apiStamper: ApiKeyStamper) {
-    passkeySessionSub = null;
+  /** `passkeySub` marks a session a flagged passkey sign-in opened. */
+  async openSessionWithApiStamper(
+    subOrganizationId: string,
+    apiStamper: ApiKeyStamper,
+    passkeySub: string | null = null,
+  ) {
+    const generation = sessionGeneration();
     await super.openSessionWithApiStamper(subOrganizationId, apiStamper);
-    setSessionStamper(apiStamper, this.apiSessionClient.expires);
+    if (generation !== sessionGeneration()) {
+      // Reset or logged out while this was opening: leave no session behind.
+      super.resetClient();
+      throw new Error('Session ended while it was opening');
+    }
+    setSessionStamper(apiStamper, this.apiSessionClient.expires, passkeySub);
   }
 
   resetClient() {
-    passkeySessionSub = null;
     clearSessionStamper();
     return super.resetClient();
   }
 
   async getActiveClient() {
-    const sub = passkeySessionSub;
-    if (sub && this.apiSessionClient.expires <= Date.now()) {
-      // Calls that overlap share one prompt.
-      passkeyRefresh ??= initializePasskey(sub)
+    const sub = getPasskeySessionSub();
+    if (!passkeyRefresh && sub && this.apiSessionClient.expires <= Date.now()) {
+      passkeyRefresh = initializePasskey(sub)
         .then(() => undefined)
         .finally(() => {
           passkeyRefresh = null;
         });
-      await passkeyRefresh;
     }
+    // Calls that overlap share one prompt, and wait for it to finish opening.
+    if (passkeyRefresh) await passkeyRefresh;
     return super.getActiveClient();
   }
 }
@@ -248,9 +257,17 @@ export const initializePasskey = async (subOrganizationId: string): Promise<numb
     await kernelSigner.passkeyToSession(subOrganizationId, passkeyStamper);
     return kernelSigner.passkeySessionClient.expires;
   }
+  const generation = sessionGeneration();
   const { stamper, expiresAt } = await createPasskeySession(subOrganizationId);
-  await kernelSigner.openSessionWithApiStamper(subOrganizationId, stamper);
-  passkeySessionSub = subOrganizationId;
+  if (generation !== sessionGeneration()) {
+    // Reset or logged out while the prompt was open: open nothing.
+    throw new Error('Session ended before the passkey session opened');
+  }
+  await (kernelSigner as SessionKernelSigner).openSessionWithApiStamper(
+    subOrganizationId,
+    stamper,
+    subOrganizationId,
+  );
   return expiresAt;
 };
 
