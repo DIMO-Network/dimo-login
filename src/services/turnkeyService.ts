@@ -8,6 +8,7 @@
  */
 
 import {
+  accountPermissionsCalls,
   KernelSigner,
   newKernelConfig,
   Permission,
@@ -15,7 +16,11 @@ import {
   SetAccountPermissions,
   SetVehiclePermissions,
   SetVehiclePermissionsBulk,
+  type TransactionData,
+  vehiclePermissionsBulkCalls,
+  vehiclePermissionsCalls,
 } from '@dimo-network/transactions';
+import { encodeFunctionData, type Hex } from 'viem';
 import { buildDriverDocAgreements } from './accountDocumentAgreements';
 import { getWebAuthnAttestation, TurnkeyClient } from '@turnkey/http';
 import { WebauthnStamper } from '@turnkey/webauthn-stamper';
@@ -39,6 +44,7 @@ import {
 } from './sessionStamper';
 import { Attachment, CloudEventAgreement } from '../types';
 import { withTimeout } from '../utils/withTimeout';
+import { ensureV2Session, sendCallsV2, type V2Call } from './v2/accountsV2';
 
 // Bound every KernelSigner call (bundler/paymaster/RPC + user-op receipt). 90s is
 // generous for an on-chain user operation but still finite — on expiry the caller
@@ -374,17 +380,76 @@ export const generateAccountIpfsSource = async (
 // KernelSigner rejects batches of 25 or more grants.
 export const VEHICLE_PERMISSIONS_BATCH_LIMIT = 24;
 
+/**
+ * Sends the calls through accounts v2 when it can serve the signed-in account
+ * (ACCOUNTS_V2_SENDS), and returns the transaction hash. Null when it can't:
+ * nothing was sent, and the caller sends through the wallet signer as before.
+ * Once sendCallsV2 has started, its errors propagate and nothing is sent
+ * again, through v2 or the wallet signer: after a UserOperationUnknownError or
+ * UserOperationPendingError the operation may still land. The SDK bounds the
+ * send and the receipt wait itself, so they don't get KERNEL_OP_TIMEOUT_MS.
+ */
+const sendThroughV2 = async (calls: () => V2Call[]): Promise<Hex | null> => {
+  const v2 = await ensureV2Session({
+    // The account the wallet signer has a session for. Empty only without a
+    // session, which ensureV2Session turns down.
+    subOrganizationId: kernelSigner.subOrganizationId ?? '',
+    walletAddress: kernelSigner.walletAddress,
+    smartContractAddress: kernelSigner.smartContractAddress,
+  });
+  if (v2.kind === 'unavailable') {
+    // Sentry keeps it as a console breadcrumb; it is no error of its own.
+    if (v2.reason !== 'flag_off') {
+      console.info(
+        `Sent through the wallet signer: accounts v2 unavailable (${v2.reason})`,
+      );
+    }
+    return null;
+  }
+  return sendCallsV2(v2, calls());
+};
+
+/** The wallet signer's environment, so v2 sends to the same SACD contracts. */
+const environment = () => kernelSigner.config.environment;
+
+/** A contract call as a UserOperation call, encoded as the wallet signer encodes it. */
+const encodeCall = ({
+  address,
+  abi,
+  functionName,
+  args,
+  value,
+}: TransactionData): V2Call => ({
+  to: address,
+  value: (value || BigInt(0)) as bigint,
+  data: encodeFunctionData({ abi, functionName, args }),
+});
+
+/** A v2 send's transaction logs, from the chain, as the wallet signer's receipt carries them. */
+const transactionLogs = async (hash: Hex) =>
+  (
+    await kernelSigner.publicClient.waitForTransactionReceipt({
+      hash,
+      timeout: KERNEL_OP_TIMEOUT_MS,
+    })
+  ).logs;
+
 // Sets a different grant (and source document) per vehicle in one user
 // operation, so either every grant in the batch lands or none does.
 export async function setVehiclePermissionsBatch(
   grants: SetVehiclePermissions[],
 ): Promise<void> {
   try {
-    await withTimeout(
-      kernelSigner.setVehiclePermissions(grants),
-      KERNEL_OP_TIMEOUT_MS,
-      'setVehiclePermissionsBatch',
+    const v2Hash = await sendThroughV2(() =>
+      vehiclePermissionsCalls(grants, environment()),
     );
+    if (v2Hash === null) {
+      await withTimeout(
+        kernelSigner.setVehiclePermissions(grants),
+        KERNEL_OP_TIMEOUT_MS,
+        'setVehiclePermissionsBatch',
+      );
+    }
     console.log('Vehicle permissions set successfully');
   } catch (error) {
     console.error('Error setting vehicle permissions:', error);
@@ -400,19 +465,19 @@ export async function setVehiclePermissions({
   expiration,
   source,
 }: SetVehiclePermissions): Promise<void> {
+  const grant = { tokenId, grantee, permissions, expiration, source };
   try {
-    // Call the kernelClient's setVehiclePermissions with the prepared payload
-    await withTimeout(
-      kernelSigner.setVehiclePermissions({
-        tokenId,
-        grantee,
-        permissions,
-        expiration,
-        source,
-      }),
-      KERNEL_OP_TIMEOUT_MS,
-      'setVehiclePermissions',
+    const v2Hash = await sendThroughV2(() =>
+      vehiclePermissionsCalls(grant, environment()),
     );
+    if (v2Hash === null) {
+      // Call the kernelClient's setVehiclePermissions with the prepared payload
+      await withTimeout(
+        kernelSigner.setVehiclePermissions(grant),
+        KERNEL_OP_TIMEOUT_MS,
+        'setVehiclePermissions',
+      );
+    }
     console.log('Vehicle permissions set successfully');
   } catch (error) {
     console.error('Error setting vehicle permissions:', error);
@@ -427,19 +492,19 @@ export async function setVehiclePermissionsBulk({
   expiration,
   source,
 }: SetVehiclePermissionsBulk): Promise<void> {
+  const grant = { tokenIds, grantee, permissions, expiration, source };
   try {
-    // Call the kernelClient's setVehiclePermissionsBulk with the prepared payload
-    await withTimeout(
-      kernelSigner.setVehiclePermissionsBulk({
-        tokenIds,
-        grantee,
-        permissions,
-        expiration,
-        source,
-      }),
-      KERNEL_OP_TIMEOUT_MS,
-      'setVehiclePermissionsBulk',
+    const v2Hash = await sendThroughV2(() =>
+      vehiclePermissionsBulkCalls(grant, environment()),
     );
+    if (v2Hash === null) {
+      // Call the kernelClient's setVehiclePermissionsBulk with the prepared payload
+      await withTimeout(
+        kernelSigner.setVehiclePermissionsBulk(grant),
+        KERNEL_OP_TIMEOUT_MS,
+        'setVehiclePermissionsBulk',
+      );
+    }
     console.log('Vehicle permissions set successfully');
   } catch (error) {
     console.error('Error setting vehicle permissions:', error);
@@ -456,18 +521,18 @@ export async function setAccountPermissions({
   templateId,
   source,
 }: SetAccountPermissions): Promise<void> {
+  const grant = { grantee, permissions, expiration, templateId, source };
   try {
-    await withTimeout(
-      kernelSigner.setAccountPermissions({
-        grantee,
-        permissions,
-        expiration,
-        templateId,
-        source,
-      }),
-      KERNEL_OP_TIMEOUT_MS,
-      'setAccountPermissions',
+    const v2Hash = await sendThroughV2(() =>
+      accountPermissionsCalls(grant, environment()),
     );
+    if (v2Hash === null) {
+      await withTimeout(
+        kernelSigner.setAccountPermissions(grant),
+        KERNEL_OP_TIMEOUT_MS,
+        'setAccountPermissions',
+      );
+    }
     console.log('Account permissions set successfully');
   } catch (error) {
     console.error('Error setting account permissions:', error);
@@ -529,16 +594,20 @@ export async function executeAdvancedTransaction(
   args: any[],
   value?: bigint,
 ): Promise<`0x${string}`> {
+  const data = {
+    address: address,
+    value: parseValue(value!),
+    abi: abi,
+    functionName: functionName,
+    args: parseParameters(args),
+  };
+  const v2Hash = await sendThroughV2(() => [encodeCall(data)]);
+  if (v2Hash !== null) return v2Hash;
+
   const response = await withTimeout(
     kernelSigner.executeTransaction({
       requireSignature: false,
-      data: {
-        address: address,
-        value: parseValue(value!),
-        abi: abi,
-        functionName: functionName,
-        args: parseParameters(args),
-      },
+      data,
     }),
     KERNEL_OP_TIMEOUT_MS,
     'executeTransaction',
@@ -553,10 +622,16 @@ export async function executeTransactionWithReceipt(
   functionName: string,
   args: any[],
 ): Promise<{ transactionHash: `0x${string}`; logs: any[] }> {
+  const data = { address, abi, functionName, args };
+  const v2Hash = await sendThroughV2(() => [encodeCall(data)]);
+  if (v2Hash !== null) {
+    return { transactionHash: v2Hash, logs: await transactionLogs(v2Hash) };
+  }
+
   const receipt = await withTimeout(
     kernelSigner.executeTransaction({
       requireSignature: false,
-      data: { address, abi, functionName, args },
+      data,
     }),
     KERNEL_OP_TIMEOUT_MS,
     'executeTransactionWithReceipt',
@@ -572,16 +647,22 @@ export function getSacdDescription(args: VehiclePermissionDescription): string {
 export async function executeBatchTransactions(
   calls: Array<{ address: `0x${string}`; abi: any; functionName: string; args: any[]; value?: BigInt }>,
 ): Promise<{ transactionHash: `0x${string}`; logs: any[] }> {
+  const data = calls.map(({ address, abi, functionName, args, value }) => ({
+    address,
+    abi,
+    functionName,
+    args,
+    ...(value !== undefined && { value }),
+  }));
+  const v2Hash = await sendThroughV2(() => data.map(encodeCall));
+  if (v2Hash !== null) {
+    return { transactionHash: v2Hash, logs: await transactionLogs(v2Hash) };
+  }
+
   const receipt = await withTimeout(
     kernelSigner.executeTransaction({
       requireSignature: false,
-      data: calls.map(({ address, abi, functionName, args, value }) => ({
-        address,
-        abi,
-        functionName,
-        args,
-        ...(value !== undefined && { value }),
-      })),
+      data,
     }),
     KERNEL_OP_TIMEOUT_MS,
     'executeBatchTransactions',
