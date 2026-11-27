@@ -272,12 +272,7 @@ export const generateIpfsSources = async (
   permissions: Permission[],
   clientId: `0x${string}` | null,
   expiration: BigInt,
-  {
-    attachments = [],
-    cloudEventAgreements,
-    dataversion,
-    asset = 'did:',
-  }: IpfsSourceOptions = {},
+  { attachments = [], cloudEventAgreements, dataversion, asset = 'did:' }: IpfsSourceOptions = {},
 ): Promise<string> => {
   const grantor = kernelSigner.smartContractAddress!;
   const ipfsRes = await withTimeout(
@@ -523,9 +518,7 @@ export async function executeTransactionWithReceipt(
     KERNEL_OP_TIMEOUT_MS,
     'executeTransactionWithReceipt',
   );
-  const logs = receipt.receipt?.logs?.length
-    ? receipt.receipt.logs
-    : ((receipt as any).logs ?? []);
+  const logs = receipt.receipt?.logs?.length ? receipt.receipt.logs : (receipt as any).logs ?? [];
   return { transactionHash: receipt.receipt.transactionHash, logs };
 }
 
@@ -534,13 +527,7 @@ export function getSacdDescription(args: VehiclePermissionDescription): string {
 }
 
 export async function executeBatchTransactions(
-  calls: Array<{
-    address: `0x${string}`;
-    abi: any;
-    functionName: string;
-    args: any[];
-    value?: BigInt;
-  }>,
+  calls: Array<{ address: `0x${string}`; abi: any; functionName: string; args: any[]; value?: BigInt }>,
 ): Promise<{ transactionHash: `0x${string}`; logs: any[] }> {
   const receipt = await withTimeout(
     kernelSigner.executeTransaction({
@@ -556,8 +543,6 @@ export async function executeBatchTransactions(
     KERNEL_OP_TIMEOUT_MS,
     'executeBatchTransactions',
   );
-  const logs = receipt.receipt?.logs?.length
-    ? receipt.receipt.logs
-    : ((receipt as any).logs ?? []);
+  const logs = receipt.receipt?.logs?.length ? receipt.receipt.logs : (receipt as any).logs ?? [];
   return { transactionHash: receipt.receipt.transactionHash, logs };
 }
