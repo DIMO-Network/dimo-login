@@ -40,8 +40,10 @@ export default defineConfig(({ command, mode }) => {
     plugins: [
       react(),
       tailwindcss(),
-      // The first screen's JavaScript: no wallet code, and a size budget.
-      entryGuard({ forbidden: FIRST_SCREEN_FORBIDDEN, maxGzipKiB: 172 }),
+      // The first screen's JavaScript: no wallet code, and a size budget. The
+      // wallet chunk reports v2 send errors to Sentry, which puts Sentry's core
+      // in a first-load chunk of its own: the same code, 0.4 KiB more gzipped.
+      entryGuard({ forbidden: FIRST_SCREEN_FORBIDDEN, maxGzipKiB: 173 }),
       // The first screen uses Regular, Medium and Semibold; Bold isn't preloaded.
       fontPreload(/assets\/EuclidCircularA-(Regular|Medium|Semibold)-[\w-]+\.woff2$/),
     ],

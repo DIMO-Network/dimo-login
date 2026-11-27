@@ -103,11 +103,13 @@ import {
   UserOperationRevertedError,
   UserOperationUnknownError,
 } from '@dimo-network/transactions/accounts';
-import { captureException } from '@sentry/react';
+import * as Sentry from '@sentry/react';
+import { captureException, type Event } from '@sentry/react';
 import type { ApiKeyStamper } from '@turnkey/api-key-stamper';
 import { encodeFunctionData, type Hex, type LocalAccount } from 'viem';
 
 import { AdvancedTransaction } from '../../components/AdvancedTransaction/AdvancedTransaction';
+import { sentryOptions } from '../../sentryOptions';
 import { sendMessageToReferrer } from '../../utils/messageHandler';
 import { clearSessionStamper, setSessionStamper } from '../sessionStamper';
 import {
@@ -535,15 +537,32 @@ describe.each(wrappers)('$name', (wrapper) => {
         'UserOperationRevertedError',
         () => new UserOperationRevertedError(OP_HASH, 'pimlico', 'denied'),
       ],
-      ['GasProxyError', () => new GasProxyError(429, 'alchemy', 5)],
-    ])('rethrows a %s and sends nothing again', async (_name, failure) => {
-      const error = failure();
+    ])(
+      'rethrows a %s, reported with its operation, and sends nothing again',
+      async (_name, failure) => {
+        const error = failure();
+        vi.mocked(sendCallsV2).mockRejectedValue(error);
+
+        await expect(wrapper.send()).rejects.toBe(error);
+
+        expect(sendCallsV2).toHaveBeenCalledTimes(1);
+        expect(wrapper.v1()).not.toHaveBeenCalled();
+        expect(captureException).toHaveBeenCalledTimes(1);
+        expect(captureException).toHaveBeenCalledWith(error, {
+          contexts: { user_operation: { userOpHash: OP_HASH, provider: error.provider } },
+        });
+      },
+    );
+
+    it('rethrows an error that names no operation as it is, and sends nothing again', async () => {
+      const error = new GasProxyError(429, 'alchemy', 5);
       vi.mocked(sendCallsV2).mockRejectedValue(error);
 
       await expect(wrapper.send()).rejects.toBe(error);
 
       expect(sendCallsV2).toHaveBeenCalledTimes(1);
       expect(wrapper.v1()).not.toHaveBeenCalled();
+      expect(captureException).not.toHaveBeenCalled();
     });
   });
 
@@ -667,7 +686,21 @@ describe('AdvancedTransaction', () => {
     expect(after.redirectUri).toBe(before.redirectUri);
   });
 
-  it('shows the failed transaction when the v2 outcome is unknown, and sends nothing again', async () => {
+  it('shows the failed transaction when the v2 outcome is unknown, sends nothing again, and sends Sentry one event naming the operation', async () => {
+    const events: Event[] = [];
+    Sentry.init({
+      ...sentryOptions,
+      dsn: 'https://public@o0.ingest.sentry.io/0',
+      transport: () => ({
+        send: (envelope) => {
+          envelope[1].forEach(([header, payload]) => {
+            if (header.type === 'event') events.push(payload as Event);
+          });
+          return Promise.resolve({});
+        },
+        flush: () => Promise.resolve(true),
+      }),
+    });
     process.env.REACT_APP_ACCOUNTS_V2_SENDS = 'true';
     vi.mocked(ensureV2Session).mockResolvedValue(READY);
     const error = new UserOperationUnknownError(
@@ -678,14 +711,27 @@ describe('AdvancedTransaction', () => {
     );
     vi.mocked(sendCallsV2).mockRejectedValue(error);
 
-    approve();
+    try {
+      approve();
 
-    expect(
-      await screen.findByText('Couldn’t complete the transaction. Try again.'),
-    ).toBeInTheDocument();
-    expect(captureException).toHaveBeenCalledWith(error);
-    expect(sendMessageToReferrer).not.toHaveBeenCalled();
-    expect(sendCallsV2).toHaveBeenCalledTimes(1);
-    expect(kernel().executeTransaction).not.toHaveBeenCalled();
+      expect(
+        await screen.findByText('Couldn’t complete the transaction. Try again.'),
+      ).toBeInTheDocument();
+      expect(sendMessageToReferrer).not.toHaveBeenCalled();
+      expect(sendCallsV2).toHaveBeenCalledTimes(1);
+      expect(kernel().executeTransaction).not.toHaveBeenCalled();
+      // The screen captures the error too, as it always has: still one event.
+      expect(captureException).toHaveBeenLastCalledWith(error);
+      await Sentry.flush(1000);
+      expect(events).toHaveLength(1);
+      // Sentry lists the error's cause first and the error itself last.
+      expect(events[0].exception?.values?.at(-1)?.type).toBe('UserOperationUnknownError');
+      expect(events[0].contexts?.user_operation).toEqual({
+        userOpHash: OP_HASH,
+        provider: 'alchemy',
+      });
+    } finally {
+      await Sentry.close();
+    }
   });
 });

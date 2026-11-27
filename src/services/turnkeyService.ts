@@ -20,6 +20,12 @@ import {
   vehiclePermissionsBulkCalls,
   vehiclePermissionsCalls,
 } from '@dimo-network/transactions';
+import {
+  UserOperationPendingError,
+  UserOperationRevertedError,
+  UserOperationUnknownError,
+} from '@dimo-network/transactions/accounts';
+import { captureException } from '@sentry/react';
 import { encodeFunctionData, type Hex } from 'viem';
 import { buildDriverDocAgreements } from './accountDocumentAgreements';
 import { getWebAuthnAttestation, TurnkeyClient } from '@turnkey/http';
@@ -381,6 +387,23 @@ export const generateAccountIpfsSource = async (
 export const VEHICLE_PERMISSIONS_BATCH_LIMIT = 24;
 
 /**
+ * Reports a v2 send error that names its UserOperation (unknown, pending or
+ * reverted) with the operation's hash and gas provider as its user_operation
+ * context. Sentry sends an error once, so the screen's own captureException
+ * of it adds no second event.
+ */
+const reportUserOperation = (error: unknown) => {
+  if (
+    error instanceof UserOperationUnknownError ||
+    error instanceof UserOperationPendingError ||
+    error instanceof UserOperationRevertedError
+  ) {
+    const { userOpHash, provider } = error;
+    captureException(error, { contexts: { user_operation: { userOpHash, provider } } });
+  }
+};
+
+/**
  * Sends the calls through accounts v2 when it can serve the signed-in account
  * (ACCOUNTS_V2_SENDS), and returns the transaction hash. Null when it can't:
  * nothing was sent, and the caller sends through the wallet signer as before.
@@ -406,7 +429,12 @@ const sendThroughV2 = async (calls: () => V2Call[]): Promise<Hex | null> => {
     }
     return null;
   }
-  return sendCallsV2(v2, calls());
+  try {
+    return await sendCallsV2(v2, calls());
+  } catch (error) {
+    reportUserOperation(error);
+    throw error;
+  }
 };
 
 /** The wallet signer's environment, so v2 sends to the same SACD contracts. */
