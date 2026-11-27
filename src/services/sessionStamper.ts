@@ -24,6 +24,9 @@ let generation = 0;
 export const getSessionStamper = (): ApiKeyStamper | null =>
   session && session.expiresAt > Date.now() ? session.stamper : null;
 
+/** When the current session expires (ms since the epoch), live or lapsed; null without one. */
+export const getSessionStamperExpiry = (): number | null => session?.expiresAt ?? null;
+
 /** The account of a flagged passkey session, live or lapsed; null otherwise. */
 export const getPasskeySessionSub = (): string | null => session?.passkeySub ?? null;
 

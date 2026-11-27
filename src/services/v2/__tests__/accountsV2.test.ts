@@ -57,6 +57,7 @@ import {
   UserOperationRevertedError,
   UserOperationUnknownError,
   waitForUserOperationReceipt,
+  type SdkConfig,
   type Session,
   type WebCryptoDpopKey,
 } from '@dimo-network/transactions/accounts';
@@ -121,6 +122,24 @@ const sdkCalls = () => [
   createAccount,
 ];
 
+/** A fetch that never answers, and rejects when its request is aborted, as fetch does. */
+const fetchThatHangs = () =>
+  vi.fn(
+    (_input: RequestInfo | URL, init?: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => reject(init.signal?.reason));
+      }),
+  );
+
+/** A request the way the SDK sends one: a rejected fetch is a NetworkError. */
+const sdkRequest = async (cfg: Pick<SdkConfig, 'fetchImpl'>, url: string) => {
+  try {
+    return await cfg.fetchImpl!(url, { method: 'POST' });
+  } catch (cause) {
+    throw new NetworkError('dauth', cause);
+  }
+};
+
 /** A new Turnkey session for the signed-in account, as a sign-in opens one. */
 const openTurnkeySession = (expiresIn = HOUR) => {
   const stamper = { stamp: vi.fn() } as unknown as ApiKeyStamper;
@@ -153,6 +172,7 @@ afterEach(() => {
   clearSessionStamper();
   Object.keys(ENV).forEach((key) => delete process.env[key]);
   vi.useRealTimers();
+  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -278,7 +298,7 @@ describe('ensureV2Session', () => {
     expect(lookupByWallet).toHaveBeenCalledWith(expect.anything(), { address: WALLET });
     expect(signIn).toHaveBeenCalledTimes(1);
     const [cfg, args] = vi.mocked(signIn).mock.calls[0];
-    expect(cfg).toEqual(v2Config());
+    expect(cfg).toEqual({ ...v2Config(), fetchImpl: expect.any(Function) });
     expect(args).toEqual({
       did: DID,
       signer: expect.any(TurnkeyWalletSigner),
@@ -434,16 +454,16 @@ describe('ensureV2Session', () => {
     );
   });
 
-  it('keeps the session until 60 s before it expires, then signs in again', async () => {
+  it('keeps the session until 180 s before it expires, then signs in again', async () => {
     vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-11-27T12:00:00Z') });
     stamper = openTurnkeySession();
 
     const first = await ensureV2Session(JUN);
-    vi.setSystemTime(Date.now() + TOKEN_LIFETIME - 61_000);
+    vi.setSystemTime(Date.now() + TOKEN_LIFETIME - 181_000);
     expect(await ensureV2Session(JUN)).toBe(first);
     expect(signIn).toHaveBeenCalledTimes(1);
 
-    vi.setSystemTime(Date.now() + 31_000); // expiresAt - 30 s
+    vi.setSystemTime(Date.now() + 2_000); // expiresAt - 179 s
     const renewed = await ensureV2Session(JUN);
     expect(signIn).toHaveBeenCalledTimes(2);
     expect(renewed).not.toBe(first);
@@ -503,6 +523,196 @@ describe('ensureV2Session', () => {
 
     setSessionStamper(stamper, Date.now() + HOUR);
     await ensureV2Session(JUN);
+    expect(signIn).toHaveBeenCalledTimes(2);
+  });
+
+  it('is no_session when the Turnkey session has less than 180 s left, and signs nothing in', async () => {
+    openTurnkeySession(100_000);
+
+    expect(await ensureV2Session(JUN)).toEqual({
+      kind: 'unavailable',
+      reason: 'no_session',
+    });
+    sdkCalls().forEach((call) => expect(call).not.toHaveBeenCalled());
+  });
+
+  it('stops using a ready session once its Turnkey session has less than 180 s left', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-11-27T12:00:00Z') });
+    stamper = openTurnkeySession(600_000);
+    expect(await ensureV2Session(JUN)).toMatchObject({ kind: 'ready' });
+
+    vi.setSystemTime(Date.now() + 600_000 - 179_000);
+
+    expect(await ensureV2Session(JUN)).toEqual({
+      kind: 'unavailable',
+      reason: 'no_session',
+    });
+    expect(signIn).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    [
+      'signs in',
+      () => {
+        vi.mocked(signIn).mockImplementationOnce(async () => ({
+          ...dauthSession(),
+          scopes: ['read'],
+        }));
+      },
+    ],
+    [
+      'claims',
+      () => {
+        vi.mocked(lookupByWallet).mockResolvedValue(null);
+        vi.mocked(claimDid).mockImplementationOnce(async () => ({
+          did: DID,
+          session: { ...dauthSession(), scopes: ['read'] },
+          account: {} as never,
+        }));
+      },
+    ],
+  ])(
+    'is v2_down when dauth grants no write scope as it %s, and keeps nothing',
+    async (_name, arrange) => {
+      arrange();
+
+      expect(await ensureV2Session(JUN)).toEqual({
+        kind: 'unavailable',
+        reason: 'v2_down',
+      });
+      expect(await ensureV2Session(JUN)).toMatchObject({ kind: 'ready' });
+      expect(
+        vi.mocked(signIn).mock.calls.length + vi.mocked(claimDid).mock.calls.length,
+      ).toBe(2);
+    },
+  );
+
+  it('signs in with the claimed DID, without claiming again, after a new Turnkey session', async () => {
+    vi.mocked(lookupByWallet).mockResolvedValueOnce(null).mockResolvedValue(DID);
+    await ensureV2Session(JUN);
+    openTurnkeySession();
+
+    expect(await ensureV2Session(JUN)).toMatchObject({
+      kind: 'ready',
+      session: { did: DID },
+    });
+    expect(claimDid).toHaveBeenCalledTimes(1);
+    expect(signIn).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(signIn).mock.calls[0][1]).toMatchObject({ did: DID });
+  });
+});
+
+describe('ensureV2Session time limits', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+    stamper = openTurnkeySession();
+  });
+
+  /** Starts ensureV2Session; `result()` is its answer once it has one. */
+  const start = () => {
+    let answer: unknown;
+    void ensureV2Session(JUN).then((value) => {
+      answer = value;
+    });
+    return { result: () => answer };
+  };
+
+  it('gives every sign-in request one fetch, and passes the request through', async () => {
+    const fetch = vi.fn(async () => ({ ok: true }) as Response);
+    vi.stubGlobal('fetch', fetch);
+    vi.mocked(lookupByWallet).mockImplementation(async (cfg) => {
+      await sdkRequest(cfg, 'https://accounts.dev.dimo.org/api/v2/accounts/by-wallet/x');
+      return DID;
+    });
+
+    expect(await ensureV2Session(JUN)).toMatchObject({ kind: 'ready' });
+
+    const [cfg] = vi.mocked(lookupByWallet).mock.calls[0];
+    expect(vi.mocked(smartAccountAddress).mock.calls[0][0]).toBe(cfg);
+    expect(vi.mocked(signIn).mock.calls[0][0]).toBe(cfg);
+    expect(fetch).toHaveBeenCalledWith(
+      'https://accounts.dev.dimo.org/api/v2/accounts/by-wallet/x',
+      expect.objectContaining({ method: 'POST', signal: expect.any(AbortSignal) }),
+    );
+  });
+
+  it('keeps the signal the SDK passes', async () => {
+    const fetch = fetchThatHangs();
+    vi.stubGlobal('fetch', fetch);
+    await ensureV2Session(JUN);
+    const { fetchImpl } = vi.mocked(signIn).mock.calls[0][0];
+    const caller = new AbortController();
+
+    const request = fetchImpl!('https://dauth.dev.dimo.zone/x', {
+      signal: caller.signal,
+    });
+    caller.abort(new Error('the SDK gave up'));
+
+    expect(fetch.mock.calls[0][1]?.signal?.reason).toEqual(new Error('the SDK gave up'));
+    await expect(request).rejects.toThrow('the SDK gave up');
+  });
+
+  it('cuts a request off after 10 s: v2_down', async () => {
+    const fetch = fetchThatHangs();
+    vi.stubGlobal('fetch', fetch);
+    vi.mocked(lookupByWallet).mockImplementation(async (cfg) => {
+      await sdkRequest(cfg, 'https://accounts.dev.dimo.org/api/v2/accounts/by-wallet/x');
+      return DID;
+    });
+
+    const ensure = start();
+    await vi.advanceTimersByTimeAsync(9_999);
+    expect(ensure.result()).toBeUndefined();
+    await vi.advanceTimersByTimeAsync(1);
+
+    expect(ensure.result()).toEqual({ kind: 'unavailable', reason: 'v2_down' });
+    expect(fetch.mock.calls[0][1]?.signal?.reason).toMatchObject({
+      name: 'TimeoutError',
+    });
+    expect(signIn).not.toHaveBeenCalled();
+  });
+
+  it('is v2_down at 20 s, and sends nothing more however the requests are retried', async () => {
+    const fetch = fetchThatHangs();
+    vi.stubGlobal('fetch', fetch);
+    // As viem's transport reads the RPC: up to three retries, whatever the error.
+    vi.mocked(smartAccountAddress).mockImplementation(async (cfg) => {
+      for (let attempt = 0; ; attempt++) {
+        try {
+          await cfg.fetchImpl!('https://rpc.example/amoy', { method: 'POST' });
+          return KERNEL;
+        } catch (error) {
+          if (attempt === 3) throw error;
+          await new Promise((resolve) => setTimeout(resolve, 150));
+        }
+      }
+    });
+
+    const ensure = start();
+    await vi.advanceTimersByTimeAsync(19_999);
+    expect(ensure.result()).toBeUndefined();
+    expect(fetch).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(ensure.result()).toEqual({ kind: 'unavailable', reason: 'v2_down' });
+    // The request in flight (its own 10 s end at 20.15 s) is aborted with the budget.
+    expect(fetch.mock.calls[1][1]?.signal?.aborted).toBe(true);
+
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(signIn).not.toHaveBeenCalled();
+  });
+
+  it('keeps nothing from a sign-in that finishes after the budget', async () => {
+    vi.mocked(signIn).mockImplementationOnce(
+      () => new Promise((resolve) => setTimeout(() => resolve(dauthSession()), 25_000)),
+    );
+
+    const ensure = start();
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(ensure.result()).toEqual({ kind: 'unavailable', reason: 'v2_down' });
+    await vi.advanceTimersByTimeAsync(5_000); // the late sign-in finishes
+
+    expect(await ensureV2Session(JUN)).toMatchObject({ kind: 'ready' });
     expect(signIn).toHaveBeenCalledTimes(2);
   });
 });

@@ -34,13 +34,18 @@ import { createAccount } from '@turnkey/viem';
 import type { Hex, LocalAccount } from 'viem';
 
 import { accountsV2SendsEnabled } from '../../utils/featureFlags';
-import { getSessionStamper } from '../sessionStamper';
+import { getSessionStamper, getSessionStamperExpiry } from '../sessionStamper';
 import { getKernelSigner } from '../turnkeyService';
 
 const POLYGON = 137;
 const POLYGON_AMOY = 80002;
-// A dauth session this close to its expiry is renewed before it is used.
-const RENEW_BEFORE_MS = 60_000;
+// A send takes up to 30 s and its receipt wait up to 120 s, so a session (dauth
+// and Turnkey both) with less than this left isn't used for one.
+const SEND_MARGIN_MS = 180_000;
+// Signing in: each request to accounts, dauth, the directory or the RPC, and
+// the whole of it, past which the send goes as before.
+const REQUEST_TIMEOUT_MS = 10_000;
+const SIGN_IN_BUDGET_MS = 20_000;
 
 export type V2Unavailable = {
   kind: 'unavailable';
@@ -112,6 +117,39 @@ const noAnswer = (error: unknown) =>
 // The ready session, for one account and the Turnkey session that signed it in.
 let cached: { key: string; stamper: ApiKeyStamper; ready: V2Ready } | null = null;
 
+/** Aborts `request` when `signal` does; returns the undo. */
+const follow = (signal: AbortSignal | null | undefined, request: AbortController) => {
+  if (!signal) return () => {};
+  const abort = () => request.abort(signal.reason);
+  if (signal.aborted) abort();
+  else signal.addEventListener('abort', abort);
+  return () => signal.removeEventListener('abort', abort);
+};
+
+/**
+ * cfg whose fetch gives each request REQUEST_TIMEOUT_MS and keeps the signal
+ * the SDK passes. Once `stop` aborts it aborts what is in flight and sends
+ * nothing more. The SDK reports a rejected fetch as a NetworkError.
+ */
+const withTimeouts = (cfg: SdkConfig, stop: AbortSignal): SdkConfig => ({
+  ...cfg,
+  fetchImpl: async (input, init) => {
+    stop.throwIfAborted();
+    const request = new AbortController();
+    const timer = setTimeout(
+      () => request.abort(new DOMException('The request timed out', 'TimeoutError')),
+      REQUEST_TIMEOUT_MS,
+    );
+    const undo = [follow(stop, request), follow(init?.signal, request)];
+    try {
+      return await fetch(input, { ...init, signal: request.signal });
+    } finally {
+      clearTimeout(timer);
+      undo.forEach((unfollow) => unfollow());
+    }
+  },
+});
+
 /**
  * An existing v1 account's first v2 send: its DID, wallet-only (no signing
  * key), linked to the account. A sub-org that still holds the user's phone
@@ -133,40 +171,13 @@ const claimWalletDid = async (
   }
 };
 
-/**
- * A dauth session for the account's wallet, ready to send from its kernel, or
- * why v2 can't send for it (the caller then sends as before). Never throws.
- * v2 sends only from the wallet's plain kernel, so an account whose smart
- * account is another (a co-signer kernel) is address_mismatch. A wallet
- * without a DID claims one first. The session is reused until 60 s before it
- * expires, for the same account and Turnkey session only.
- */
-export const ensureV2Session = async (user: V2User): Promise<V2Ready | V2Unavailable> => {
-  if (!accountsV2SendsEnabled()) return unavailable('flag_off');
-  let cfg: SdkConfig;
-  try {
-    cfg = v2Config();
-  } catch {
-    return unavailable('config_missing');
-  }
-  const stamper = getSessionStamper();
-  if (!stamper) {
-    cached = null;
-    return unavailable('no_session');
-  }
-  const { subOrganizationId, walletAddress, smartContractAddress } = user;
-  if (!walletAddress || !smartContractAddress) return unavailable('address_mismatch');
-
-  const key = `${subOrganizationId} ${walletAddress.toLowerCase()} ${smartContractAddress.toLowerCase()}`;
-  if (
-    cached?.key === key &&
-    cached.stamper === stamper &&
-    cached.ready.session.expiresAt.getTime() - RENEW_BEFORE_MS > Date.now()
-  ) {
-    return cached.ready;
-  }
-  cached = null;
-
+/** Signs the account's wallet in to dauth (claiming its DID first if need be). Never rejects. */
+const openSession = async (
+  cfg: SdkConfig,
+  stamper: ApiKeyStamper,
+  account: { subOrganizationId: string; walletAddress: Hex; smartContractAddress: Hex },
+): Promise<V2Ready | V2Unavailable> => {
+  const { subOrganizationId, walletAddress, smartContractAddress } = account;
   let claiming = false;
   try {
     const client = new TurnkeyClient(
@@ -210,13 +221,78 @@ export const ensureV2Session = async (user: V2User): Promise<V2Ready | V2Unavail
 
     // Logged out (or signed in again) meanwhile: the session isn't this user's to use.
     if (getSessionStamper() !== stamper) return unavailable('no_session');
-    const ready: V2Ready = { kind: 'ready', session, walletAccount, chainId: chain };
-    cached = { key, stamper, ready };
-    return ready;
+    if (!session.scopes.includes('write')) {
+      console.warn('Accounts v2 unavailable (v2_down): no write scope', session.scopes);
+      return unavailable('v2_down');
+    }
+    return { kind: 'ready', session, walletAccount, chainId: chain };
   } catch (error) {
     const reason = claiming && !noAnswer(error) ? 'claim_refused' : 'v2_down';
     console.warn(`Accounts v2 unavailable (${reason})`, error);
     return unavailable(reason);
+  }
+};
+
+/**
+ * A dauth session for the account's wallet, ready to send from its kernel, or
+ * why v2 can't send for it (the caller then sends as before). Never throws.
+ * v2 sends only from the wallet's plain kernel, so an account whose smart
+ * account is another (a co-signer kernel) is address_mismatch. A wallet
+ * without a DID claims one first. Signing in gets SIGN_IN_BUDGET_MS, then is
+ * v2_down. A session is used only while it and the Turnkey session have
+ * SEND_MARGIN_MS left, and reused for the same account and Turnkey session only.
+ */
+export const ensureV2Session = async (user: V2User): Promise<V2Ready | V2Unavailable> => {
+  if (!accountsV2SendsEnabled()) return unavailable('flag_off');
+  let cfg: SdkConfig;
+  try {
+    cfg = v2Config();
+  } catch {
+    return unavailable('config_missing');
+  }
+  const stamper = getSessionStamper();
+  if (!stamper || (getSessionStamperExpiry() ?? 0) - Date.now() < SEND_MARGIN_MS) {
+    cached = null;
+    return unavailable('no_session');
+  }
+  const { subOrganizationId, walletAddress, smartContractAddress } = user;
+  if (!walletAddress || !smartContractAddress) return unavailable('address_mismatch');
+
+  const key = `${subOrganizationId} ${walletAddress.toLowerCase()} ${smartContractAddress.toLowerCase()}`;
+  if (
+    cached?.key === key &&
+    cached.stamper === stamper &&
+    cached.ready.session.expiresAt.getTime() - SEND_MARGIN_MS > Date.now()
+  ) {
+    return cached.ready;
+  }
+  cached = null;
+
+  const stop = new AbortController();
+  let budget: ReturnType<typeof setTimeout> | undefined;
+  const outOfTime = new Promise<V2Unavailable>((resolve) => {
+    budget = setTimeout(() => {
+      stop.abort(
+        new DOMException('Signing in to accounts v2 took too long', 'TimeoutError'),
+      );
+      console.warn('Accounts v2 unavailable (v2_down): signing in took too long');
+      resolve(unavailable('v2_down'));
+    }, SIGN_IN_BUDGET_MS);
+  });
+  const opened = openSession(withTimeouts(cfg, stop.signal), stamper, {
+    subOrganizationId,
+    walletAddress,
+    smartContractAddress,
+  }).then((result) => {
+    // A sign-in that finished after the budget is dropped.
+    if (result.kind === 'ready' && !stop.signal.aborted)
+      cached = { key, stamper, ready: result };
+    return result;
+  });
+  try {
+    return await Promise.race([opened, outOfTime]);
+  } finally {
+    clearTimeout(budget);
   }
 };
 
