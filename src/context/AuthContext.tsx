@@ -325,10 +325,10 @@ export const AuthProvider = ({
       return true;
     }
     if (turnkeySessionData.sessionType === 'passkey') {
-      await steps.initializePasskey(subOrganizationId);
+      const expiresAt = await steps.initializePasskey(subOrganizationId);
       setWalletSession(subOrganizationId, {
         sessionType: 'passkey',
-        expiresAt: signer.passkeySessionClient.expires,
+        expiresAt,
       });
       return true;
     }

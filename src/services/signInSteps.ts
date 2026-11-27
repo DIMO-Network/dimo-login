@@ -49,8 +49,7 @@ async function initializeKernelClient(
     await getKernelSigner().openSessionWithApiStamper(subOrganizationId, stamper);
     expires = getKernelSigner().apiSessionClient.expires;
   } else {
-    await initializePasskey(subOrganizationId);
-    expires = getKernelSigner().passkeySessionClient.expires;
+    expires = await initializePasskey(subOrganizationId);
   }
 
   const smartContractAddress = getSmartContractAddress();

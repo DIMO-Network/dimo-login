@@ -24,3 +24,12 @@ export const signInNoticeEnabled = () => process.env.REACT_APP_SIGN_IN_NOTICE ==
  * release is live can't create accounts from Google or Apple at all.
  */
 export const signUpProofEnabled = () => process.env.REACT_APP_SIGN_UP_PROOF === 'true';
+
+/**
+ * Sending transactions through the accounts v2 API (ACCOUNTS_V2_SENDS). On, a
+ * passkey sign-in opens its Turnkey session as an API-key session (one
+ * passkey prompt, as today), so one session stamper serves both the wallet
+ * signer and the v2 sends. Off, the wallet signer opens its own passkey session.
+ */
+export const accountsV2SendsEnabled = () =>
+  process.env.REACT_APP_ACCOUNTS_V2_SENDS === 'true';

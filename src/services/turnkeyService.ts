@@ -17,7 +17,7 @@ import {
   SetVehiclePermissionsBulk,
 } from '@dimo-network/transactions';
 import { buildDriverDocAgreements } from './accountDocumentAgreements';
-import { getWebAuthnAttestation } from '@turnkey/http';
+import { getWebAuthnAttestation, TurnkeyClient } from '@turnkey/http';
 import { WebauthnStamper } from '@turnkey/webauthn-stamper';
 import { base64UrlEncode, generateRandomBuffer } from '../utils/cryptoUtils';
 import { base64UrlToBytes } from '../utils/base64url';
@@ -25,7 +25,13 @@ import { VehiclePermissionDescription } from '@dimo-network/transactions/dist/co
 import { PasskeyCreationResult } from '../models/resultTypes';
 import { ApiKeyStamper } from '@turnkey/api-key-stamper';
 import { uint8ArrayToHexString } from '@turnkey/encoding';
-import { decryptCredentialBundle, getPublicKey } from '@turnkey/crypto';
+import {
+  decryptCredentialBundle,
+  generateP256KeyPair,
+  getPublicKey,
+} from '@turnkey/crypto';
+import { accountsV2SendsEnabled } from '../utils/featureFlags';
+import { clearSessionStamper, setSessionStamper } from './sessionStamper';
 import { Attachment, CloudEventAgreement } from '../types';
 import { withTimeout } from '../utils/withTimeout';
 
@@ -39,6 +45,25 @@ const KERNEL_OP_TIMEOUT_MS = 90_000;
 export const passkeyStamper = new WebauthnStamper({
   rpId: process.env.REACT_APP_RPCID_URL as string,
 });
+
+export { getSessionStamper } from './sessionStamper';
+
+/**
+ * KernelSigner that keeps sessionStamper in step with the session it holds:
+ * any API-key session it opens (email code, resume, or a passkey sign-in made
+ * one) is the current stamper, and a reset drops it.
+ */
+class SessionKernelSigner extends KernelSigner {
+  async openSessionWithApiStamper(subOrganizationId: string, apiStamper: ApiKeyStamper) {
+    await super.openSessionWithApiStamper(subOrganizationId, apiStamper);
+    setSessionStamper(apiStamper);
+  }
+
+  resetClient() {
+    clearSessionStamper();
+    return super.resetClient();
+  }
+}
 
 let kernelSigner: KernelSigner;
 
@@ -70,7 +95,7 @@ export const createKernelSigner = (
     redirectUri,
   });
 
-  kernelSigner = new KernelSigner(kernelSignerConfig);
+  kernelSigner = new SessionKernelSigner(kernelSignerConfig);
   return kernelSigner;
 };
 
@@ -150,8 +175,57 @@ export const createPasskey = async (
   return [attestation, base64UrlEncode(challenge)];
 };
 
-export const initializePasskey = async (subOrganizationId: string): Promise<void> => {
-  await kernelSigner.passkeyToSession(subOrganizationId, passkeyStamper);
+/**
+ * Opens a Turnkey read-write session with one passkey stamp, the way
+ * KernelSigner.passkeyToSession does (same activity, key and expiry), and
+ * hands back its API-key stamper. The session's key lives in memory only.
+ */
+export const createPasskeySession = async (
+  subOrganizationId: string,
+): Promise<{ stamper: ApiKeyStamper; expiresAt: number }> => {
+  const { config } = kernelSigner;
+  const timestamp = Date.now();
+  const key = generateP256KeyPair();
+  const expiresAt = timestamp + parseInt(config.sessionTimeoutSeconds) * 0.75 * 1000;
+
+  const turnkeyClient = new TurnkeyClient(
+    { baseUrl: config.turnkeyApiBaseUrl },
+    passkeyStamper,
+  );
+  const sessionData = await turnkeyClient.createReadWriteSession({
+    organizationId: subOrganizationId,
+    type: 'ACTIVITY_TYPE_CREATE_READ_WRITE_SESSION_V2',
+    timestampMs: timestamp.toString(),
+    parameters: {
+      targetPublicKey: key.publicKeyUncompressed,
+      expirationSeconds: config.sessionTimeoutSeconds,
+    },
+  });
+  const credentialBundle =
+    sessionData.activity.result.createReadWriteSessionResultV2?.credentialBundle;
+  if (!credentialBundle) {
+    throw new Error('Turnkey returned no session credential');
+  }
+  return {
+    stamper: getApiKeyStamper({ credentialBundle, embeddedKey: key.privateKey }),
+    expiresAt,
+  };
+};
+
+/**
+ * Signs in with the passkey. Returns when the session ends (ms). With
+ * ACCOUNTS_V2_SENDS on, the session is an API-key one (createPasskeySession)
+ * the wallet signer opens with, so the v2 sends can use its stamper; off, the
+ * wallet signer opens its own passkey session.
+ */
+export const initializePasskey = async (subOrganizationId: string): Promise<number> => {
+  if (!accountsV2SendsEnabled()) {
+    await kernelSigner.passkeyToSession(subOrganizationId, passkeyStamper);
+    return kernelSigner.passkeySessionClient.expires;
+  }
+  const { stamper, expiresAt } = await createPasskeySession(subOrganizationId);
+  await kernelSigner.openSessionWithApiStamper(subOrganizationId, stamper);
+  return expiresAt;
 };
 
 export const getApiKeyStamper = (args: {
@@ -198,7 +272,12 @@ export const generateIpfsSources = async (
   permissions: Permission[],
   clientId: `0x${string}` | null,
   expiration: BigInt,
-  { attachments = [], cloudEventAgreements, dataversion, asset = 'did:' }: IpfsSourceOptions = {},
+  {
+    attachments = [],
+    cloudEventAgreements,
+    dataversion,
+    asset = 'did:',
+  }: IpfsSourceOptions = {},
 ): Promise<string> => {
   const grantor = kernelSigner.smartContractAddress!;
   const ipfsRes = await withTimeout(
@@ -444,7 +523,9 @@ export async function executeTransactionWithReceipt(
     KERNEL_OP_TIMEOUT_MS,
     'executeTransactionWithReceipt',
   );
-  const logs = receipt.receipt?.logs?.length ? receipt.receipt.logs : (receipt as any).logs ?? [];
+  const logs = receipt.receipt?.logs?.length
+    ? receipt.receipt.logs
+    : ((receipt as any).logs ?? []);
   return { transactionHash: receipt.receipt.transactionHash, logs };
 }
 
@@ -453,7 +534,13 @@ export function getSacdDescription(args: VehiclePermissionDescription): string {
 }
 
 export async function executeBatchTransactions(
-  calls: Array<{ address: `0x${string}`; abi: any; functionName: string; args: any[]; value?: BigInt }>,
+  calls: Array<{
+    address: `0x${string}`;
+    abi: any;
+    functionName: string;
+    args: any[];
+    value?: BigInt;
+  }>,
 ): Promise<{ transactionHash: `0x${string}`; logs: any[] }> {
   const receipt = await withTimeout(
     kernelSigner.executeTransaction({
@@ -469,6 +556,8 @@ export async function executeBatchTransactions(
     KERNEL_OP_TIMEOUT_MS,
     'executeBatchTransactions',
   );
-  const logs = receipt.receipt?.logs?.length ? receipt.receipt.logs : (receipt as any).logs ?? [];
+  const logs = receipt.receipt?.logs?.length
+    ? receipt.receipt.logs
+    : ((receipt as any).logs ?? []);
   return { transactionHash: receipt.receipt.transactionHash, logs };
 }
