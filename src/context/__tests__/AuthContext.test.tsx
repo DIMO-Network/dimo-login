@@ -153,6 +153,16 @@ describe('AuthContext validateSession', () => {
     expect(setUiState).toHaveBeenCalledWith(UiStates.EMAIL_INPUT);
     expect(signInStepsWithSigner).not.toHaveBeenCalled();
   });
+
+  it('validateSession sends a user without a subOrganizationId to the email screen, without throwing', async () => {
+    renderProvider();
+    signInAs(undefined as unknown as string);
+
+    await expect(auth.validateSession()).resolves.toBeNull();
+
+    expect(setUiState).toHaveBeenCalledWith(UiStates.EMAIL_INPUT);
+    expect(signInStepsWithSigner).not.toHaveBeenCalled();
+  });
 });
 
 describe('AuthContext per-account wallet sessions', () => {

@@ -372,7 +372,9 @@ export const AuthProvider = ({
   );
   const validateSession = () => {
     const sub = user.subOrganizationId;
-    if (pendingCheck.current?.sub === sub) return pendingCheck.current.check;
+    if (pendingCheck.current && pendingCheck.current.sub === sub) {
+      return pendingCheck.current.check;
+    }
     const check = checkSession().finally(() => {
       if (pendingCheck.current?.check === check) pendingCheck.current = null;
     });
